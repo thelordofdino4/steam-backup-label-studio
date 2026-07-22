@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import {
+  getDiscGuidedPlaceholderLabelLines,
+} from './discGuidedPlaceholderLabels.ts'
+
 const overlaySource = readFileSync(
   new URL('./DiscGuidedPlaceholderOverlay.tsx', import.meta.url),
   'utf8',
@@ -39,8 +43,34 @@ test('visual geometry paints the shape while action geometry anchors its label',
   assert.match(overlaySource, /height=\{visualGeometry\.heightPercent\}/)
   assert.match(overlaySource, /x=\{actionGeometry\.centerXPercent\}/)
   assert.match(overlaySource, /y=\{actionGeometry\.centerYPercent\}/)
-  assert.match(overlaySource, /\{label\}/)
+  assert.match(
+    overlaySource,
+    /getDiscGuidedPlaceholderLabelLines\(label\)[\s\S]*?\{line\}/,
+  )
   assert.equal(overlaySource.includes('Game Title'), false)
+})
+
+test('long semantic labels balance into compact centered lines', () => {
+  assert.deepEqual(
+    getDiscGuidedPlaceholderLabelLines('Game Title'),
+    ['Game Title'],
+  )
+  assert.deepEqual(
+    getDiscGuidedPlaceholderLabelLines('Rating Badge'),
+    ['Rating', 'Badge'],
+  )
+  assert.deepEqual(
+    getDiscGuidedPlaceholderLabelLines('Media Format Mark'),
+    ['Media', 'Format Mark'],
+  )
+  assert.deepEqual(
+    getDiscGuidedPlaceholderLabelLines('Operating System Marks'),
+    ['Operating', 'System Marks'],
+  )
+  assert.deepEqual(
+    getDiscGuidedPlaceholderLabelLines('Copyright / Legal Text'),
+    ['Copyright /', 'Legal Text'],
+  )
 })
 
 test('suggested lifecycle remains visible with an explicit secondary label', () => {

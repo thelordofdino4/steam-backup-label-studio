@@ -1,4 +1,18 @@
 import type { DiscRolePresetId } from '../layout/discRolePresets.ts'
+import type {
+  DiscNormalizedRegion,
+  DiscPresetId,
+} from '../presets/discPresetDefinition.ts'
+import {
+  CLASSIC_TOP_TITLE_DISC_PRESET,
+} from '../presets/builtins/classicTopTitleDiscPreset.ts'
+import {
+  resolveDiscPresetCompatibilityId,
+} from '../presets/discPresetRegistry.ts'
+import type {
+  DiscPresetSlotResolutionStatus,
+  ResolvedDiscPresetDefinition,
+} from '../presets/discPresetResolution.ts'
 import type { DiscGuidedSlotId } from './discGuidedSlots.ts'
 
 export const DISC_GUIDED_LAYOUT_IDS = Object.freeze([
@@ -48,6 +62,7 @@ export type DiscGuidedLayoutSlotDefinition = Readonly<{
   visualLayer: DiscGuidedPlaceholderLayer
   setupKind: DiscGuidedSetupKind
   populationSource: DiscGuidedPopulationSource
+  resolutionStatus: DiscPresetSlotResolutionStatus
 }>
 
 export type DiscGuidedRectGeometryParseError =
@@ -66,6 +81,7 @@ export type DiscGuidedRectGeometryParseResult =
 export type DiscGuidedLayoutDefinition = Readonly<{
   id: DiscGuidedLayoutId
   version: DiscGuidedLayoutVersion
+  presetId: DiscPresetId
   baseRolePresetId: DiscRolePresetId
   slotOrder: readonly DiscGuidedSlotId[]
   slots: Readonly<
@@ -196,187 +212,105 @@ export function isDiscGuidedRectGeometry(
   return parseDiscGuidedRectGeometry(value).ok
 }
 
-const CLASSIC_TOP_TITLE_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 50,
-  centerYPercent: 19.5,
-  widthPercent: 62,
-  heightPercent: 16,
-}) satisfies DiscGuidedRectGeometry
+type DiscGuidedSlotPresentation = Readonly<{
+  label: string
+  setupKind: DiscGuidedSetupKind
+  populationSource: DiscGuidedPopulationSource
+}>
 
-const CLASSIC_BACKGROUND_VISUAL_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 50,
-  centerYPercent: 50,
-  widthPercent: 92,
-  heightPercent: 92,
-}) satisfies DiscGuidedRectGeometry
+const CLASSIC_SLOT_PRESENTATION: Readonly<
+  Record<DiscGuidedSlotId, DiscGuidedSlotPresentation | undefined>
+> = Object.freeze({
+  'disc:guided:game-title:primary': Object.freeze({
+    label: 'Game Title',
+    setupKind: 'game-title-choice',
+    populationSource: 'existing-steam-import',
+  }),
+  'disc:guided:background-image:primary': Object.freeze({
+    label: 'Background Image',
+    setupKind: 'background',
+    populationSource: 'none',
+  }),
+  'disc:guided:rating-badge:primary': Object.freeze({
+    label: 'Rating Badge',
+    setupKind: 'rating-badge',
+    populationSource: 'accepted-metadata',
+  }),
+  'disc:guided:media-format-mark:primary': Object.freeze({
+    label: 'Media Format Mark',
+    setupKind: 'media-format-mark',
+    populationSource: 'existing-owner-only',
+  }),
+  'disc:guided:operating-system-marks:group': Object.freeze({
+    label: 'Operating System Marks',
+    setupKind: 'operating-system-marks',
+    populationSource: 'existing-owner-only',
+  }),
+  'disc:guided:developer-logo:primary': Object.freeze({
+    label: 'Developer Logo',
+    setupKind: 'developer-logo',
+    populationSource: 'existing-owner-only',
+  }),
+  'disc:guided:publisher-logo:primary': Object.freeze({
+    label: 'Publisher Logo',
+    setupKind: 'publisher-logo',
+    populationSource: 'existing-owner-only',
+  }),
+  'disc:guided:legal-text:copyright': Object.freeze({
+    label: 'Copyright / Legal Text',
+    setupKind: 'legal-text',
+    populationSource: 'accepted-metadata',
+  }),
+  'disc:guided:additional-artwork:primary': undefined,
+  'disc:guided:additional-text:custom-note': undefined,
+})
 
-const CLASSIC_BACKGROUND_ACTION_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 50,
-  centerYPercent: 34,
-  widthPercent: 34,
-  heightPercent: 8,
-}) satisfies DiscGuidedRectGeometry
-
-const CLASSIC_RATING_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 79,
-  centerYPercent: 62,
-  widthPercent: 20,
-  heightPercent: 14,
-}) satisfies DiscGuidedRectGeometry
-
-const CLASSIC_MEDIA_FORMAT_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 80,
-  centerYPercent: 76,
-  widthPercent: 22,
-  heightPercent: 9,
-}) satisfies DiscGuidedRectGeometry
-
-const CLASSIC_OPERATING_SYSTEM_MARKS_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 50,
-  centerYPercent: 73,
-  widthPercent: 28,
-  heightPercent: 10,
-}) satisfies DiscGuidedRectGeometry
-
-const CLASSIC_DEVELOPER_LOGO_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 21,
-  centerYPercent: 62,
-  widthPercent: 26,
-  heightPercent: 9,
-}) satisfies DiscGuidedRectGeometry
-
-const CLASSIC_PUBLISHER_LOGO_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 21,
-  centerYPercent: 74,
-  widthPercent: 26,
-  heightPercent: 9,
-}) satisfies DiscGuidedRectGeometry
-
-const CLASSIC_LEGAL_GEOMETRY = Object.freeze({
-  kind: 'rect' as const,
-  centerXPercent: 50,
-  centerYPercent: 89,
-  widthPercent: 64,
-  heightPercent: 8,
-}) satisfies DiscGuidedRectGeometry
-
-const CLASSIC_TOP_TITLE_SLOT_ORDER = Object.freeze([
-  'disc:guided:game-title:primary',
-  'disc:guided:background-image:primary',
-  'disc:guided:rating-badge:primary',
-  'disc:guided:media-format-mark:primary',
-  'disc:guided:operating-system-marks:group',
-  'disc:guided:developer-logo:primary',
-  'disc:guided:publisher-logo:primary',
-  'disc:guided:legal-text:copyright',
-] as const satisfies readonly DiscGuidedSlotId[])
-
-function createLayoutSlot(
-  slot: DiscGuidedLayoutSlotDefinition,
-): DiscGuidedLayoutSlotDefinition {
-  return Object.freeze(slot)
+function toGuidedGeometry(region: DiscNormalizedRegion): DiscGuidedRectGeometry {
+  return Object.freeze({ kind: 'rect', ...region })
 }
 
-// Layout presets place real feature-owner state. Guided layouts independently
-// describe the semantic regions that a future editor-only overlay may present.
+const CLASSIC_TOP_TITLE_SLOT_ORDER = Object.freeze(
+  CLASSIC_TOP_TITLE_DISC_PRESET.slots.map(({ id }) => id),
+) satisfies readonly DiscGuidedSlotId[]
+
+const CLASSIC_TOP_TITLE_GUIDED_SLOTS = Object.freeze(Object.fromEntries(
+  CLASSIC_TOP_TITLE_DISC_PRESET.slots.map((slot) => {
+    const presentation = CLASSIC_SLOT_PRESENTATION[slot.id]
+
+    if (!presentation) {
+      throw new Error(`Missing guided presentation for Disc preset slot ${slot.id}.`)
+    }
+
+    return [
+      slot.id,
+      Object.freeze({
+        slotId: slot.id,
+        label: presentation.label,
+        visualGeometry: toGuidedGeometry(slot.contentRegion),
+        actionGeometry: toGuidedGeometry(slot.actionRegion ?? slot.contentRegion),
+        visualLayer: slot.visualLayer,
+        setupKind: presentation.setupKind,
+        populationSource: presentation.populationSource,
+        resolutionStatus: 'resolved' as const,
+      }),
+    ]
+  }),
+)) as Readonly<Partial<Record<DiscGuidedSlotId, DiscGuidedLayoutSlotDefinition>>>
+
+// The compatibility guided-layout identity projects geometry from the canonical
+// serializable preset while setup and population metadata remain editor guidance.
 const CLASSIC_TOP_TITLE_GUIDED_LAYOUT = Object.freeze({
   id: 'disc:guided-layout:classic-top-title' as const,
   version: 1,
+  presetId: CLASSIC_TOP_TITLE_DISC_PRESET.id,
   baseRolePresetId: 'classic-top-title' as const,
   slotOrder: CLASSIC_TOP_TITLE_SLOT_ORDER,
-  slots: Object.freeze({
-    'disc:guided:background-image:primary': createLayoutSlot({
-      slotId: 'disc:guided:background-image:primary',
-      label: 'Background Image',
-      visualGeometry: CLASSIC_BACKGROUND_VISUAL_GEOMETRY,
-      actionGeometry: CLASSIC_BACKGROUND_ACTION_GEOMETRY,
-      visualLayer: 'background',
-      setupKind: 'background',
-      populationSource: 'none',
-    }),
-    'disc:guided:game-title:primary': createLayoutSlot({
-      slotId: 'disc:guided:game-title:primary',
-      label: 'Game Title',
-      visualGeometry: CLASSIC_TOP_TITLE_GEOMETRY,
-      actionGeometry: CLASSIC_TOP_TITLE_GEOMETRY,
-      visualLayer: 'foreground',
-      setupKind: 'game-title-choice',
-      populationSource: 'existing-steam-import',
-    }),
-    'disc:guided:rating-badge:primary': createLayoutSlot({
-      slotId: 'disc:guided:rating-badge:primary',
-      label: 'Rating Badge',
-      visualGeometry: CLASSIC_RATING_GEOMETRY,
-      actionGeometry: CLASSIC_RATING_GEOMETRY,
-      visualLayer: 'foreground',
-      setupKind: 'rating-badge',
-      populationSource: 'accepted-metadata',
-    }),
-    'disc:guided:media-format-mark:primary': createLayoutSlot({
-      slotId: 'disc:guided:media-format-mark:primary',
-      label: 'Media Format Mark',
-      visualGeometry: CLASSIC_MEDIA_FORMAT_GEOMETRY,
-      actionGeometry: CLASSIC_MEDIA_FORMAT_GEOMETRY,
-      visualLayer: 'foreground',
-      setupKind: 'media-format-mark',
-      populationSource: 'existing-owner-only',
-    }),
-    'disc:guided:operating-system-marks:group': createLayoutSlot({
-      slotId: 'disc:guided:operating-system-marks:group',
-      label: 'Operating System Marks',
-      visualGeometry: CLASSIC_OPERATING_SYSTEM_MARKS_GEOMETRY,
-      actionGeometry: CLASSIC_OPERATING_SYSTEM_MARKS_GEOMETRY,
-      visualLayer: 'foreground',
-      setupKind: 'operating-system-marks',
-      populationSource: 'existing-owner-only',
-    }),
-    'disc:guided:developer-logo:primary': createLayoutSlot({
-      slotId: 'disc:guided:developer-logo:primary',
-      label: 'Developer Logo',
-      visualGeometry: CLASSIC_DEVELOPER_LOGO_GEOMETRY,
-      actionGeometry: CLASSIC_DEVELOPER_LOGO_GEOMETRY,
-      visualLayer: 'foreground',
-      setupKind: 'developer-logo',
-      populationSource: 'existing-owner-only',
-    }),
-    'disc:guided:publisher-logo:primary': createLayoutSlot({
-      slotId: 'disc:guided:publisher-logo:primary',
-      label: 'Publisher Logo',
-      visualGeometry: CLASSIC_PUBLISHER_LOGO_GEOMETRY,
-      actionGeometry: CLASSIC_PUBLISHER_LOGO_GEOMETRY,
-      visualLayer: 'foreground',
-      setupKind: 'publisher-logo',
-      populationSource: 'existing-owner-only',
-    }),
-    'disc:guided:legal-text:copyright': createLayoutSlot({
-      slotId: 'disc:guided:legal-text:copyright',
-      label: 'Copyright / Legal Text',
-      visualGeometry: CLASSIC_LEGAL_GEOMETRY,
-      actionGeometry: CLASSIC_LEGAL_GEOMETRY,
-      visualLayer: 'foreground',
-      setupKind: 'legal-text',
-      populationSource: 'accepted-metadata',
-    }),
-  }),
+  slots: CLASSIC_TOP_TITLE_GUIDED_SLOTS,
 }) satisfies DiscGuidedLayoutDefinition
 
 export const DISC_GUIDED_LAYOUT_DEFINITIONS = Object.freeze([
   CLASSIC_TOP_TITLE_GUIDED_LAYOUT,
 ] as const satisfies DiscGuidedLayoutRegistry)
-
-const DISC_GUIDED_LAYOUT_ID_BY_ROLE_PRESET: Readonly<
-  Partial<Record<DiscRolePresetId, DiscGuidedLayoutId>>
-> = Object.freeze({
-  'classic-top-title': 'disc:guided-layout:classic-top-title',
-})
 
 export function isValidDiscGuidedLayoutVersion(
   version: unknown,
@@ -456,9 +390,61 @@ export function getDiscGuidedValidSlotIds(
 }
 
 export function getDiscGuidedLayoutIdForRolePreset(
-  presetId: DiscRolePresetId,
+  presetId: string,
 ): DiscGuidedLayoutId | null {
-  return DISC_GUIDED_LAYOUT_ID_BY_ROLE_PRESET[presetId] ?? null
+  return resolveDiscPresetCompatibilityId(presetId) ===
+      CLASSIC_TOP_TITLE_DISC_PRESET.id
+    ? CLASSIC_TOP_TITLE_GUIDED_LAYOUT.id
+    : null
+}
+
+export function createDiscGuidedLayoutDefinitionFromResolvedPreset(
+  preset: ResolvedDiscPresetDefinition,
+): DiscGuidedLayoutDefinition | null {
+  const layoutId = getDiscGuidedLayoutIdForRolePreset(preset.sourcePresetId)
+  const baseLayout = layoutId
+    ? getDiscGuidedLayoutDefinition(layoutId)
+    : null
+
+  if (
+    !baseLayout ||
+    baseLayout.presetId !== preset.sourcePresetId
+  ) {
+    return null
+  }
+
+  const slots = Object.freeze(Object.fromEntries(preset.slots.map((slot) => {
+    const presentation = CLASSIC_SLOT_PRESENTATION[slot.id]
+
+    if (!presentation) {
+      return [slot.id, undefined]
+    }
+
+    return [
+      slot.id,
+      Object.freeze({
+        slotId: slot.id,
+        label: presentation.label,
+        visualGeometry: toGuidedGeometry(slot.resolvedContentRegion),
+        actionGeometry: toGuidedGeometry(slot.resolvedActionRegion),
+        visualLayer: slot.visualLayer,
+        setupKind: presentation.setupKind,
+        populationSource: presentation.populationSource,
+        resolutionStatus: slot.status,
+      }),
+    ]
+  }))) as Readonly<
+    Partial<Record<DiscGuidedSlotId, DiscGuidedLayoutSlotDefinition>>
+  >
+
+  return Object.freeze({
+    id: baseLayout.id,
+    version: baseLayout.version,
+    presetId: preset.sourcePresetId,
+    baseRolePresetId: baseLayout.baseRolePresetId,
+    slotOrder: Object.freeze(preset.slots.map(({ id }) => id)),
+    slots,
+  })
 }
 
 export function getDiscGuidedSlotGeometry(

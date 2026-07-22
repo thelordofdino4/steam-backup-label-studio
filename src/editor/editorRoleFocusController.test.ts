@@ -42,20 +42,22 @@ const RATING_FOCUS_REQUEST = {
 const MEDIA_FORMAT_FOCUS_REQUEST = {
   surfaceId: 'disc-label',
   behavior: 'focus',
-  scrollAlignment: 'role-start',
+  scrollAlignment: 'section-start',
   destination: {
     roleId: 'game-info-logos',
     focusTarget: 'disc:media-format-mark:format',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
   },
 } as const satisfies EditorRoleFocusRequestInput
 
 const OPERATING_SYSTEM_MARKS_FOCUS_REQUEST = {
   surfaceId: 'disc-label',
   behavior: 'focus',
-  scrollAlignment: 'role-start',
+  scrollAlignment: 'section-start',
   destination: {
     roleId: 'game-info-logos',
     focusTarget: 'disc:operating-system-marks:enable',
+    sectionAlignmentTarget: 'disc:operating-system-marks:section',
   },
 } as const satisfies EditorRoleFocusRequestInput
 
@@ -111,8 +113,8 @@ test('new Media and OS requests receive distinct IDs and open Game Info Logos', 
     operatingSystems.destination,
     OPERATING_SYSTEM_MARKS_FOCUS_REQUEST.destination,
   )
-  assert.equal(media.scrollAlignment, 'role-start')
-  assert.equal(operatingSystems.scrollAlignment, 'role-start')
+  assert.equal(media.scrollAlignment, 'section-start')
+  assert.equal(operatingSystems.scrollAlignment, 'section-start')
   assert.equal(store.isRoleOpen('game-info-logos'), true)
   assert.equal(store.getSnapshot().pendingRequest?.requestId, 2)
 })
@@ -370,6 +372,155 @@ test('repeated role-start requests realign without closing unrelated roles', () 
   ])
   assert.equal(store.isRoleOpen('game-title'), true)
   assert.equal(store.isRoleOpen('legal-info'), true)
+})
+
+test('section-start aligns the nested section around exact focus', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const roleSummary = createElement('role-summary', calls)
+  const section = createElement('media-section', calls)
+  const format = createElement('media-format', calls)
+  store.registerRolePanel('game-info-logos', {
+    detailsElement: () => null,
+    summaryElement: () => roleSummary,
+  })
+  store.registerSectionAlignmentTarget('disc:media-format-mark:section', {
+    element: () => section,
+  })
+  store.registerFocusTarget('disc:media-format-mark:format', {
+    element: () => format,
+    openAncestors: [() => calls.push('ancestor:media')],
+  })
+
+  store.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'ancestor:media',
+    'media-section:scroll:start:auto',
+    'media-format:focus:true',
+    'media-section:scroll:start:auto',
+  ])
+})
+
+test('section-start keeps the requested section when focus falls back', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const section = createElement('media-section', calls)
+  const enable = createElement('media-enable', calls)
+  store.registerSectionAlignmentTarget('disc:media-format-mark:section', {
+    element: () => section,
+  })
+  store.registerFocusTargetFallback(
+    'disc:media-format-mark:format',
+    'disc:media-format-mark:enable',
+  )
+  store.registerFocusTarget('disc:media-format-mark:enable', {
+    element: () => enable,
+    openAncestors: [() => calls.push('ancestor:media')],
+  })
+
+  store.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'ancestor:media',
+    'media-section:scroll:start:auto',
+    'media-enable:focus:true',
+    'media-section:scroll:start:auto',
+  ])
+})
+
+test('section registrations reject duplicates and clean up exact identities', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const oldMedia = createElement('old-media-section', calls)
+  const newMedia = createElement('new-media-section', calls)
+  const osSection = createElement('os-section', calls)
+  const unregisterOld = store.registerSectionAlignmentTarget(
+    'disc:media-format-mark:section',
+    { element: () => oldMedia },
+  )
+  assert.throws(
+    () => store.registerSectionAlignmentTarget(
+      'disc:media-format-mark:section',
+      { element: () => newMedia },
+    ),
+    /Duplicate editor section-alignment target/,
+  )
+  unregisterOld()
+  store.registerSectionAlignmentTarget('disc:media-format-mark:section', {
+    element: () => newMedia,
+  })
+  store.registerSectionAlignmentTarget(
+    'disc:operating-system-marks:section',
+    { element: () => osSection },
+  )
+  store.registerFocusTarget('disc:media-format-mark:format', {
+    element: () => createElement('media-format', calls),
+  })
+  store.registerFocusTarget('disc:operating-system-marks:enable', {
+    element: () => createElement('os-enable', calls),
+  })
+
+  store.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  store.requestRoleFocus(OPERATING_SYSTEM_MARKS_FOCUS_REQUEST)
+  assert.equal(store.processPendingRequest(), 'target-focused')
+
+  assert.equal(calls.includes('old-media-section:scroll:start:auto'), false)
+  assert.equal(
+    calls.filter((call) =>
+      call === 'new-media-section:scroll:start:auto').length,
+    2,
+  )
+  assert.equal(
+    calls.filter((call) => call === 'os-section:scroll:start:auto').length,
+    2,
+  )
+})
+
+test('section-start reports missing and conflicting registrations exactly', () => {
+  const missingSectionStore = createEditorRoleFocusControllerStore()
+  missingSectionStore.registerFocusTarget(
+    'disc:media-format-mark:format',
+    { element: () => createElement('format', []) },
+  )
+  missingSectionStore.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  assert.equal(
+    missingSectionStore.processPendingRequest(),
+    'section-alignment-target-unavailable',
+  )
+  assert.equal(
+    missingSectionStore.processPendingRequest(),
+    'no-pending-request',
+  )
+
+  const missingFocusStore = createEditorRoleFocusControllerStore()
+  missingFocusStore.registerSectionAlignmentTarget(
+    'disc:media-format-mark:section',
+    { element: () => createElement('section', []) },
+  )
+  missingFocusStore.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  assert.equal(
+    missingFocusStore.processPendingRequest(),
+    'section-focus-target-unavailable',
+  )
+
+  const conflictStore = createEditorRoleFocusControllerStore()
+  const shared = createElement('shared', [])
+  conflictStore.registerSectionAlignmentTarget(
+    'disc:media-format-mark:section',
+    { element: () => shared },
+  )
+  conflictStore.registerFocusTarget('disc:media-format-mark:format', {
+    element: () => shared,
+  })
+  conflictStore.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  assert.equal(
+    conflictStore.processPendingRequest(),
+    'section-target-conflict',
+  )
 })
 
 test('explicit target fallback is bounded and processes repeated requests', () => {

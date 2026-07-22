@@ -11,6 +11,9 @@ import {
   createDiscGuidedRestoreItems,
 } from '../guidedPresets/discGuidedRestoreItems.ts'
 import type {
+  ActiveDiscPresetState,
+} from '../presets/discPresetTargetedApplication.ts'
+import type {
   DiscGuidedSlotId,
   DiscGuidedSlotState,
   DiscGuidedSlotSuggestion,
@@ -23,7 +26,6 @@ import {
   restoreDiscGuidedSlot,
   type DiscGuidedWorkflowState,
 } from '../guidedPresets/discGuidedWorkflow.ts'
-import { getDiscRolePreset } from '../layout/discRolePresets.ts'
 
 const NO_SUGGESTIONS = Object.freeze([]) as readonly DiscGuidedSlotSuggestion[]
 
@@ -42,10 +44,7 @@ export function getNextDiscGuidedWorkflowForPresetApplication({
 }): DiscGuidedWorkflowState {
   if (!applied) return currentWorkflow
 
-  const preset = getDiscRolePreset(presetId)
-  const layoutId = preset
-    ? getDiscGuidedLayoutIdForRolePreset(preset.id)
-    : null
+  const layoutId = getDiscGuidedLayoutIdForRolePreset(presetId)
   const layout = layoutId
     ? getCurrentDiscGuidedLayoutDefinition(layoutId)
     : null
@@ -62,10 +61,12 @@ export function useDiscGuidedPlaceholderPreview({
   state,
   workflow,
   updateWorkflow,
+  activePresetState,
 }: {
   state: DiscGuidedSlotState
   workflow: DiscGuidedWorkflowState
   updateWorkflow: DiscGuidedWorkflowUpdater
+  activePresetState: ActiveDiscPresetState | null
 }) {
   const recordPresetApplication = useCallback((
     presetId: string,
@@ -98,14 +99,20 @@ export function useDiscGuidedPlaceholderPreview({
     )
   }, [updateWorkflow])
 
+  const activeLayoutId = activePresetState
+    ? getDiscGuidedLayoutIdForRolePreset(activePresetState.ref.id)
+    : null
+
   const placeholders = createDiscGuidedPlaceholderViewModels({
     workflow,
+    resolvedPreset: activePresetState?.resolvedDefinition ?? null,
     state,
     suggestions: NO_SUGGESTIONS,
   })
   const restoreItems = createDiscGuidedRestoreItems(workflow)
 
   return {
+    activeLayoutId,
     placeholders,
     recordPresetApplication,
     omitSlot,

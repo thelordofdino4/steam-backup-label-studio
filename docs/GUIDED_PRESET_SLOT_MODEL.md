@@ -7,20 +7,133 @@
 ## Implementation Status
 
 Pure Disc slot definitions and lifecycle resolution are implemented in
-`src/guidedPresets/discGuidedSlots.ts`. The versioned layout registry and pure
-omission workflow are implemented in `discGuidedLayouts.ts` and
-`discGuidedWorkflow.ts`. Schema `0.2.0` persists active layout identity/version
-and canonical omitted slot IDs through `src/project/projectGuidedWorkflow.ts`.
-Suggestions remain transient. Pure typed Disc role-focus requests, runtime
-validation, and reducer state are implemented in `src/editor/editorRoleFocus.ts`.
-Focus-target IDs are semantic navigation identifiers, not DOM IDs or smoke-test
-IDs, and navigation state is transient and is not serialized. Classic Top Title
-now projects eight passive edit-only placeholders. Every visible unfilled or
-suggested placeholder opens an accessible setup menu with exact typed setup
-destinations and `Remove from layout`; omission updates only the persisted
-guided workflow. The Layout Presets panel exposes canonical `Removed layout
-items` controls for restoring one omission or all omissions without touching
-feature-owner content.
+`src/guidedPresets/discGuidedSlots.ts`. The versioned workflow and pure omission
+transitions are implemented in `discGuidedWorkflow.ts`. Schema `0.2.0` persists
+the active guided layout ID/version and canonical omitted slot IDs through
+`src/project/projectGuidedWorkflow.ts`; suggestions, focus, menu state, and the
+generic resolved preset definition remain transient. Pure typed Disc role-focus
+requests, runtime validation, and reducer state are implemented in
+`src/editor/editorRoleFocus.ts`. Focus-target IDs are semantic navigation
+identifiers, not DOM IDs or smoke-test IDs, and navigation state is not
+serialized.
+
+Pure guided-layout compatibility identity and placeholder projection remain in
+`src/guidedPresets/discGuidedLayouts.ts`, but Classic geometry now derives from
+the generic serializable definition in
+`src/presets/builtins/classicTopTitleDiscPreset.ts`. The existing
+`classic-top-title` role-preset ID and
+`disc:guided-layout:classic-top-title` guided ID resolve through centralized
+compatibility aliases to `builtin:disc-preset:classic-top-title`. The canonical
+definition's ordered slots define
+Game Title, Background Image, Rating Badge, Media Format Mark, Operating System
+Marks, Developer Logo, Publisher Logo, and Copyright / Legal Text. Sidebar
+roles remain organizational groupings and are not guided slots. Every slot
+supplies normalized content and action geometry plus a
+background/foreground layer, semantic setup kind, and safe population
+capability. The pure projector returns `unfilled` and `suggested` slots and
+suppresses `filled` and `omitted` slots independently. Layout presets continue
+to place real feature-owner state; guided definitions contain no content, DOM,
+renderer, export, persistence, or role-focus request data.
+
+The generic definition also carries allowlisted serializable placement intent.
+Issue #293 now provides pure nominal-to-resolved template contracts, structured
+resolution/application warnings, a trusted semantic adapter registry, and an
+immutable application-plan builder. Concrete planning adapters now cover title
+artwork/text, Background, Rating, Media Format Mark, primary Developer and
+Publisher Logos, Operating System Marks, and copyright text. Every Classic
+placement target therefore has a concrete generic adapter. They consume focused
+owner-layout slices, emit placement-only updates, and can seed dormant disabled
+fixed owners without enabling or populating them. The OS adapter consumes the
+resolved region and reuses `placeGroupedPlatformMarks` for canonical ordering,
+implicit built-in materialization, safe centered grouping, and preferred-scale
+reduction. It preserves mark selection, enablement, source, theme, custom
+assets, and inference metadata.
+
+Classic production application now routes through
+`appRegisteredDiscPresetApplication.ts`. The legacy menu ID resolves to the
+canonical built-in definition, template resolution and the complete production
+adapter registry build one immutable typed update plan, and the existing owner
+application boundary dispatches each touched family once. Classic coordinates
+no longer live in `discRolePresets.ts`; the other two built-in presets retain
+their legacy plans.
+
+Guidance geometry and real Classic owner placement therefore derive from the
+same canonical definition. Disabled fixed owners receive dormant layout without
+being enabled, and the Classic path applies adapter-safe resolved placement
+directly instead of broadly reclamping unrelated text, technical marks, or
+repeated logos. Copyright uses injected measurement plus canonical straight-text
+render geometry to fit the resolved region without truncation. Normal blank,
+disabled, short, and realistic Legal cases are fully applied; only a genuinely
+impossible fit remains partial and marks that slot unsupported. The OS adapter
+positions only marks already selected, enabled, and renderable. After
+application, one transient canonical preset ID/revision and latest resolved
+definition remain shared by guidance and targeted placement. OS eligibility
+changes re-resolve only the OS target. Legal enablement, canonical content, and
+measurement-relevant style changes re-resolve only the Legal target. The two
+slot refinements coexist, and no other slot is reapplied.
+
+Guidance projects the active resolved definition rather than independently
+looking up nominal geometry. Unfilled or suggested slots use its final resolved
+content/action regions in runtime slot order; unsupported slots are hidden.
+Consequently the Legal placeholder center matches the fitted owner center,
+filled Legal suppresses guidance, and clearing valid Legal content restores the
+placeholder at the active resolved region. Missing active resolved geometry
+fails closed instead of inventing a fallback. Lifecycle-reachable native routes
+have passed the current #289 checkpoint; registered targets hidden behind
+filled-slot lifecycle states remain covered by mounted controller tests.
+Guided omission state remains project-specific and must never be copied into a
+reusable preset definition. No custom preset library, Save as Preset workflow,
+or custom preset UI exists yet.
+
+A successful `classic-top-title` layout preset application activates the
+persisted guided workflow and a separate transient active resolved definition.
+The Disc editor now renders all eight
+projected slots with the existing blue dashed pulse/glow language. Background
+guidance uses a dedicated z-index `0` annulus-masked layer, while the seven
+exact foreground slots use a z-index `6` masked layer.
+The foreground layer remains below real Disc text at z-index `7`; the broad
+Background Image visual remains below foreground owners and uses its smaller
+action geometry only to position the label. Reduced-motion mode keeps static
+blue guidance while disabling the shared pulse animation.
+
+The masked SVG guidance remains visual-only and pointer-inert. A separate
+z-index `9` HTML action layer now renders one native button from each visible
+slot's action geometry. Game Title is the only Image/Text chooser. Background,
+Rating, Developer Logo, Publisher Logo, and Copyright / Legal Text route to
+their existing exact controls. Media Format Mark now requests its exact format
+selector target, and Operating System Marks requests its grouped feature-enable
+target. Neither uses a broad role summary target. Both also declare a distinct
+typed nested-section alignment target registered from the owning Game Info
+panel. Choice popovers render at z-index `30`,
+support Escape dismissal with focus return, and close when their slot leaves
+the projected list. Buttons rely on native Enter and Space activation and do
+not drag, resize, select preview content, or activate the text ribbon.
+
+Every setup action sends a typed #287 `focus` request. Five actions use
+`role-start`; Media Format Mark, Operating System Marks, Developer Logo, and
+Publisher Logo use `section-start`. For those nested routes, navigation opens
+the role and required section,
+start-aligns the separately registered section ref, focuses the resolved exact
+control or fallback with native scrolling prevented, and reasserts section
+alignment after focus. Mere nearest-edge visibility is insufficient for a
+section-start route: the nested section remains at the top while keyboard focus
+remains on its actionable control. It never enables a feature, mutates owner
+content, accepts a suggestion, reruns import, or stores completion state.
+Suggested placeholders retain the same setup route and an explicit suggested
+description.
+
+Guided-action reachability and semantic focus-target registration are separate
+contracts. A guided action is dispatchable only while its unfilled or suggested
+placeholder is projected. A semantic target may remain registered after owner
+state fills the slot and removes that placeholder, so another workflow or a
+direct controller request can still focus the normal sidebar control. The
+presence of that registration does not make the now-unmounted guide a native
+route. Lifecycle-reachable native navigation has been validated. Persistent
+completion is not implemented and is tracked by #295; aspect-preserving
+contain-fit is not implemented and is tracked by #296. Reconstructing the
+transient canonical preset reference and resolved definition after loading
+persisted guided workflow metadata is also deferred to #295. Issue #289 remains
+open.
 
 Implemented role-focus infrastructure includes:
 
@@ -48,9 +161,11 @@ Implemented role-focus infrastructure includes:
   enables or mutates Rating; and
 - Company Logos registration for distinct primary developer and publisher
   enable checkboxes and enabled-only upload inputs. Both paths open the shared
-  controlled Developer / publisher logos panel. Developer upload falls back
-  only to developer enable, and publisher upload falls back only to publisher
-  enable. Navigation never enables, imports, or mutates either logo asset.
+  controlled Developer / publisher logos panel and register distinct Developer
+  and Publisher card refs. Developer upload falls back only to developer
+  enable, and publisher upload falls back only to publisher enable. Both direct
+  and fallback controls retain their matching section identity. Navigation
+  never enables, imports, or mutates either logo asset.
 - Additional Artwork semantic vocabulary for global enable, Add Artwork,
   per-item enable, and per-item upload. Item destinations require the stable
   persisted `elementId`; and
@@ -271,11 +386,50 @@ missing rating content.
 
 ### Developer And Publisher Logos
 
-The exact slots are `disc:guided:developer-logo:primary` and
-`disc:guided:publisher-logo:primary`. Each independently binds only to its
-matching enabled owner with a real image. Both are optional and omittable,
-target Company Logos, and retain the existing owner movement and export
-predicates. One logo cannot satisfy the other slot.
+When the first eligible mark is selected after preset application,
+authoritative owner state becomes filled, targeted placement puts the real
+group in the resolved preset region, and guidance disappears through normal
+lifecycle derivation. Removing or disabling all eligible marks returns the
+slot to unfilled guidance. Omission remains independent: an omitted OS slot
+stays omitted while owner state changes, and omission never suppresses owner
+rendering. Changing group membership may replace manual OS positions;
+unrelated owner edits never do.
+
+### Developer Logo
+
+| Property | Contract |
+| --- | --- |
+| Slot ID | `disc:guided:developer-logo:primary` |
+| Semantic role | `company-logos` |
+| Accepted/preferred kind | `image` |
+| Candidate binding | Primary developer logo only |
+| Optional/omittable | Optional and omittable |
+| Sidebar role | Company Logos |
+
+Publisher state never fills Developer Logo.
+Enabling the primary Developer Logo feature claims this slot immediately,
+including while its feature-owned empty/default placement placeholder is shown
+before an image is uploaded. Guided guidance must not overlap that owner visual.
+Clearing an uploaded image while the feature remains enabled keeps the slot
+claimed; disabling the feature restores guidance unless omission suppresses it.
+
+### Publisher Logo
+
+| Property | Contract |
+| --- | --- |
+| Slot ID | `disc:guided:publisher-logo:primary` |
+| Semantic role | `company-logos` |
+| Accepted/preferred kind | `image` |
+| Candidate binding | Primary publisher logo only |
+| Optional/omittable | Optional and omittable |
+| Sidebar role | Company Logos |
+
+Developer state never fills Publisher Logo.
+Enabling the primary Publisher Logo feature claims this slot immediately,
+including while its feature-owned empty/default placement placeholder is shown
+before an image is uploaded. Guided guidance must not overlap that owner visual.
+Clearing an uploaded image while the feature remains enabled keeps the slot
+claimed; disabling the feature restores guidance unless omission suppresses it.
 
 ### Legal Text
 
@@ -339,6 +493,27 @@ The fixed `customNote` row must be enabled and its resolved content must be
 nonblank. This first contract uses an existing fixed row; it does not introduce
 an arbitrary repeatable text-layer model.
 
+### Classic Top Title Layout
+
+Classic Top Title requires eight exact expected-content slots. Their slot
+order, labels, normalized content/action regions, layers, setup kinds, and
+population capabilities are owned only by
+`src/presets/builtins/classicTopTitleDiscPreset.ts`. The guided compatibility
+registry projects that canonical definition and does not duplicate Classic
+coordinates. This includes the corrected canonical Legal region and its
+slot-local fitted resolution. Game Info Logos and Company Logos remain sidebar
+role groupings only.
+
+Applying the Classic layout no longer auto-enables Media Format Mark. Rating,
+Media, OS marks, Developer Logo, Publisher Logo, and Copyright remain disabled
+when disabled. Existing enabled/renderable owners are repositioned without
+changing content, source, theme, selected values, custom assets, or inference.
+Operating-system marks use deterministic grouped placement inside their exact
+region and receive only returned `x`, `y`, and `scale` updates.
+Copyright uses measured straight-text fitting inside its exact region and
+receives only placement-owned layout fields. Guidance consumes the fitted
+slot-local region/status from the active resolved definition.
+
 ## 5. Lifecycle Derivation And Precedence
 
 Resolution uses this precedence:
@@ -374,6 +549,15 @@ Placeholder visibility in this table is implemented for Classic Top Title.
 
 Preset/domain data contains slot ID, role, accepted and preferred kinds,
 candidate bindings, default geometry, and omittable status.
+
+Serializable Disc layout presets remain nominal definitions. The pure
+template-resolution stage produces a transient resolved preset with both
+nominal and resolved content/action regions. Concrete owner adapters consume
+resolved content regions during pure application planning and may refine only
+their own slot. The active transient preset owner retains the latest resolved
+definition after explicit or targeted application. Guided projection consumes
+that definition directly and never infers runtime geometry from owner
+coordinates.
 
 ### Derived State
 
@@ -439,19 +623,47 @@ auto-fill implementation remains outside this issue.
 - Animated treatment must respect reduced-motion preferences.
 - It is non-draggable and non-resizable until filled.
 - Filling suppresses the placeholder and continues through the existing feature renderer.
+
+The current visual layers use the registry's normalized `0..100` Disc
+coordinates, are pointer-inert, and share an outer-Disc/canonical-center-hole
+annulus mask. They mount only through the Disc editor's explicit
+`editorAffordances` input. Foreground guidance renders behind real owner
+content: untouched default title copy may remain semantically incomplete while
+still rendering through the real Disc text owner, and the translucent blue
+guidance cannot paint opaquely over it. Pure placeholder view models record
+this as `guidance-behind-real-content`. Filled and omitted slots suppress only
+their own projected placeholder, while suggested slots stay visible with an
+explicit secondary label. Active layout identity/version and omission intent
+enter save/load only through schema `0.2.0` workflow metadata; visual/action
+state and the active resolved definition remain transient and never enter
+render or export paths.
+
+The HTML interaction layer uses each slot's normalized action geometry and is
+separate from both visual SVGs and preview-editable registration. Native
+buttons preserve model order for tab navigation. Game Title alone uses the
+focused Image/Text setup popover. Background, Rating, Developer, Publisher,
+and Copyright dispatch exact typed destinations directly. Media and OS now
+dispatch their exact typed destinations and never route to a broad role
+summary. Production registration stays with the existing feature-owner
+adapters. Popover state is transient, closes after selection or Escape, and
+becomes
+inactive immediately if its projected slot disappears. Setup navigation does
+not accept suggested content automatically; it routes the user to the existing
+owner control.
+
 - Every visible unfilled or suggested placeholder is one native button. Pointer,
   Enter, and Space open its setup menu without immediately navigating or
   accepting a suggestion.
 - Only one setup menu is open. Escape closes it and returns focus to its
   placeholder when available.
-- Setup actions close the menu and dispatch one typed role-focus request with
-  `scrollAlignment: 'role-start'`.
+- Setup actions close the menu and dispatch one typed role-focus request. Five
+  reachable actions use `role-start`; Media, OS, Developer, and Publisher use
+  their typed `section-start` routes.
 - `Remove from layout` calls the pure omission transition with that exact slot
-  ID. It customizes only the active guided layout instance; the underlying
-  preset definition remains unchanged. It does not disable, clear, or
-  otherwise mutate the feature owner.
-- After omission, focus moves to the next visible slot in canonical order,
-  then the previous visible slot, then the stable preview fallback. This uses
+  ID. It changes only persisted workflow metadata; the reusable preset
+  definition and feature owner remain unchanged.
+- After omission, focus moves to the next visible slot in canonical order, then
+  the previous visible slot, then the stable preview fallback. This uses
   registered refs and ordered view models rather than DOM queries.
 - Menu state closes on setup, omission, Escape, placeholder disappearance,
   workflow revision, surface transition, load, clear, or unmount.
@@ -469,11 +681,22 @@ request ID; callers provide the surface, behavior, semantic destination, and
 optional owner target:
 
 ```ts
-type EditorRoleFocusRequest = {
+type EditorRoleFocusRequest = CommonRequest & (
+  | {
+      behavior: 'reveal' | 'focus'
+      destination: DiscControlFocusDestination
+      scrollAlignment?: 'nearest' | 'role-start'
+    }
+  | {
+      behavior: 'focus'
+      destination: DiscSectionStartRoleFocusDestination
+      scrollAlignment: 'section-start'
+    }
+)
+
+type CommonRequest = {
   requestId: number
   surfaceId: 'disc-label'
-  behavior: 'reveal' | 'focus'
-  destination: DiscRoleFocusDestination
   ownerTarget?: EditorRoleFocusOwnerTarget
 }
 ```
@@ -507,11 +730,19 @@ caller handles an encoded raw key.
 
 | Behavior | Contract |
 | --- | --- |
-| `reveal` | Opens the requested top-level role and reveals its registered summary or panel. It does not resolve a nested target, invoke nested ancestor callbacks, focus a nested element, or scroll a nested element. |
-| `focus` | Opens the requested top-level role, resolves the registered semantic target, invokes explicit ancestor callbacks in registration order, and focuses the target with scroll prevention before revealing it with nearest/automatic scrolling. If the target is unavailable, it follows explicit semantic fallbacks and then the role summary. The request is consumed once regardless of outcome and is never retried when controls later mount. |
+| `reveal` | Opens the requested top-level role and reveals its registered summary or panel. It does not resolve a nested target, invoke nested ancestor callbacks, or focus a nested element. Omitted/`nearest` keeps nearest/automatic reveal; `role-start` uses start/automatic role alignment. |
+| `focus` | Opens the requested top-level role, resolves the registered semantic target, and invokes explicit ancestor callbacks in registration order. Omitted/`nearest` focuses the target with scroll prevention and uses nearest/automatic target scrolling. `role-start` focuses the exact target and then start-aligns the original owning role summary, or its registered details fallback. `section-start` is a separate discriminated request variant: it requires a compatible typed section target and exact control target, start-aligns the separately registered section, focuses the direct or semantic-fallback control with scroll prevention, and reasserts section start so focus-induced scrolling cannot leave the card at the viewport bottom. A missing section registration, missing direct/fallback control, or identical section/control element returns a structured processing outcome rather than silently degrading to role alignment. The request is consumed once regardless of outcome and is never retried when controls later mount. |
 
 All role-focus state is editor-session-only. It does not dirty the project,
 create an undo entry, trigger autosave, or enter the saved-project schema.
+Scroll alignment is part of the same transient request and is never serialized.
+Role summaries and nested sections use distinct named CSS
+`scroll-margin-block-start` tokens backed by the shared 24px sidebar
+content-inset. Duplicate semantic section registrations are rejected. A
+section registration can be replaced only after its matching cleanup has run.
+`scrollIntoView({ block: 'start' })` therefore works with the
+desktop sidebar scroll owner and narrow document scrolling without runtime
+pixel arithmetic or target-specific offsets.
 
 ### Existing Target Semantics
 
@@ -526,10 +757,13 @@ create an undo entry, trigger autosave, or enter the saved-project schema.
 | `disc:rating:system` | The enabled-only rating-system selector. Implemented through a direct ref and persistent semantic fallback to `disc:rating:enable` while disabled or unexpectedly unavailable. Navigation does not change the system. |
 | `disc:rating:value` | The enabled-only current rating-value control. The semantic registration tracks the rendered select or custom-rating text input and refreshes safely when the concrete kind changes. It falls back to `disc:rating:enable` while unavailable and does not change the value. |
 | `disc:rating:source` | The enabled-only rating source-mode selector, not the conditional custom-image upload input. Implemented through a direct ref with persistent fallback to `disc:rating:enable`; navigation does not change source or import an image. |
-| `disc:company-logo:developer-enable` | The primary developer-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
-| `disc:company-logo:developer-upload` | The enabled-only primary developer-logo file input. It is registered only while the developer body is mounted and explicitly falls back only to `disc:company-logo:developer-enable` when unavailable. |
-| `disc:company-logo:publisher-enable` | The primary publisher-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
-| `disc:company-logo:publisher-upload` | The enabled-only primary publisher-logo file input. It is registered only while the publisher body is mounted and explicitly falls back only to `disc:company-logo:publisher-enable` when unavailable. |
+| `disc:media-format-mark:enable` | The always-mounted Media Format Mark enable checkbox inside the controlled Media format mark panel. Implemented through a direct ref with an explicit Media-panel ancestor callback. It does not choose a format or enable the owner. |
+| `disc:media-format-mark:format` | The enabled-only actual media-format selector, not the source or upload controls. Implemented through a direct ref and persistent semantic fallback to `disc:media-format-mark:enable` while the feature body is unavailable. Navigation never changes the selected format. |
+| `disc:operating-system-marks:enable` | The always-mounted grouped Show operating system marks checkbox inside the controlled Operating system marks panel. Implemented through a direct ref with an explicit panel ancestor callback. It does not select, enable, import, or identify any individual platform mark and does not invoke grouped placement. |
+| `disc:company-logo:developer-enable` | The primary developer-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. Guided Developer routes separately align `disc:company-logo:developer-section`. |
+| `disc:company-logo:developer-upload` | The enabled-only primary developer-logo file input. It is registered only while the developer body is mounted and explicitly falls back only to `disc:company-logo:developer-enable` when unavailable. Direct and fallback routes use the same Developer section target. |
+| `disc:company-logo:publisher-enable` | The primary publisher-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. Guided Publisher routes separately align `disc:company-logo:publisher-section`. |
+| `disc:company-logo:publisher-upload` | The enabled-only primary publisher-logo file input. It is registered only while the publisher body is mounted and explicitly falls back only to `disc:company-logo:publisher-enable` when unavailable. Direct and fallback routes use the same Publisher section target. |
 | `disc:legal-text:copyright` | The copyright row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select copyright text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text editor. |
 | `disc:additional-artwork:enable` | The always-mounted global Additional Artwork feature-enable checkbox. It has no item identity and is registered through a direct ref. Focusing it does not toggle the feature. |
 | `disc:additional-artwork:add` | The enabled-only global Add Artwork button. It is a collection-level action rendered before and outside every repeatable item card, has no `elementId`, and falls back to `disc:additional-artwork:enable` while unavailable. Navigation focuses it without activating it or creating an item. |
@@ -554,12 +788,82 @@ item. Array indexes, first-item selection, candidate bindings such as
 `first-renderable-existing`, DOM IDs, and encoded string keys are not valid
 navigation identity.
 
-The guided preview caller emits typed navigation intent and never queries the
-DOM or duplicates role-panel state. Mounted integration tests cover the eight
-Classic setup paths, pointer and keyboard menu activation, disabled-owner
-fallbacks, omission, and focus handoff. Native Tauri acceptance remains
-pending. Case Front, Case Back, and Spine remain outside this Disc-only
-provider.
+The lifecycle-to-route inventory is exhaustive. Game Title contributes two
+setup actions from one visible slot, so the eight slots expose nine reachable
+actions.
+
+| Slot/action | Owner condition for guide visibility | Reachable guided state | Guided action route | Registered fallback | Registered direct target | Native dispatch | Mounted/controller coverage |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Game Title / Image | Neither title artwork nor title text has valid bound content. Enabled artwork without an image remains unfilled. | Unfilled or suggested title slot | `game-title-image`; `role-start` | artwork enable | artwork upload | Required while chooser is visible | Direct upload and fallback |
+| Game Title / Text | Same shared title condition. | Unfilled or suggested title slot | `game-title-text`; `role-start` | none | title-text fallback row | Required while chooser is visible | Fixed row |
+| Background | No enabled renderable background image. | Unfilled or suggested background slot | `background-local-upload`; `role-start` | none | local upload | Required | Always-mounted upload |
+| Rating | Badge is disabled or otherwise does not render. Normal UI enablement selects a valid system and claims the slot. | Disabled/unclaimed Rating guidance; an enabled `none` edge state can remain unclaimed | `rating-system`; `role-start` | Rating enable | Rating system | Required for the disabled fallback | Enabled system through typed controller request |
+| Media Format | Media is disabled or has no renderable selected source. Normal built-in enablement claims the slot. | Disabled/unclaimed Media guidance | `media-format`; `section-start` | Media enable | format selector | Required for the disabled fallback | Enabled format through typed controller request |
+| Operating System Marks | No selected enabled renderable operating-system mark exists. | Guidance remains reachable until one eligible mark claims the slot | `operating-system-marks-enable`; `section-start` | none | grouped enable | Required while unclaimed | Grouped enable and section alignment |
+| Developer Logo | Primary Developer feature is disabled; enabled/no-image and enabled/image states both claim the slot. | Disabled primary Developer guidance | `developer-logo-upload`; `section-start` | Developer enable | Developer upload | Required for the disabled fallback | Enabled upload through typed controller request |
+| Publisher Logo | Primary Publisher feature is disabled; enabled/no-image and enabled/image states both claim the slot. | Disabled primary Publisher guidance | `publisher-logo-upload`; `section-start` | Publisher enable | Publisher upload | Required for the disabled fallback | Enabled upload through typed controller request |
+| Copyright / Legal Text | Copyright row is disabled or its resolved content is blank. | Unfilled or suggested Legal guidance | `legal-copyright`; `role-start` | none | copyright row | Required | Fixed row |
+
+A focus target may remain registered even when no currently visible guided
+element can dispatch to it. Native guided-action acceptance covers only
+lifecycle-reachable routes; mounted controller tests cover registered targets
+that are unreachable through current guidance. Filled or omitted lifecycle
+states are intentionally unreachable from the guide because the guide is not
+projected. Runtime UI code must not duplicate these lifecycle predicates or use
+DOM presence checks to manufacture route reachability.
+
+No guided action uses `control-visible`; visibility alone is not an accepted
+substitute for either declared top alignment. Nearest remains the
+backward-compatible default for omitted alignment and existing non-guided
+navigation. Role-start always uses the original destination role even when an
+upload target falls back to its matching enable control. Section-start instead
+uses its required nested-section target while the direct or fallback control
+remains the keyboard-focus target. The discriminated request type prevents a
+future section-start route from omitting its section identity, and the strict
+runtime parser rejects malformed or cross-wired section/control pairs.
+
+Existing target fallbacks remain authoritative. The caller does not query the
+DOM, duplicate role-panel state, enable features, or invoke controls. Mounted
+integration coverage now validates the production provider, controlled panels,
+real refs, exact focus targets and fallbacks, role-start alignment, and final
+Media/OS/Developer/Publisher section-start alignment. A table-driven registry
+test keeps the nine reachable actions separate from the broader registered
+target inventory, requires every semantic focus and section ID to exist in the
+typed vocabulary, and verifies that each fallback keeps its matching section
+identity. Mounted tests issue direct typed controller requests for enabled
+Rating, Media, Developer, and Publisher targets; they do not mount or dispatch
+an impossible guide. Case Front, Case Back, and Spine remain outside this
+Disc-only provider.
+
+Guided placeholders route to the most specific normal setup control. An enable
+control is a fallback for a specific control hidden by a disabled optional
+feature; it is not the direct route when that specific control is available.
+For Rating Badge, guidance therefore requests `disc:rating:system`. Enabled
+Rating claims the slot during the normal UI transition and removes its guide;
+a separate direct typed controller request still focuses the registered system
+selector without changing system or value. Disabled Rating guidance follows
+the existing one-shot `system -> enable` fallback without enabling the badge or
+replaying after later enablement.
+
+Media format's registered fallback contract is `format -> enable`. The direct
+format registration exists only while the selector is mounted; its persistent
+fallback remains independent, consumes once while disabled, and does not replay
+after enablement. Normal Media enablement claims the slot and removes the guide,
+while the enabled format target remains available to direct controller
+requests. Media enable and OS enable need no semantic fallback. Rating, Media,
+OS, Developer, and Publisher registrations are independent and clean up without
+removing one another. Focus requests open only the required controlled nested
+panel, retain the exact control's focus, and top-align the declared Media, OS,
+Developer, or Publisher nested section through `section-start`.
+They never enable Media, select a format, enable or select an operating system,
+or mutate project and selection state. Owner identity is optional. When
+supplied, both Media targets accept only `{ owner: 'mediaMark' }`, while OS
+enable accepts only `{ owner: 'platformMarks', selection: 'enabled-values' }`.
+Payload-bearing or cross-owner identities are rejected by the strict runtime
+parser. All eight Classic Top Title slots now have exact production setup
+routes. Their lifecycle-reachable native navigation paths have been validated;
+registered targets hidden behind filled-slot lifecycle states are covered by
+mounted controller tests instead of impossible native guide dispatches.
 
 ## 12. Versioned Workflow Contract
 
@@ -589,6 +893,46 @@ restore all do not enable owners, populate content, or reapply geometry.
 Unsupported layout IDs or versions are rejected during application and
 normalize to inactive guidance when reading unknown workflow-shaped data.
 Malformed and unknown fields never block restoration.
+
+### Native Navigation Acceptance
+
+1. Game Title opens its Image/Text chooser and routes each visible choice
+   exactly, including direct artwork upload while artwork is enabled but still
+   unfilled.
+2. Background Image focuses its Local file control.
+3. Disabled Rating Badge guidance focuses Rating enable through fallback,
+   leaves Rating disabled, and does not replay.
+4. Disabled Media Format Mark guidance focuses Media enable through fallback
+   without changing the format.
+5. Operating System Marks focuses the grouped enable checkbox without enabling
+   or selecting a platform.
+6. Disabled Developer Logo guidance focuses its matching enable fallback.
+7. Disabled Publisher Logo guidance focuses its matching enable fallback.
+8. Copyright / Legal Text focuses its exact fixed-row control.
+
+For every visible item, verify click and representative native Enter/Space
+activation, owning-role or declared nested-section alignment, one-shot
+consumption, preserved unrelated panel state, and no preview-selection or
+contextual-ribbon side effect. Enabled Rating system, Media format, Developer
+upload, and Publisher upload are registered but guided-unreachable after their
+normal owner transitions; native UI confirms those controls exist and remain
+usable, while mounted controller tests own their routing acceptance.
+
+The nine reachable actions now have mounted integration coverage through a focused
+React composition of the production role-focus provider, controlled top-level and
+nested panels, registration helpers, real focusable controls, and guided action
+component. The suite covers visible-guide pointer/Enter/Space dispatch,
+disabled fallbacks, direct typed requests to enabled semantic targets,
+`document.activeElement`, published role-start ordering,
+Media/OS/Developer/Publisher section-start geometry, focus-scroll correction,
+repeated requests, non-accordion panel state, and feature-state isolation. The
+four production section routes declare compatible typed section targets.
+Automated source coverage also verifies resolved
+Legal placeholder/owner parity, filled and cleared visibility, claimed
+Rating/Media/Developer/Publisher suppression, unsupported-slot suppression,
+and coexistence with targeted OS resolution. Persistent completion remains
+unimplemented under #295, and aspect-preserving contain-fit remains
+unimplemented under #296.
 
 ### Removed Layout Items UI
 
@@ -626,6 +970,12 @@ Inactive guidance omits this structure. The project adapter uses the pure
 workflow normalizer, so malformed metadata, unknown IDs, and unsupported future
 versions deactivate guidance without blocking owner-state restoration.
 
+The saved workflow does not contain the canonical preset ID/revision or a
+template-resolved definition. Project load restores `editor.guidedLayout` but
+clears that transient generic-preset state. Reconstructing it from the restored
+guided identity after load is intentionally deferred to #295; no saved resolved
+geometry is introduced as a workaround.
+
 Filled content remains ordinary project state under existing feature owners.
 Omission changes guidance only: owner enablement, content, geometry, preview,
 render, and export remain independent. Setup-menu state, focus/navigation,
@@ -642,6 +992,10 @@ or definition-owned and are not serialized.
 - Guided domain logic must not become an `App.tsx` dumping ground.
 - No Case Insert behavior changes in the Disc-first track.
 - Guided persistence is limited to the schema `0.2.0` workflow metadata.
+- Persistent completed/claimed slot IDs and their explicit reset UI are not yet
+  implemented; #295 owns that extension.
+- Aspect-preserving point-owner contain-fit is not yet implemented; #296 owns
+  that placement-policy extension.
 - No auto-fill implementation in this child issue.
 - No arbitrary layer model is introduced.
 - Preview, edit, save/load, and export parity remain intact for filled content.
@@ -651,7 +1005,6 @@ or definition-owned and are not serialized.
 
 - Whether each safe suggestion auto-binds or requires confirmation.
 - Repeatable-slot append versus reuse behavior.
-- Placeholder geometry coordinate format and safe-zone representation.
 - Whether disabled but otherwise valid payload shows an unfilled placeholder or a distinct inactive state.
 - Whether `domain-mark` remains one content kind or splits into rating, media, platform, and technical kinds.
 - How a primary repeated slot preserves its binding when repeated objects are reordered or removed.
@@ -663,6 +1016,9 @@ or definition-owned and are not serialized.
 3. Filled-slot movement/export transition tests.
 4. Native Tauri omit/save/load/restore/reset/export validation before #292
    closeout.
+5. #295: persisted guided-slot completion and active-preset reconstruction after
+   load.
+6. #296: aspect-preserving contain-fit for replacement visuals.
 
 Related issues and contracts:
 
@@ -670,6 +1026,8 @@ Related issues and contracts:
 - #283: this Disc slot domain and lifecycle contract.
 - #289: open Classic Top Title passive placeholder and guided setup track.
 - #292: open guided-slot omission workflow and restore-surface track.
+- #295: persistent guided-slot completion and post-load preset reconstruction.
+- #296: aspect-preserving contain-fit placement.
 - #267: packaging role taxonomy and object-role model.
 - #269: role-based preset model and application contract.
 - #270: completed Disc layout preset MVP.

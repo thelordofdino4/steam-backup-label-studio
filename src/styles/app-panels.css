@@ -27,6 +27,14 @@
   scroll-margin-block-start: var(--editor-role-scroll-inset);
 }
 
+.sidebar .editor-nested-panel {
+  scroll-margin-block-start: var(--editor-section-scroll-inset);
+}
+
+.sidebar .logo-asset-card {
+  scroll-margin-block-start: var(--editor-section-scroll-inset);
+}
+
 .panel-summary-title {
   flex: 1 1 auto;
   min-width: 0;

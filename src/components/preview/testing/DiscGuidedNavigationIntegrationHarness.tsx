@@ -41,8 +41,12 @@ import {
   shouldOpenRatingPanelForRequest,
 } from '../../editor/discRatingRoleFocusRegistration.ts'
 import type { EditorRoleFocusRequest } from '../../../editor/editorRoleFocus.ts'
+import type {
+  EditorRoleFocusRequestInput,
+} from '../../../editor/editorRoleFocusController.ts'
 import {
   getDiscGuidedLayoutDefinition,
+  getDiscGuidedLayoutIdForRolePreset,
 } from '../../../guidedPresets/discGuidedLayouts.ts'
 import {
   projectDiscGuidedPlaceholderViewModel,
@@ -112,6 +116,7 @@ type GuidedNavigationHarnessApi = {
   omitSlots: (slotIds: readonly DiscGuidedSlotId[]) => void
   requestLog: EditorRoleFocusRequest[]
   resetGuidedWorkflow: () => void
+  requestRoleFocus: (request: EditorRoleFocusRequestInput) => void
   setFeatureEnabled: (feature: ToggleableFeature, enabled: boolean) => void
   setFilledSlotId: (slotId: DiscGuidedSlotId | null) => void
   setSuggestedSlotId: (slotId: DiscGuidedSlotId | null) => void
@@ -229,6 +234,8 @@ function GuidedNavigationHarnessContent() {
   const {
     registerFocusTarget,
     registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
+    requestRoleFocus,
     setRoleOpen,
     state: navigationState,
   } = useEditorRoleFocus()
@@ -239,6 +246,7 @@ function GuidedNavigationHarnessContent() {
       id: guidedLayout.id,
       version: guidedLayout.version,
     }).state)
+  const [resolvedPresetAvailable, setResolvedPresetAvailable] = useState(true)
   const [suggestedSlotId, setSuggestedSlotId] = useState<DiscGuidedSlotId | null>(null)
   const [filledSlotId, setFilledSlotId] = useState<DiscGuidedSlotId | null>(null)
   const [backgroundPanelOpen, setBackgroundPanelOpen] = useState(false)
@@ -257,10 +265,14 @@ function GuidedNavigationHarnessContent() {
   const ratingSystemRef = useRef<HTMLSelectElement | null>(null)
   const mediaEnableRef = useRef<HTMLInputElement | null>(null)
   const mediaFormatRef = useRef<HTMLSelectElement | null>(null)
+  const mediaSectionRef = useRef<HTMLDetailsElement | null>(null)
   const operatingSystemEnableRef = useRef<HTMLInputElement | null>(null)
+  const operatingSystemSectionRef = useRef<HTMLDetailsElement | null>(null)
   const developerEnableRef = useRef<HTMLInputElement | null>(null)
+  const developerSectionRef = useRef<HTMLDivElement | null>(null)
   const developerUploadRef = useRef<HTMLInputElement | null>(null)
   const publisherEnableRef = useRef<HTMLInputElement | null>(null)
+  const publisherSectionRef = useRef<HTMLDivElement | null>(null)
   const publisherUploadRef = useRef<HTMLInputElement | null>(null)
   const copyrightRef = useRef<HTMLInputElement | null>(null)
   const previewFallbackRef = useRef<HTMLElement | null>(null)
@@ -294,9 +306,11 @@ function GuidedNavigationHarnessContent() {
       id: guidedLayout.id,
       version: guidedLayout.version,
     }).state)
+    setResolvedPresetAvailable(true)
   }, [])
   const resetGuidedWorkflow = useCallback(() => {
     setWorkflow(INITIAL_DISC_GUIDED_WORKFLOW_STATE)
+    setResolvedPresetAvailable(false)
   }, [])
   const omitSlots = useCallback((slotIds: readonly DiscGuidedSlotId[]) => {
     setWorkflow((current) => slotIds.reduce(
@@ -306,6 +320,7 @@ function GuidedNavigationHarnessContent() {
   }, [])
   const loadSavedEditor = useCallback((editor: unknown) => {
     setWorkflow(restoreSavedDiscGuidedWorkflow(editor))
+    setResolvedPresetAvailable(false)
   }, [])
 
   useLayoutEffect(() => {
@@ -327,6 +342,7 @@ function GuidedNavigationHarnessContent() {
       omitSlots,
       requestLog: requestLogRef.current,
       resetGuidedWorkflow,
+      requestRoleFocus,
       setFeatureEnabled,
       setFilledSlotId,
       setSuggestedSlotId,
@@ -338,6 +354,7 @@ function GuidedNavigationHarnessContent() {
     navigationState.pendingRequest,
     omitSlots,
     pendingRequest,
+    requestRoleFocus,
     resetGuidedWorkflow,
     setFeatureEnabled,
     setFilledSlotId,
@@ -395,7 +412,14 @@ function GuidedNavigationHarnessContent() {
     openMediaPanel,
     registerFocusTarget,
     registerFocusTargetFallback,
-  }), [openMediaPanel, registerFocusTarget, registerFocusTargetFallback])
+    registerSectionAlignmentTarget,
+    sectionElement: () => mediaSectionRef.current,
+  }), [
+    openMediaPanel,
+    registerFocusTarget,
+    registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
+  ])
 
   useLayoutEffect(() => {
     if (!featureState.enabled.media) return undefined
@@ -410,15 +434,29 @@ function GuidedNavigationHarnessContent() {
     enableElement: () => operatingSystemEnableRef.current,
     openOperatingSystemPanel,
     registerFocusTarget,
-  }), [openOperatingSystemPanel, registerFocusTarget])
+    registerSectionAlignmentTarget,
+    sectionElement: () => operatingSystemSectionRef.current,
+  }), [
+    openOperatingSystemPanel,
+    registerFocusTarget,
+    registerSectionAlignmentTarget,
+  ])
 
   useLayoutEffect(() => registerAlwaysMountedCompanyLogoFocusTargets({
     developerEnableElement: () => developerEnableRef.current,
+    developerSectionElement: () => developerSectionRef.current,
     openCompanyLogoPanel: openCompanyPanel,
     publisherEnableElement: () => publisherEnableRef.current,
+    publisherSectionElement: () => publisherSectionRef.current,
     registerFocusTarget,
     registerFocusTargetFallback,
-  }), [openCompanyPanel, registerFocusTarget, registerFocusTargetFallback])
+    registerSectionAlignmentTarget,
+  }), [
+    openCompanyPanel,
+    registerFocusTarget,
+    registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
+  ])
 
   useLayoutEffect(() => {
     if (!featureState.enabled.developer) return undefined
@@ -453,13 +491,15 @@ function GuidedNavigationHarnessContent() {
     shouldOpenCompanyLogoPanelForRequest(pendingRequest)
   const featureSnapshot = useMemo(() => cloneFeatureState(featureState), [featureState])
   const placeholders = useMemo(
-    () => ALL_PLACEHOLDERS
+    () => resolvedPresetAvailable
+      ? ALL_PLACEHOLDERS
       .filter(({ slotId }) => !workflow.omittedSlotIds.includes(slotId))
       .filter(({ slotId }) => slotId !== filledSlotId)
       .map((placeholder) => placeholder.slotId === suggestedSlotId
         ? { ...placeholder, lifecycle: 'suggested' as const }
-        : placeholder),
-    [filledSlotId, suggestedSlotId, workflow.omittedSlotIds],
+        : placeholder)
+      : [],
+    [filledSlotId, resolvedPresetAvailable, suggestedSlotId, workflow.omittedSlotIds],
   )
   const restoreItems = useMemo(
     () => createDiscGuidedRestoreItems(workflow),
@@ -480,6 +520,9 @@ function GuidedNavigationHarnessContent() {
       presetId,
       applied: true,
     }))
+    setResolvedPresetAvailable(
+      getDiscGuidedLayoutIdForRolePreset(presetId) !== null,
+    )
     return true
   }, [])
 
@@ -573,6 +616,7 @@ function GuidedNavigationHarnessContent() {
           <div data-nested-panel="media">
             <EditorFeaturePanel
               title="Media format mark"
+              detailsRef={mediaSectionRef}
               open={mediaOpen}
               onOpenChange={setMediaPanelOpen}
             >
@@ -580,6 +624,7 @@ function GuidedNavigationHarnessContent() {
                 <input
                   ref={mediaEnableRef}
                   id="integration-media-enable"
+                  data-simulate-focus-scroll="nearest"
                   type="checkbox"
                   checked={featureState.enabled.media}
                   onChange={(event) => setFeatureEnabled('media', event.target.checked)}
@@ -590,6 +635,7 @@ function GuidedNavigationHarnessContent() {
                 <select
                   ref={mediaFormatRef}
                   id="integration-media-format"
+                  data-simulate-focus-scroll="nearest"
                   value={featureState.selectedValues.mediaFormat}
                   onChange={() => undefined}
                 >
@@ -603,6 +649,7 @@ function GuidedNavigationHarnessContent() {
           <div data-nested-panel="operating-system">
             <EditorFeaturePanel
               title="Operating system marks"
+              detailsRef={operatingSystemSectionRef}
               open={operatingSystemOpen}
               onOpenChange={setOperatingSystemPanelOpen}
             >
@@ -610,6 +657,7 @@ function GuidedNavigationHarnessContent() {
                 <input
                   ref={operatingSystemEnableRef}
                   id="integration-operating-system-enable"
+                  data-simulate-focus-scroll="nearest"
                   type="checkbox"
                 />
                 Show operating system marks
@@ -625,42 +673,58 @@ function GuidedNavigationHarnessContent() {
               open={companyOpen}
               onOpenChange={setCompanyPanelOpen}
             >
-              <label>
-                <input
-                  ref={developerEnableRef}
-                  id="integration-developer-enable"
-                  type="checkbox"
-                  checked={featureState.enabled.developer}
-                  onChange={(event) => setFeatureEnabled('developer', event.target.checked)}
-                />
-                Show developer logo
-              </label>
-              {featureState.enabled.developer ? (
-                <input
-                  ref={developerUploadRef}
-                  id="integration-developer-upload"
-                  className="logo-file-input"
-                  type="file"
-                />
-              ) : null}
-              <label>
-                <input
-                  ref={publisherEnableRef}
-                  id="integration-publisher-enable"
-                  type="checkbox"
-                  checked={featureState.enabled.publisher}
-                  onChange={(event) => setFeatureEnabled('publisher', event.target.checked)}
-                />
-                Show publisher logo
-              </label>
-              {featureState.enabled.publisher ? (
-                <input
-                  ref={publisherUploadRef}
-                  id="integration-publisher-upload"
-                  className="logo-file-input"
-                  type="file"
-                />
-              ) : null}
+              <div
+                ref={developerSectionRef}
+                className="logo-asset-card editor-nested-panel"
+                data-nested-panel="developer"
+              >
+                <label>
+                  <input
+                    ref={developerEnableRef}
+                    id="integration-developer-enable"
+                    data-simulate-focus-scroll="nearest"
+                    type="checkbox"
+                    checked={featureState.enabled.developer}
+                    onChange={(event) => setFeatureEnabled('developer', event.target.checked)}
+                  />
+                  Show developer logo
+                </label>
+                {featureState.enabled.developer ? (
+                  <input
+                    ref={developerUploadRef}
+                    id="integration-developer-upload"
+                    className="logo-file-input"
+                    data-simulate-focus-scroll="nearest"
+                    type="file"
+                  />
+                ) : null}
+              </div>
+              <div
+                ref={publisherSectionRef}
+                className="logo-asset-card editor-nested-panel"
+                data-nested-panel="publisher"
+              >
+                <label>
+                  <input
+                    ref={publisherEnableRef}
+                    id="integration-publisher-enable"
+                    data-simulate-focus-scroll="nearest"
+                    type="checkbox"
+                    checked={featureState.enabled.publisher}
+                    onChange={(event) => setFeatureEnabled('publisher', event.target.checked)}
+                  />
+                  Show publisher logo
+                </label>
+                {featureState.enabled.publisher ? (
+                  <input
+                    ref={publisherUploadRef}
+                    id="integration-publisher-upload"
+                    className="logo-file-input"
+                    data-simulate-focus-scroll="nearest"
+                    type="file"
+                  />
+                ) : null}
+              </div>
             </EditorFeaturePanel>
           </div>
         </RolePanel>

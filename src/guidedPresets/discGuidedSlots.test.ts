@@ -121,6 +121,61 @@ function deepFreeze<T>(value: T): T {
   return value
 }
 
+const PRIMARY_LOGO_IDS = {
+  developer: 'disc:guided:developer-logo:primary',
+  publisher: 'disc:guided:publisher-logo:primary',
+} as const satisfies Record<string, DiscGuidedSlotId>
+
+const CLASSIC_IDS = DISC_GUIDED_SLOT_IDS.slice(0, 8)
+
+function filledIds(state: DiscGuidedSlotState) {
+  return resolveDiscGuidedSlots({
+    state,
+    suggestions: [],
+    omittedSlotIds: NO_OMITTED_SLOTS,
+  }).filter(({ lifecycle }) => lifecycle === 'filled')
+    .map(({ definition }) => definition.id)
+}
+
+function setDeveloperLogoEnabled(
+  state: DiscGuidedSlotState,
+  enabled: boolean,
+) {
+  state.logoAssets = {
+    ...state.logoAssets,
+    developerLogoLayout: {
+      ...state.logoAssets.developerLogoLayout,
+      enabled,
+    },
+  }
+}
+
+function setPublisherLogoEnabled(
+  state: DiscGuidedSlotState,
+  enabled: boolean,
+) {
+  state.logoAssets = {
+    ...state.logoAssets,
+    publisherLogoLayout: {
+      ...state.logoAssets.publisherLogoLayout,
+      enabled,
+    },
+  }
+}
+
+test('defines stable exact slots while retaining future flexible definitions', () => {
+  assert.deepEqual(
+    DISC_GUIDED_SLOT_DEFINITIONS.slice(0, 8).map(({ id }) => id),
+    CLASSIC_IDS,
+  )
+  assert.deepEqual(DISC_GUIDED_SLOT_IDS.slice(8), [
+    'disc:guided:additional-artwork:primary',
+    'disc:guided:additional-text:custom-note',
+  ])
+  assert.equal(DISC_GUIDED_SLOT_IDS.includes('disc:guided:rating:primary' as DiscGuidedSlotId), false)
+  assert.equal(DISC_GUIDED_SLOT_IDS.includes('disc:guided:company-logo:primary' as DiscGuidedSlotId), false)
+})
+
 test('defines the exact Disc guided slots in stable order', () => {
   assert.equal(DISC_GUIDED_SLOT_DEFINITIONS.length, 10)
   assert.deepEqual(
@@ -437,20 +492,103 @@ test('Developer and Publisher Logo slots resolve independently', () => {
   )
 })
 
-test('Company Logo slots do not count missing images or disabled owners', () => {
+test('primary Developer lifecycle follows its feature-owned placeholder', () => {
   const state = createState()
-  state.logoAssets.developerLogoLayout.enabled = true
-  state.logoAssets.publisherLogoLayout.enabled = true
+  assert.equal(resolve(PRIMARY_LOGO_IDS.developer, state).lifecycle, 'unfilled')
+
+  setDeveloperLogoEnabled(state, true)
+  assert.equal(resolve(PRIMARY_LOGO_IDS.developer, state).lifecycle, 'filled')
+  assert.equal(state.logoAssets.developerLogoDataUrl, null)
+
+  state.logoAssets.developerLogoDataUrl = 'data:image/png;base64,developer'
+  assert.equal(resolve(PRIMARY_LOGO_IDS.developer, state).lifecycle, 'filled')
+
+  state.logoAssets.developerLogoDataUrl = null
+  assert.equal(resolve(PRIMARY_LOGO_IDS.developer, state).lifecycle, 'filled')
+
+  setDeveloperLogoEnabled(state, false)
+  assert.equal(resolve(PRIMARY_LOGO_IDS.developer, state).lifecycle, 'unfilled')
+})
+
+test('primary Publisher lifecycle follows its feature-owned placeholder', () => {
+  const state = createState()
+  assert.equal(resolve(PRIMARY_LOGO_IDS.publisher, state).lifecycle, 'unfilled')
+
+  setPublisherLogoEnabled(state, true)
+  assert.equal(resolve(PRIMARY_LOGO_IDS.publisher, state).lifecycle, 'filled')
+  assert.equal(state.logoAssets.publisherLogoDataUrl, null)
+
+  state.logoAssets.publisherLogoDataUrl = 'data:image/png;base64,publisher'
+  assert.equal(resolve(PRIMARY_LOGO_IDS.publisher, state).lifecycle, 'filled')
+
+  state.logoAssets.publisherLogoDataUrl = null
+  assert.equal(resolve(PRIMARY_LOGO_IDS.publisher, state).lifecycle, 'filled')
+
+  setPublisherLogoEnabled(state, false)
+  assert.equal(resolve(PRIMARY_LOGO_IDS.publisher, state).lifecycle, 'unfilled')
+})
+
+test('primary logo placeholder claims stay independent and immutable', () => {
+  const state = createState()
+  setDeveloperLogoEnabled(state, true)
+  const beforeDeveloperResolution = structuredClone(state)
+
+  assert.deepEqual(filledIds(state), [PRIMARY_LOGO_IDS.developer])
+  assert.deepEqual(state, beforeDeveloperResolution)
+
+  setPublisherLogoEnabled(state, true)
+  const beforePublisherResolution = structuredClone(state)
+  assert.deepEqual(filledIds(state), [
+    PRIMARY_LOGO_IDS.developer,
+    PRIMARY_LOGO_IDS.publisher,
+  ])
+  assert.deepEqual(state, beforePublisherResolution)
+
+  setDeveloperLogoEnabled(state, false)
+  assert.deepEqual(filledIds(state), [PRIMARY_LOGO_IDS.publisher])
+  setPublisherLogoEnabled(state, false)
+  assert.deepEqual(filledIds(state), [])
+})
+
+test('omission overrides primary logo placeholder claims without owner mutation', () => {
+  const state = createState()
+  setDeveloperLogoEnabled(state, true)
+  setPublisherLogoEnabled(state, true)
+  const before = structuredClone(state)
+
+  for (const slotId of [
+    PRIMARY_LOGO_IDS.developer,
+    PRIMARY_LOGO_IDS.publisher,
+  ]) {
+    const resolution = resolveDiscGuidedSlot({
+      slotId,
+      state,
+      suggestions: [],
+      omittedSlotIds: new Set([slotId]),
+    })
+    assert.equal(resolution.lifecycle, 'omitted')
+  }
+
+  assert.deepEqual(state, before)
+})
+
+test('repeatable logo data never claims either primary logo slot', () => {
+  const state = createState()
+  const runtimeLogoAssets = state.logoAssets as typeof state.logoAssets & {
+    additionalLogoElements: readonly unknown[]
+  }
+  runtimeLogoAssets.additionalLogoElements = [{
+    id: 'additional-logo',
+    enabled: true,
+    imageDataUrl: 'data:image/png;base64,additional',
+  }]
 
   assert.equal(
-    resolve('disc:guided:developer-logo:primary', state).lifecycle,
+    resolve(PRIMARY_LOGO_IDS.developer, state).lifecycle,
     'unfilled',
   )
-
-  state.logoAssets.developerLogoDataUrl = 'data:image/png;base64,preserved'
-  state.logoAssets.developerLogoLayout.enabled = false
   assert.equal(
-    resolve('disc:guided:developer-logo:primary', state).lifecycle,
+    resolve(PRIMARY_LOGO_IDS.publisher, state).lifecycle,
     'unfilled',
   )
 })
@@ -611,7 +749,7 @@ test('batch resolution follows definition order', () => {
   )
 })
 
-test('resolution is pure for frozen state, suggestions, and skip input', () => {
+test('resolution is pure for frozen state, suggestions, and omission input', () => {
   const state = deepFreeze(createState())
   const suggestions = deepFreeze([
     createSuggestion('disc:guided:rating-badge:primary', 'domain-mark'),
@@ -652,4 +790,16 @@ test('source has no forbidden UI, renderer, export, schema, or Case Insert depen
       `unexpected dependency: ${forbiddenImport}`,
     )
   }
+})
+
+test('guided slot resolution stays transient and outside persistence renderers and imports', () => {
+  const source = readFileSync(new URL('./discGuidedSlots.ts', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /savedProject|restoreProject|caseInsert|network|fetch\(/i)
+  assert.doesNotMatch(source, /\/render\//)
+
+  const logoResolver = source.slice(
+    source.indexOf('function resolveLogoBinding'),
+    source.indexOf('function hasRenderableImageSource'),
+  )
+  assert.doesNotMatch(logoResolver, /LogoDataUrl|imageDataUrl|Boolean\(/)
 })

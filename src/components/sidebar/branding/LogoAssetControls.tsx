@@ -216,6 +216,7 @@ export function LogoAssetControls({
   imageSize,
   layout,
   enableControlRef,
+  sectionRef,
   uploadControlRef,
   projectLogoAssets,
   handleLogoAssetLayoutChange,
@@ -242,6 +243,7 @@ export function LogoAssetControls({
   imageSize: BackgroundImageSize | null
   layout: LogoAssetLayout
   enableControlRef?: Ref<HTMLInputElement>
+  sectionRef?: Ref<HTMLDivElement>
   uploadControlRef?: Ref<HTMLInputElement>
 }) {
   const uploadId = `${logoKey}-logo-upload`
@@ -257,6 +259,7 @@ export function LogoAssetControls({
       enableLabel={`Show ${label.toLowerCase()} logo`}
       onEnabledChange={(enabled) =>
         handleLogoAssetLayoutChange(logoKey, 'enabled', enabled)}
+      sectionRef={sectionRef}
     >
       <LogoAssetControlBody
         {...props}

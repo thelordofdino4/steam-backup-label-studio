@@ -83,6 +83,19 @@ import {
   type DiscGuidedWorkflowState,
 } from '../guidedPresets/discGuidedWorkflow'
 import { useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
+import { useActiveDiscPreset } from '../hooks/useActiveDiscPreset'
+import {
+  applyActiveDiscPresetToPlatformMarkState,
+} from './appActiveDiscPresetPlatformMarks'
+import {
+  ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
+  applyActiveDiscPresetToLegalTextState,
+  hasDiscPresetLegalFitImpossibleWarning,
+  isActiveDiscPresetLegalFitImpossible,
+} from './appActiveDiscPresetLegalText'
+import type {
+  ActiveDiscPresetRef,
+} from '../presets/discPresetTargetedApplication'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
@@ -331,6 +344,9 @@ function App() {
     setSelectedArtworkId,
     announceStatus,
   })
+  const activeDiscPreset = useActiveDiscPreset()
+  const lastAnnouncedImpossibleLegalPresetRef =
+    useRef<ActiveDiscPresetRef | null>(null)
   const {
     projectDiscNumberArtwork,
     discTextSettings,
@@ -380,6 +396,33 @@ function App() {
     projectMetadata,
     selectedDiscTemplate,
     steamLogoPlacement,
+    applyActivePresetLegalPlacement: (input) => {
+      const result = applyActiveDiscPresetToLegalTextState({
+        presetState: activeDiscPreset.getActivePresetState(),
+        selectedDiscTemplate,
+        legalText: {
+          key: 'copyright',
+          ...input,
+        },
+      })
+      const activePresetRef = activeDiscPreset.getActivePresetRef()
+      const fitIsImpossible =
+        isActiveDiscPresetLegalFitImpossible(result.application)
+
+      if (
+        fitIsImpossible &&
+        activePresetRef &&
+        lastAnnouncedImpossibleLegalPresetRef.current !== activePresetRef
+      ) {
+        lastAnnouncedImpossibleLegalPresetRef.current = activePresetRef
+        announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
+      } else if (!fitIsImpossible) {
+        lastAnnouncedImpossibleLegalPresetRef.current = null
+      }
+
+      activeDiscPreset.recordTargetedPresetApplication(result.application)
+      return result.legalText.layout
+    },
   })
   const {
     projectLogoAssets,
@@ -446,10 +489,20 @@ function App() {
     handlePlatformMarkLayoutChange,
     handleClearPlatformMarkImage,
     handleResetPlatformMarkLayout,
+    applyProjectPlatformMarksEligibilityChange,
   } = usePlatformMarksState({
     selectedDiscTemplate,
     selectedSteamGame,
     announceStatus,
+    applyActivePresetPlacement: (platformMarks) => {
+      const result = applyActiveDiscPresetToPlatformMarkState({
+        presetState: activeDiscPreset.getActivePresetState(),
+        selectedDiscTemplate,
+        platformMarks,
+      })
+      activeDiscPreset.recordTargetedPresetApplication(result.application)
+      return result.platformMarks
+    },
   })
   const {
     projectTechnicalMarks,
@@ -692,6 +745,7 @@ function App() {
     },
     workflow: discGuidedWorkflow,
     updateWorkflow: setDiscGuidedWorkflow,
+    activePresetState: activeDiscPreset.activePresetState,
   })
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
@@ -756,6 +810,7 @@ function App() {
         setProjectTitleArtwork,
         clampProjectTitleArtworkToTemplate,
         restoreDiscTextState,
+        setDiscTextLayout,
         clampDiscTextLayoutToTemplate,
         setProjectLogoAssets,
         clampProjectLogoAssetsToTemplate,
@@ -771,15 +826,29 @@ function App() {
     })
 
     if (!result.applied) {
+      activeDiscPreset.recordPresetApplication(null, null, false)
       discGuidedPlaceholderPreview.recordPresetApplication(presetId, false)
       announceStatus('Layout preset is unavailable. Choose another preset.')
       return false
     }
 
-    discGuidedPlaceholderPreview.recordPresetApplication(
-      result.preset.id,
+    activeDiscPreset.recordPresetApplication(
+      result.activePresetRef,
+      result.activeResolvedPreset,
       true,
     )
+    discGuidedPlaceholderPreview.recordPresetApplication(
+      result.canonicalPresetId ?? result.preset.id,
+      true,
+    )
+
+    if (hasDiscPresetLegalFitImpossibleWarning(result.warnings)) {
+      lastAnnouncedImpossibleLegalPresetRef.current =
+        result.activePresetRef
+      announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
+      return true
+    }
+
     announceStatus(`Applied ${result.preset.label} layout preset.`)
     return true
   }
@@ -955,7 +1024,7 @@ function App() {
       copyrightText: candidate.text,
     })
     if (applyDiscVisualDefaults) {
-      enableCurvedCopyrightDiscText()
+      enableCurvedCopyrightDiscText(candidate.text)
     }
 
     if (options.announce ?? true) {
@@ -1001,7 +1070,7 @@ function App() {
 
     if (applyDiscVisualDefaults) {
       if (ratingCandidate) setRatingBadgeEnabledForAppliedCandidate(ratingCandidate)
-      if (legalCandidate) enableCurvedCopyrightDiscText()
+      if (legalCandidate) enableCurvedCopyrightDiscText(legalCandidate.text)
     }
 
     announceAutoAppliedMetadataCandidates(ratingCandidate, legalCandidate, {
@@ -1069,6 +1138,7 @@ function App() {
   function resetDiscProjectState() {
     cancelPreviewPointerDrag()
     cancelCaseInsertPreviewPointerDrag()
+    activeDiscPreset.clearActivePreset()
 
     resetDiscTemplateState()
     setDiscGuidedWorkflow(INITIAL_DISC_GUIDED_WORKFLOW_STATE)
@@ -1092,6 +1162,7 @@ function App() {
 
   function resetCaseInsertProjectState() {
     cancelCaseInsertPreviewPointerDrag()
+    activeDiscPreset.clearActivePreset()
 
     setManualGameTitle(DEFAULT_CASE_INSERT_PROJECT_TITLE)
     setProjectMetadata({
@@ -1182,6 +1253,7 @@ function App() {
 
     cancelPreviewPointerDrag()
     cancelCaseInsertPreviewPointerDrag()
+    activeDiscPreset.clearActivePreset()
     setActiveWorkspace('home')
     setHomeStatusMessage(null)
   }
@@ -1297,9 +1369,11 @@ function App() {
       }
 
       if (discVisualImport) {
-        setProjectPlatformMarks(discVisualImport.platformMarks)
+        applyProjectPlatformMarksEligibilityChange(
+          discVisualImport.platformMarks,
+        )
         if (autoLegalCandidate) {
-          enableCurvedCopyrightDiscText()
+          enableCurvedCopyrightDiscText(autoLegalCandidate.text)
         } else if (shouldResetGameScopedLegal) {
           setCopyrightDiscTextEnabled(false)
         }
@@ -1383,6 +1457,7 @@ function App() {
 
   async function handleLoadProject() {
     const setLoadedActiveWorkspace = (workspace: 'disc' | 'caseInsert') => {
+      activeDiscPreset.clearActivePreset()
       setActiveWorkspace(workspace)
     }
 

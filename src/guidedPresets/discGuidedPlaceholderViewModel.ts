@@ -1,11 +1,14 @@
 import {
   getDiscGuidedLayoutDefinition,
-  getDiscGuidedLayoutSlotDefinition,
+  createDiscGuidedLayoutDefinitionFromResolvedPreset,
   type DiscGuidedLayoutSlotDefinition,
   type DiscGuidedPlaceholderLayer,
   type DiscGuidedRectGeometry,
   type DiscGuidedSetupKind,
 } from './discGuidedLayouts.ts'
+import type {
+  ResolvedDiscPresetDefinition,
+} from '../presets/discPresetResolution.ts'
 import {
   resolveDiscGuidedSlot,
   type DiscGuidedSlotId,
@@ -24,6 +27,7 @@ export type DiscGuidedPlaceholderViewModel = Readonly<{
   lifecycle: 'unfilled' | 'suggested'
   setupKind: DiscGuidedSetupKind
   ownerContentLayering: 'guidance-behind-real-content'
+  resolutionStatus: 'resolved' | 'adjusted'
 }>
 
 const NO_PLACEHOLDERS = Object.freeze([]) as readonly DiscGuidedPlaceholderViewModel[]
@@ -35,7 +39,11 @@ export function projectDiscGuidedPlaceholderViewModel({
   layoutSlot: DiscGuidedLayoutSlotDefinition | null
   lifecycle: GuidedSlotLifecycle
 }): DiscGuidedPlaceholderViewModel | null {
-  if (!layoutSlot || (lifecycle !== 'unfilled' && lifecycle !== 'suggested')) {
+  if (
+    !layoutSlot ||
+    layoutSlot.resolutionStatus === 'unsupported' ||
+    (lifecycle !== 'unfilled' && lifecycle !== 'suggested')
+  ) {
     return null
   }
 
@@ -48,35 +56,50 @@ export function projectDiscGuidedPlaceholderViewModel({
     lifecycle,
     setupKind: layoutSlot.setupKind,
     ownerContentLayering: 'guidance-behind-real-content',
+    resolutionStatus: layoutSlot.resolutionStatus,
   })
 }
 
 export function createDiscGuidedPlaceholderViewModels({
   workflow,
+  resolvedPreset,
   state,
   suggestions,
 }: {
   workflow: DiscGuidedWorkflowState
+  resolvedPreset: ResolvedDiscPresetDefinition | null
   state: DiscGuidedSlotState
   suggestions: readonly DiscGuidedSlotSuggestion[]
 }): readonly DiscGuidedPlaceholderViewModel[] {
-  if (!workflow.activeLayout) {
+  if (!workflow.activeLayout || !resolvedPreset) {
     return NO_PLACEHOLDERS
   }
 
-  const layout = getDiscGuidedLayoutDefinition(
+  const activeLayout = getDiscGuidedLayoutDefinition(
     workflow.activeLayout.id,
     workflow.activeLayout.version,
   )
 
-  if (!layout) {
+  if (!activeLayout) {
+    return NO_PLACEHOLDERS
+  }
+
+  const layout = createDiscGuidedLayoutDefinitionFromResolvedPreset(
+    resolvedPreset,
+  )
+
+  if (
+    !layout ||
+    layout.id !== activeLayout.id ||
+    layout.version !== activeLayout.version
+  ) {
     return NO_PLACEHOLDERS
   }
 
   const omittedSlotIds = new Set(workflow.omittedSlotIds)
 
   return Object.freeze(layout.slotOrder.flatMap((slotId) => {
-    const layoutSlot = getDiscGuidedLayoutSlotDefinition(layout.id, slotId)
+    const layoutSlot = layout.slots[slotId] ?? null
 
     if (!layoutSlot) return []
 

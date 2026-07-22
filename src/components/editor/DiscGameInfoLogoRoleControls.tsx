@@ -32,6 +32,7 @@ export function DiscGameInfoLogoRoleControls({
   const {
     registerFocusTarget,
     registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
     state,
   } = useEditorRoleFocus()
   const [ratingPanelOpen, setRatingPanelOpen] = useState(false)
@@ -46,7 +47,9 @@ export function DiscGameInfoLogoRoleControls({
   const ratingSourceRef = useRef<HTMLSelectElement | null>(null)
   const mediaEnableRef = useRef<HTMLInputElement | null>(null)
   const mediaFormatRef = useRef<HTMLSelectElement | null>(null)
+  const mediaSectionRef = useRef<HTMLDetailsElement | null>(null)
   const operatingSystemEnableRef = useRef<HTMLInputElement | null>(null)
+  const operatingSystemSectionRef = useRef<HTMLDetailsElement | null>(null)
   const openRatingPanel = useCallback(() => setRatingPanelOpen(true), [])
   const openMediaPanel = useCallback(() => setMediaPanelOpen(true), [])
   const openOperatingSystemPanel = useCallback(
@@ -108,10 +111,13 @@ export function DiscGameInfoLogoRoleControls({
     openMediaPanel,
     registerFocusTarget,
     registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
+    sectionElement: () => mediaSectionRef.current,
   }), [
     openMediaPanel,
     registerFocusTarget,
     registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
   ])
 
   useLayoutEffect(() => {
@@ -128,9 +134,12 @@ export function DiscGameInfoLogoRoleControls({
     enableElement: () => operatingSystemEnableRef.current,
     openOperatingSystemPanel,
     registerFocusTarget,
+    registerSectionAlignmentTarget,
+    sectionElement: () => operatingSystemSectionRef.current,
   }), [
     openOperatingSystemPanel,
     registerFocusTarget,
+    registerSectionAlignmentTarget,
   ])
 
   return (
@@ -138,12 +147,14 @@ export function DiscGameInfoLogoRoleControls({
       {...brandingControls}
       mediaEnableControlRef={mediaEnableRef}
       mediaFormatControlRef={mediaFormatRef}
+      mediaPanelDetailsRef={mediaSectionRef}
       mediaPanelOpen={mediaPanelOpen ||
         shouldOpenMediaPanelForRequest(pendingRequest)}
       onMediaPanelOpenChange={setMediaPanelOpen}
       onOperatingSystemPanelOpenChange={setOperatingSystemPanelOpen}
       onRatingPanelOpenChange={setRatingPanelOpen}
       operatingSystemEnableControlRef={operatingSystemEnableRef}
+      operatingSystemPanelDetailsRef={operatingSystemSectionRef}
       operatingSystemPanelOpen={operatingSystemPanelOpen ||
         shouldOpenOperatingSystemPanelForRequest(pendingRequest)}
       ratingEnableControlRef={ratingEnableRef}

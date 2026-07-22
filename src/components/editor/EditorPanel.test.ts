@@ -122,7 +122,20 @@ test('only navigation-owned panels use the controlled contract', () => {
           panelTag,
           new RegExp(`onOpenChange=\\{${expectedHandler}\\}`),
         )
-        assert.doesNotMatch(panelTag, /\b(?:detailsRef|summaryRef)=/)
+        if (panelTag.includes('title="Rating badge"')) {
+          assert.doesNotMatch(panelTag, /\bdetailsRef=/)
+        } else {
+          const expectedDetailsRef = panelTag.includes(
+            'title="Media format mark"',
+          )
+            ? 'mediaPanelDetailsRef'
+            : 'operatingSystemPanelDetailsRef'
+          assert.match(
+            panelTag,
+            new RegExp(`detailsRef=\\{${expectedDetailsRef}\\}`),
+          )
+        }
+        assert.doesNotMatch(panelTag, /\bsummaryRef=/)
         continue
       }
 

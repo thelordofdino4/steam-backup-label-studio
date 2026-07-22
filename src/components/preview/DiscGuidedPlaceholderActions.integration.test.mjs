@@ -46,13 +46,11 @@ test.before(async () => {
   browser = await chromium.launch({ headless: true })
   page = await browser.newPage()
 })
-
 test.after(async () => {
   await page?.close()
   await browser?.close()
   await server?.close()
 })
-
 async function openHarness() {
   await page.goto(harnessUrl)
   await page.waitForFunction(() => Boolean(window.__discGuidedNavigationHarness))
@@ -134,13 +132,25 @@ async function assertRequest(route) {
   const requests = await requestLog()
   assert.equal(requests.length, 1)
   delete requests[0].requestId
+  const sectionAlignmentTarget = {
+    'disc:media-format-mark:format': 'disc:media-format-mark:section',
+    'disc:operating-system-marks:enable':
+      'disc:operating-system-marks:section',
+    'disc:company-logo:developer-upload':
+      'disc:company-logo:developer-section',
+    'disc:company-logo:publisher-upload':
+      'disc:company-logo:publisher-section',
+  }[route.destination] ?? null
   assert.deepEqual(requests[0], {
     surfaceId: 'disc-label',
     behavior: 'focus',
-    scrollAlignment: 'role-start',
+    scrollAlignment: sectionAlignmentTarget
+      ? 'section-start'
+      : 'role-start',
     destination: {
       roleId: route.roleId,
       focusTarget: route.destination,
+      ...(sectionAlignmentTarget ? { sectionAlignmentTarget } : {}),
     },
   })
 }
@@ -397,6 +407,7 @@ test('saved omissions repopulate restore rows and restored metadata survives rel
     window.__discGuidedNavigationHarness.loadSavedEditor(editor), saved)
   const restoredSection = page.getByRole('region', { name: 'Removed layout items' })
   await restoredSection.waitFor()
+  assert.equal(await page.locator('.disc-guided-placeholder-action').count(), 0)
   assert.deepEqual(
     await restoredSection.locator('.disc-guided-restore-row > span').allTextContents(),
     ['Rating Badge', 'Publisher Logo'],
@@ -432,4 +443,87 @@ test('same preset reapplication preserves omissions while another preset clears 
     omittedSlotIds: [],
   })
   assert.equal(await page.getByRole('region', { name: 'Removed layout items' }).count(), 0)
+})
+
+
+const registeredSemanticTargets = [
+  {
+    feature: 'rating',
+    activeId: 'integration-rating-system',
+    roleId: 'game-info-logos',
+    destination: 'disc:rating:system',
+  },
+  {
+    feature: 'media',
+    activeId: 'integration-media-format',
+    roleId: 'game-info-logos',
+    destination: 'disc:media-format-mark:format',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+  },
+  {
+    feature: 'developer',
+    activeId: 'integration-developer-upload',
+    roleId: 'company-logos',
+    destination: 'disc:company-logo:developer-upload',
+    sectionAlignmentTarget: 'disc:company-logo:developer-section',
+  },
+  {
+    feature: 'publisher',
+    activeId: 'integration-publisher-upload',
+    roleId: 'company-logos',
+    destination: 'disc:company-logo:publisher-upload',
+    sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+  },
+]
+
+test('enabled semantic targets stay registered and focus without guide dispatch or owner mutation', async () => {
+  for (const route of registeredSemanticTargets) {
+    await openHarness()
+    await page.evaluate(({ feature }) =>
+      window.__discGuidedNavigationHarness.setFeatureEnabled(feature, true),
+    route)
+    await page.locator(`#${route.activeId}`).waitFor({ state: 'attached' })
+    const before = await featureSnapshot()
+
+    await page.evaluate((target) => {
+      window.__discGuidedNavigationHarness.requestRoleFocus({
+        surfaceId: 'disc-label',
+        behavior: 'focus',
+        scrollAlignment: target.sectionAlignmentTarget
+          ? 'section-start'
+          : 'role-start',
+        destination: {
+          roleId: target.roleId,
+          focusTarget: target.destination,
+          ...(target.sectionAlignmentTarget
+            ? { sectionAlignmentTarget: target.sectionAlignmentTarget }
+            : {}),
+        },
+      })
+    }, route)
+
+    await page.waitForFunction((activeId) =>
+      document.activeElement?.id === activeId &&
+        window.__discGuidedNavigationHarness.getPendingRequest() === null,
+    route.activeId)
+
+    const requests = await requestLog()
+    assert.equal(requests.length, 1)
+    delete requests[0].requestId
+    assert.deepEqual(requests[0], {
+      surfaceId: 'disc-label',
+      behavior: 'focus',
+      scrollAlignment: route.sectionAlignmentTarget
+        ? 'section-start'
+        : 'role-start',
+      destination: {
+        roleId: route.roleId,
+        focusTarget: route.destination,
+        ...(route.sectionAlignmentTarget
+          ? { sectionAlignmentTarget: route.sectionAlignmentTarget }
+          : {}),
+      },
+    })
+    assert.deepEqual(await featureSnapshot(), before)
+  }
 })

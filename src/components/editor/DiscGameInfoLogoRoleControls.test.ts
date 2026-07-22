@@ -103,13 +103,19 @@ function requestGameInfoTarget(
   >,
   behavior: EditorRoleFocusBehavior = 'focus',
 ) {
+  const sectionAlignmentTarget = focusTarget ===
+      'disc:operating-system-marks:enable'
+    ? 'disc:operating-system-marks:section'
+    : 'disc:media-format-mark:section'
+
   return store.requestRoleFocus({
     surfaceId: 'disc-label',
     behavior,
-    scrollAlignment: 'role-start',
+    scrollAlignment: behavior === 'focus' ? 'section-start' : 'role-start',
     destination: {
       roleId: 'game-info-logos',
       focusTarget,
+      ...(behavior === 'focus' ? { sectionAlignmentTarget } : {}),
     },
   })
 }
@@ -557,6 +563,8 @@ test('Media enable and enabled format focus exact controls without mutation', ()
     openMediaPanel: () => calls.push('ancestor:media'),
     registerFocusTarget: store.registerFocusTarget,
     registerFocusTargetFallback: store.registerFocusTargetFallback,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
+    sectionElement: () => createElement('media-section', calls),
   })
   registerEnabledMediaFormatFocusTarget({
     formatElement: () => createElement('media-format', calls),
@@ -572,11 +580,13 @@ test('Media enable and enabled format focus exact controls without mutation', ()
 
   assert.deepEqual(calls, [
     'ancestor:media',
+    'media-section:scroll:start:auto',
     'media-enable:focus:true',
-    'game-info-summary:scroll:start:auto',
+    'media-section:scroll:start:auto',
     'ancestor:media',
+    'media-section:scroll:start:auto',
     'media-format:focus:true',
-    'game-info-summary:scroll:start:auto',
+    'media-section:scroll:start:auto',
   ])
   assert.deepEqual(state, initialState)
 })
@@ -593,6 +603,8 @@ test('disabled Media format falls back once and a new request reaches the select
     openMediaPanel: () => calls.push('ancestor:media'),
     registerFocusTarget: store.registerFocusTarget,
     registerFocusTargetFallback: store.registerFocusTargetFallback,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
+    sectionElement: () => createElement('media-section', calls),
   })
 
   requestGameInfoTarget(store, 'disc:media-format-mark:format')
@@ -612,7 +624,11 @@ test('disabled Media format falls back once and a new request reaches the select
 
   requestGameInfoTarget(store, 'disc:media-format-mark:format')
   assert.equal(store.processPendingRequest(), 'target-focused')
-  assert.equal(calls.at(-1), 'media-format:focus:true')
+  assert.deepEqual(calls.slice(-3), [
+    'media-section:scroll:start:auto',
+    'media-format:focus:true',
+    'media-section:scroll:start:auto',
+  ])
   assert.deepEqual(mediaState, { enabled: true, value: 'blu-ray' })
 })
 
@@ -639,6 +655,8 @@ test('Operating System enable focuses repeatedly without selecting marks', () =>
     enableElement: () => createElement('os-enable', calls),
     openOperatingSystemPanel: () => calls.push('ancestor:os'),
     registerFocusTarget: store.registerFocusTarget,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
+    sectionElement: () => createElement('os-section', calls),
   })
 
   const first = requestGameInfoTarget(
@@ -660,7 +678,11 @@ test('Operating System enable focuses repeatedly without selecting marks', () =>
   assert.equal(
     calls.filter((call) =>
       call === 'game-info-summary:scroll:start:auto').length,
-    2,
+    0,
+  )
+  assert.equal(
+    calls.filter((call) => call === 'os-section:scroll:start:auto').length,
+    4,
   )
   assert.deepEqual(platformState, initialState)
 })
@@ -678,11 +700,15 @@ test('Rating, Media, and OS registrations coexist and clean up independently', (
     openMediaPanel: () => calls.push('ancestor:media'),
     registerFocusTarget: store.registerFocusTarget,
     registerFocusTargetFallback: store.registerFocusTargetFallback,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
+    sectionElement: () => createElement('media-section', calls),
   })
   const unregisterOs = registerAlwaysMountedOperatingSystemFocusTarget({
     enableElement: () => createElement('os-enable', calls),
     openOperatingSystemPanel: () => calls.push('ancestor:os'),
     registerFocusTarget: store.registerFocusTarget,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
+    sectionElement: () => createElement('os-section', calls),
   })
 
   requestRatingTarget(store, 'disc:rating:enable')
@@ -705,7 +731,11 @@ test('Rating, Media, and OS registrations coexist and clean up independently', (
   assert.equal(store.processPendingRequest(), 'target-focused')
   requestGameInfoTarget(store, 'disc:operating-system-marks:enable')
   assert.equal(store.processPendingRequest(), 'target-focused')
-  assert.equal(calls.at(-1), 'os-enable:focus:true')
+  assert.deepEqual(calls.slice(-3), [
+    'os-section:scroll:start:auto',
+    'os-enable:focus:true',
+    'os-section:scroll:start:auto',
+  ])
   unregisterOs()
   unregisterRating()
 })
@@ -720,11 +750,15 @@ test('reveal stays at Game Info summary for Media and OS destinations', () => {
     openMediaPanel: () => { mediaPanelOpen = true },
     registerFocusTarget: store.registerFocusTarget,
     registerFocusTargetFallback: store.registerFocusTargetFallback,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
+    sectionElement: () => createElement('media-section', calls),
   })
   registerAlwaysMountedOperatingSystemFocusTarget({
     enableElement: () => createElement('os-enable', calls),
     openOperatingSystemPanel: () => { operatingSystemPanelOpen = true },
     registerFocusTarget: store.registerFocusTarget,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
+    sectionElement: () => createElement('os-section', calls),
   })
   store.registerRolePanel('game-info-logos', {
     detailsElement: () => null,
@@ -758,6 +792,11 @@ test('Game Info role adapter owns independent panel state and registrations', ()
   assert.match(adapterSource, /useState\(false\)/)
   assert.match(adapterSource, /useRef<HTMLInputElement \| null>\(null\)/)
   assert.match(adapterSource, /useRef<HTMLSelectElement \| null>\(null\)/)
+  assert.equal(
+    (adapterSource.match(/useRef<HTMLDetailsElement \| null>\(null\)/g) ?? [])
+      .length,
+    2,
+  )
   assert.match(
     adapterSource,
     /useRef<[\s\S]*?HTMLInputElement \| HTMLSelectElement \| null[\s\S]*?>\(null\)/,
@@ -770,6 +809,20 @@ test('Game Info role adapter owns independent panel state and registrations', ()
   assert.match(
     adapterSource,
     /registerAlwaysMountedOperatingSystemFocusTarget/,
+  )
+  assert.match(adapterSource, /registerSectionAlignmentTarget/)
+  assert.match(adapterSource, /sectionElement: \(\) => mediaSectionRef\.current/)
+  assert.match(
+    adapterSource,
+    /sectionElement: \(\) => operatingSystemSectionRef\.current/,
+  )
+  assert.match(
+    gameInfoRegistrationSource,
+    /'disc:media-format-mark:section'/,
+  )
+  assert.match(
+    gameInfoRegistrationSource,
+    /'disc:operating-system-marks:section'/,
   )
   assert.match(adapterSource, /if \(!ratingEnabled\) return undefined/g)
   assert.match(adapterSource, /if \(!mediaEnabled\) return undefined/)
@@ -801,8 +854,13 @@ test('generic controls forward refs to exact Rating, Media, and OS elements', ()
   assert.match(ratingSource, /sourceControlRef=\{sourceControlRef\}/)
   assert.match(markSource, /<select\s+ref=\{sourceControlRef\}/)
   assert.match(gameInfoSource, /open=\{mediaPanelOpen\}/)
+  assert.match(gameInfoSource, /detailsRef=\{mediaPanelDetailsRef\}/)
   assert.match(gameInfoSource, /onOpenChange=\{onMediaPanelOpenChange\}/)
   assert.match(gameInfoSource, /open=\{operatingSystemPanelOpen\}/)
+  assert.match(
+    gameInfoSource,
+    /detailsRef=\{operatingSystemPanelDetailsRef\}/,
+  )
   assert.match(
     gameInfoSource,
     /onOpenChange=\{onOperatingSystemPanelOpenChange\}/,

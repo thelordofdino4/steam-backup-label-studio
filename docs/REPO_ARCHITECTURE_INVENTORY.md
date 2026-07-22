@@ -349,11 +349,73 @@ Key files:
 - `src/export/exportPng.ts`
 - `src/export/exportPreflight.ts`
 - `src/export/discDesignCheck.ts`
+- `src/presets/discPresetDefinition.ts`
+- `src/presets/discPresetResolution.ts`
+- `src/presets/discPresetOwnerPlacement.ts`
+- `src/presets/discPresetPlacementAdapters.ts`
+- `src/presets/discPresetApplication.ts`
+- `src/presets/discPresetTargetedApplication.ts`
+- `src/presets/adapters/discPointPresetAdapters.ts`
+- `src/presets/adapters/discTextPresetAdapters.ts`
+- `src/presets/adapters/discBackgroundPresetAdapter.ts`
+- `src/presets/adapters/discPlatformMarksPresetAdapter.ts`
+- `src/presets/discPresetProductionAdapterRegistry.ts`
+- `src/presets/discPresetRegistry.ts`
+- `src/presets/builtins/classicTopTitleDiscPreset.ts`
+- `src/guidedPresets/discGuidedLayouts.ts`
+- `src/guidedPresets/discGuidedWorkflow.ts`
+- `src/hooks/useDiscGuidedPlaceholderPreview.ts`
+- `src/project/projectGuidedWorkflow.ts`
+- `src/app/appRegisteredDiscPresetApplication.ts`
+- `src/app/appDiscRolePresetApplication.ts`
+- `src/app/appActiveDiscPresetPlatformMarks.ts`
+- `src/hooks/useActiveDiscPreset.ts`
 
 Source-of-truth state:
 
 - Runtime state is split between `App.tsx` and disc feature hooks.
 - Persisted state is `SavedDiscProject` in `src/project/projectTypes.ts`.
+- Reusable Disc preset layout contracts are immutable, JSON-compatible
+  definitions under `src/presets/`; they contain no project content or enabled
+  state. Template resolution produces transient nominal/resolved slot geometry
+  with structured warnings. A trusted semantic adapter registry and pure
+  application-plan builder provide deterministic partial/rejected planning
+  without dynamic state paths or runtime side effects. Focused concrete adapters
+  emit placement-only typed updates for point, straight-text, and centered
+  Background targets while preserving owner enablement and payload. The OS group
+  adapter delegates resolved-region geometry to
+  `src/layout/groupedPlatformMarkPlacement.ts` and emits stable
+  platform-mark-identity layout updates without replacing owner state. The
+  production registry covers all Classic targets. Classic guided geometry and
+  real owner placement now derive from the same canonical built-in definition.
+  `appRegisteredDiscPresetApplication.ts` owns the focused immutable owner
+  snapshot, generic resolution/planning call, exhaustive typed update
+  translation, and updated-owner list. `appDiscRolePresetApplication.ts`
+  dispatches each touched owner family once without Classic's legacy broad
+  post-clamp behavior. `discPresetTargetedApplication.ts` owns exact
+  ID/revision and one-target resolution with structured fail-closed outcomes.
+  Content-aware adapters may return one validated resolved-slot patch;
+  application merges it without changing nominal geometry or slot order.
+  Legal fitting uses app-injected browser-canvas measurement and canonical
+  straight-text render bounds while the pure engine remains browser-free.
+  `useActiveDiscPreset.ts` owns the non-persisted canonical active ID/revision
+  and latest resolved runtime definition. Guided projection consumes that
+  resolved definition and suppresses unsupported slots.
+  `discGuidedWorkflow.ts` separately owns active guided layout identity/version
+  and canonical omission transitions. Schema `0.2.0` snapshots only that compact
+  workflow through `projectGuidedWorkflow.ts`; omission never mutates feature
+  owners. Project load restores the workflow while clearing transient generic
+  preset state, so projection fails closed until reconstruction is added by
+  #295. Persistent completion remains deferred to #295 and aspect-preserving
+  contain-fit remains deferred to #296.
+  `appActiveDiscPresetPlatformMarks.ts` and `usePlatformMarksState.ts` compose
+  late OS eligibility/bounds changes with only the production OS adapter before
+  the final owner-state commit; layout x/y/scale updates do not recurse.
+  `appActiveDiscPresetLegalText.ts` and `useDiscTextState.ts` do the same for
+  Legal enablement, canonical content, and measurement-relevant styles while
+  leaving direct Legal layout edits alone.
+  `discRolePresets.ts` retains Classic menu metadata only; Centered Logo Archive
+  and Clean Metadata Footer remain on the transitional legacy path.
 
 Render path:
 

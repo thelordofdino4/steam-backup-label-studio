@@ -24,7 +24,6 @@ import { createDefaultDiscTextValueSources } from '../project/metadataDiscText.t
 import {
   createDefaultProjectPlatformMarkAsset,
   createDefaultProjectPlatformMarks,
-  getProjectPlatformMarkAsset,
 } from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
 import {
@@ -33,7 +32,6 @@ import {
 } from '../project/projectTechnicalMarks.ts'
 import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
-import { placeGroupedPlatformMarks } from './groupedPlatformMarkPlacement.ts'
 
 const expectedPresetLabels = new Map([
   ['classic-top-title', 'Classic Top Title'],
@@ -319,7 +317,10 @@ test('each disc role preset targets the Disc surface and declares role intent', 
 
 test('each disc role preset groups updates by current feature owner', () => {
   for (const preset of DISC_ROLE_PRESETS) {
-    assert.ok(preset.updatePlan.length > 0)
+    if (preset.id === 'classic-top-title') {
+      assert.deepEqual(preset.updatePlan, [])
+      continue
+    }
 
     for (const ownerPlan of preset.updatePlan) {
       assert.ok(ownerPlan.owner.length > 0)
@@ -388,16 +389,8 @@ test('disc role preset lookup handles known and unknown ids safely', () => {
   assert.deepEqual(getDiscRolePresetUpdatePlan('unknown-preset-id'), [])
 })
 
-test('applying each starter disc role preset updates expected layout fields', () => {
+test('legacy role preset application retains the two non-Classic built-ins', () => {
   const expectations = {
-    'classic-top-title': {
-      title: { x: 50, y: 19.5, scale: 1 },
-      copyright: { mode: 'straight', arcSide: 'bottom', enabled: false },
-      textKey: 'appId',
-      textY: 72,
-      textEnabled: false,
-      developerLogo: { x: 21, y: 62, scale: 0.7, enabled: false },
-    },
     'centered-logo-archive': {
       title: { x: 50, y: 50, scale: 1.35 },
       copyright: { mode: 'curved', arcSide: 'bottom', enabled: true },
@@ -416,7 +409,10 @@ test('applying each starter disc role preset updates expected layout fields', ()
     },
   } as const
 
-  for (const presetId of DISC_ROLE_PRESET_IDS) {
+  for (const presetId of [
+    'centered-logo-archive',
+    'clean-metadata-footer',
+  ] as const) {
     const initialState = createApplicationState()
     const result = applyDiscRolePresetToState(initialState, presetId)
     const expected = expectations[presetId]
@@ -433,21 +429,14 @@ test('applying each starter disc role preset updates expected layout fields', ()
       result.state.discTextSettings.copyright,
       expected.copyright.enabled,
     )
-    if (presetId === 'classic-top-title') {
-      assert.equal(
-        result.state.discTextLayout.copyright,
-        initialState.discTextLayout.copyright,
-      )
-    } else {
-      assert.equal(
-        result.state.discTextLayout.copyright.mode,
-        expected.copyright.mode,
-      )
-      assert.equal(
-        result.state.discTextLayout.copyright.arcSide,
-        expected.copyright.arcSide,
-      )
-    }
+    assert.equal(
+      result.state.discTextLayout.copyright.mode,
+      expected.copyright.mode,
+    )
+    assert.equal(
+      result.state.discTextLayout.copyright.arcSide,
+      expected.copyright.arcSide,
+    )
     assert.equal(
       result.state.discTextSettings[expected.textKey],
       expected.textEnabled,
@@ -455,17 +444,10 @@ test('applying each starter disc role preset updates expected layout fields', ()
     if (expected.textEnabled) {
       assert.equal(result.state.discTextLayout[expected.textKey].y, expected.textY)
     }
-    if (presetId === 'classic-top-title') {
-      assert.equal(
-        result.state.logoAssets.developerLogoLayout,
-        initialState.logoAssets.developerLogoLayout,
-      )
-    } else {
-      assert.deepEqual(result.state.logoAssets.developerLogoLayout, {
-        enabled: expected.developerLogo.enabled,
-        ...expected.developerLogo,
-      })
-    }
+    assert.deepEqual(result.state.logoAssets.developerLogoLayout, {
+      enabled: expected.developerLogo.enabled,
+      ...expected.developerLogo,
+    })
   }
 })
 
@@ -593,219 +575,10 @@ test('disc role preset application handles unknown preset ids safely', () => {
   assert.equal(result.state, state)
 })
 
-test('disc role presets do not enable rating badges without rating metadata', () => {
-  const state = createApplicationState()
-  const result = applyDiscRolePresetToState(state, 'classic-top-title').state
+test('Classic keeps its menu metadata but no longer owns a legacy update plan', () => {
+  const preset = getDiscRolePreset('classic-top-title')
 
-  assert.equal(state.metadata?.ratingSystem, 'none')
-  assert.equal(result.ratingBadge.layout.enabled, false)
-  assert.equal(result.ratingBadge.source, state.ratingBadge.source)
-  assert.equal(
-    result.ratingBadge.customImageDataUrl,
-    state.ratingBadge.customImageDataUrl,
-  )
-})
-
-test('Classic preserves disabled rating sources with valid rating metadata', () => {
-  const state = createApplicationState()
-  const result = applyDiscRolePresetToState(
-    {
-      ...state,
-      metadata: {
-        ...state.metadata!,
-        ratingSystem: 'ESRB',
-        ratingValue: 'T',
-      },
-    },
-    'classic-top-title',
-  ).state
-
-  assert.equal(result.ratingBadge.layout.enabled, false)
-  assert.equal(result.ratingBadge.source, state.ratingBadge.source)
-  assert.equal(
-    result.ratingBadge.customImageDataUrl,
-    state.ratingBadge.customImageDataUrl,
-  )
-})
-
-test('Classic preserves enabled rating content while repositioning it', () => {
-  const state = createApplicationState()
-  state.metadata = {
-    ...state.metadata!,
-    ratingSystem: 'ESRB',
-    ratingValue: 'T',
-  }
-  state.ratingBadge.layout.enabled = true
-
-  const result = applyDiscRolePresetToState(
-    state,
-    'classic-top-title',
-    discTemplates.standardPrintableDisc,
-  ).state
-
-  assert.deepEqual(result.ratingBadge.layout, {
-    enabled: true,
-    x: 79,
-    y: 62,
-    scale: 0.75,
-  })
-})
-
-test('blank Classic preserves every optional exact owner as disabled', () => {
-  const state = createApplicationState()
-  const result = applyDiscRolePresetToState(
-    state,
-    'classic-top-title',
-    discTemplates.standardPrintableDisc,
-  ).state
-
-  assert.equal(result.ratingBadge.layout, state.ratingBadge.layout)
-  assert.equal(result.mediaMark.layout, state.mediaMark.layout)
-  assert.equal(result.logoAssets.developerLogoLayout, state.logoAssets.developerLogoLayout)
-  assert.equal(result.logoAssets.publisherLogoLayout, state.logoAssets.publisherLogoLayout)
-  assert.equal(result.discTextSettings.copyright, false)
-  assert.equal(result.discTextLayout.copyright, state.discTextLayout.copyright)
-  assert.equal(result.discTextSettings.appId, state.discTextSettings.appId)
-  assert.equal(result.discTextLayout.appId, state.discTextLayout.appId)
-  assert.equal(result.platformMarks, state.platformMarks)
-})
-
-test('Classic preserves enabled Media content and repositions only its layout', () => {
-  const state = createApplicationState()
-  state.mediaMark = {
-    ...state.mediaMark,
-    source: 'custom',
-    theme: 'dark',
-    customImageDataUrl: 'data:image/png;base64,media',
-    customImageSize: { width: 640, height: 240 },
-    layout: { enabled: true, x: 12, y: 34, scale: 1.4 },
-  }
-
-  const result = applyDiscRolePresetToState(
-    state,
-    'classic-top-title',
-    discTemplates.standardPrintableDisc,
-  ).state
-
-  assert.deepEqual(result.mediaMark, {
-    ...state.mediaMark,
-    layout: { enabled: true, x: 80, y: 76, scale: 0.7 },
-  })
-})
-
-test('Classic positions enabled Developer Publisher and Copyright independently', () => {
-  const state = createApplicationState()
-  state.logoAssets.developerLogoLayout.enabled = true
-  state.logoAssets.publisherLogoLayout.enabled = true
-  state.discTextSettings.copyright = true
-
-  const result = applyDiscRolePresetToState(
-    state,
-    'classic-top-title',
-    discTemplates.standardPrintableDisc,
-  ).state
-
-  assert.deepEqual(result.logoAssets.developerLogoLayout, {
-    enabled: true, x: 21, y: 62, scale: 0.7,
-  })
-  assert.deepEqual(result.logoAssets.publisherLogoLayout, {
-    enabled: true, x: 21, y: 74, scale: 0.7,
-  })
-  assert.equal(result.discTextSettings.copyright, true)
-  assert.equal(result.discTextLayout.copyright.x, 0)
-  assert.equal(result.discTextLayout.copyright.y, 89)
-  assert.equal(result.discTextLayout.copyright.width, 64)
-})
-
-test('Classic applies grouped placement to selected enabled OS marks only', () => {
-  const template = discTemplates.standardPrintableDisc
-  const state = createApplicationState()
-  const windows = createDefaultProjectPlatformMarkAsset('windows', template)
-  const linux = createDefaultProjectPlatformMarkAsset('linux', template)
-  state.platformMarks = {
-    ...state.platformMarks,
-    values: ['linux', 'windows'],
-    assets: {
-      windows: { ...windows, layout: { ...windows.layout, enabled: true } },
-      linux: { ...linux, layout: { ...linux.layout, enabled: true } },
-    },
-  }
-  const placement = placeGroupedPlatformMarks({
-    platformMarks: state.platformMarks,
-    region: { centerXPercent: 50, centerYPercent: 73, widthPercent: 28, heightPercent: 10 },
-    template,
-  })
-  assert.equal(placement.status, 'placed')
-
-  const result = applyDiscRolePresetToState(
-    state,
-    'classic-top-title',
-    template,
-  ).state
-
-  assert.deepEqual(result.platformMarks.values, state.platformMarks.values)
-  assert.equal(result.platformMarks.inference, state.platformMarks.inference)
-  for (const update of placement.updates) {
-    const before = getProjectPlatformMarkAsset(state.platformMarks, update.value, template)
-    const after = getProjectPlatformMarkAsset(result.platformMarks, update.value, template)
-    assert.deepEqual(after, {
-      ...before,
-      layout: { ...before.layout, x: update.x, y: update.y, scale: update.scale },
-    })
-  }
-})
-
-test('Classic canonically materializes a selected missing OS asset', () => {
-  const template = discTemplates.standardPrintableDisc
-  const state = createApplicationState()
-  state.platformMarks = {
-    ...state.platformMarks,
-    values: ['windows'],
-    assets: {},
-  }
-
-  const result = applyDiscRolePresetToState(
-    state,
-    'classic-top-title',
-    template,
-  ).state
-
-  assert.equal(state.platformMarks.assets.windows, undefined)
-  assert.ok(result.platformMarks.assets.windows)
-  assert.equal(result.platformMarks.assets.windows.source, 'placeholder')
-  assert.equal(result.platformMarks.assets.windows.layout.enabled, true)
-})
-
-test('Classic leaves ignored OS assets unchanged when grouped placement has no eligible marks', () => {
-  const template = discTemplates.standardPrintableDisc
-  const state = createApplicationState()
-  const windows = createDefaultProjectPlatformMarkAsset('windows', template)
-  state.platformMarks = {
-    ...state.platformMarks,
-    values: ['windows'],
-    assets: {
-      windows: {
-        ...windows,
-        source: 'custom',
-        customImageDataUrl: 'data:image/png;base64,missing-size',
-        customImageSize: null,
-        layout: { ...windows.layout, enabled: true },
-      },
-    },
-  }
-
-  const placement = placeGroupedPlatformMarks({
-    platformMarks: state.platformMarks,
-    region: { centerXPercent: 50, centerYPercent: 73, widthPercent: 28, heightPercent: 10 },
-    template,
-  })
-  assert.equal(placement.status, 'no-eligible-marks')
-  assert.deepEqual(placement.updates, [])
-
-  const result = applyDiscRolePresetToState(
-    state,
-    'classic-top-title',
-    template,
-  ).state
-  assert.equal(result.platformMarks, state.platformMarks)
+  assert.equal(preset?.label, 'Classic Top Title')
+  assert.deepEqual(preset?.updatePlan, [])
+  assert.deepEqual(getDiscRolePresetUpdatePlan('classic-top-title'), [])
 })

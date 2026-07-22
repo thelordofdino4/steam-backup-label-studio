@@ -1106,6 +1106,14 @@ The disc editor is the first alpha-capable app surface.
 - `src/discText/*`
 - `src/layout/disc*.ts`
 - `src/layout/layoutRangeMath.ts`
+- `src/presets/discPresetDefinition.ts`
+- `src/presets/discPresetResolution.ts`
+- `src/presets/discPresetPlacementAdapters.ts`
+- `src/presets/discPresetApplication.ts`
+- `src/presets/discPresetTargetedApplication.ts`
+- `src/presets/discPresetRegistry.ts`
+- `src/presets/builtins/classicTopTitleDiscPreset.ts`
+- `src/guidedPresets/discGuidedLayouts.ts`
 - `src/templates/discTemplates.ts`
 - `src/export/exportPng.ts`
 - `src/export/exportPreflight.ts`
@@ -1117,7 +1125,114 @@ The disc editor is the first alpha-capable app surface.
 - Persisted state is `SavedDiscProject`.
 - Disc layer order lives in `src/editor/layerOrder.ts`.
 
-The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Those documents are descriptive only: current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, preset, or guided-slot schema exists.
+The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, or generic preset schema exists. Schema `0.2.0` does persist the focused Disc guided-workflow layout ID/version and canonical omitted slot IDs; it does not persist generic preset identity or geometry.
+
+Generic Disc preset definitions are pure JSON-compatible domain data. The
+definition parser reconstructs immutable allowlisted identity, compatibility,
+slot geometry, visual-layer, and placement-intent values from `unknown`; the
+registry provides storage-agnostic built-in/user-ready lookup. Classic Top
+Title guided geometry derives from its canonical built-in definition.
+
+The pure Disc preset application foundation separates a nominal validated
+definition from a transient template-resolved definition. Resolution preserves
+nominal/resolved content and action regions, deterministic slot order, and
+structured compatibility/annulus warnings. The trusted adapter registry maps
+only allowlisted semantic targets to application-code adapters; targets are not
+project state paths. The application-plan builder returns immutable ordered
+updates and structured partial/rejected outcomes without React, DOM, persistence,
+renderer, export, or Case Insert dependencies.
+
+Concrete pure adapters now translate resolved centers and V1 size intents into
+placement-only typed updates for title artwork/text, Background, primary Rating,
+primary Media Format Mark, primary Developer/Publisher Logos, and copyright
+text. Their focused owner-state slices support dormant disabled layouts without
+changing enablement or payload. Disc text uses the existing center-relative X
+contract. Legal region fitting receives browser-canvas measurement through an
+app-boundary service, reuses canonical straight-text render layout/bounds,
+checks both the requested region and template safe annulus, and returns a
+slot-local resolved geometry/status patch. Blank or disabled Legal receives
+dormant 7pt placement; fitting steps from 7pt to a 3pt minimum without
+truncation. Impossible content emits no owner update and marks only that slot
+unsupported. The generic engine and fit helper remain browser-independent.
+Background V1 supports only centered cover with zero pixel offset.
+
+Operating System Marks use a focused platform-mark/template owner slice and
+delegate resolved-region grouping to `placeGroupedPlatformMarks`. The helper
+remains authoritative for canonical mark order, implicit built-in asset
+materialization, preferred-scale reduction, row balancing, safe-zone and
+physical-center-hole geometry, and non-overlap. The adapter emits only typed
+`x`, `y`, and `scale` updates keyed by `PlatformMarkValue`; selected values,
+enablement, source/theme, custom assets, and inference metadata remain
+feature-owned. The trusted production registry now covers every Classic
+placement target exactly once.
+
+Exact late placement is owned by
+`src/presets/discPresetTargetedApplication.ts`. Given a transient canonical
+preset ID/revision, active template, one semantic target, focused owner state,
+and adapter registry, it resolves and invokes only the unambiguous matching
+slot/intent. Expected missing, unsupported, and ambiguous cases produce
+structured no-update results.
+
+Feature owners remain authoritative for actual layout, rendering, export, and
+project persistence. `src/app/appRegisteredDiscPresetApplication.ts` is the
+React-free Classic compatibility boundary. It resolves the legacy menu alias
+through the canonical registry, resolves the definition for the active Disc
+template, snapshots only the required owner slices, builds the generic plan,
+and immutably translates each discriminated update into feature-owner state.
+`src/app/appDiscRolePresetApplication.ts` dispatches each touched owner family
+once through existing setters. Disabled fixed owners receive dormant placement
+without enablement or content changes.
+
+`src/hooks/useActiveDiscPreset.ts` owns the single transient canonical active
+preset state: exact ID/revision plus the latest resolved runtime definition. It
+is cleared with the existing new/reset/workspace-exit/project-load lifecycle and
+never enters a project snapshot. Explicit application stores the final resolved
+definition; targeted OS or Legal application replaces only its matching
+resolved slot. Guidance consumes this state directly and fails closed when
+resolved geometry is unavailable. `src/app/appActiveDiscPresetPlatformMarks.ts`
+requests only the OS group target and merges only x/y/scale.
+`usePlatformMarksState.ts`
+composes selection, enablement, source/theme/custom-asset changes with that
+focused result before committing final platform-mark state. Direct layout
+x/y/scale changes do not call targeted placement, preventing effect or setter
+recursion. `src/app/appActiveDiscPresetLegalText.ts` similarly requests only
+`legal.copyright`; `useDiscTextState.ts` invokes it for next-state Legal
+enablement, canonical manual/metadata/rich content, and
+measurement-relevant style changes. Direct Legal layout edits do not refit,
+while an explicit preset reapply restores preset fitting.
+
+`src/guidedPresets/discGuidedWorkflow.ts` separately owns the pure, versioned
+guided-layout identity and omission transitions. Schema `0.2.0` snapshots only
+that compact workflow through `src/project/projectGuidedWorkflow.ts`; omission
+changes guidance and does not mutate owner content or placement. Project load
+therefore restores guided workflow metadata while the transient generic preset
+state remains cleared, and placeholder projection fails closed until a resolved
+definition is available. Reconstructing that transient state and persisting
+completed/claimed slot progress are deferred to #295. Aspect-preserving
+contain-fit for replacement visuals is deferred to #296.
+
+Classic applies adapter-safe output directly and does not run the legacy broad
+clamp sequence, so unrelated text rows, technical marks, repeated logos, and
+other untargeted state do not move. `discRolePresets.ts` retains only Classic
+menu metadata while the other two built-in presets continue using their legacy
+plans. Normal Classic application is fully applied; only genuinely impossible
+Legal fitting or another structured placement failure remains partial. Later
+eligible OS changes re-resolve only the active preset's OS target, and later
+Legal semantic changes re-resolve only its Legal target, without reapplying or
+reclamping any unrelated owner. Guided placeholders project the same final
+resolved regions/statuses and hide unsupported slots.
+
+Guided navigation has two related but distinct contracts. A guided action route
+exists only while lifecycle resolution projects an unfilled or suggested
+placeholder; pointer, Enter, Space, and native guided-action acceptance apply
+only in that reachable state. Sidebar semantic focus targets have a broader
+lifetime and may remain registered after owner state fills a slot and removes
+its guide, so controller-level or future workflows can still focus the normal
+control. A registered target does not make an unmounted guide dispatchable.
+Mounted controller tests cover enabled Rating, Media, Developer, and Publisher
+targets that are unreachable through current filled-slot guidance. Lifecycle
+resolution remains authoritative, and presentation code must not duplicate its
+predicates or use runtime DOM queries to decide reachability.
 
 ### 12.4 Render/Edit/Export Paths
 
@@ -1133,6 +1248,9 @@ The semantic packaging role taxonomy for current role panels and future role-bas
 - Preserve the current sidebar flow: Project File, Export Options, Game, Template, Artwork, Branding, Text, Guide Legend.
 - Keep circular disc geometry out of case insert modules.
 - Keep shared layout helpers limited to neutral numeric range math; disc annulus, center-hole, and safe-zone collision rules remain disc-owned.
+- Keep nominal preset parsing, template resolution, trusted owner adaptation, and App dispatch as separate dependency layers.
+- Keep Classic compatibility translation in the focused app-domain wrapper; `App.tsx` supplies current owner state and setters but contains no slot, target, or coordinate policy.
+- Do not interpret preset semantic targets as arbitrary object paths or allow serialized definitions to supply executable adapters.
 - Keep editor-only guides and UI chrome out of clean exports.
 - Preserve disc preview/export parity and fixed layer order.
 - Curved disc text remains SVG/textPath.
