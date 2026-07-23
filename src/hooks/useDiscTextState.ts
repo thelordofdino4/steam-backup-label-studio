@@ -1,5 +1,12 @@
 import { useState } from 'react'
 import {
+  completeDiscGuidedSlotWhenSatisfied,
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  isDiscGuidedTextOwnerSatisfied,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
+import {
   applySteamGameImportToDiscTextValues,
 } from '../steam/steamGameImport'
 import type { SteamImportedGame } from '../steam/steamApi'
@@ -103,6 +110,7 @@ type UseDiscTextStateOptions = {
   applyActivePresetLegalPlacement?: (
     input: DiscLegalPresetPlacementInput,
   ) => DiscTextLayoutSettings['copyright']
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 export type DiscLegalPresetPlacementInput = Readonly<{
@@ -136,6 +144,7 @@ export function useDiscTextState({
   selectedDiscTemplate,
   steamLogoPlacement,
   applyActivePresetLegalPlacement = ({ layout }) => layout,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseDiscTextStateOptions) {
   const [discTextSettings, setDiscTextSettings] = useState<DiscTextSettings>(
     DEFAULT_DISC_TEXT_SETTINGS,
@@ -177,6 +186,42 @@ export function useDiscTextState({
     metadataBoundDiscTextValues,
     resolvedDiscTextTitle,
   } = resolveDiscTextForMetadata(projectMetadata)
+
+  function completeDiscGuidedTextIfSatisfied(
+    key: DiscTextKey,
+    nextState: Partial<{
+      metadata: ProjectMetadata
+      settings: DiscTextSettings
+      values: DiscTextValues
+      valueSources: DiscTextValueSources
+      titleValue: string
+      htmlSources: DiscTextHtmlSources
+    }> = {},
+  ) {
+    if (key !== 'title' && key !== 'copyright') {
+      return
+    }
+
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      key === 'title'
+        ? DISC_GUIDED_COMPLETION_SLOT_IDS.gameTitle
+        : DISC_GUIDED_COMPLETION_SLOT_IDS.legalText,
+      isDiscGuidedTextOwnerSatisfied(
+        {
+          metadata: nextState.metadata ?? projectMetadata,
+          discText: {
+            settings: nextState.settings ?? discTextSettings,
+            values: nextState.values ?? discTextValues,
+            valueSources: nextState.valueSources ?? discTextValueSources,
+            titleValue: nextState.titleValue ?? discTextTitleValue,
+            htmlSources: nextState.htmlSources ?? discTextHtmlSources,
+          },
+        },
+        key,
+      ),
+    )
+  }
 
   function getCurrentDiscTextContent(key: DiscTextKey) {
     return getDiscTextContent(key, metadataBoundDiscTextValues, resolvedDiscTextTitle)
@@ -322,13 +367,21 @@ export function useDiscTextState({
     })
   }
 
-  function handleDiscTextToggle(key: DiscTextKey, checked: boolean) {
+  function handleDiscTextToggle(
+    key: DiscTextKey,
+    checked: boolean,
+    options: { recordGuidedCompletion?: boolean } = {},
+  ) {
     const nextSettings = updateDiscTextSetting(
       discTextSettings,
       key,
       checked,
     )
     setDiscTextSettings(nextSettings)
+
+    if (options.recordGuidedCompletion ?? true) {
+      completeDiscGuidedTextIfSatisfied(key, { settings: nextSettings })
+    }
 
     if (key === 'copyright') {
       const nextCopyrightLayout = applyActivePresetCopyrightLayout({
@@ -348,7 +401,7 @@ export function useDiscTextState({
 
   function handleDiscTextPreviewEditStart(key: DiscTextKey) {
     if (!discTextSettings[key]) {
-      handleDiscTextToggle(key, true)
+      handleDiscTextToggle(key, true, { recordGuidedCompletion: false })
     }
 
     setSelectedDiscTextKey(key)
@@ -512,6 +565,12 @@ export function useDiscTextState({
     if (options.htmlSources) {
       setDiscTextHtmlSources(options.htmlSources)
     }
+    completeDiscGuidedTextIfSatisfied(key, {
+      values: inputUpdate.values,
+      valueSources: inputUpdate.sources,
+      titleValue: inputUpdate.titleValue,
+      htmlSources: options.htmlSources ?? discTextHtmlSources,
+    })
     clampDiscTextLayoutForContent(
       key,
       renderedContent,
@@ -554,6 +613,9 @@ export function useDiscTextState({
         currentSource,
       )
       setDiscTextHtmlSources(nextHtmlSources)
+      completeDiscGuidedTextIfSatisfied(key, {
+        htmlSources: nextHtmlSources,
+      })
       clampDiscTextLayoutForContent(
         key,
         parseHtmlText(currentSource).plainText,
@@ -747,6 +809,11 @@ export function useDiscTextState({
     setDiscTextValueSources(transition.state.discTextValueSources)
     setDiscTextValues(transition.state.discTextValues)
     setDiscTextTitleValue(transition.state.discTextTitleValue)
+    completeDiscGuidedTextIfSatisfied(key, {
+      values: transition.state.discTextValues,
+      valueSources: transition.state.discTextValueSources,
+      titleValue: transition.state.discTextTitleValue,
+    })
     clampDiscTextLayoutForContent(key, transition.renderedContent)
   }
 
@@ -1102,6 +1169,23 @@ export function useDiscTextState({
       ...currentLayout,
       copyright: finalCopyrightLayout,
     }))
+    completeDiscGuidedTextIfSatisfied('copyright', {
+      metadata: copyrightText === undefined
+        ? projectMetadata
+        : {
+            ...projectMetadata,
+            copyrightText,
+          },
+      settings: updateDiscTextSetting(
+        discTextSettings,
+        'copyright',
+        true,
+      ),
+      valueSources: {
+        ...discTextValueSources,
+        copyright: 'metadata',
+      },
+    })
   }
 
   function setCopyrightDiscTextEnabled(enabled: boolean) {
@@ -1140,6 +1224,11 @@ export function useDiscTextState({
     if (options.useMetadataCopyright) {
       setDiscTextValueSources(nextDiscTextValueSources)
     }
+    completeDiscGuidedTextIfSatisfied('title', {
+      metadata,
+      values: nextDiscTextValues,
+      valueSources: nextDiscTextValueSources,
+    })
 
     return nextResolution
   }

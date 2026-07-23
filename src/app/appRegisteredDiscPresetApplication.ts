@@ -10,6 +10,12 @@ import {
 import {
   resolveDiscTextMetadataState,
 } from '../discText/metadataStateTransitions.ts'
+import {
+  getDiscGuidedLayoutDefinition,
+} from '../guidedPresets/discGuidedLayouts.ts'
+import type {
+  DiscGuidedWorkflowState,
+} from '../guidedPresets/discGuidedWorkflow.ts'
 import type {
   DiscRolePresetApplicationState,
   DiscRolePresetFeatureOwner,
@@ -23,6 +29,7 @@ import type {
   DiscPresetApplicationServices,
 } from '../presets/discPresetApplicationServices.ts'
 import type {
+  ActiveDiscPresetState,
   ActiveDiscPresetRef,
 } from '../presets/discPresetTargetedApplication.ts'
 import type {
@@ -34,6 +41,7 @@ import {
 } from '../presets/discPresetProductionAdapterRegistry.ts'
 import {
   DISC_PRESET_REGISTRY,
+  type DiscPresetRegistry,
 } from '../presets/discPresetRegistry.ts'
 import {
   createDiscPresetTemplateResolutionInput,
@@ -102,6 +110,16 @@ type ApplyRegisteredDiscPresetInput<
   presetId: string
   currentState: TState
   selectedDiscTemplate: DiscTemplate
+  services?: DiscPresetApplicationServices
+}>
+
+type ReconstructActiveDiscPresetStateInput<
+  TState extends RegisteredDiscPresetApplicationState,
+> = Readonly<{
+  workflow: DiscGuidedWorkflowState
+  currentState: TState
+  selectedDiscTemplate: DiscTemplate
+  registry?: DiscPresetRegistry
   services?: DiscPresetApplicationServices
 }>
 
@@ -330,6 +348,63 @@ function getUpdatedOwners(
 
 function assertNever(value: never): never {
   throw new Error(`Unsupported Disc preset owner update: ${String(value)}`)
+}
+
+export function reconstructActiveDiscPresetState<
+  TState extends RegisteredDiscPresetApplicationState,
+>({
+  workflow,
+  currentState,
+  selectedDiscTemplate,
+  registry = DISC_PRESET_REGISTRY,
+  services = DISC_PRESET_PRODUCTION_APPLICATION_SERVICES,
+}: ReconstructActiveDiscPresetStateInput<TState>): ActiveDiscPresetState | null {
+  if (!workflow.activeLayout) return null
+
+  const layout = getDiscGuidedLayoutDefinition(
+    workflow.activeLayout.id,
+    workflow.activeLayout.version,
+  )
+
+  if (!layout) return null
+
+  try {
+    // Guided layout versions and canonical preset revisions intentionally share
+    // this explicit mapping boundary. Never substitute a newer Classic revision
+    // by guess when the persisted layout version is unavailable.
+    const definition = registry.get(layout.presetId, layout.version)
+
+    if (!definition) return null
+
+    const template = createDiscPresetTemplateResolutionInput(
+      selectedDiscTemplate,
+    )
+    const resolution = resolveDiscPresetDefinition({ definition, template })
+    const application = buildDiscPresetApplicationPlan({
+      resolution,
+      adapterRegistry: DISC_PRESET_PRODUCTION_ADAPTER_REGISTRY,
+      ownerState: createRegisteredDiscPresetOwnerStateSnapshot(
+        currentState,
+        selectedDiscTemplate,
+      ),
+      services,
+      template,
+    })
+
+    if (application.status === 'rejected' || !application.resolvedPreset) {
+      return null
+    }
+
+    return Object.freeze({
+      ref: Object.freeze({
+        id: definition.id,
+        revision: definition.revision,
+      }),
+      resolvedDefinition: application.resolvedPreset,
+    })
+  } catch {
+    return null
+  }
 }
 
 export function applyRegisteredDiscPresetToState<

@@ -8,8 +8,11 @@ import {
   createDiscGuidedPlaceholderViewModels,
 } from '../guidedPresets/discGuidedPlaceholderViewModel.ts'
 import {
-  createDiscGuidedRestoreItems,
+  createDiscGuidedProgressItems,
 } from '../guidedPresets/discGuidedRestoreItems.ts'
+import {
+  getSatisfiedDiscGuidedSlotIds,
+} from '../guidedPresets/discGuidedCompletion.ts'
 import type {
   ActiveDiscPresetState,
 } from '../presets/discPresetTargetedApplication.ts'
@@ -22,7 +25,8 @@ import {
   applyDiscGuidedLayout,
   clearDiscGuidedWorkflow,
   omitDiscGuidedSlot,
-  restoreAllDiscGuidedSlots,
+  resetDiscGuidedProgress,
+  restoreCompletedDiscGuidedSlot,
   restoreDiscGuidedSlot,
   type DiscGuidedWorkflowState,
 } from '../guidedPresets/discGuidedWorkflow.ts'
@@ -37,10 +41,12 @@ export function getNextDiscGuidedWorkflowForPresetApplication({
   currentWorkflow,
   presetId,
   applied,
+  ownerState,
 }: {
   currentWorkflow: DiscGuidedWorkflowState
   presetId: string
   applied: boolean
+  ownerState?: DiscGuidedSlotState
 }): DiscGuidedWorkflowState {
   if (!applied) return currentWorkflow
 
@@ -53,6 +59,9 @@ export function getNextDiscGuidedWorkflowForPresetApplication({
     ? applyDiscGuidedLayout(currentWorkflow, {
         id: layout.id,
         version: layout.version,
+        activationCompletedSlotIds: ownerState
+          ? getSatisfiedDiscGuidedSlotIds(ownerState, layout.slotOrder)
+          : [],
       }).state
     : clearDiscGuidedWorkflow(currentWorkflow).state
 }
@@ -77,9 +86,10 @@ export function useDiscGuidedPlaceholderPreview({
         currentWorkflow,
         presetId,
         applied,
+        ownerState: state,
       }),
     )
-  }, [updateWorkflow])
+  }, [state, updateWorkflow])
 
   const omitSlot = useCallback((slotId: DiscGuidedSlotId) => {
     updateWorkflow((currentWorkflow) =>
@@ -87,15 +97,21 @@ export function useDiscGuidedPlaceholderPreview({
     )
   }, [updateWorkflow])
 
-  const restoreSlot = useCallback((slotId: DiscGuidedSlotId) => {
+  const includeSlot = useCallback((slotId: DiscGuidedSlotId) => {
     updateWorkflow((currentWorkflow) =>
       restoreDiscGuidedSlot(currentWorkflow, slotId).state,
     )
   }, [updateWorkflow])
 
-  const restoreAllSlots = useCallback(() => {
+  const showSlotAgain = useCallback((slotId: DiscGuidedSlotId) => {
     updateWorkflow((currentWorkflow) =>
-      restoreAllDiscGuidedSlots(currentWorkflow).state,
+      restoreCompletedDiscGuidedSlot(currentWorkflow, slotId).state,
+    )
+  }, [updateWorkflow])
+
+  const resetProgress = useCallback(() => {
+    updateWorkflow((currentWorkflow) =>
+      resetDiscGuidedProgress(currentWorkflow).state,
     )
   }, [updateWorkflow])
 
@@ -109,15 +125,16 @@ export function useDiscGuidedPlaceholderPreview({
     state,
     suggestions: NO_SUGGESTIONS,
   })
-  const restoreItems = createDiscGuidedRestoreItems(workflow)
+  const progressItems = createDiscGuidedProgressItems(workflow)
 
   return {
     activeLayoutId,
     placeholders,
     recordPresetApplication,
     omitSlot,
-    restoreItems,
-    restoreSlot,
-    restoreAllSlots,
+    progressItems,
+    includeSlot,
+    showSlotAgain,
+    resetProgress,
   }
 }

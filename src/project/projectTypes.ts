@@ -492,6 +492,7 @@ export type SavedDiscGuidedLayoutState = {
   id: string
   version: number
   omittedSlotIds: string[]
+  completedSlotIds: string[]
 }
 
 export type SavedDiscEditorState = {

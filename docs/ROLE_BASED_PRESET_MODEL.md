@@ -203,7 +203,8 @@ role-based packaging presets:
 - Case insert text controls reuse/adapt text-layout presets for case text.
 
 Current saved projects use schema version `0.2.0`. The schema persists only the
-active guided layout ID/version and canonical omitted slot IDs; it does not
+active guided layout ID/version plus independent canonical omitted/completed
+slot IDs; it does not
 persist generic preset identity, resolved geometry, a role-layout schema, or an
 object-role model. `PROJECT_FILE_SPEC.md` remains authoritative, and broader
 role or preset persistence must go through explicit schema and migration work.
@@ -467,12 +468,15 @@ at version `1`; its compatibility ID resolves to the canonical
 `builtin:disc-preset:classic-top-title` definition instead of owning another
 copy of Classic geometry.
 
-Reapplying the same guided ID/version preserves valid omission intent. Changing
-guided layout ID clears omissions. Moving to another supported version of the
-same ID preserves omitted slot IDs that still exist and discards removed or
-unknown IDs; newly introduced slots remain visible. Unsupported IDs or versions
-fail safely. Schema `0.2.0` persists this active identity plus canonical
-`omittedSlotIds` under `editor.guidedLayout`; it does not persist preset
+Reapplying the same guided ID/version preserves valid omission and completion
+progress. Changing guided layout ID starts a new workflow, clears unrelated
+progress, and seeds slots already satisfied by the new preset application's
+authoritative next owner state. Moving to another supported version of the same
+ID preserves omitted and completed semantic slot IDs that still exist and
+discards removed or unknown IDs; newly introduced slots begin included and
+incomplete. Unsupported IDs or versions fail safely. Schema `0.2.0` persists
+this active identity plus independent canonical `omittedSlotIds` and
+`completedSlotIds` under `editor.guidedLayout`; it does not persist preset
 geometry, a resolved definition, owner state, labels, focus, or menu state.
 
 ### Implemented Generic Disc V1 Contract
@@ -519,14 +523,22 @@ The two non-Classic built-ins remain transitional legacy callers.
 Successful or accepted-partial Classic application retains a transient
 canonical preset ID/revision and latest template-resolved definition for
 guidance plus targeted OS/Legal application. That state is deliberately not
-serialized. Project load restores schema `0.2.0` guided workflow metadata but
-clears the transient generic-preset state; reconstructing it from the restored
-guided identity is deferred to #295.
+serialized. Project load restores schema `0.2.0` guided workflow metadata and a
+focused post-restore boundary maps its valid layout identity to the canonical
+preset, resolves the restored template, performs content-aware Legal
+refinement, and records the transient active preset state. The reconstruction
+does not dispatch its planned owner updates, infer identity from coordinates,
+or duplicate resolved geometry into the project file. It preserves targeted
+late OS grouping and Legal refitting after load.
 
-Persistent completed/claimed slot progress is not implemented; #295 owns that
-workflow and schema extension. Aspect-preserving contain-fit is also not
-implemented; #296 owns that placement-policy extension. Current point-owner
-adapters therefore continue to support deterministic positive fixed scales.
+Persistent completed/claimed slot progress is recorded only by explicit owner
+domain events and one-time activation seeding. It stays independent from live
+owner-filled and omission state; clearing or disabling an owner does not
+resurrect a completed guide. `Include again`, `Show guide again`, and `Reset
+guided progress` affect only workflow presentation. Aspect-preserving
+contain-fit is not implemented; #296 owns that placement-policy extension.
+Current point-owner adapters therefore continue to support deterministic
+positive fixed scales.
 
 ## 13. Manual Fine-Tuning And Reset Contract
 
@@ -581,11 +593,14 @@ layout/enablement fields. In the current model:
   persisted;
 - save/load persists the resulting role layout through existing project fields;
 - schema `0.2.0` separately persists active guided layout identity/version and
-  canonical `omittedSlotIds`;
-- project load restores that guided workflow while clearing transient generic
-  preset state, so guidance remains inert until reconstruction is implemented
-  by #295;
-- persistent completed/claimed slot progress remains unimplemented under #295;
+  independent canonical `omittedSlotIds` and `completedSlotIds`;
+- a missing completion array in an otherwise valid `0.2.0` project normalizes
+  to empty, while `0.1.0 -> 0.2.0` invents no workflow or completion history;
+- project load reconstructs transient generic preset state from the explicit
+  guided layout mapping after restored template/owner state is available,
+  without applying owner placement;
+- completion is seeded from satisfied owners only when a new/different layout
+  activates and is otherwise recorded only by semantic user events;
 - aspect-preserving contain-fit remains unimplemented under #296.
 
 Any future persistence of preset identity or role-layout metadata must:

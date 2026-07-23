@@ -24,6 +24,7 @@ export function createSavedDiscGuidedLayout(
     id: normalized.activeLayout.id,
     version: normalized.activeLayout.version,
     omittedSlotIds: [...normalized.omittedSlotIds],
+    completedSlotIds: [...normalized.completedSlotIds],
   }
 }
 
@@ -40,5 +41,6 @@ export function restoreSavedDiscGuidedWorkflow(
       version: guidedLayout.version,
     },
     omittedSlotIds: guidedLayout.omittedSlotIds,
+    completedSlotIds: guidedLayout.completedSlotIds,
   })
 }

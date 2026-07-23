@@ -97,6 +97,7 @@ export function createDiscGuidedPlaceholderViewModels({
   }
 
   const omittedSlotIds = new Set(workflow.omittedSlotIds)
+  const completedSlotIds = new Set(workflow.completedSlotIds)
 
   return Object.freeze(layout.slotOrder.flatMap((slotId) => {
     const layoutSlot = layout.slots[slotId] ?? null
@@ -108,6 +109,8 @@ export function createDiscGuidedPlaceholderViewModels({
       state,
       suggestions,
       omittedSlotIds,
+      completedSlotIds,
+      unsupported: layoutSlot.resolutionStatus === 'unsupported',
     })
     const viewModel = projectDiscGuidedPlaceholderViewModel({
       layoutSlot,

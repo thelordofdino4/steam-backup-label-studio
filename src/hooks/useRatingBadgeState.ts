@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import {
+  completeDiscGuidedSlotWhenSatisfied,
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  isDiscGuidedRatingBadgeOwnerSatisfied,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
+import {
   clearRatingBadgeImage,
   createDefaultProjectRatingBadge,
   resetProjectRatingBadgeLayout,
@@ -29,12 +36,14 @@ type UseRatingBadgeStateOptions = {
   selectedDiscTemplate: DiscTemplate
   projectMetadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>
   announceStatus: (message: string) => void
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 export function useRatingBadgeState({
   selectedDiscTemplate,
   projectMetadata,
   announceStatus,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseRatingBadgeStateOptions) {
   const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
     createDefaultProjectRatingBadge(selectedDiscTemplate),
@@ -55,22 +64,34 @@ export function useRatingBadgeState({
     setProjectRatingBadge(createDefaultProjectRatingBadge(template))
   }
 
+  function completeRatingBadgeIfSatisfied(
+    ratingBadge: ProjectRatingBadge,
+    metadata: Pick<ProjectMetadata, 'ratingSystem'> = projectMetadata,
+  ) {
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.ratingBadge,
+      isDiscGuidedRatingBadgeOwnerSatisfied(metadata, ratingBadge),
+    )
+  }
+
   function setRatingBadgeEnabled(enabled: boolean) {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = {
+    const currentBadge = projectRatingBadgeRef.current
+    const nextBadge = clampProjectRatingBadgeToSafeZone(
+      {
         ...currentBadge,
         layout: {
           ...currentBadge.layout,
           enabled,
         },
-      }
+      },
+      selectedDiscTemplate,
+      projectMetadata,
+    )
 
-      return clampProjectRatingBadgeToSafeZone(
-        nextBadge,
-        selectedDiscTemplate,
-        projectMetadata,
-      )
-    })
+    projectRatingBadgeRef.current = nextBadge
+    setProjectRatingBadge(nextBadge)
+    if (enabled) completeRatingBadgeIfSatisfied(nextBadge)
   }
 
   function setRatingBadgeEnabledForAppliedCandidate(candidate: RatingBoardCandidate) {
@@ -82,19 +103,21 @@ export function useRatingBadgeState({
         }
       : projectMetadata
 
-    setProjectRatingBadge((currentBadge) =>
-      clampProjectRatingBadgeToSafeZone(
-        {
-          ...currentBadge,
-          layout: {
-            ...currentBadge.layout,
-            enabled,
-          },
+    const currentBadge = projectRatingBadgeRef.current
+    const nextBadge = clampProjectRatingBadgeToSafeZone(
+      {
+        ...currentBadge,
+        layout: {
+          ...currentBadge.layout,
+          enabled,
         },
-        selectedDiscTemplate,
-        candidateMetadata,
-      ),
+      },
+      selectedDiscTemplate,
+      candidateMetadata,
     )
+    projectRatingBadgeRef.current = nextBadge
+    setProjectRatingBadge(nextBadge)
+    if (enabled) completeRatingBadgeIfSatisfied(nextBadge, candidateMetadata)
   }
 
   async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -120,6 +143,7 @@ export function useRatingBadgeState({
 
       projectRatingBadgeRef.current = nextBadge
       setProjectRatingBadge(nextBadge)
+      completeRatingBadgeIfSatisfied(nextBadge)
 
       announceStatus(`Using ${file.name} as the rating badge.`)
       return nextBadge
@@ -129,15 +153,14 @@ export function useRatingBadgeState({
   }
 
   function handleRatingBadgeSourceChange(source: RatingBadgeSource) {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = updateRatingBadgeSource(currentBadge, source)
-
-      return clampProjectRatingBadgeToSafeZone(
-        nextBadge,
-        selectedDiscTemplate,
-        projectMetadata,
-      )
-    })
+    const nextBadge = clampProjectRatingBadgeToSafeZone(
+      updateRatingBadgeSource(projectRatingBadgeRef.current, source),
+      selectedDiscTemplate,
+      projectMetadata,
+    )
+    projectRatingBadgeRef.current = nextBadge
+    setProjectRatingBadge(nextBadge)
+    completeRatingBadgeIfSatisfied(nextBadge)
   }
 
   function handleRatingBadgeLayoutChange(
@@ -153,6 +176,16 @@ export function useRatingBadgeState({
         projectMetadata,
       )
     })
+
+    if (field === 'enabled' && value === true) {
+      completeRatingBadgeIfSatisfied({
+        ...projectRatingBadgeRef.current,
+        layout: {
+          ...projectRatingBadgeRef.current.layout,
+          enabled: true,
+        },
+      })
+    }
   }
 
   function handleSupplementalUskRatingBadgeEnabledChange(enabled: boolean) {

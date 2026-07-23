@@ -80,6 +80,10 @@ test('registered 0.1.0 migration preserves content without inventing editor stat
   assert.equal(migratedVersion, CURRENT_PROJECT_SCHEMA_VERSION)
   assert.deepEqual(migratedContent, legacyContent)
   assert.equal(migratedProject.editor, undefined)
+  assert.equal(
+    JSON.stringify(migratedProject).includes('completedSlotIds'),
+    false,
+  )
   assert.deepEqual(getSavedProjectSchemaIssues(migratedProject), [])
   assert.deepEqual(getAcceptedProjectSchemaVersions(), [
     CURRENT_PROJECT_SCHEMA_VERSION,
@@ -96,8 +100,27 @@ test('malformed optional guided editor metadata does not block project parsing',
         id: 'disc:guided-layout:future',
         version: 'future',
         omittedSlotIds: [42],
+        completedSlotIds: [42],
       },
     },
+  ]) {
+    const project = createDiscProjectFixture({ editor })
+    assert.deepEqual(getSavedProjectSchemaIssues(project), [])
+    assert.doesNotThrow(() => parseSavedProjectContents(JSON.stringify(project)))
+  }
+})
+
+test('schema 0.2.0 accepts guided completion and same-version payloads without it', () => {
+  const guidedLayout = {
+    id: 'disc:guided-layout:classic-top-title',
+    version: 1,
+    omittedSlotIds: ['disc:guided:rating-badge:primary'],
+    completedSlotIds: ['disc:guided:game-title:primary'],
+  }
+
+  for (const editor of [
+    { guidedLayout },
+    { guidedLayout: { ...guidedLayout, completedSlotIds: undefined } },
   ]) {
     const project = createDiscProjectFixture({ editor })
     assert.deepEqual(getSavedProjectSchemaIssues(project), [])

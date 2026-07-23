@@ -23,12 +23,20 @@ import type {
   BackgroundOffset,
   ProjectImageAssetProvenance,
 } from '../project/projectTypes'
+import {
+  completeDiscGuidedSlotWhenSatisfied,
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  isDiscGuidedBackgroundOwnerSatisfied,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 
 type UseBackgroundImageOptions = {
   discPreviewSize: number
   steamLogoPlacement: SteamLogoPlacement
   announceStatus: (message: string) => void
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 type RestorableBackgroundImageState = {
@@ -44,6 +52,7 @@ export function useBackgroundImage({
   discPreviewSize,
   steamLogoPlacement,
   announceStatus,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseBackgroundImageOptions) {
   const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
   const [isArtworkLoading, setIsArtworkLoading] = useState(false)
@@ -80,6 +89,12 @@ export function useBackgroundImage({
     : null
 
   function applyBackgroundImageImport(importedBackground: BackgroundImageImportResult) {
+    const nextBackground = {
+      enabled: true,
+      imageDataUrl: importedBackground.background.imageUrl,
+      imageSize: importedBackground.background.imageSize,
+    }
+
     setBackgroundImageUrl(importedBackground.background.imageUrl)
     setBackgroundImageSource(importedBackground.imageSource)
     setBackgroundImageSize(importedBackground.background.imageSize)
@@ -87,6 +102,11 @@ export function useBackgroundImage({
     setBackgroundOffset(importedBackground.background.offset)
     setIsBackgroundArtworkEnabled(true)
     setSelectedArtworkId(importedBackground.selectedArtworkId)
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.backgroundImage,
+      isDiscGuidedBackgroundOwnerSatisfied(nextBackground),
+    )
     announceStatus(importedBackground.statusMessage)
   }
 
@@ -155,6 +175,15 @@ export function useBackgroundImage({
 
   function handleBackgroundArtworkEnabledChange(enabled: boolean) {
     setIsBackgroundArtworkEnabled(enabled)
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.backgroundImage,
+      isDiscGuidedBackgroundOwnerSatisfied({
+        enabled,
+        imageDataUrl: backgroundImageUrl,
+        imageSize: backgroundImageSize,
+      }),
+    )
   }
 
   function handleBackgroundScaleChange(value: number) {

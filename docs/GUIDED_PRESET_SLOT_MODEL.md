@@ -1,5 +1,5 @@
 # Guided Preset Slot Model
-> Status: Implemented Disc domain, persistence, passive guidance, setup menus, and typed navigation contract for issues #283, #287, #289, and #292.
+> Status: Implemented Disc domain, persistence, passive guidance, setup menus, typed navigation, and persistent completion contract for issues #283, #287, #289, #292, and #295.
 > Purpose: Define the Disc guided preset slot identity, lifecycle, binding, and architecture boundaries for parent issue #281.
 > Read when: Working on guided Disc presets, slot resolution, edit-mode placeholders, role-focus navigation, guided persistence, or safe content suggestions.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `ROLE_BASED_PRESET_MODEL.md` for layout presets; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
@@ -8,8 +8,9 @@
 
 Pure Disc slot definitions and lifecycle resolution are implemented in
 `src/guidedPresets/discGuidedSlots.ts`. The versioned workflow and pure omission
-transitions are implemented in `discGuidedWorkflow.ts`. Schema `0.2.0` persists
-the active guided layout ID/version and canonical omitted slot IDs through
+and completion transitions are implemented in `discGuidedWorkflow.ts`. Schema
+`0.2.0` persists the active guided layout ID/version plus independent canonical
+omitted/completed slot IDs through
 `src/project/projectGuidedWorkflow.ts`; suggestions, focus, menu state, and the
 generic resolved preset definition remain transient. Pure typed Disc role-focus
 requests, runtime validation, and reducer state are implemented in
@@ -30,8 +31,9 @@ Marks, Developer Logo, Publisher Logo, and Copyright / Legal Text. Sidebar
 roles remain organizational groupings and are not guided slots. Every slot
 supplies normalized content and action geometry plus a
 background/foreground layer, semantic setup kind, and safe population
-capability. The pure projector returns `unfilled` and `suggested` slots and
-suppresses `filled` and `omitted` slots independently. Layout presets continue
+capability. The pure projector returns available `unfilled` and `suggested`
+slots and suppresses unsupported, omitted, completed, and owner-filled slots by
+explicit precedence. Layout presets continue
 to place real feature-owner state; guided definitions contain no content, DOM,
 renderer, export, persistence, or role-focus request data.
 
@@ -129,11 +131,11 @@ state fills the slot and removes that placeholder, so another workflow or a
 direct controller request can still focus the normal sidebar control. The
 presence of that registration does not make the now-unmounted guide a native
 route. Lifecycle-reachable native navigation has been validated. Persistent
-completion is not implemented and is tracked by #295; aspect-preserving
-contain-fit is not implemented and is tracked by #296. Reconstructing the
-transient canonical preset reference and resolved definition after loading
-persisted guided workflow metadata is also deferred to #295. Issue #289 remains
-open.
+completion is recorded by semantic owner events and explicit Guided Progress
+restoration. Loading persisted guided identity reconstructs the transient
+canonical preset reference/resolved definition without reapplying owner
+placement. Aspect-preserving contain-fit is not implemented and remains tracked
+by #296. Issue #289 remains open.
 
 Implemented role-focus infrastructure includes:
 
@@ -539,7 +541,9 @@ through the existing owner instead of mutating duplicated slot content.
 | `unfilled` | suggested, filled, omitted | Placeholder visible | No | No | Definition names candidates; no owner object is created by the placeholder. |
 | `suggested` | unfilled, filled, omitted | Suggestion affordance visible | No | No | Candidate is transient and is not authoritative feature state. |
 | `filled` | unfilled, suggested, omitted | Real feature suppresses the placeholder | Existing owner capabilities | Existing owner predicate | Manual edits remain normal project state. |
+| `completed` | omitted, unsupported, or unfilled/suggested/filled after explicit restore | Guidance is suppressed until `Show guide again` or reset clears completion | Existing owner capabilities | Existing owner predicate | Completion is workflow progress only; owner state remains independently editable and renderable. |
 | `omitted` | unfilled, suggested, filled | Guidance is suppressed | No | No output merely from omission state | Existing feature payload is preserved and continues through normal rendering/export rules. |
+| `unsupported` | omitted, completed, filled, suggested, unfilled | Guidance is suppressed while runtime support is unavailable | Existing supported owner capabilities | Existing owner predicate | Stored omission and completion flags are preserved and project again when support returns. |
 
 Placeholder visibility in this table is implemented for Classic Top Title.
 
@@ -561,9 +565,11 @@ coordinates.
 
 ### Derived State
 
-Filled or unfilled status, valid-content availability, and a concrete owner
-binding should normally be derived from existing feature-owner state. Derived
-state should not be serialized merely for convenience.
+Owner-filled or unfilled status, valid-content availability, and a concrete
+owner binding are derived from existing feature-owner state. Persisted
+`completed` is deliberately different: it records an explicit workflow event
+and remains set when later owner state becomes unfilled. Other derived state is
+not serialized merely for convenience.
 
 ### Transient State
 
@@ -573,9 +579,10 @@ state.
 
 ### Persisted Workflow State
 
-Schema `0.2.0` persists active guided layout ID/version and explicit omission
-intent as canonical stable slot IDs. The project adapter does not persist
-derived lifecycle, owner content, labels, geometry, indexes, or UI state.
+Schema `0.2.0` persists active guided layout ID/version plus explicit omission
+and completion intent as independent canonical stable slot-ID arrays. The
+project adapter does not persist owner-filled lifecycle, owner content, labels,
+geometry, indexes, resolved preset data, or UI state.
 
 Repeatable-slot binding identity that cannot be re-derived safely and future
 slot-specific overrides remain separate schema decisions.
@@ -877,22 +884,73 @@ The pure domain state is:
 ```ts
 {
   activeLayout: { id, version } | null,
-  omittedSlotIds: readonly DiscGuidedSlotId[]
+  omittedSlotIds: readonly DiscGuidedSlotId[],
+  completedSlotIds: readonly DiscGuidedSlotId[]
 }
 ```
 
 Omitted IDs are deduplicated, restricted to the active version's slot catalog,
-filtered by `omittable`, and stored in canonical layout order. Applying a
-layout for the first time starts with no omissions. Reapplying the same ID and
-version preserves valid omissions. Changing layout ID clears omissions. Moving
-between supported versions of the same ID preserves IDs that still exist,
-discards removed IDs, and leaves newly added slots visible.
+filtered by `omittable`, and stored in canonical layout order.
+Completed IDs are normalized independently: they are deduplicated, restricted
+to the active version's catalog, and stored in the same canonical order, but
+completion does not require an omittable slot. A slot may remain both omitted
+and completed; presentation precedence never erases either persisted flag.
 
-Omit, restore one, restore all, and clear are pure transitions. Restore one and
-restore all do not enable owners, populate content, or reapply geometry.
+Activating a new or different layout starts with no omissions and seeds
+currently satisfied owner slots into completion exactly once from the
+authoritative next owner state produced by preset application. It does not
+continuously infer completion from later owner changes. Reapplying the same ID
+and version preserves both progress arrays. Changing layout ID starts a new
+workflow and seeds the new layout without carrying coincidentally matching slot
+IDs. Moving between supported versions of the same ID preserves valid semantic
+IDs in both arrays, discards removed IDs, and leaves newly added slots included
+and incomplete. The guided layout version is the explicit compatibility
+mapping for the canonical preset revision; geometry never determines it.
+
+Omit, restore one omission, complete, restore one completion, reset progress,
+and clear are pure transitions. Include/show/reset actions do not enable
+owners, populate content, or reapply geometry.
 Unsupported layout IDs or versions are rejected during application and
 normalize to inactive guidance when reading unknown workflow-shaped data.
 Malformed and unknown fields never block restoration.
+
+Slot resolution retains orthogonal unsupported, omitted, completed,
+owner-filled, and suggested facts, then projects presentation deterministically
+in this order: unsupported, omitted, completed, owner-filled, suggested,
+available. Completion is a durable acknowledgement of a setup prompt;
+owner-filled is a live renderability observation. Disabling, clearing,
+invalidating, or temporarily making an owner unsupported does not clear an
+already recorded completion.
+
+### Semantic Completion Events
+
+Completion is recorded only at an explicit user-action boundary (plus the
+one-time activation seed), never by a React effect, DOM observation, renderer,
+normalizer, or load hydrator. The eight Classic slots use these policies:
+
+- Game Title completes after a successful artwork upload/import/restore or
+  valid retained-artwork enable, or when enabled title text becomes meaningfully
+  nonblank. Merely choosing Image/Text or enabling blank text does not complete.
+- Background Image completes after successful upload/import/selection or
+  enabling a retained valid image.
+- Rating Badge completes when a user action produces an enabled, renderable
+  primary badge. Disabled value changes and supplemental USK actions do not
+  complete it.
+- Media Format Mark completes when a user action produces an enabled,
+  renderable primary built-in or custom mark.
+- Operating System Marks completes when a user action first produces any
+  selected, enabled, renderable OS mark.
+- Developer Logo and Publisher Logo complete independently when their primary
+  feature becomes enabled, including a primary upload that enables it.
+  Additional logos never claim either primary slot.
+- Copyright / Legal Text completes when Legal is enabled and canonical
+  manual, metadata-backed, or sanitized rich content is meaningfully nonblank.
+  Fit success is not a completion event, and an impossible-fit warning does not
+  undo completion.
+
+Every event updates only workflow state through the focused slot-ID completion
+service. Later owner disable/clear/source/theme/value changes cannot resurrect
+the guide; only the explicit Guided Progress actions can do so.
 
 ### Native Navigation Acceptance
 
@@ -930,51 +988,64 @@ four production section routes declare compatible typed section targets.
 Automated source coverage also verifies resolved
 Legal placeholder/owner parity, filled and cleared visibility, claimed
 Rating/Media/Developer/Publisher suppression, unsupported-slot suppression,
-and coexistence with targeted OS resolution. Persistent completion remains
-unimplemented under #295, and aspect-preserving contain-fit remains
+and coexistence with targeted OS resolution. Persistent completion is owned by
+the workflow rather than feature owners. Aspect-preserving contain-fit remains
 unimplemented under #296.
 
-### Removed Layout Items UI
+### Guided Progress UI
 
-The active Disc `Layout Presets` workflow panel shows `Removed layout items`
-only when a supported guided layout has at least one canonical omission. Rows
-use the slot definition's semantic label in layout order and expose a native
-`Restore` button. Raw IDs, role labels, indexes, and geometry are not shown.
+The active Disc `Layout Presets` panel presents one coherent Guided Progress
+surface. `Removed layout items` lists canonical omissions with `Include again`;
+`Completed layout items` independently lists canonical completions with
+`Show guide again`; and `Reset guided progress` clears both arrays. Rows use
+the slot catalog's semantic labels in deterministic layout order. Raw IDs,
+role labels, indexes, geometry, and duplicate manual label maps are not shown.
+Stored completion for a runtime-unsupported slot is preserved even when no
+actionable runtime row can be projected.
 
-Restoring one item removes only that stable slot ID from omission metadata.
-Restoring all clears only the omission list and preserves active layout ID and
-version. Neither action reapplies preset geometry, dispatches role focus, opens
+Including one item removes only its omission flag. Showing one guide removes
+only its completion flag. If the other flag remains, the guide stays hidden.
+If both flags are clear, current owner-filled state is projected normally, so
+a filled owner remains hidden and an unfilled included owner becomes eligible.
+Reset clears both arrays while preserving active layout ID/version. None of
+these actions reapplies preset geometry, dispatches role focus, opens
 a setup menu, or changes owner enablement, assets, text, marks, values, sources,
 layout, preview selection, renderer inputs, or export behavior. Lifecycle is
-derived again from current owner state: unfilled or suggested guidance returns,
-while a valid filled owner remains visible without a placeholder.
+derived again from current owner state.
 
-After restoring one row, focus moves to the next canonical Restore button,
-then the previous button, then the stable Preset selector. Restore all also
-returns focus to the Preset selector. The section disappears after the final
-omission is restored, leaving no hidden controls in the tab order.
+After an item action, focus moves to the next canonical action, then the
+previous stable action, then another Guided Progress action, then the Preset
+selector. Reset returns focus predictably to the Preset selector. Pointer,
+Enter, and Space use native button semantics and do not select a preview item,
+open the contextual ribbon, or trap focus. Empty sections are omitted from the
+tab order.
 
-Reapplying the same guided layout ID/version preserves omissions. Applying a
-different layout clears cross-layout omission identity through the pure layout
-transition. `Restore all` is the explicit reset for the active layout's default
-slot catalog. A project/workflow reset clears active guidance; applying a layout
-after that reset starts from its unchanged preset definition and default slot
-catalog. In every case, persisted `omittedSlotIds` record only active-layout
-customization and owner content remains untouched.
+Reapplying the same guided layout ID/version preserves progress. Applying a
+different layout initializes and seeds a new workflow through the pure layout
+transition. A project/workspace reset clears active guidance, both progress
+arrays, and the transient active preset. In every case, persisted progress
+records only guidance presentation and owner content remains untouched.
 
 ## 13. Persistence Boundary
 
 Schema `0.2.0` stores the active workflow under optional
-`editor.guidedLayout` as layout ID, version, and canonical omitted slot IDs.
-Inactive guidance omits this structure. The project adapter uses the pure
-workflow normalizer, so malformed metadata, unknown IDs, and unsupported future
-versions deactivate guidance without blocking owner-state restoration.
+`editor.guidedLayout` as layout ID, version, canonical omitted slot IDs, and
+canonical completed slot IDs. Inactive guidance omits this structure. A valid
+`0.2.0` payload missing `completedSlotIds` normalizes it to `[]`; the `0.1.0`
+to `0.2.0` migration creates no active workflow and invents no completion
+history. The project adapter uses the pure workflow normalizer, so malformed
+metadata, unknown IDs, and unsupported future versions deactivate guidance
+without blocking owner-state restoration.
 
 The saved workflow does not contain the canonical preset ID/revision or a
-template-resolved definition. Project load restores `editor.guidedLayout` but
-clears that transient generic-preset state. Reconstructing it from the restored
-guided identity after load is intentionally deferred to #295; no saved resolved
-geometry is introduced as a workaround.
+template-resolved definition. After Disc project restoration, a focused
+post-restore boundary maps the valid guided layout to its canonical preset,
+resolves it for the restored template, refines content-aware Legal geometry
+with restored owner state and injected measurement, and stores only the
+transient active preset reference/resolved definition. It does not dispatch the
+computed owner placement updates or infer identity from coordinates. Failure
+preserves owner state and deactivates guidance safely rather than guessing
+Classic.
 
 Filled content remains ordinary project state under existing feature owners.
 Omission changes guidance only: owner enablement, content, geometry, preview,
@@ -991,9 +1062,11 @@ or definition-owned and are not serialized.
 - Unfilled and suggested placeholders never drag or resize.
 - Guided domain logic must not become an `App.tsx` dumping ground.
 - No Case Insert behavior changes in the Disc-first track.
-- Guided persistence is limited to the schema `0.2.0` workflow metadata.
-- Persistent completed/claimed slot IDs and their explicit reset UI are not yet
-  implemented; #295 owns that extension.
+- Guided persistence is limited to schema `0.2.0` workflow identity plus
+  independent canonical omission and completion arrays.
+- Completion is event-recorded and activation-seeded; it is never continuously
+  inferred from owner state.
+- Guided Progress restore/reset actions mutate no feature owner.
 - Aspect-preserving point-owner contain-fit is not yet implemented; #296 owns
   that placement-policy extension.
 - No auto-fill implementation in this child issue.
@@ -1016,9 +1089,7 @@ or definition-owned and are not serialized.
 3. Filled-slot movement/export transition tests.
 4. Native Tauri omit/save/load/restore/reset/export validation before #292
    closeout.
-5. #295: persisted guided-slot completion and active-preset reconstruction after
-   load.
-6. #296: aspect-preserving contain-fit for replacement visuals.
+5. #296: aspect-preserving contain-fit for replacement visuals.
 
 Related issues and contracts:
 

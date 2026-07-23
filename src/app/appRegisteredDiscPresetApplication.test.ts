@@ -11,8 +11,15 @@ import {
   placeGroupedPlatformMarks,
 } from '../layout/groupedPlatformMarkPlacement.ts'
 import {
+  INITIAL_DISC_GUIDED_WORKFLOW_STATE,
+  applyDiscGuidedLayout,
+} from '../guidedPresets/discGuidedWorkflow.ts'
+import {
   CLASSIC_TOP_TITLE_DISC_PRESET_ID,
 } from '../presets/builtins/classicTopTitleDiscPreset.ts'
+import type {
+  DiscPresetRegistry,
+} from '../presets/discPresetRegistry.ts'
 import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
 import {
   createDefaultDiscTextValueSources,
@@ -31,6 +38,7 @@ import type { DiscTemplate } from '../types/template.ts'
 import {
   applyRegisteredDiscPresetToState,
   createRegisteredDiscPresetOwnerStateSnapshot,
+  reconstructActiveDiscPresetState,
   type RegisteredDiscPresetApplicationState,
 } from './appRegisteredDiscPresetApplication.ts'
 
@@ -214,6 +222,13 @@ function applyClassic(state: TestState, template = discTemplates.standardPrintab
   return result
 }
 
+function createClassicWorkflow() {
+  return applyDiscGuidedLayout(INITIAL_DISC_GUIDED_WORKFLOW_STATE, {
+    id: 'disc:guided-layout:classic-top-title',
+    version: 1,
+  }).state
+}
+
 test('legacy Classic alias resolves and plans every canonical target', () => {
   const result = applyClassic(createState())
 
@@ -266,6 +281,144 @@ test('focused owner snapshot contains only the nine Classic semantic targets', (
   assert.equal(Object.isFrozen(snapshot), true)
   assert.equal(Object.isFrozen(snapshot['game-title.artwork']!), true)
   assert.equal(Object.isFrozen(snapshot['game-title.artwork']!.layout), true)
+})
+
+test('active preset reconstruction is canonical, transient, and owner-pure', () => {
+  const state = createState()
+  const before = structuredClone(state)
+  const activePresetState = reconstructActiveDiscPresetState({
+    workflow: createClassicWorkflow(),
+    currentState: state,
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+  })
+
+  assert.ok(activePresetState)
+  assert.deepEqual(activePresetState.ref, {
+    id: CLASSIC_TOP_TITLE_DISC_PRESET_ID,
+    revision: 1,
+  })
+  assert.equal(
+    activePresetState.resolvedDefinition.sourcePresetId,
+    CLASSIC_TOP_TITLE_DISC_PRESET_ID,
+  )
+  assert.equal(
+    activePresetState.resolvedDefinition.sourceRevision,
+    1,
+  )
+  assert.equal(
+    activePresetState.resolvedDefinition.templateId,
+    discTemplates.standardPrintableDisc.id,
+  )
+  assert.equal(Object.isFrozen(activePresetState), true)
+  assert.equal(Object.isFrozen(activePresetState.ref), true)
+  assert.deepEqual(state, before)
+  assert.deepEqual(state.titleArtwork.layout, {
+    enabled: false,
+    x: 17,
+    y: 23,
+    scale: 1.8,
+  })
+  assert.deepEqual(state.background.offset, { x: 11, y: -9 })
+})
+
+test('reconstruction refines Legal geometry with injected measurement without applying it', () => {
+  const state = createState()
+  state.discTextSettings.copyright = true
+  state.discTextValues.copyright = Array.from(
+    { length: 12 },
+    (_, index) => `Clause ${index + 1}: reserved legal terms`,
+  ).join(' ')
+  state.discTextValueSources.copyright = 'manual'
+  const beforeLayout = structuredClone(state.discTextLayout.copyright)
+  const measuredFonts: string[] = []
+  const activePresetState = reconstructActiveDiscPresetState({
+    workflow: createClassicWorkflow(),
+    currentState: state,
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+    services: {
+      textMeasurement: {
+        measureText(text, font) {
+          measuredFonts.push(font)
+          const fontSize = Number(
+            font.match(/(\d+(?:\.\d+)?)px/)?.[1] ?? 1,
+          )
+          return Array.from(text).length * fontSize * 0.55
+        },
+      },
+    },
+  })
+
+  assert.ok(activePresetState)
+  assert.ok(measuredFonts.length > 0)
+  const legalSlot = activePresetState.resolvedDefinition.slots.find(
+    ({ id }) => id === 'disc:guided:legal-text:copyright',
+  )
+  assert.ok(legalSlot)
+  assert.equal(legalSlot.status, 'adjusted')
+  assert.ok(legalSlot.resolvedContentRegion.heightPercent <= 8)
+  assert.deepEqual(state.discTextLayout.copyright, beforeLayout)
+})
+
+test('reconstruction requires an active supported layout and exact mapped revision', () => {
+  assert.equal(reconstructActiveDiscPresetState({
+    workflow: INITIAL_DISC_GUIDED_WORKFLOW_STATE,
+    currentState: createState(),
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+  }), null)
+
+  const lookups: Array<readonly [string, number | undefined]> = []
+  const missingRevisionRegistry: DiscPresetRegistry = {
+    get(id, revision) {
+      lookups.push([id, revision])
+      return null
+    },
+    list() {
+      return []
+    },
+  }
+
+  assert.equal(reconstructActiveDiscPresetState({
+    workflow: createClassicWorkflow(),
+    currentState: createState(),
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+    registry: missingRevisionRegistry,
+  }), null)
+  assert.deepEqual(lookups, [[CLASSIC_TOP_TITLE_DISC_PRESET_ID, 1]])
+
+  assert.equal(reconstructActiveDiscPresetState({
+    workflow: {
+      activeLayout: {
+        id: 'disc:guided-layout:unknown',
+        version: 1,
+      },
+      omittedSlotIds: [],
+      completedSlotIds: [],
+    } as never,
+    currentState: createState(),
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+  }), null)
+})
+
+test('reconstruction failure returns null without corrupting owner state', () => {
+  const state = createState()
+  state.discTextSettings.copyright = true
+  state.discTextValues.copyright = 'Copyright 2026 Example Studios.'
+  state.discTextValueSources.copyright = 'manual'
+  const before = structuredClone(state)
+
+  assert.equal(reconstructActiveDiscPresetState({
+    workflow: createClassicWorkflow(),
+    currentState: state,
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+    services: {
+      textMeasurement: {
+        measureText() {
+          throw new Error('measurement unavailable')
+        },
+      },
+    },
+  }), null)
+  assert.deepEqual(state, before)
 })
 
 test('Legal owner snapshot resolves manual metadata and HTML content canonically', () => {

@@ -395,7 +395,10 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 - `SavedProject`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case insert project state types live in `src/project/projectTypes.ts`.
 - `CURRENT_PROJECT_SCHEMA_VERSION` is `0.2.0` in `src/project/projectSchema.ts`.
 - `PROJECT_SCHEMA_MIGRATIONS` registers the compatibility step from `0.1.0`.
-- Disc guided workflow persistence stores only active layout ID/version and canonical omitted slot IDs; owner state and export composition remain independent.
+- Disc guided workflow persistence stores only active layout ID/version plus
+  independent canonical omitted and completed slot IDs; owner state, canonical
+  preset definitions, resolved runtime geometry, and export composition remain
+  independent.
 
 ### 7.4 Render/Edit/Export Paths
 
@@ -1125,7 +1128,7 @@ The disc editor is the first alpha-capable app surface.
 - Persisted state is `SavedDiscProject`.
 - Disc layer order lives in `src/editor/layerOrder.ts`.
 
-The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, or generic preset schema exists. Schema `0.2.0` does persist the focused Disc guided-workflow layout ID/version and canonical omitted slot IDs; it does not persist generic preset identity or geometry.
+The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, or generic preset schema exists. Schema `0.2.0` does persist the focused Disc guided-workflow layout ID/version plus independent canonical omitted/completed slot IDs; it does not persist generic preset identity or geometry.
 
 Generic Disc preset definitions are pure JSON-compatible domain data. The
 definition parser reconstructs immutable allowlisted identity, compatibility,
@@ -1202,14 +1205,24 @@ measurement-relevant style changes. Direct Legal layout edits do not refit,
 while an explicit preset reapply restores preset fitting.
 
 `src/guidedPresets/discGuidedWorkflow.ts` separately owns the pure, versioned
-guided-layout identity and omission transitions. Schema `0.2.0` snapshots only
-that compact workflow through `src/project/projectGuidedWorkflow.ts`; omission
-changes guidance and does not mutate owner content or placement. Project load
-therefore restores guided workflow metadata while the transient generic preset
-state remains cleared, and placeholder projection fails closed until a resolved
-definition is available. Reconstructing that transient state and persisting
-completed/claimed slot progress are deferred to #295. Aspect-preserving
-contain-fit for replacement visuals is deferred to #296.
+guided-layout identity plus independent omission and completion transitions.
+Schema `0.2.0` snapshots only that compact workflow through
+`src/project/projectGuidedWorkflow.ts`; neither flag mutates owner content or
+placement. Completion is seeded from satisfied authoritative owner state only
+when a new/different layout activates and is subsequently recorded only by
+explicit user-domain actions. Presentation retains orthogonal unsupported,
+omitted, completed, owner-filled, and suggested facts, then applies that
+precedence without erasing stored overlap.
+
+Disc project load uses a focused post-restore boundary to map valid guided
+layout identity to the canonical preset, resolve it for the restored template,
+refine content-aware Legal geometry from restored owner state and injected
+measurement, and record the transient active preset reference/resolved
+definition. It never dispatches the application plan's owner updates or infers
+identity from coordinates. This restores guided geometry plus targeted late OS
+and Legal application while keeping resolved geometry out of the project file.
+Failure preserves owner state and deactivates guidance safely. Aspect-preserving
+contain-fit for replacement visuals remains deferred to #296.
 
 Classic applies adapter-safe output directly and does not run the legacy broad
 clamp sequence, so unrelated text rows, technical marks, repeated logos, and

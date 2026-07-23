@@ -61,7 +61,8 @@ Current disc project files use schema version `0.2.0` and include:
 - operating-system mark state, including platform-specific built-in styles where supported, and inference metadata
 - technical mark state
 - disc text enabled state, values, metadata/manual value sources, title override, layout, and styles
-- optional Disc guided-layout identity/version and canonical omitted slot IDs
+- optional Disc guided-layout identity/version plus independent canonical
+  omitted and completed slot IDs
 
 ## Asset Embedding And Provenance
 
@@ -95,6 +96,7 @@ type SavedDiscProject = {
       id: string
       version: number
       omittedSlotIds: string[]
+      completedSlotIds: string[]
     }
   }
   logoAssets?: ProjectLogoAssetsInput
@@ -228,30 +230,47 @@ Loader normalization should:
 ### Guided Workflow Metadata
 
 Disc projects may store `editor.guidedLayout`. The compact persisted contract is
-the stable guided layout ID, its positive contract version, and stable omitted
-slot IDs in canonical layout order. An inactive workflow omits `editor` rather
-than writing an empty no-op object. An active supported layout remains active
-when its omission list is empty.
+the stable guided layout ID, its positive contract version, stable omitted slot
+IDs, and stable completed slot IDs in canonical layout order. The two arrays are
+independent and may contain the same semantic slot ID. An inactive workflow
+omits `editor` rather than writing an empty no-op object. An active supported
+layout remains active when both progress arrays are empty. A valid `0.2.0`
+payload that predates completion and omits `completedSlotIds` normalizes it to
+an empty array.
 
 Loading translates persistence-boundary strings through the pure Disc guided
 workflow normalizer. Unknown layout IDs, unsupported future versions, and
 malformed guided metadata deactivate guidance without rejecting the project.
 Unknown, duplicate, removed, cross-layout, and non-omittable slot IDs are
-discarded; surviving IDs are ordered by the supported layout definition.
+discarded from omission; surviving IDs are ordered by the supported layout
+definition. Completion is normalized separately: non-array and non-string
+values are ignored, duplicates and IDs outside the active catalog are removed,
+and surviving IDs are canonically ordered without requiring `omittable`.
+Runtime support status does not erase either stored flag.
 
-Omission suppresses guidance only. It does not disable an owner, remove content,
-change geometry, or alter preview/render/export behavior. Real owner state
-continues to save, restore, render, and export through its existing feature
-contract. Setup menus, selected/focused placeholders, role-focus requests,
-open panels, hover state, labels, copied geometry, DOM IDs, and array indexes
-are never stored in `editor.guidedLayout`.
+Omission and completion suppress guidance only. Completion records that a user
+handled a setup prompt; it is not inferred from owner coordinates or duplicated
+owner content. Neither flag disables an owner, removes content, changes
+geometry, or alters preview/render/export behavior. Real owner state continues
+to save, restore, render, and export through its existing feature contract.
+Canonical preset identity/revision, template-resolved definitions, setup menus,
+selected/focused placeholders, role-focus requests, open panels, hover state,
+labels, copied geometry, DOM IDs, and array indexes are never stored in
+`editor.guidedLayout`.
+
+After load, valid guided identity is mapped back to the canonical reusable
+preset and resolved transiently for the restored Disc template and owner state.
+That reconstruction restores guidance and targeted OS/Legal behavior without
+reapplying placement to any restored owner. The resulting preset reference and
+resolved geometry remain runtime-only.
 
 ### Schema 0.1.0 Migration
 
 `src/project/projectSchema.ts` registers the explicit migration `0.1.0 ->
 0.2.0`. It preserves all existing project fields and changes only
 `schemaVersion`. It does not add `editor`, infer Classic Top Title from current
-coordinates, create omissions, enable owners, or change rendering/export.
+coordinates, create omissions or completions, enable owners, or change
+rendering/export.
 Legacy `0.1.0` JSON remains accepted through this migration; new snapshots use
 `0.2.0`.
 
@@ -275,7 +294,7 @@ See `docs/PROJECT_PACKAGE_FORMAT_DECISION.md` for the #56 decision record.
 
 ## Future Schema Work
 
-- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), and the role-based preset model is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). Schema `0.2.0` adds only the focused Disc guided-workflow identity and omission metadata described above; broader role, preset, or role-layout persistence still requires explicit schema and migration work in this spec.
+- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), and the role-based preset model is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). Schema `0.2.0` adds only the focused Disc guided-workflow identity plus omission/completion metadata described above; broader role, preset, or role-layout persistence still requires explicit schema and migration work in this spec.
 - Register focused project schema migrations in `src/project/projectSchema.ts`
   before changing saved-project semantics.
 - Keep migrations one version step at a time and make each migration produce the

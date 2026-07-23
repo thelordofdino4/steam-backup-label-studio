@@ -53,13 +53,15 @@ import {
 } from '../../../guidedPresets/discGuidedPlaceholderViewModel.ts'
 import type { DiscGuidedSlotId } from '../../../guidedPresets/discGuidedSlots.ts'
 import {
-  createDiscGuidedRestoreItems,
+  createDiscGuidedProgressItems,
 } from '../../../guidedPresets/discGuidedRestoreItems.ts'
 import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
   applyDiscGuidedLayout,
+  completeDiscGuidedSlot,
   omitDiscGuidedSlot,
-  restoreAllDiscGuidedSlots,
+  resetDiscGuidedProgress,
+  restoreCompletedDiscGuidedSlot,
   restoreDiscGuidedSlot,
   type DiscGuidedWorkflowState,
 } from '../../../guidedPresets/discGuidedWorkflow.ts'
@@ -108,6 +110,7 @@ type HarnessFeatureState = {
 
 type GuidedNavigationHarnessApi = {
   activateClassicLayout: () => void
+  completeSlots: (slotIds: readonly DiscGuidedSlotId[]) => void
   getSavedEditor: () => unknown
   getFeatureSnapshot: () => HarnessFeatureState & { serializedProject: string }
   getWorkflowSnapshot: () => DiscGuidedWorkflowState
@@ -318,9 +321,16 @@ function GuidedNavigationHarnessContent() {
       current,
     ))
   }, [])
+  const completeSlots = useCallback((slotIds: readonly DiscGuidedSlotId[]) => {
+    setWorkflow((current) => slotIds.reduce(
+      (next, slotId) => completeDiscGuidedSlot(next, slotId).state,
+      current,
+    ))
+  }, [])
   const loadSavedEditor = useCallback((editor: unknown) => {
-    setWorkflow(restoreSavedDiscGuidedWorkflow(editor))
-    setResolvedPresetAvailable(false)
+    const restoredWorkflow = restoreSavedDiscGuidedWorkflow(editor)
+    setWorkflow(restoredWorkflow)
+    setResolvedPresetAvailable(Boolean(restoredWorkflow.activeLayout))
   }, [])
 
   useLayoutEffect(() => {
@@ -331,6 +341,7 @@ function GuidedNavigationHarnessContent() {
 
     window.__discGuidedNavigationHarness = {
       activateClassicLayout,
+      completeSlots,
       getSavedEditor: () => {
         const savedLayout = createSavedDiscGuidedLayout(workflow)
         return savedLayout ? { guidedLayout: savedLayout } : undefined
@@ -349,6 +360,7 @@ function GuidedNavigationHarnessContent() {
     }
   }, [
     activateClassicLayout,
+    completeSlots,
     featureState,
     loadSavedEditor,
     navigationState.pendingRequest,
@@ -494,25 +506,37 @@ function GuidedNavigationHarnessContent() {
     () => resolvedPresetAvailable
       ? ALL_PLACEHOLDERS
       .filter(({ slotId }) => !workflow.omittedSlotIds.includes(slotId))
+      .filter(({ slotId }) => !workflow.completedSlotIds.includes(slotId))
       .filter(({ slotId }) => slotId !== filledSlotId)
       .map((placeholder) => placeholder.slotId === suggestedSlotId
         ? { ...placeholder, lifecycle: 'suggested' as const }
         : placeholder)
       : [],
-    [filledSlotId, resolvedPresetAvailable, suggestedSlotId, workflow.omittedSlotIds],
+    [
+      filledSlotId,
+      resolvedPresetAvailable,
+      suggestedSlotId,
+      workflow.completedSlotIds,
+      workflow.omittedSlotIds,
+    ],
   )
-  const restoreItems = useMemo(
-    () => createDiscGuidedRestoreItems(workflow),
+  const progressItems = useMemo(
+    () => createDiscGuidedProgressItems(workflow),
     [workflow],
   )
   const omitSlot = useCallback((slotId: typeof placeholders[number]['slotId']) => {
     setWorkflow((current) => omitDiscGuidedSlot(current, slotId).state)
   }, [])
-  const restoreSlot = useCallback((slotId: DiscGuidedSlotId) => {
+  const includeSlot = useCallback((slotId: DiscGuidedSlotId) => {
     setWorkflow((current) => restoreDiscGuidedSlot(current, slotId).state)
   }, [])
-  const restoreAllSlots = useCallback(() => {
-    setWorkflow((current) => restoreAllDiscGuidedSlots(current).state)
+  const showSlotAgain = useCallback((slotId: DiscGuidedSlotId) => {
+    setWorkflow((current) =>
+      restoreCompletedDiscGuidedSlot(current, slotId).state,
+    )
+  }, [])
+  const resetProgress = useCallback(() => {
+    setWorkflow((current) => resetDiscGuidedProgress(current).state)
   }, [])
   const applyPreset = useCallback((presetId: string) => {
     setWorkflow((current) => getNextDiscGuidedWorkflowForPresetApplication({
@@ -530,10 +554,11 @@ function GuidedNavigationHarnessContent() {
     <main data-feature-snapshot={JSON.stringify(featureSnapshot)}>
       <aside>
         <DiscLayoutPresetsPanel
-          guidedRestoreItems={restoreItems}
+          guidedProgress={progressItems}
           onApplyPreset={applyPreset}
-          onRestoreAllGuidedSlots={restoreAllSlots}
-          onRestoreGuidedSlot={restoreSlot}
+          onIncludeGuidedSlot={includeSlot}
+          onShowGuidedSlotAgain={showSlotAgain}
+          onResetGuidedProgress={resetProgress}
         />
 
         <RolePanel label="Background Artwork" roleId="background-artwork">

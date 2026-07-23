@@ -45,27 +45,55 @@ test('Disc Layout Presets uses the workflow panel shell and explicit apply', () 
   assert.doesNotMatch(panelSource, /linked preset/i)
 })
 
-test('Removed layout items render only from canonical restore view models', () => {
-  assert.match(panelSource, /guidedRestoreItems\.length > 0/)
+test('Guided progress renders removed and completed canonical view models', () => {
+  assert.match(panelSource, />Guided progress</)
+  assert.match(panelSource, /guidedProgress\.removedItems\.length > 0/)
   assert.match(panelSource, />Removed layout items</)
-  assert.match(panelSource, /guidedRestoreItems\.map\(\(item\) =>/)
+  assert.match(panelSource, /guidedProgress\.removedItems\.map\(\(item\) =>/)
+  assert.match(panelSource, />\s*Include again\s*<\/button>/)
+  assert.match(panelSource, /guidedProgress\.completedItems\.length > 0/)
+  assert.match(panelSource, />Completed layout items</)
+  assert.match(panelSource, /guidedProgress\.completedItems\.map\(\(item\) =>/)
+  assert.equal((panelSource.match(/className="disc-guided-progress-group"/g) ?? []).length, 2)
   assert.match(panelSource, /<span>\{item\.label\}<\/span>/)
-  assert.match(panelSource, /aria-label=\{`Restore \$\{item\.label\} to layout`\}/)
-  assert.match(panelSource, /aria-label="Restore all layout items"/)
-  assert.match(panelSource, />\s*Restore\s*<\/button>/)
-  assert.match(panelSource, />\s*Restore all\s*<\/button>/)
-  assert.doesNotMatch(panelSource, /Removed preset items|Restore all preset items/)
+  assert.match(
+    panelSource,
+    /aria-label=\{`Include \$\{item\.label\} in the layout again`\}/,
+  )
+  assert.match(
+    panelSource,
+    /aria-label=\{`Show \$\{item\.label\} guide again`\}/,
+  )
+  assert.match(panelSource, />\s*Show guide again\s*<\/button>/)
+  assert.match(panelSource, /aria-label="Reset guided progress"/)
+  assert.match(panelSource, />\s*Reset guided progress\s*<\/button>/)
+  assert.doesNotMatch(panelSource, /Restore all|Restore all preset items/)
   assert.doesNotMatch(panelSource, /disc:guided:/)
   assert.doesNotMatch(panelSource, /Game Info Logos|Company Logos/)
 })
 
-test('restore focus uses canonical item order and registered refs', () => {
+test('progress focus uses cross-section canonical order and stable fallbacks', () => {
+  assert.match(panelSource, /progressActions\.findIndex/)
   assert.match(panelSource, /slice\(currentIndex \+ 1\)/)
   assert.match(panelSource, /slice\(0, currentIndex\)[\s\S]*?\.reverse\(\)/)
-  assert.match(panelSource, /restoreButtonRefs\.current\.get\(slotId\)/)
-  assert.match(panelSource, /nextRestoreButton \?\? presetSelectRef\.current/)
+  assert.match(panelSource, /progressButtonRefs\.current\.get\(actionKey\)/)
+  assert.match(
+    panelSource,
+    /nextProgressButton \?\?[\s\S]*?resetProgressButtonRef\.current \?\?[\s\S]*?presetSelectRef\.current/,
+  )
+  assert.match(panelSource, /pendingProgressFocusRef\.current = \[\]/)
   assert.doesNotMatch(panelSource, /querySelector|\.click\(\)|setTimeout|MutationObserver/)
-  assert.match(panelStyles, /\.disc-guided-restore-button:focus-visible/)
+  assert.match(panelStyles, /\.disc-guided-progress-button:focus-visible/)
+  assert.match(panelStyles, /\.disc-guided-progress-reset:focus-visible/)
+})
+
+test('guided progress actions use native keyboard-accessible buttons and smoke hooks', () => {
+  assert.match(panelSource, /data-guided-progress-kind="removed"/)
+  assert.match(panelSource, /data-guided-progress-kind="completed"/)
+  assert.match(panelSource, /data-guided-progress-slot-id=\{item\.slotId\}/)
+  assert.match(panelSource, /data-smoke-id="disc-guided-progress-reset"/)
+  assert.equal((panelSource.match(/type="button"/g) ?? []).length >= 4, true)
+  assert.doesNotMatch(panelSource, /onKeyDown|onKeyUp|preventDefault|stopPropagation/)
 })
 
 test('Disc Layout Presets sits after setup controls and before semantic roles', () => {
@@ -76,7 +104,7 @@ test('Disc Layout Presets sits after setup controls and before semantic roles', 
   ])
   assert.match(
     appSource,
-    /<DiscLayoutPresetsPanel[\s\S]*?guidedRestoreItems=\{discGuidedPlaceholderPreview\.restoreItems\}[\s\S]*?onApplyPreset=\{handleApplyDiscRolePreset\}[\s\S]*?onRestoreAllGuidedSlots=\{discGuidedPlaceholderPreview\.restoreAllSlots\}[\s\S]*?onRestoreGuidedSlot=\{discGuidedPlaceholderPreview\.restoreSlot\}/,
+    /<DiscLayoutPresetsPanel[\s\S]*?guidedProgress=\{discGuidedPlaceholderPreview\.progressItems\}[\s\S]*?onApplyPreset=\{handleApplyDiscRolePreset\}[\s\S]*?onIncludeGuidedSlot=\{discGuidedPlaceholderPreview\.includeSlot\}[\s\S]*?onShowGuidedSlotAgain=\{discGuidedPlaceholderPreview\.showSlotAgain\}[\s\S]*?onResetGuidedProgress=\{discGuidedPlaceholderPreview\.resetProgress\}/,
   )
 })
 
@@ -92,10 +120,12 @@ test('Case Insert does not expose the Disc Layout Presets panel', () => {
   assert.doesNotMatch(caseInsertSource, /Layout Presets/)
 })
 
-test('restore UI stays isolated from workflow decisions, persistence, owners, and output', () => {
+test('progress UI stays isolated from workflow decisions, persistence, owners, and output', () => {
   for (const forbidden of [
     'restoreDiscGuidedSlot',
     'restoreAllDiscGuidedSlots',
+    'restoreCompletedDiscGuidedSlot',
+    'resetDiscGuidedProgress',
     'projectSchema',
     'restoreSavedDiscGuidedWorkflow',
     'setProject',

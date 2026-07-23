@@ -228,7 +228,9 @@ Source-of-truth state:
 - `SavedProjectBase`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case-insert project types live in `src/project/projectTypes.ts`.
 - `CURRENT_PROJECT_SCHEMA_VERSION` is `0.2.0` in `src/project/projectSchema.ts`.
 - `PROJECT_SCHEMA_MIGRATIONS` contains the explicit `0.1.0 -> 0.2.0` compatibility step.
-- `projectGuidedWorkflow.ts` owns the compact Disc workflow snapshot adapter and tolerant restoration through the pure guided normalizer.
+- `projectGuidedWorkflow.ts` owns the compact Disc workflow snapshot adapter
+  for active layout identity plus independent omission/completion arrays and
+  tolerant restoration through the pure guided normalizer.
 
 Render path:
 
@@ -363,10 +365,14 @@ Key files:
 - `src/presets/discPresetRegistry.ts`
 - `src/presets/builtins/classicTopTitleDiscPreset.ts`
 - `src/guidedPresets/discGuidedLayouts.ts`
+- `src/guidedPresets/discGuidedCompletion.ts`
+- `src/guidedPresets/discGuidedSlotState.ts`
+- `src/guidedPresets/discGuidedRestoreItems.ts`
 - `src/guidedPresets/discGuidedWorkflow.ts`
 - `src/hooks/useDiscGuidedPlaceholderPreview.ts`
 - `src/project/projectGuidedWorkflow.ts`
 - `src/app/appRegisteredDiscPresetApplication.ts`
+- `src/app/appProjectRestore.ts`
 - `src/app/appDiscRolePresetApplication.ts`
 - `src/app/appActiveDiscPresetPlatformMarks.ts`
 - `src/hooks/useActiveDiscPreset.ts`
@@ -402,12 +408,18 @@ Source-of-truth state:
   and latest resolved runtime definition. Guided projection consumes that
   resolved definition and suppresses unsupported slots.
   `discGuidedWorkflow.ts` separately owns active guided layout identity/version
-  and canonical omission transitions. Schema `0.2.0` snapshots only that compact
-  workflow through `projectGuidedWorkflow.ts`; omission never mutates feature
-  owners. Project load restores the workflow while clearing transient generic
-  preset state, so projection fails closed until reconstruction is added by
-  #295. Persistent completion remains deferred to #295 and aspect-preserving
-  contain-fit remains deferred to #296.
+  and independent canonical omission/completion transitions. Schema `0.2.0`
+  snapshots only that compact workflow through `projectGuidedWorkflow.ts`;
+  progress controls never mutate feature owners. The focused completion service
+  records slot IDs only from explicit owner actions, while new/different layout
+  activation seeds currently satisfied slots once; no reactive effect watches
+  owner state. The Layout Presets panel projects canonical Removed and Completed
+  item view models plus one reset action with deterministic focus restoration.
+  Disc project restoration reconstructs the transient canonical active preset
+  from the explicit layout-to-preset mapping after restored template and owner
+  state are available. It resolves/refines geometry without dispatching owner
+  updates, keeping late OS grouping and Legal refitting active after load.
+  Aspect-preserving contain-fit remains deferred to #296.
   `appActiveDiscPresetPlatformMarks.ts` and `usePlatformMarksState.ts` compose
   late OS eligibility/bounds changes with only the production OS adapter before
   the final owner-state commit; layout x/y/scale updates do not recurse.

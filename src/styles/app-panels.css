@@ -79,27 +79,36 @@
   padding: 0 16px 16px;
 }
 
-.disc-guided-restore-section {
+.disc-guided-progress-section {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid #374151;
 }
 
-.disc-guided-restore-section h3 {
+.disc-guided-progress-section h3,
+.disc-guided-progress-section h4 {
   margin: 0;
   color: #f9fafb;
-  font-size: 14px;
   letter-spacing: 0;
 }
 
-.disc-guided-restore-list {
+.disc-guided-progress-section h3 {
+  font-size: 14px;
+}
+
+.disc-guided-progress-section h4 {
+  font-size: 13px;
+}
+
+.disc-guided-progress-group,
+.disc-guided-progress-list {
   display: grid;
   gap: 6px;
 }
 
-.disc-guided-restore-row {
+.disc-guided-progress-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -109,13 +118,13 @@
   font-size: 13px;
 }
 
-.disc-guided-restore-row span {
+.disc-guided-progress-row span {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.disc-guided-restore-button {
-  min-width: 76px;
+.disc-guided-progress-button {
+  min-width: 104px;
   min-height: 36px;
   border: 1px solid #374151;
   border-radius: 8px;
@@ -125,12 +134,13 @@
   cursor: pointer;
 }
 
-.disc-guided-restore-button:hover {
+.disc-guided-progress-button:hover {
   border-color: rgba(147, 197, 253, 0.82);
   background: #1f2937;
 }
 
-.disc-guided-restore-button:focus-visible {
+.disc-guided-progress-button:focus-visible,
+.disc-guided-progress-reset:focus-visible {
   border-color: #93c5fd;
 }
 

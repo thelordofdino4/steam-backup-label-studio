@@ -103,6 +103,7 @@ export type ApplyRestoredDiscProjectStateParams = {
   restoreBackgroundImageState: ValueSetter<BackgroundRestoreState>
   setActiveWorkspace: ValueSetter<'disc'>
   setHomeStatusMessage: ValueSetter<string | null>
+  afterDiscProjectRestore?: ValueSetter<RestoredProjectState>
 }
 
 export function applyRestoredDiscProjectState({
@@ -134,6 +135,7 @@ export function applyRestoredDiscProjectState({
   restoreBackgroundImageState,
   setActiveWorkspace,
   setHomeStatusMessage,
+  afterDiscProjectRestore,
 }: ApplyRestoredDiscProjectStateParams) {
   restoreDiscGuidedWorkflow(restoredProject.discGuidedWorkflow)
   setManualGameTitle(restoredProject.manualGameTitle)
@@ -178,5 +180,6 @@ export function applyRestoredDiscProjectState({
     isBackgroundArtworkEnabled: restoredProject.isBackgroundArtworkEnabled,
   })
   setActiveWorkspace('disc')
+  afterDiscProjectRestore?.(restoredProject)
   setHomeStatusMessage(null)
 }

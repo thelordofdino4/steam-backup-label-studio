@@ -73,6 +73,7 @@ test('disc project restore groups restored disc text and background state', () =
         version: 1,
       },
       omittedSlotIds: ['disc:guided:publisher-logo:primary'],
+      completedSlotIds: ['disc:guided:game-title:primary'],
     },
     manualGameTitle: 'Disc title',
     projectMetadata: { title: 'Disc title' },
@@ -148,6 +149,8 @@ test('disc project restore groups restored disc text and background state', () =
     restoreBackgroundImageState:
       recordValueCall(calls, 'restoreBackgroundImageState'),
     setActiveWorkspace: recordValueCall(calls, 'setActiveWorkspace'),
+    afterDiscProjectRestore:
+      recordValueCall(calls, 'afterDiscProjectRestore'),
     setHomeStatusMessage: recordValueCall(calls, 'setHomeStatusMessage'),
   })
 
@@ -180,6 +183,7 @@ test('disc project restore groups restored disc text and background state', () =
       'restoreDiscTextState',
       'restoreBackgroundImageState',
       'setActiveWorkspace',
+      'afterDiscProjectRestore',
       'setHomeStatusMessage',
     ],
   )
@@ -203,5 +207,15 @@ test('disc project restore groups restored disc text and background state', () =
   })
   assert.deepEqual(calls[0].value, restoredProject.discGuidedWorkflow)
   assert.equal(calls[25].value, 'disc')
-  assert.equal(calls[26].value, null)
+  assert.equal(calls[26].value, restoredProject)
+  assert.equal(calls[27].value, null)
+})
+
+test('disc post-restore boundary is optional', () => {
+  const source = String(applyRestoredDiscProjectState)
+
+  assert.match(
+    source,
+    /setActiveWorkspace\('disc'\)[\s\S]*afterDiscProjectRestore\?\.\(restoredProject\)/,
+  )
 })

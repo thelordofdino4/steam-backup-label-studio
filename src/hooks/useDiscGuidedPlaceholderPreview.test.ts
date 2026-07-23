@@ -7,6 +7,7 @@ import {
 } from '../guidedPresets/discGuidedLayouts.ts'
 import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
+  completeDiscGuidedSlot,
   omitDiscGuidedSlot,
 } from '../guidedPresets/discGuidedWorkflow.ts'
 import {
@@ -54,6 +55,7 @@ test('successful Classic application activates its versioned guided workflow', (
     })
     assert.deepEqual(next.activeLayout, { id: CLASSIC_LAYOUT_ID, version: 1 })
     assert.deepEqual(next.omittedSlotIds, [])
+    assert.deepEqual(next.completedSlotIds, [])
   }
 })
 
@@ -63,8 +65,12 @@ test('reapplication preserves omissions while an unmapped preset clears guidance
     presetId: CLASSIC_TOP_TITLE_DISC_PRESET_ID,
     applied: true,
   })
-  const omitted = omitDiscGuidedSlot(
+  const completed = completeDiscGuidedSlot(
     active,
+    'disc:guided:game-title:primary',
+  ).state
+  const omitted = omitDiscGuidedSlot(
+    completed,
     'disc:guided:publisher-logo:primary',
   ).state
   const reapplied = getNextDiscGuidedWorkflowForPresetApplication({
@@ -74,6 +80,9 @@ test('reapplication preserves omissions while an unmapped preset clears guidance
   })
   assert.deepEqual(reapplied.omittedSlotIds, [
     'disc:guided:publisher-logo:primary',
+  ])
+  assert.deepEqual(reapplied.completedSlotIds, [
+    'disc:guided:game-title:primary',
   ])
 
   assert.deepEqual(getNextDiscGuidedWorkflowForPresetApplication({
@@ -171,7 +180,7 @@ test('failed or rejected application preserves guided and generic activation', (
   }), CLASSIC_PRESET_REF)
 })
 
-test('App clears transient activation on resets, workspace exit, and successful restore', () => {
+test('App clears transient activation on resets and reconstructs after Disc restore', () => {
   const source = readFileSync(new URL('../app/App.tsx', import.meta.url), 'utf8')
 
   assert.match(source, /function resetDiscProjectState\(\)[\s\S]*?clearActivePreset\(\)/)
@@ -183,6 +192,10 @@ test('App clears transient activation on resets, workspace exit, and successful 
   assert.match(
     source,
     /const setLoadedActiveWorkspace[\s\S]*?clearActivePreset\(\)[\s\S]*?setActiveWorkspace\(workspace\)/,
+  )
+  assert.match(
+    source,
+    /afterDiscProjectRestore:[\s\S]*?reconstructActiveDiscPresetState\([\s\S]*?recordPresetApplication\(/,
   )
   assert.equal(
     (source.match(/setActiveWorkspace: setLoadedActiveWorkspace/g) ?? []).length,
@@ -216,8 +229,9 @@ test('focused hooks compose persisted workflow with transient resolved geometry'
   assert.match(previewHookSource, /resolvedPreset:\s*activePresetState/)
   assert.match(previewHookSource, /omitDiscGuidedSlot\(currentWorkflow, slotId\)\.state/)
   assert.match(previewHookSource, /restoreDiscGuidedSlot\(currentWorkflow, slotId\)\.state/)
-  assert.match(previewHookSource, /restoreAllDiscGuidedSlots\(currentWorkflow\)\.state/)
-  assert.match(previewHookSource, /createDiscGuidedRestoreItems\(workflow\)/)
+  assert.match(previewHookSource, /restoreCompletedDiscGuidedSlot\(currentWorkflow, slotId\)\.state/)
+  assert.match(previewHookSource, /resetDiscGuidedProgress\(currentWorkflow\)\.state/)
+  assert.match(previewHookSource, /createDiscGuidedProgressItems\(workflow\)/)
   assert.doesNotMatch(appSource, /omitDiscGuidedSlot|restoreDiscGuidedSlot/)
   assert.doesNotMatch(previewHookSource, /useState|coordinate|offset|layout\.x|layout\.y/i)
   assert.doesNotMatch(activeHookSource, /coordinate|offset|layout\.x|layout\.y/i)
@@ -245,9 +259,10 @@ test('App owns one workflow value without implementing lifecycle transitions', (
   assert.match(source, /updateWorkflow: setDiscGuidedWorkflow/)
   assert.match(source, /activePresetState: activeDiscPreset\.activePresetState/)
   assert.match(source, /onOmitGuidedSlot: discGuidedPlaceholderPreview\.omitSlot/)
-  assert.match(source, /guidedRestoreItems=\{discGuidedPlaceholderPreview\.restoreItems\}/)
-  assert.match(source, /onRestoreAllGuidedSlots=\{discGuidedPlaceholderPreview\.restoreAllSlots\}/)
-  assert.match(source, /onRestoreGuidedSlot=\{discGuidedPlaceholderPreview\.restoreSlot\}/)
+  assert.match(source, /guidedProgress=\{discGuidedPlaceholderPreview\.progressItems\}/)
+  assert.match(source, /onIncludeGuidedSlot=\{discGuidedPlaceholderPreview\.includeSlot\}/)
+  assert.match(source, /onShowGuidedSlotAgain=\{discGuidedPlaceholderPreview\.showSlotAgain\}/)
+  assert.match(source, /onResetGuidedProgress=\{discGuidedPlaceholderPreview\.resetProgress\}/)
   assert.doesNotMatch(source, /omitDiscGuidedSlot|restoreDiscGuidedSlot/)
   assert.doesNotMatch(source, /clearActiveLayout/)
 })

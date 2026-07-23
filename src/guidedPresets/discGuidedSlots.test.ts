@@ -736,6 +736,93 @@ test('filled, accepted suggestion, wrong-kind suggestion, and cleared content re
   assert.equal(resolve(slotId, state).lifecycle, 'unfilled')
 })
 
+test('presentation precedence preserves orthogonal omission, completion, owner, and suggestion flags', () => {
+  const slotId = 'disc:guided:background-image:primary'
+  const state = createState()
+  state.background.imageDataUrl = 'data:image/png;base64,background'
+  state.background.imageSize = { width: 1200, height: 1200 }
+  const suggestion = createSuggestion(slotId, 'image')
+  const omittedSlotIds = new Set<DiscGuidedSlotId>([slotId])
+  const completedSlotIds = new Set<DiscGuidedSlotId>([slotId])
+
+  const omitted = resolveDiscGuidedSlot({
+    slotId,
+    state,
+    suggestions: [suggestion],
+    omittedSlotIds,
+    completedSlotIds,
+  })
+
+  assert.equal(omitted.lifecycle, 'omitted')
+  assert.equal(omitted.presentation, 'omitted')
+  assert.deepEqual(omitted.flags, {
+    unsupported: false,
+    omitted: true,
+    completed: true,
+    ownerFilled: true,
+    suggested: true,
+  })
+  assert.deepEqual(omitted.binding, { owner: 'backgroundImage' })
+  assert.equal(omitted.suggestion?.id, suggestion.id)
+
+  const completed = resolveDiscGuidedSlot({
+    slotId,
+    state,
+    suggestions: [suggestion],
+    omittedSlotIds: NO_OMITTED_SLOTS,
+    completedSlotIds,
+  })
+  assert.equal(completed.lifecycle, 'completed')
+  assert.equal(completed.presentation, 'completed')
+  assert.equal(completed.flags.ownerFilled, true)
+  assert.equal(completed.flags.suggested, true)
+
+  const unsupported = resolveDiscGuidedSlot({
+    slotId,
+    state,
+    suggestions: [suggestion],
+    omittedSlotIds,
+    completedSlotIds,
+    unsupported: true,
+  })
+  assert.equal(unsupported.lifecycle, 'unsupported')
+  assert.equal(unsupported.presentation, 'unsupported')
+  assert.deepEqual(unsupported.flags, {
+    unsupported: true,
+    omitted: true,
+    completed: true,
+    ownerFilled: true,
+    suggested: true,
+  })
+})
+
+test('completed presentation hides an otherwise available or suggested guide', () => {
+  const slotId = 'disc:guided:background-image:primary'
+  const completedSlotIds = new Set<DiscGuidedSlotId>([slotId])
+  const suggestion = createSuggestion(slotId, 'image')
+
+  const completedAvailable = resolveDiscGuidedSlot({
+    slotId,
+    state: createState(),
+    suggestions: [],
+    omittedSlotIds: NO_OMITTED_SLOTS,
+    completedSlotIds,
+  })
+  assert.equal(completedAvailable.lifecycle, 'completed')
+  assert.equal(completedAvailable.flags.ownerFilled, false)
+  assert.equal(completedAvailable.flags.suggested, false)
+
+  const completedSuggested = resolveDiscGuidedSlot({
+    slotId,
+    state: createState(),
+    suggestions: [suggestion],
+    omittedSlotIds: NO_OMITTED_SLOTS,
+    completedSlotIds,
+  })
+  assert.equal(completedSuggested.lifecycle, 'completed')
+  assert.equal(completedSuggested.flags.suggested, true)
+})
+
 test('batch resolution follows definition order', () => {
   const results = resolveDiscGuidedSlots({
     state: createState(),

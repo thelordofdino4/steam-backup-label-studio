@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampMediaMarkLayoutToSafeZone } from '../layout/discElementSafeZone'
 import {
+  completeDiscGuidedSlotWhenSatisfied,
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  isDiscGuidedMediaMarkOwnerSatisfied,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
+import {
   clearMediaMarkImage,
   createDefaultProjectMediaMark,
   resetProjectMediaMarkLayout,
@@ -26,6 +33,7 @@ import {
 type UseMediaMarkStateOptions = {
   selectedDiscTemplate: DiscTemplate
   announceStatus: (message: string) => void
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 function clampMediaMarkToTemplate(
@@ -41,6 +49,7 @@ function clampMediaMarkToTemplate(
 export function useMediaMarkState({
   selectedDiscTemplate,
   announceStatus,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseMediaMarkStateOptions) {
   const [projectMediaMark, setProjectMediaMark] = useState<ProjectMediaMark>(() =>
     createDefaultProjectMediaMark(selectedDiscTemplate),
@@ -73,6 +82,14 @@ export function useMediaMarkState({
     setProjectMediaMark(createDefaultProjectMediaMark(template))
   }
 
+  function completeMediaMarkIfSatisfied(mediaMark: ProjectMediaMark) {
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.mediaFormatMark,
+      isDiscGuidedMediaMarkOwnerSatisfied(mediaMark),
+    )
+  }
+
   async function handleMediaMarkUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -96,6 +113,7 @@ export function useMediaMarkState({
 
       projectMediaMarkRef.current = nextMark
       setProjectMediaMark(nextMark)
+      completeMediaMarkIfSatisfied(nextMark)
 
       announceStatus(`Using ${file.name} as the media mark.`)
       return nextMark
@@ -105,24 +123,27 @@ export function useMediaMarkState({
   }
 
   function handleMediaMarkValueChange(value: MediaMarkValue) {
-    setProjectMediaMark((currentMark) =>
-      updateMediaMarkValue(currentMark, value),
-    )
+    const nextMark = updateMediaMarkValue(projectMediaMarkRef.current, value)
+    projectMediaMarkRef.current = nextMark
+    setProjectMediaMark(nextMark)
+    completeMediaMarkIfSatisfied(nextMark)
   }
 
   function handleMediaMarkSourceChange(source: MediaMarkSource) {
-    setProjectMediaMark((currentMark) =>
-      clampMediaMarkToTemplate(
-        updateMediaMarkSource(currentMark, source),
-        selectedDiscTemplate,
-      ),
+    const nextMark = clampMediaMarkToTemplate(
+      updateMediaMarkSource(projectMediaMarkRef.current, source),
+      selectedDiscTemplate,
     )
+    projectMediaMarkRef.current = nextMark
+    setProjectMediaMark(nextMark)
+    completeMediaMarkIfSatisfied(nextMark)
   }
 
   function handleMediaMarkThemeChange(theme: MediaMarkTheme) {
-    setProjectMediaMark((currentMark) =>
-      updateMediaMarkTheme(currentMark, theme),
-    )
+    const nextMark = updateMediaMarkTheme(projectMediaMarkRef.current, theme)
+    projectMediaMarkRef.current = nextMark
+    setProjectMediaMark(nextMark)
+    completeMediaMarkIfSatisfied(nextMark)
   }
 
   function handleMediaMarkLayoutChange(
@@ -135,6 +156,16 @@ export function useMediaMarkState({
         selectedDiscTemplate,
       ),
     )
+
+    if (field === 'enabled' && value === true) {
+      completeMediaMarkIfSatisfied({
+        ...projectMediaMarkRef.current,
+        layout: {
+          ...projectMediaMarkRef.current.layout,
+          enabled: true,
+        },
+      })
+    }
   }
 
   function handleClearMediaMarkImage() {

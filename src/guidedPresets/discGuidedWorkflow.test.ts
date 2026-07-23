@@ -38,10 +38,14 @@ import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
   applyDiscGuidedLayout,
   clearDiscGuidedWorkflow,
+  completeDiscGuidedSlot,
+  getDiscGuidedCompletedSlotIdSet,
   getDiscGuidedOmittedSlotIdSet,
   normalizeDiscGuidedWorkflowState,
   omitDiscGuidedSlot,
+  resetDiscGuidedProgress,
   restoreAllDiscGuidedSlots,
+  restoreCompletedDiscGuidedSlot,
   restoreDiscGuidedSlot,
   type DiscGuidedWorkflowContext,
   type DiscGuidedWorkflowState,
@@ -158,14 +162,19 @@ test('initial workflow is canonical, inactive, immutable, and serializable', () 
   assert.deepEqual(INITIAL_DISC_GUIDED_WORKFLOW_STATE, {
     activeLayout: null,
     omittedSlotIds: [],
+    completedSlotIds: [],
   })
   assert.equal(Object.isFrozen(INITIAL_DISC_GUIDED_WORKFLOW_STATE), true)
   assert.equal(
     Object.isFrozen(INITIAL_DISC_GUIDED_WORKFLOW_STATE.omittedSlotIds),
     true,
   )
+  assert.equal(
+    Object.isFrozen(INITIAL_DISC_GUIDED_WORKFLOW_STATE.completedSlotIds),
+    true,
+  )
   assert.equal(JSON.stringify(INITIAL_DISC_GUIDED_WORKFLOW_STATE),
-    '{"activeLayout":null,"omittedSlotIds":[]}')
+    '{"activeLayout":null,"omittedSlotIds":[],"completedSlotIds":[]}')
 })
 
 test('Classic Top Title exposes a supported positive version and canonical slots', () => {
@@ -202,6 +211,7 @@ test('first application activates Classic with no omissions', () => {
   assert.deepEqual(result.state, {
     activeLayout: { id: CLASSIC_ID, version: 1 },
     omittedSlotIds: [],
+    completedSlotIds: [],
   })
   assert.equal(Object.isFrozen(result.state.activeLayout), true)
 })
@@ -233,6 +243,7 @@ test('different layout clears omissions without transferring slot identity', () 
   assert.deepEqual(result.state, {
     activeLayout: { id: alternateId, version: 1 },
     omittedSlotIds: [],
+    completedSlotIds: [],
   })
 })
 
@@ -252,6 +263,78 @@ test('version change preserves surviving IDs and leaves new slots visible', () =
   assert.equal(result.outcome, 'version-changed')
   assert.deepEqual(result.state.omittedSlotIds, [LEGAL_ID, BACKGROUND_ID])
   assert.equal(result.state.omittedSlotIds.includes(ADDITIONAL_TEXT_ID), false)
+})
+
+test('activation seeds completion canonically only for a new workflow', () => {
+  const activated = applyDiscGuidedLayout(
+    INITIAL_DISC_GUIDED_WORKFLOW_STATE,
+    {
+      id: CLASSIC_ID,
+      version: 1,
+      activationCompletedSlotIds: [
+        LEGAL_ID,
+        TITLE_ID,
+        LEGAL_ID,
+        'disc:guided:unknown',
+        42,
+      ],
+    },
+  )
+
+  assert.equal(activated.outcome, 'applied')
+  assert.deepEqual(activated.state.completedSlotIds, [TITLE_ID, LEGAL_ID])
+
+  const reapplied = applyDiscGuidedLayout(activated.state, {
+    id: CLASSIC_ID,
+    version: 1,
+    activationCompletedSlotIds: [BACKGROUND_ID],
+  })
+
+  assert.equal(reapplied.outcome, 'reapplied')
+  assert.deepEqual(reapplied.state.completedSlotIds, [TITLE_ID, LEGAL_ID])
+})
+
+test('different layouts seed new completion without carrying prior progress', () => {
+  const { context, alternateId } = createVersionedContext()
+  let current = applyClassic(undefined, context)
+  current = completeDiscGuidedSlot(current, BACKGROUND_ID, context).state
+  current = completeDiscGuidedSlot(current, LEGAL_ID, context).state
+  current = omit(current, LEGAL_ID, context)
+
+  const changed = applyDiscGuidedLayout(current, {
+    id: alternateId,
+    version: 1,
+    activationCompletedSlotIds: [TITLE_ID],
+  }, context)
+
+  assert.equal(changed.outcome, 'layout-changed')
+  assert.deepEqual(changed.state, {
+    activeLayout: { id: alternateId, version: 1 },
+    omittedSlotIds: [],
+    completedSlotIds: [TITLE_ID],
+  })
+})
+
+test('version changes retain surviving completed and omitted semantic IDs', () => {
+  const { context } = createVersionedContext()
+  let state = applyClassic(undefined, context)
+  state = completeDiscGuidedSlot(state, TITLE_ID, context).state
+  state = completeDiscGuidedSlot(state, BACKGROUND_ID, context).state
+  state = completeDiscGuidedSlot(state, RATING_ID, context).state
+  state = completeDiscGuidedSlot(state, LEGAL_ID, context).state
+  state = omit(state, BACKGROUND_ID, context)
+  state = omit(state, RATING_ID, context)
+
+  const changed = applyDiscGuidedLayout(state, {
+    id: CLASSIC_ID,
+    version: 2,
+    activationCompletedSlotIds: [ADDITIONAL_TEXT_ID],
+  }, context)
+
+  assert.equal(changed.outcome, 'version-changed')
+  assert.deepEqual(changed.state.omittedSlotIds, [BACKGROUND_ID])
+  assert.deepEqual(changed.state.completedSlotIds, [LEGAL_ID, BACKGROUND_ID])
+  assert.equal(changed.state.completedSlotIds.includes(ADDITIONAL_TEXT_ID), false)
 })
 
 test('unsupported application preserves the prior valid state without throwing', () => {
@@ -309,11 +392,13 @@ test('restore one preserves other omissions and safely ignores absent entries', 
 })
 
 test('restore all and clear are idempotent and preserve the intended identity', () => {
-  const active = omit(applyClassic(), TITLE_ID)
+  const completed = completeDiscGuidedSlot(applyClassic(), LEGAL_ID).state
+  const active = omit(completed, TITLE_ID)
   const restored = restoreAllDiscGuidedSlots(active)
   assert.equal(restored.outcome, 'restored-all')
   assert.deepEqual(restored.state.activeLayout, active.activeLayout)
   assert.deepEqual(restored.state.omittedSlotIds, [])
+  assert.deepEqual(restored.state.completedSlotIds, [LEGAL_ID])
   assert.equal(restoreAllDiscGuidedSlots(restored.state).outcome,
     'already-restored')
 
@@ -324,10 +409,77 @@ test('restore all and clear are idempotent and preserve the intended identity', 
     'already-cleared')
 })
 
+test('completion is canonical, idempotent, immutable, and independent of omission', () => {
+  const active = applyClassic()
+  const first = completeDiscGuidedSlot(active, LEGAL_ID)
+  const second = completeDiscGuidedSlot(first.state, TITLE_ID)
+  const duplicate = completeDiscGuidedSlot(second.state, TITLE_ID)
+  const overlapped = omitDiscGuidedSlot(second.state, TITLE_ID)
+
+  assert.equal(first.outcome, 'completed')
+  assert.equal(second.outcome, 'completed')
+  assert.equal(duplicate.outcome, 'already-completed')
+  assert.equal(duplicate.state, second.state)
+  assert.deepEqual(second.state.completedSlotIds, [TITLE_ID, LEGAL_ID])
+  assert.deepEqual(overlapped.state.omittedSlotIds, [TITLE_ID])
+  assert.deepEqual(overlapped.state.completedSlotIds, [TITLE_ID, LEGAL_ID])
+  assert.deepEqual(active.completedSlotIds, [])
+  assert.equal(Object.isFrozen(second.state), true)
+  assert.equal(Object.isFrozen(second.state.completedSlotIds), true)
+})
+
+test('completion accepts active non-omittable slots and rejects inactive or unknown slots', () => {
+  assert.equal(
+    completeDiscGuidedSlot(INITIAL_DISC_GUIDED_WORKFLOW_STATE, TITLE_ID).outcome,
+    'rejected-no-active-layout',
+  )
+
+  const active = applyClassic()
+  assert.equal(
+    completeDiscGuidedSlot(active, 'disc:guided:unknown').outcome,
+    'rejected-unknown-slot',
+  )
+
+  const slots = DISC_GUIDED_SLOT_DEFINITIONS.map((definition) =>
+    definition.id === TITLE_ID
+      ? { ...definition, omittable: false }
+      : definition) as readonly typeof DISC_GUIDED_SLOT_DEFINITIONS[number][]
+  const completed = completeDiscGuidedSlot(active, TITLE_ID, { slots })
+
+  assert.equal(completed.outcome, 'completed')
+  assert.deepEqual(completed.state.completedSlotIds, [TITLE_ID])
+})
+
+test('restoring completion and resetting progress preserve orthogonal state', () => {
+  let state = applyClassic()
+  state = completeDiscGuidedSlot(state, TITLE_ID).state
+  state = completeDiscGuidedSlot(state, LEGAL_ID).state
+  state = omitDiscGuidedSlot(state, TITLE_ID).state
+
+  const restored = restoreCompletedDiscGuidedSlot(state, TITLE_ID)
+  assert.equal(restored.outcome, 'restored')
+  assert.deepEqual(restored.state.completedSlotIds, [LEGAL_ID])
+  assert.deepEqual(restored.state.omittedSlotIds, [TITLE_ID])
+  assert.equal(
+    restoreCompletedDiscGuidedSlot(restored.state, TITLE_ID).outcome,
+    'ignored-not-completed',
+  )
+
+  const reset = resetDiscGuidedProgress(state)
+  assert.equal(reset.outcome, 'reset')
+  assert.deepEqual(reset.state.activeLayout, state.activeLayout)
+  assert.deepEqual(reset.state.omittedSlotIds, [])
+  assert.deepEqual(reset.state.completedSlotIds, [])
+  assert.equal(resetDiscGuidedProgress(reset.state).outcome, 'already-reset')
+  assert.deepEqual(state.omittedSlotIds, [TITLE_ID])
+  assert.deepEqual(state.completedSlotIds, [TITLE_ID, LEGAL_ID])
+})
+
 test('normalization deactivates unknown contracts and canonicalizes omission IDs', () => {
   for (const malformed of [undefined, null, true, [], {}, {
     activeLayout: null,
     omittedSlotIds: [TITLE_ID],
+    completedSlotIds: [TITLE_ID],
   }]) {
     assert.doesNotThrow(() => normalizeDiscGuidedWorkflowState(malformed))
     assert.equal(
@@ -339,10 +491,12 @@ test('normalization deactivates unknown contracts and canonicalizes omission IDs
   assert.equal(normalizeDiscGuidedWorkflowState({
     activeLayout: { id: 'disc:guided:unknown', version: 1 },
     omittedSlotIds: [TITLE_ID],
+    completedSlotIds: [TITLE_ID],
   }), INITIAL_DISC_GUIDED_WORKFLOW_STATE)
   assert.equal(normalizeDiscGuidedWorkflowState({
     activeLayout: { id: CLASSIC_ID, version: 99 },
     omittedSlotIds: [TITLE_ID],
+    completedSlotIds: [TITLE_ID],
   }), INITIAL_DISC_GUIDED_WORKFLOW_STATE)
 
   const normalized = normalizeDiscGuidedWorkflowState({
@@ -360,6 +514,7 @@ test('normalization deactivates unknown contracts and canonicalizes omission IDs
   assert.deepEqual(normalized, {
     activeLayout: { id: CLASSIC_ID, version: 1 },
     omittedSlotIds: [TITLE_ID, LEGAL_ID],
+    completedSlotIds: [],
   })
   assert.deepEqual([...getDiscGuidedOmittedSlotIdSet(normalized)], [
     TITLE_ID,
@@ -378,6 +533,40 @@ test('normalization discards non-omittable IDs', () => {
   }, { slots })
 
   assert.deepEqual(normalized.omittedSlotIds, [LEGAL_ID])
+})
+
+test('normalization canonicalizes completion independently and preserves overlap', () => {
+  const normalized = normalizeDiscGuidedWorkflowState({
+    activeLayout: { id: CLASSIC_ID, version: 1 },
+    omittedSlotIds: [TITLE_ID, LEGAL_ID, 42],
+    completedSlotIds: [
+      LEGAL_ID,
+      TITLE_ID,
+      LEGAL_ID,
+      'disc:guided:unknown',
+      ADDITIONAL_TEXT_ID,
+      42,
+    ],
+  })
+
+  assert.deepEqual(normalized.omittedSlotIds, [TITLE_ID, LEGAL_ID])
+  assert.deepEqual(normalized.completedSlotIds, [TITLE_ID, LEGAL_ID])
+  assert.deepEqual([...getDiscGuidedCompletedSlotIdSet(normalized)], [
+    TITLE_ID,
+    LEGAL_ID,
+  ])
+})
+
+test('missing or malformed completion metadata normalizes to an empty array', () => {
+  for (const completedSlotIds of [undefined, null, 'invalid', {}, 42]) {
+    const normalized = normalizeDiscGuidedWorkflowState({
+      activeLayout: { id: CLASSIC_ID, version: 1 },
+      omittedSlotIds: [],
+      completedSlotIds,
+    })
+
+    assert.deepEqual(normalized.completedSlotIds, [])
+  }
 })
 
 test('omission overrides filled and suggested lifecycle without owner mutation', () => {

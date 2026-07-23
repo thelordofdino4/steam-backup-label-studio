@@ -3,6 +3,11 @@ import {
   clampLogoAssetLayoutToSafeZone,
   clampProjectLogoAssetsToSafeZone,
 } from '../layout/discElementSafeZone'
+import {
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import {
   addAdditionalLogoAsset,
@@ -29,11 +34,13 @@ import {
 type UseProjectLogoAssetsOptions = {
   selectedDiscTemplate: DiscTemplate
   announceStatus: (message: string) => void
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 export function useProjectLogoAssets({
   selectedDiscTemplate,
   announceStatus,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseProjectLogoAssetsOptions) {
   const [projectLogoAssets, setProjectLogoAssets] = useState<ProjectLogoAssets>(() =>
     createDefaultProjectLogoAssets(selectedDiscTemplate),
@@ -83,6 +90,14 @@ export function useProjectLogoAssets({
         ),
       )
 
+      if (!additionalLogoId) {
+        onDiscGuidedSlotCompleted(
+          logoKey === 'developer'
+            ? DISC_GUIDED_COMPLETION_SLOT_IDS.developerLogo
+            : DISC_GUIDED_COMPLETION_SLOT_IDS.publisherLogo,
+        )
+      }
+
       announceStatus(
         `Using ${file.name} as the ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo.`,
       )
@@ -113,6 +128,14 @@ export function useProjectLogoAssets({
 
       return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
     })
+
+    if (!additionalLogoId && field === 'enabled' && value === true) {
+      onDiscGuidedSlotCompleted(
+        logoKey === 'developer'
+          ? DISC_GUIDED_COMPLETION_SLOT_IDS.developerLogo
+          : DISC_GUIDED_COMPLETION_SLOT_IDS.publisherLogo,
+      )
+    }
   }
 
   function handleClearLogoAsset(logoKey: LogoAssetKey, additionalLogoId?: string) {
