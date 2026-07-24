@@ -136,7 +136,7 @@ export function areDiscTextStylesMeasurementEquivalent(
     first.italic === second.italic
 }
 
-export function areDiscTitlePresetFitStylesEquivalent(
+export function areDiscPresetFitStylesEquivalent(
   first: DiscTextStyle,
   second: DiscTextStyle,
 ) {

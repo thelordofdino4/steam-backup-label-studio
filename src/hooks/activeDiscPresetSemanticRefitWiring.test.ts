@@ -151,7 +151,7 @@ test('Background replacement and re-enable refit while manual controls stay manu
   }
 })
 
-test('Title content and measurement-style semantics refit without hijacking manual layout', () => {
+test('Title and Legal content/style semantics refit without hijacking manual layout', () => {
   assert.match(
     getFunctionSource(discTextSource, 'applyActivePresetTitleLayout'),
     /applyActivePresetTitlePlacement\(\{/,
@@ -233,7 +233,11 @@ test('Title content and measurement-style semantics refit without hijacking manu
   )
   assert.match(
     getFunctionSource(discTextSource, 'didDiscTextPresetFitStyleChange'),
-    /key === 'title'[\s\S]*?areDiscTitlePresetFitStylesEquivalent\([\s\S]*?areDiscTextStylesMeasurementEquivalent\(/,
+    /key === 'title' \|\| key === 'copyright'[\s\S]*?areDiscPresetFitStylesEquivalent\([\s\S]*?areDiscTextStylesMeasurementEquivalent\(/,
+  )
+  assert.match(
+    getFunctionSource(discTextSource, 'handleDiscTextStyleChange'),
+    /key === 'copyright' && presetFitStyleChanged[\s\S]*?applyActivePresetCopyrightLayout\(\{/,
   )
   assert.match(
     getFunctionSource(discTextSource, 'handleResetDiscTextStyle'),

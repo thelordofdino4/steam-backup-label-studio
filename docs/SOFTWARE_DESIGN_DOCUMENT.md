@@ -437,7 +437,8 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 ### 7.8 Known Risks
 
 - Top-level schema validation is intentionally shallow.
-- No migrations are currently registered.
+- Migration coverage is intentionally limited to the registered `0.1.0` to
+  `0.2.0` compatibility step.
 - Open issue `#48` tracks validation/migration depth.
 
 ## 8. Rendering Model
@@ -1190,9 +1191,10 @@ italic overhang, and optional box geometry. The fitted layout persists a
 paint-safe wrap width inside the resolved region and offsets its text anchor
 when needed so the painted bounds, not the logical advance box, remain centered.
 Contrast and other paint-geometry style changes therefore participate in
-targeted Title refitting. Legal fitting remains 7pt preferred, 3pt minimum,
-and 0.25pt steps while containing its complete rendered box and paint bounds.
-Both use the exact
+targeted Title and Legal refitting. Legal fitting remains 7pt preferred, 3pt
+minimum, and 0.25pt steps while containing its complete rendered box and paint
+bounds. Resolved rich-run font sizes participate in line height for both fitted
+text owners. Both use the exact
 resolved rectangle as their preset fit boundary, receive no later annulus/hole
 reduction, and never truncate. Legal returns a slot-local resolved
 geometry/status patch; Title preserves the shared Game Title slot geometry.
@@ -1277,7 +1279,7 @@ visual truth out of `App.tsx` and the generic fitter.
 
 `src/app/appActiveDiscPresetTitleText.ts` and `useDiscTextState.ts` similarly
 request only `game-title.text` for canonical content and
-measurement-relevant style changes.
+fit-geometry-relevant style changes.
 `src/app/appActiveDiscPresetPlatformMarks.ts`
 requests only the OS group target and merges only x/y/scale.
 `usePlatformMarksState.ts`
@@ -1287,7 +1289,7 @@ x/y/scale changes do not call targeted placement, preventing effect or setter
 recursion. `src/app/appActiveDiscPresetLegalText.ts` similarly requests only
 `legal.copyright`; `useDiscTextState.ts` invokes it for next-state Legal
 enablement, canonical manual/metadata/rich content, and
-measurement-relevant style changes. Direct Legal layout edits do not refit,
+fit-geometry-relevant style changes. Direct Legal layout edits do not refit,
 while an explicit preset reapply restores preset fitting.
 
 `src/guidedPresets/discGuidedWorkflow.ts` separately owns the pure, versioned
@@ -1820,7 +1822,8 @@ Current tests cover broad helper and contract areas:
 
 - `App.tsx` remains large and coordinates many feature flows.
 - Case insert editor hooks and export are large and central.
-- Project schema validation is shallow and has no migrations.
+- Project schema validation is shallow, and migration coverage is limited to
+  the explicit `0.1.0` to `0.2.0` compatibility step.
 - Preview and export rendering are separate paths in several subsystems.
 - Inline text editing depends on DOM measurement, caret math, wrapped text, CSS, and runtime focus behavior.
 - CSS can become hidden rendering/layout policy.

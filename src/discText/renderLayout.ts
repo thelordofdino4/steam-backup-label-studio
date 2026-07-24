@@ -280,6 +280,10 @@ function getRichTextLineHeights(
     getRichTextLineHeight(line.runs, baseFontSize, template))
 }
 
+function usesResolvedRichTextLineHeights(key: DiscTextKey) {
+  return key === 'title' || key === 'copyright'
+}
+
 function getUniformLineHeights(lineCount: number, lineHeight: number) {
   return Array.from(
     { length: Math.max(1, lineCount) },
@@ -642,7 +646,7 @@ export function getStraightDiscTextRenderLayout(
         layout,
         maxLines,
         avoidanceRegions,
-        key === 'title',
+        usesResolvedRichTextLineHeights(key),
         richOptions,
       )
     : null
@@ -689,7 +693,7 @@ export function getStraightDiscTextRenderLayout(
         richLines,
         fontSize,
         options.template,
-        key === 'title',
+        usesResolvedRichTextLineHeights(key),
       )
     : getUniformLineHeights(lines.length, lineHeight)
   const linePlacements = getCenteredLineVerticalPlacements(

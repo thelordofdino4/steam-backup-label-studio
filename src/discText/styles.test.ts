@@ -7,7 +7,7 @@ import {
   DISC_TEXT_RENDER_STYLES,
   DISC_TEXT_STYLE_PRESETS,
   applyDiscTextStylePreset,
-  areDiscTitlePresetFitStylesEquivalent,
+  areDiscPresetFitStylesEquivalent,
   areDiscTextStylesMeasurementEquivalent,
   createDefaultDiscTextStyles,
   normalizeDiscTextStyles,
@@ -113,7 +113,7 @@ test('measurement-style equivalence ignores visual-only fields', () => {
   }
 })
 
-test('Title preset-fit style equivalence tracks paint and rendered box geometry', () => {
+test('preset-fit style equivalence tracks paint and rendered box geometry', () => {
   const baseline = createDefaultDiscTextStyles().title
   const hiddenPadding = { ...baseline, backgroundPadding: 4 }
   const background = {
@@ -122,36 +122,36 @@ test('Title preset-fit style equivalence tracks paint and rendered box geometry'
   }
 
   assert.equal(
-    areDiscTitlePresetFitStylesEquivalent(baseline, hiddenPadding),
+    areDiscPresetFitStylesEquivalent(baseline, hiddenPadding),
     true,
   )
   assert.equal(
-    areDiscTitlePresetFitStylesEquivalent(
+    areDiscPresetFitStylesEquivalent(
       baseline,
       { ...baseline, contrast: 'none' },
     ),
     false,
   )
   assert.equal(
-    areDiscTitlePresetFitStylesEquivalent(hiddenPadding, background),
+    areDiscPresetFitStylesEquivalent(hiddenPadding, background),
     false,
   )
   assert.equal(
-    areDiscTitlePresetFitStylesEquivalent(
+    areDiscPresetFitStylesEquivalent(
       background,
       { ...background, backgroundPadding: 3 },
     ),
     false,
   )
   assert.equal(
-    areDiscTitlePresetFitStylesEquivalent(
+    areDiscPresetFitStylesEquivalent(
       background,
       { ...background, borderEnabled: true },
     ),
     false,
   )
   assert.equal(
-    areDiscTitlePresetFitStylesEquivalent(
+    areDiscPresetFitStylesEquivalent(
       { ...background, borderEnabled: true },
       { ...background, backgroundEnabled: false, borderEnabled: true },
     ),

@@ -390,7 +390,7 @@ test('mixed-size rich-text lines remain centered as one visual block', () => {
   )
 })
 
-test('mixed-size Legal rich text preserves uniform baseline line positions', () => {
+test('mixed-size Legal rich text remains centered as one visual block', () => {
   const template = discTemplates.standardPrintableDisc
   const centerY = 42
   const renderLayout = getStraightDiscTextRenderLayout(
@@ -417,9 +417,23 @@ test('mixed-size Legal rich text preserves uniform baseline line positions', () 
   )
   const first = renderLayout.lines[0]
   const second = renderLayout.lines[1]
+  const firstLineHeight = first?.lineHeight ?? 0
+  const secondLineHeight = second?.lineHeight ?? 0
+  const bounds = getStraightDiscTextVisualBounds(
+    renderLayout,
+    measureTextByFontSize,
+  )
 
-  assert.equal(first?.lineHeight, renderLayout.lineHeight)
-  assert.equal(second?.lineHeight, renderLayout.lineHeight)
-  assert.equal(first?.y, centerY - renderLayout.lineHeight / 2)
-  assert.equal(second?.y, centerY + renderLayout.lineHeight / 2)
+  assert.ok(firstLineHeight > secondLineHeight)
+  assert.equal(
+    (first?.y ?? 0) + firstLineHeight / 2,
+    (second?.y ?? 0) - secondLineHeight / 2,
+  )
+  assert.equal(bounds.centerY, centerY)
+  assert.ok(
+    Math.abs(
+      bounds.halfHeight * 2 -
+      (firstLineHeight + secondLineHeight),
+    ) < 1e-12,
+  )
 })

@@ -9,6 +9,7 @@ import {
 } from '../../discText/renderLayout.ts'
 import { createDefaultDiscTextStyles } from '../../discText/styles.ts'
 import { discTemplates } from '../../templates/discTemplates.ts'
+import { parseHtmlText } from '../../text/htmlText.ts'
 import { CLASSIC_TOP_TITLE_DISC_PRESET } from '../builtins/classicTopTitleDiscPreset.ts'
 import type {
   DiscPresetOwnerPlacementContext,
@@ -355,6 +356,33 @@ test('impossible enabled Legal content produces no false owner update', () => {
       layout: baseLayout,
       style: legalStyle,
       template: discTemplates.standardPrintableDisc,
+    },
+  })
+
+  assert.equal(result.status, 'partial')
+  assert.deepEqual(result.updates, [])
+  assert.deepEqual(result.resolvedSlotPatch, {
+    slotId: 'disc:guided:legal-text:copyright',
+    status: 'unsupported',
+  })
+  assert.deepEqual(result.warnings, [{
+    kind: 'text-fit-impossible',
+    slotId: 'disc:guided:legal-text:copyright',
+    target: 'legal.copyright',
+  }])
+})
+
+test('oversized Legal rich text fails on vertical bounds without an owner update', () => {
+  const context = getContext('legal.copyright', 'copyright', true)
+  const richText = parseHtmlText('<span style="font-size:36pt">I</span>')
+  const result = DISC_LEGAL_TEXT_PRESET_ADAPTER.buildUpdate({
+    ...context,
+    ownerState: {
+      ...context.ownerState!,
+      content: {
+        plainText: richText.plainText,
+        richText,
+      },
     },
   })
 

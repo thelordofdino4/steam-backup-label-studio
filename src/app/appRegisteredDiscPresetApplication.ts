@@ -430,7 +430,11 @@ export function reconstructActiveDiscPresetState<
     // by guess when the persisted layout version is unavailable.
     const definition = registry.get(layout.presetId, layout.version)
 
-    if (!definition) return null
+    if (
+      !definition ||
+      definition.id !== layout.presetId ||
+      definition.revision !== layout.version
+    ) return null
 
     const template = createDiscPresetTemplateResolutionInput(
       selectedDiscTemplate,

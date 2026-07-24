@@ -1118,7 +1118,7 @@ test('filled omitted owner content survives save/load and resolves after restore
   const template = discTemplates.standardPrintableDisc
   const logoAssets = createDefaultProjectLogoAssets(template)
   logoAssets.publisherLogoDataUrl = 'data:image/png;base64,cHVibGlzaGVy'
-  logoAssets.publisherLogoImageSize = { width: 640, height: 240 }
+  logoAssets.publisherLogoSize = { width: 640, height: 240 }
   logoAssets.publisherLogoLayout = {
     ...logoAssets.publisherLogoLayout,
     enabled: true,
@@ -1136,6 +1136,10 @@ test('filled omitted owner content survives save/load and resolves after restore
   assert.equal(
     restored.projectLogoAssets.publisherLogoDataUrl,
     logoAssets.publisherLogoDataUrl,
+  )
+  assert.deepEqual(
+    restored.projectLogoAssets.publisherLogoSize,
+    logoAssets.publisherLogoSize,
   )
   assert.equal(
     resolveDiscGuidedSlot({

@@ -64,7 +64,7 @@ import {
   type SteamLogoPlacement,
 } from '../discText/index'
 import {
-  areDiscTitlePresetFitStylesEquivalent,
+  areDiscPresetFitStylesEquivalent,
   areDiscTextStylesMeasurementEquivalent,
   createDefaultDiscTextStyles,
   type DiscTextStyleField,
@@ -302,10 +302,10 @@ export function useDiscTextState({
     key: DiscTextKey,
     nextStyles: DiscTextStyleSettings,
   ) {
-    return key === 'title'
-      ? !areDiscTitlePresetFitStylesEquivalent(
-          discTextStyles.title,
-          nextStyles.title,
+    return key === 'title' || key === 'copyright'
+      ? !areDiscPresetFitStylesEquivalent(
+          discTextStyles[key],
+          nextStyles[key],
         )
       : !areDiscTextStylesMeasurementEquivalent(
           discTextStyles[key],

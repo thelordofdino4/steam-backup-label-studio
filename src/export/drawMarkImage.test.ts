@@ -88,7 +88,7 @@ test('mark image export preserves square image aspect inside the preview bounds'
   )
 
   assert.equal(calls.length, 1)
-  assert.deepEqual(calls[0].slice(1), [0, 0, 100, 100, 460, 460, 80, 80])
+  assert.deepEqual(calls[0].slice(1), [460, 460, 80, 80])
 })
 
 test('mark image export preserves wide image aspect inside the preview bounds', async () => {
@@ -107,7 +107,7 @@ test('mark image export preserves wide image aspect inside the preview bounds', 
   )
 
   assert.equal(calls.length, 1)
-  assert.deepEqual(calls[0].slice(1), [0, 0, 300, 100, 440, 480, 120, 40])
+  assert.deepEqual(calls[0].slice(1), [440, 480, 120, 40])
 })
 
 test('mark image export draws only active content bounds', async () => {
@@ -212,11 +212,21 @@ test('primary logo export matches canonical preview geometry across aspect ratio
       ])
 
       const drawCall = calls[0]
-      assert.deepEqual(
-        drawCall.slice(1, 5),
-        aspectCase.expectedSourceRect,
-        `${ownerCase.logoKey} ${aspectCase.label} source crop`,
-      )
+      const hasContentBounds = Boolean(aspectCase.imageSize.contentBounds)
+
+      if (hasContentBounds) {
+        assert.deepEqual(
+          drawCall.slice(1, 5),
+          aspectCase.expectedSourceRect,
+          `${ownerCase.logoKey} ${aspectCase.label} source crop`,
+        )
+      } else {
+        assert.equal(
+          drawCall.length,
+          5,
+          `${ownerCase.logoKey} ${aspectCase.label} uses whole-image drawing`,
+        )
+      }
 
       const canonicalBounds = getLogoAssetBoundsPercent(
         aspectCase.imageSize,
@@ -236,7 +246,7 @@ test('primary logo export matches canonical preview geometry across aspect ratio
         expectedWidth,
         expectedHeight,
       ]
-      const actualDestination = drawCall.slice(5, 9) as number[]
+      const actualDestination = drawCall.slice(-4) as number[]
 
       actualDestination.forEach((actual, index) => {
         assertApproximatelyEqual(

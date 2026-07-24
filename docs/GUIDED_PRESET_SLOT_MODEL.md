@@ -84,10 +84,11 @@ with the existing template-aware preferred size, an 8pt minimum, and
 deterministic 0.25pt steps. Renderer-shared stroke, directional shadow, italic
 overhang, and optional box insets reduce its persisted wrap width inside the
 resolved region; an anchor offset keeps the resulting painted bounds centered.
-Paint-geometry style changes target-refit Title, while short text is not
-enlarged merely to meet a border. Copyright retains its independent 7pt
-preferred, 3pt minimum, and 0.25pt policy while containing its complete
-rendered box and paint bounds inside the resolved rectangle.
+Paint-geometry style changes target-refit both fitted text owners, while short
+Title text is not enlarged merely to meet a border. Copyright retains its
+independent 7pt preferred, 3pt minimum, and 0.25pt policy while containing its
+complete rendered box and paint bounds inside the resolved rectangle. Resolved
+rich-run font sizes participate in line height for both Title and Copyright.
 Neither path truncates or applies a post-fit annulus/hole reduction; their
 resolved rectangles are the preset containment boundary, subject to their
 declared preferred/minimum text-size policies. Classic Background is centered
@@ -111,12 +112,14 @@ reapplied.
 Guidance projects the active resolved definition rather than independently
 looking up nominal geometry. Unfilled or suggested slots use its final resolved
 content/action regions in runtime slot order; unsupported slots are hidden.
-Consequently the Legal placeholder center matches the fitted owner center,
-filled Legal suppresses guidance, and clearing valid Legal content restores the
-placeholder at the active resolved region. Missing active resolved geometry
-fails closed instead of inventing a fallback. Lifecycle-reachable native routes
-have passed the current #289 checkpoint; registered targets hidden behind
-filled-slot lifecycle states remain covered by mounted controller tests.
+Consequently the Legal placeholder center matches the fitted owner center, and
+filled Legal suppresses guidance. If valid Legal content is cleared before
+completion is recorded, the placeholder may return at the active resolved region
+when omission and unsupported state also permit it. Recorded completion remains
+durable until `Show guide again` or reset. Missing active resolved geometry fails
+closed instead of inventing a fallback. Lifecycle-reachable native routes have
+passed the current #289 checkpoint; registered targets hidden behind filled-slot
+lifecycle states remain covered by mounted controller tests.
 Guided omission state remains project-specific and must never be copied into a
 reusable preset definition. No custom preset library, Save as Preset workflow,
 or custom preset UI exists yet.
@@ -224,10 +227,11 @@ Implemented role-focus infrastructure includes:
 All 19 declared #287 Disc role-focus targets have production registration. The
 Disc guided-preview action layer dispatches the exact setup requests used by
 Classic Top Title, while mounted integration coverage validates every current
-route and disabled-owner fallback. Auto-fill and native Tauri acceptance remain
-future #281 work. Navigation and open-menu state are transient and
-non-persistent; Case Front, Case Back, and Spine remain outside the Disc-only
-provider.
+route and disabled-owner fallback. Auto-fill remains future #281 work. Full
+native #289 acceptance is pending user-run closeout; prior native validation
+covered lifecycle-reachable navigation routes. Navigation and open-menu state
+are transient and non-persistent; Case Front, Case Back, and Spine remain
+outside the Disc-only provider.
 
 ## 1. Purpose And Scope
 
@@ -298,7 +302,9 @@ type GuidedSlotLifecycle =
   | 'unfilled'
   | 'suggested'
   | 'filled'
+  | 'completed'
   | 'omitted'
+  | 'unsupported'
 
 type GuidedContentKind =
   | 'image'
@@ -369,8 +375,9 @@ automatically enable both title artwork and title text.
 | Movement | Existing background drag and scale behavior after binding only |
 
 The background owner must be enabled and expose a real effective image. An
-enabled owner with no effective image remains unfilled. Default or invented
-artwork must not count as filled.
+enabled owner with no effective image does not satisfy the owner-filled fact;
+its presentation is unfilled only when no higher-precedence workflow or runtime
+fact suppresses guidance. Default or invented artwork must not count as filled.
 
 ### Rating Badge
 
@@ -421,16 +428,15 @@ missing rating content.
 | Export | Existing per-mark export predicates after binding |
 | Movement | Existing grouped platform-mark layout behavior after binding only |
 
-### Developer And Publisher Logos
-
 When the first eligible mark is selected after preset application,
 authoritative owner state becomes filled, targeted placement puts the real
 group in the resolved preset region, and guidance disappears through normal
-lifecycle derivation. Removing or disabling all eligible marks returns the
-slot to unfilled guidance. Omission remains independent: an omitted OS slot
+lifecycle derivation. Removing or disabling all eligible marks clears the live
+owner-filled fact, but recorded completion continues to suppress guidance until
+`Show guide again` or reset. Omission remains independent: an omitted OS slot
 stays omitted while owner state changes, and omission never suppresses owner
-rendering. Changing group membership may replace manual OS positions;
-unrelated owner edits never do.
+rendering. Changing group membership may replace manual OS positions; unrelated
+owner edits never do.
 
 ### Developer Logo
 
@@ -448,7 +454,9 @@ Enabling the primary Developer Logo feature claims this slot immediately,
 including while its feature-owned empty/default placement placeholder is shown
 before an image is uploaded. Guided guidance must not overlap that owner visual.
 Clearing an uploaded image while the feature remains enabled keeps the slot
-claimed; disabling the feature restores guidance unless omission suppresses it.
+claimed. Disabling the feature clears the live owner-filled fact, but recorded
+completion continues to suppress guidance until `Show guide again` or reset;
+omission remains independently authoritative.
 
 ### Publisher Logo
 
@@ -466,7 +474,9 @@ Enabling the primary Publisher Logo feature claims this slot immediately,
 including while its feature-owned empty/default placement placeholder is shown
 before an image is uploaded. Guided guidance must not overlap that owner visual.
 Clearing an uploaded image while the feature remains enabled keeps the slot
-claimed; disabling the feature restores guidance unless omission suppresses it.
+claimed. Disabling the feature clears the live owner-filled fact, but recorded
+completion continues to suppress guidance until `Show guide again` or reset;
+omission remains independently authoritative.
 
 ### Legal Text
 
@@ -571,32 +581,48 @@ fitted slot-local regions/statuses from the active resolved definition.
 
 ## 5. Lifecycle Derivation And Precedence
 
-Resolution uses this precedence:
+Resolution retains orthogonal facts and derives presentation with this
+precedence:
 
-1. Explicit omission intent, when supported, resolves to `omitted`.
-2. Valid bound feature state resolves to `filled`.
-3. A valid available suggestion resolves to `suggested`.
-4. Otherwise the slot resolves to `unfilled`.
+1. Missing runtime support resolves to `unsupported`.
+2. Explicit omission intent resolves to `omitted`.
+3. Recorded semantic completion resolves to `completed`.
+4. Valid bound feature state resolves to `owner-filled`.
+5. A valid available suggestion resolves to `suggested`.
+6. Otherwise the slot resolves to `available`.
+
+The compatibility lifecycle field maps `owner-filled` to `filled` and
+`available` to `unfilled`; placeholder projection exposes only `unfilled` and
+`suggested`.
 
 Disabled is not automatically omitted. Existing feature owners deliberately
 preserve disabled payload, so a feature can contain saved data while its guided
-slot remains unfilled because the feature is disabled or cannot render.
+owner-filled fact is false because the feature is disabled or cannot render.
+Its presentation remains completed, omitted, or unsupported when one of those
+higher-precedence facts applies.
 
-Clearing or disabling content can move a previously filled slot back to
-unfilled or suggested. Omission intent suppresses guidance without deleting the
-feature payload. Re-enabling a feature or accepting a suggestion must continue
-through the existing owner instead of mutating duplicated slot content.
+Clearing or disabling content clears the live owner-filled fact and can expose
+an unfilled or suggested slot when completion is absent. Recorded completion is
+durable and continues suppressing guidance until `Show guide again` or reset.
+Omission intent suppresses guidance without deleting the feature payload.
+Re-enabling a feature or accepting a suggestion must continue through the
+existing owner instead of mutating duplicated slot content.
 
 ## 6. Lifecycle Transition Table
 
-| State | Allowed next states | Edit-mode behavior | Drag/resize | Export | Owner behavior |
+These rows describe the compatibility lifecycle/presentation, not mutually
+exclusive stored state. Unsupported, omitted, completed, owner-filled, and
+suggested facts remain orthogonal. Changing a lower-precedence fact may leave
+the current presentation unchanged.
+
+| State | Possible next presentations | Edit-mode behavior | Drag/resize | Export | Owner behavior |
 | --- | --- | --- | --- | --- | --- |
-| `unfilled` | suggested, filled, omitted | Placeholder visible | No | No | Definition names candidates; no owner object is created by the placeholder. |
-| `suggested` | unfilled, filled, omitted | Suggestion affordance visible | No | No | Candidate is transient and is not authoritative feature state. |
-| `filled` | unfilled, suggested, omitted | Real feature suppresses the placeholder | Existing owner capabilities | Existing owner predicate | Manual edits remain normal project state. |
-| `completed` | omitted, unsupported, or unfilled/suggested/filled after explicit restore | Guidance is suppressed until `Show guide again` or reset clears completion | Existing owner capabilities | Existing owner predicate | Completion is workflow progress only; owner state remains independently editable and renderable. |
-| `omitted` | unfilled, suggested, filled | Guidance is suppressed | No | No output merely from omission state | Existing feature payload is preserved and continues through normal rendering/export rules. |
-| `unsupported` | omitted, completed, filled, suggested, unfilled | Guidance is suppressed while runtime support is unavailable | Existing supported owner capabilities | Existing owner predicate | Stored omission and completion flags are preserved and project again when support returns. |
+| `unfilled` | suggested, filled, completed, omitted, unsupported | Placeholder visible | No | No | Definition names candidates; no owner object is created by the placeholder. |
+| `suggested` | unfilled, filled, completed, omitted, unsupported | Suggestion affordance visible | No | No | Candidate is transient and is not authoritative feature state. |
+| `filled` | unfilled, suggested, completed, omitted, unsupported | Real feature suppresses the placeholder | Existing owner capabilities | Existing owner predicate | Manual edits remain normal project state. |
+| `completed` | completed, omitted, unsupported, or unfilled/suggested/filled after explicit restore | Guidance is suppressed until `Show guide again` or reset clears completion | Existing owner capabilities | Existing owner predicate | Completion is workflow progress only; owner state remains independently editable and renderable. |
+| `omitted` | omitted, unsupported, or completed/filled/suggested/unfilled after Include again | Guidance is suppressed | No | No output merely from omission state | Existing feature payload is preserved and continues through normal rendering/export rules; completion may coexist. |
+| `unsupported` | unsupported, omitted, completed, filled, suggested, unfilled | Guidance is suppressed while runtime support is unavailable | Existing supported owner capabilities | Existing owner predicate | Stored omission and completion flags are preserved and project again when support returns. |
 
 Placeholder visibility in this table is implemented for Classic Top Title.
 
@@ -652,9 +678,9 @@ slot-specific overrides remain separate schema decisions.
 - A slot definition does not create an owner object merely by existing.
 
 The title slot is the first ordered multi-owner binding: title artwork is
-preferred, with Disc title text as fallback. The company-logo slot similarly
-uses an explicit developer-then-publisher priority until product decisions
-split those slots or introduce repeated guided company-logo positions.
+preferred, with Disc title text as fallback. Primary Developer and Publisher
+slots are independent single-owner bindings. Any future repeated guided
+company-logo positions require their own stable identities and binding policy.
 
 ## 9. Auto-Fill And Suggestion Boundaries
 
@@ -854,7 +880,7 @@ actions.
 
 | Slot/action | Owner condition for guide visibility | Reachable guided state | Guided action route | Registered fallback | Registered direct target | Native dispatch | Mounted/controller coverage |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Game Title / Image | Neither title artwork nor title text has valid bound content. Enabled artwork without an image remains unfilled. | Unfilled or suggested title slot | `game-title-image`; `role-start` | artwork enable | artwork upload | Required while chooser is visible | Direct upload and fallback |
+| Game Title / Image | Neither title artwork nor title text has valid bound content. Enabled artwork without an image does not satisfy owner-filled. | Unfilled or suggested title slot when higher-precedence facts permit guidance | `game-title-image`; `role-start` | artwork enable | artwork upload | Required while chooser is visible | Direct upload and fallback |
 | Game Title / Text | Same shared title condition. | Unfilled or suggested title slot | `game-title-text`; `role-start` | none | title-text fallback row | Required while chooser is visible | Fixed row |
 | Background | No enabled renderable background image. | Unfilled or suggested background slot | `background-local-upload`; `role-start` | none | local upload | Required | Always-mounted upload |
 | Rating | Badge is disabled or otherwise does not render. Normal UI enablement selects a valid system and claims the slot. | Disabled/unclaimed Rating guidance; an enabled `none` edge state can remain unclaimed | `rating-system`; `role-start` | Rating enable | Rating system | Required for the disabled fallback | Enabled system through typed controller request |

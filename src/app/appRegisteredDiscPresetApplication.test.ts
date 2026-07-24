@@ -637,6 +637,41 @@ test('reconstruction requires an active supported layout and exact mapped revisi
   }), null)
   assert.deepEqual(lookups, [[CLASSIC_TOP_TITLE_DISC_PRESET_ID, 1]])
 
+  const wrongRevisionRegistry: DiscPresetRegistry = {
+    get() {
+      return { ...CLASSIC_TOP_TITLE_DISC_PRESET, revision: 2 }
+    },
+    list() {
+      return []
+    },
+  }
+
+  assert.equal(reconstructActiveDiscPresetState({
+    workflow: createClassicWorkflow(),
+    currentState: createState(),
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+    registry: wrongRevisionRegistry,
+  }), null)
+
+  const wrongIdRegistry: DiscPresetRegistry = {
+    get() {
+      return {
+        ...CLASSIC_TOP_TITLE_DISC_PRESET,
+        id: 'user:disc-preset:wrong-reconstruction',
+      }
+    },
+    list() {
+      return []
+    },
+  }
+
+  assert.equal(reconstructActiveDiscPresetState({
+    workflow: createClassicWorkflow(),
+    currentState: createState(),
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+    registry: wrongIdRegistry,
+  }), null)
+
   assert.equal(reconstructActiveDiscPresetState({
     workflow: {
       activeLayout: {

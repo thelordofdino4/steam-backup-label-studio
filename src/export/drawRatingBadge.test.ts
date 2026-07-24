@@ -273,7 +273,7 @@ test('rating badge export preserves custom content geometry independently from s
   )
   assert.deepEqual(
     calls[1].slice(1),
-    [0, 0, 1406, 1406, 632.5, 632.5, 135, 135],
+    [632.5, 632.5, 135, 135],
   )
 })
 

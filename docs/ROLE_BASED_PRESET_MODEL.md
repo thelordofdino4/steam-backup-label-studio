@@ -180,14 +180,16 @@ the renderer-shared SVG stroke, directional shadow halo, italic overhang, and
 optional text box. The persisted wrap width reserves those paint insets inside
 the resolved region, and the text anchor compensates for asymmetric paint so
 the painted center remains on the slot center. Contrast and other
-paint-geometry style changes trigger targeted refitting. It never enlarges a
-short title merely to touch a boundary, truncates, or ellipsizes content.
-Copyright `fit: region` retains its existing preferred 7pt, 3pt minimum, and
-0.25pt steps while fitting its complete rendered box and paint bounds. Both use the injected
-text-measurement service, remain centered, and use the exact resolved rectangle
-as their preset containment boundary. No later safe-annulus or center-hole pass
-reduces the measured fit. Blank or disabled text receives dormant preferred
-placement. Successful fitting returns exact owner geometry as a focused update;
+paint-geometry style changes trigger targeted refitting for both fitted text
+owners. Title never enlarges merely to touch a boundary, truncates, or
+ellipsizes content. Copyright `fit: region` retains its existing preferred 7pt,
+3pt minimum, and 0.25pt steps while fitting its complete rendered box and paint
+bounds. Resolved rich-run font sizes participate in line height for both owners.
+Both use the injected text-measurement service, remain centered, and use the
+exact resolved rectangle as their preset containment boundary. No later
+safe-annulus or center-hole pass reduces the measured fit. Blank or disabled
+text receives dormant preferred placement. Successful fitting returns exact
+owner geometry as a focused update;
 Legal additionally refines its dedicated slot-local content/action geometry.
 Adjusted and minimum-size outcomes report structured warnings. A genuinely
 impossible fit emits no false owner update and leaves overall application
@@ -262,7 +264,7 @@ Logo owners invoke focused targeted contain-fit when enablement, asset, value,
 system, source, theme, provenance, or canonical dimensions can change rendered
 bounds through `appActiveDiscPresetPointOwners.ts`. Title text invokes its
 target through `appActiveDiscPresetTitleText.ts` for canonical content or
-measurement-relevant style changes. Operating System Mark membership and asset
+fit-geometry-relevant style changes. Operating System Mark membership and asset
 changes target only its group, and Legal retains its existing content/style
 target. Direct `x`, `y`, scale, width, or point-size edits do not invoke
 targeted application, so manual layout remains user-authored until another
@@ -688,7 +690,7 @@ primary Developer and Publisher Logo changes are independent; supplemental USK
 and additional logos never participate.
 
 Title text follows the same event boundary. Canonical content and
-measurement-relevant style changes may refit only `game-title.text`, while
+fit-geometry-relevant style changes may refit only `game-title.text`, while
 direct layout edits do not. Its straight, centered, template-aware preferred
 size may shrink to 8pt in 0.25pt steps, with no border-seeking enlargement of
 short titles.
@@ -828,9 +830,11 @@ manual, metadata, or rich content; the same final resolved region/status drives
 its guided placeholder and retains 7pt/3pt/0.25pt behavior. Neither text owner
 receives a post-fit annulus/hole reduction. Background is centered uniform
 contain, not cover: its final scale stops when the first X or Y rectangle edge
-is reached without stretching or preset-driven cropping. No preset identity,
-resolved runtime definition, guided lifecycle, or slot completion state is
-persisted.
+is reached without stretching or preset-driven cropping. Generic preset
+identity, resolved runtime definitions, geometry, and derived live owner-filled
+lifecycle facts are not persisted. Schema `0.2.0` does persist the focused Disc
+guided-workflow layout ID/version plus independent omitted and completed slot
+IDs.
 
 ## 16. Disc-First Implementation Guidance For #270
 

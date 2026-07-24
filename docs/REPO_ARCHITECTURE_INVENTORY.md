@@ -280,7 +280,8 @@ Tests:
 Risks:
 
 - Schema validation is shallow compared with the number of nested editor states.
-- Migration support exists structurally but has no migrations.
+- Migration support currently contains only the explicit `0.1.0` to `0.2.0`
+  compatibility step.
 - Open issue `#48` tracks schema validation and migration support.
 
 ## Templates and Workspace Types
@@ -472,13 +473,13 @@ Source-of-truth state:
   first/replacement assets and semantic bounds changes with one exact targeted
   contain application before one owner-state commit. Direct x/y/scale edits do
   not refit. `appActiveDiscPresetTitleText.ts` and `useDiscTextState.ts` apply
-  the same boundary to canonical Title content and measurement-relevant style
+  the same boundary to canonical Title content and fit-geometry-relevant style
   changes while leaving direct layout edits alone.
   `appActiveDiscPresetPlatformMarks.ts` and `usePlatformMarksState.ts` compose
   late OS eligibility/bounds changes with only the production OS adapter before
   the final owner-state commit; layout x/y/scale updates do not recurse.
   `appActiveDiscPresetLegalText.ts` and `useDiscTextState.ts` do the same for
-  Legal enablement, canonical content, and measurement-relevant styles while
+  Legal enablement, canonical content, and fit-geometry-relevant styles while
   leaving direct Legal layout edits alone.
   `discRolePresets.ts` retains Classic menu metadata only; Centered Logo Archive
   and Clean Metadata Footer remain on the transitional legacy path.
@@ -1336,7 +1337,8 @@ Unknowns:
 
 - `App.tsx` remains a large orchestration component and owns many cross-feature flows.
 - Case insert editor hooks and export are large and centralize many behaviors.
-- Project schema migration support exists as a structure, but no migrations are implemented.
+- Project schema migration support currently contains only the explicit
+  `0.1.0` to `0.2.0` compatibility step.
 - Preview and export rendering are separate paths for both disc and case insert editors.
 - Inline preview text editing depends on DOM measurement, caret math, wrapped text behavior, and CSS.
 - Case insert parity is active work, especially tray/spine structured layout and alpha finish-line work.
