@@ -160,6 +160,39 @@ test('enabled local upload pre-opens its panel then focuses the real input', () 
   assert.equal(store.getSnapshot().pendingRequest, null)
 })
 
+test('guided Background upload keeps focus and top-aligns Background Artwork', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('background-summary', calls)
+  const upload = createElement('upload', calls)
+  store.registerRolePanel('background-artwork', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  registerTargets({
+    calls,
+    enable: createElement('enable', calls),
+    localUpload: upload,
+    store,
+  })
+  store.requestRoleFocus({
+    surfaceId: 'disc-label',
+    behavior: 'focus',
+    scrollAlignment: 'role-start',
+    destination: {
+      roleId: 'background-artwork',
+      focusTarget: 'disc:background-image:local-upload',
+    },
+  })
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'ancestor:local-file',
+    'upload:focus:true',
+    'background-summary:scroll:start:auto',
+  ])
+})
+
 test('disabled background keeps local upload targetable without enable fallback', () => {
   const store = createEditorRoleFocusControllerStore()
   const calls: string[] = []

@@ -12,6 +12,7 @@ import {
 import {
   resolveMarkImageSource,
 } from '../editor/markImageSource.ts'
+import { getImageContentSize } from '../image/imageContentBounds.ts'
 import { getMediaMarkLabel } from '../project/projectMediaMark.ts'
 import type {
   MediaMarkLayout,
@@ -25,13 +26,7 @@ import {
 export type MediaMarkRenderModel =
   PercentPositionedImageRenderArtifact<MediaMarkLayout>
 
-export function createMediaMarkRenderModel(
-  mediaMark: ProjectMediaMark,
-): MediaMarkRenderModel | null {
-  if (!isOptionalLayoutFeatureEnabled(mediaMark)) {
-    return null
-  }
-
+function resolveMediaMarkVisual(mediaMark: ProjectMediaMark) {
   const label = getMediaMarkLabel(mediaMark.value)
   const resolvedImage = resolveMarkImageSource({
     source: mediaMark.source,
@@ -51,6 +46,43 @@ export function createMediaMarkRenderModel(
       ? getMediaMarkBoundsPercent(resolvedImage.imageSize, scale)
       : getMediaMarkPlaceholderBoundsPercent(scale)
 
+  return {
+    label,
+    resolvedImage,
+    unscaledBounds: getBounds(1),
+    scaledBounds: getBounds(mediaMark.layout.scale),
+  }
+}
+
+export function getMediaMarkCanonicalVisualBounds(
+  mediaMark: ProjectMediaMark,
+) {
+  const visual = resolveMediaMarkVisual(mediaMark)
+
+  if (!getImageContentSize(visual.resolvedImage.imageSize)) {
+    return null
+  }
+
+  return visual.unscaledBounds.halfWidth > 0 &&
+    visual.unscaledBounds.halfHeight > 0
+    ? visual.unscaledBounds
+    : null
+}
+
+export function createMediaMarkRenderModel(
+  mediaMark: ProjectMediaMark,
+): MediaMarkRenderModel | null {
+  if (!isOptionalLayoutFeatureEnabled(mediaMark)) {
+    return null
+  }
+
+  const {
+    label,
+    resolvedImage,
+    unscaledBounds,
+    scaledBounds,
+  } = resolveMediaMarkVisual(mediaMark)
+
   return createPercentPositionedImageRenderArtifact({
     imageDataUrl: resolvedImage.imageDataUrl,
     imageSize: resolvedImage.imageSize,
@@ -58,7 +90,7 @@ export function createMediaMarkRenderModel(
     label,
     alt: resolvedImage.isCustomImage ? label : `${label} generic media mark`,
     layout: mediaMark.layout,
-    unscaledBounds: getBounds(1),
-    scaledBounds: getBounds(mediaMark.layout.scale),
+    unscaledBounds,
+    scaledBounds,
   })
 }

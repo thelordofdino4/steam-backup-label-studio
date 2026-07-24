@@ -1,5 +1,6 @@
 import type { BackgroundImageSize, ImageContentBounds } from '../project/projectTypes.ts'
 import {
+  getImageContentBounds,
   getImageContentSize,
   getImageContentSourceRect,
   getLoadedImageSize,
@@ -130,7 +131,27 @@ export function getCanvasImageContentSourceRect(
     return null
   }
 
-  return getImageContentSourceRect(imageSize, getLoadedImageSize(image))
+  const loadedSize = getLoadedImageSize(image)
+  const sourceRect = getImageContentSourceRect(imageSize, loadedSize)
+
+  if (
+    !sourceRect ||
+    !imageSize ||
+    imageSize.width <= 0 ||
+    imageSize.height <= 0
+  ) {
+    return sourceRect
+  }
+
+  const scaleX = loadedSize.width / imageSize.width
+  const scaleY = loadedSize.height / imageSize.height
+
+  return {
+    x: sourceRect.x * scaleX,
+    y: sourceRect.y * scaleY,
+    width: sourceRect.width * scaleX,
+    height: sourceRect.height * scaleY,
+  }
 }
 
 export function drawImageContent(
@@ -148,6 +169,18 @@ export function drawImageContent(
 
   if (!sourceRect) {
     return false
+  }
+
+  if (!getImageContentBounds(imageSize)) {
+    context.drawImage(
+      image,
+      target.x,
+      target.y,
+      target.width,
+      target.height,
+    )
+
+    return true
   }
 
   context.drawImage(

@@ -23,12 +23,26 @@ import type {
   BackgroundOffset,
   ProjectImageAssetProvenance,
 } from '../project/projectTypes'
+import type {
+  DiscBackgroundPresetOwnerState,
+} from '../presets/discPresetOwnerPlacement.ts'
+import {
+  completeDiscGuidedSlotWhenSatisfied,
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  isDiscGuidedBackgroundOwnerSatisfied,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 
 type UseBackgroundImageOptions = {
   discPreviewSize: number
   steamLogoPlacement: SteamLogoPlacement
   announceStatus: (message: string) => void
+  applyActivePresetPlacement?: (
+    background: DiscBackgroundPresetOwnerState,
+  ) => DiscBackgroundPresetOwnerState | null
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 type RestorableBackgroundImageState = {
@@ -44,6 +58,8 @@ export function useBackgroundImage({
   discPreviewSize,
   steamLogoPlacement,
   announceStatus,
+  applyActivePresetPlacement,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseBackgroundImageOptions) {
   const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
   const [isArtworkLoading, setIsArtworkLoading] = useState(false)
@@ -79,14 +95,40 @@ export function useBackgroundImage({
     ? backgroundImageSize
     : null
 
+  function applySemanticBackgroundChange(
+    background: DiscBackgroundPresetOwnerState,
+  ) {
+    if (!applyActivePresetPlacement) return background
+
+    return applyActivePresetPlacement(background) ?? {
+      ...background,
+      scale: backgroundScale,
+      offset: { ...backgroundOffset },
+    }
+  }
+
   function applyBackgroundImageImport(importedBackground: BackgroundImageImportResult) {
-    setBackgroundImageUrl(importedBackground.background.imageUrl)
-    setBackgroundImageSource(importedBackground.imageSource)
-    setBackgroundImageSize(importedBackground.background.imageSize)
-    setBackgroundScale(importedBackground.background.scale)
-    setBackgroundOffset(importedBackground.background.offset)
-    setIsBackgroundArtworkEnabled(true)
+    const nextBackground = applySemanticBackgroundChange({
+      enabled: true,
+      imageDataUrl: importedBackground.background.imageUrl,
+      imageSource: importedBackground.imageSource,
+      imageSize: importedBackground.background.imageSize,
+      scale: importedBackground.background.scale,
+      offset: importedBackground.background.offset,
+    })
+
+    setBackgroundImageUrl(nextBackground.imageDataUrl)
+    setBackgroundImageSource(nextBackground.imageSource)
+    setBackgroundImageSize(nextBackground.imageSize)
+    setBackgroundScale(nextBackground.scale)
+    setBackgroundOffset({ ...nextBackground.offset })
+    setIsBackgroundArtworkEnabled(nextBackground.enabled)
     setSelectedArtworkId(importedBackground.selectedArtworkId)
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.backgroundImage,
+      isDiscGuidedBackgroundOwnerSatisfied(nextBackground),
+    )
     announceStatus(importedBackground.statusMessage)
   }
 
@@ -154,11 +196,40 @@ export function useBackgroundImage({
   }
 
   function handleBackgroundArtworkEnabledChange(enabled: boolean) {
-    setIsBackgroundArtworkEnabled(enabled)
+    const nextBackground = enabled
+      ? applySemanticBackgroundChange({
+          enabled,
+          imageDataUrl: backgroundImageUrl,
+          imageSource: backgroundImageSource,
+          imageSize: backgroundImageSize,
+          scale: backgroundScale,
+          offset: backgroundOffset,
+        })
+      : {
+          enabled,
+          imageDataUrl: backgroundImageUrl,
+          imageSource: backgroundImageSource,
+          imageSize: backgroundImageSize,
+          scale: backgroundScale,
+          offset: backgroundOffset,
+        }
+
+    setIsBackgroundArtworkEnabled(nextBackground.enabled)
+    setBackgroundScale(nextBackground.scale)
+    setBackgroundOffset({ ...nextBackground.offset })
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.backgroundImage,
+      isDiscGuidedBackgroundOwnerSatisfied({
+        enabled: nextBackground.enabled,
+        imageDataUrl: nextBackground.imageDataUrl,
+        imageSize: nextBackground.imageSize,
+      }),
+    )
   }
 
   function handleBackgroundScaleChange(value: number) {
-    const nextScale = updateBackgroundScale(value)
+    const nextScale = updateBackgroundScale(value, backgroundScale)
 
     setBackgroundScale(nextScale)
     setBackgroundOffset((currentOffset) =>

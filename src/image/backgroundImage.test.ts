@@ -1,10 +1,32 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  BACKGROUND_SCALE_MAX,
+  BACKGROUND_SCALE_MIN,
+  DEFAULT_BACKGROUND_SCALE,
   clampBackgroundOffsetToImageBounds,
   getBackgroundOffsetSliderRanges,
   updateBackgroundOffsetField,
+  updateBackgroundScale,
 } from './backgroundImage.ts'
+
+test('background scale edits retain a valid semantic fitted range without weakening nominal bounds', () => {
+  assert.equal(updateBackgroundScale(0.05, 0.04), 0.05)
+  assert.equal(updateBackgroundScale(0.01, 0.04), 0.04)
+  assert.equal(updateBackgroundScale(0.05), BACKGROUND_SCALE_MIN)
+  assert.equal(updateBackgroundScale(3), BACKGROUND_SCALE_MAX)
+})
+
+test('background scale edits keep invalid values inside a safe range', () => {
+  assert.equal(updateBackgroundScale(Number.NaN, 0.04), 0.04)
+  assert.equal(updateBackgroundScale(Number.POSITIVE_INFINITY, 0.04), 0.04)
+  assert.equal(updateBackgroundScale(0.05, Number.NaN), BACKGROUND_SCALE_MIN)
+  assert.equal(
+    updateBackgroundScale(Number.NaN, Number.NEGATIVE_INFINITY),
+    BACKGROUND_SCALE_MIN,
+  )
+  assert.equal(updateBackgroundScale(Number.NaN), DEFAULT_BACKGROUND_SCALE)
+})
 
 test('background offset ranges allow moving until the final image edge reaches the opposite disc edge', () => {
   const ranges = getBackgroundOffsetSliderRanges(

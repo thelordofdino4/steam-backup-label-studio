@@ -1,4 +1,5 @@
 import type { Ref } from 'react'
+import { getDiscPresetScaleControlRange } from '../../../editor/discPresetScaleControlRange'
 import { getLogoAssetLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import { getLogoAssetSource } from '../../../project/projectLogoAssets'
 import type {
@@ -32,6 +33,8 @@ const LOGO_ALIGNMENT_PRESETS: readonly LogoAlignmentPreset[] = [
   { label: 'Stacked right upper', x: 78, y: 62 },
   { label: 'Stacked right lower', x: 78, y: 72 },
 ] as const
+
+const LOGO_SCALE_CONTROL_RANGE = Object.freeze({ min: 0.25, max: 2 })
 
 function LogoAssetControlBody({
   logoKey,
@@ -79,6 +82,13 @@ function LogoAssetControlBody({
     selectedDiscTemplate,
     imageSize,
   )
+  const scaleControlRange = additionalLogoId
+    ? LOGO_SCALE_CONTROL_RANGE
+    : getDiscPresetScaleControlRange({
+        currentScale: layout.scale,
+        nominalMin: LOGO_SCALE_CONTROL_RANGE.min,
+        nominalMax: LOGO_SCALE_CONTROL_RANGE.max,
+      })
   const updateLayout = (field: keyof LogoAssetLayout, value: boolean | number) =>
     handleLogoAssetLayoutChange(logoKey, field, value, additionalLogoId)
 
@@ -97,8 +107,8 @@ function LogoAssetControlBody({
         {
           id: `${controlIdPrefix}-scale`,
           label: 'Scale',
-          min: 0.25,
-          max: 2,
+          min: scaleControlRange.min,
+          max: scaleControlRange.max,
           step: 0.01,
           value: layout.scale,
           onChange: (value) => updateLayout('scale', value),
@@ -216,6 +226,7 @@ export function LogoAssetControls({
   imageSize,
   layout,
   enableControlRef,
+  sectionRef,
   uploadControlRef,
   projectLogoAssets,
   handleLogoAssetLayoutChange,
@@ -242,6 +253,7 @@ export function LogoAssetControls({
   imageSize: BackgroundImageSize | null
   layout: LogoAssetLayout
   enableControlRef?: Ref<HTMLInputElement>
+  sectionRef?: Ref<HTMLDivElement>
   uploadControlRef?: Ref<HTMLInputElement>
 }) {
   const uploadId = `${logoKey}-logo-upload`
@@ -257,6 +269,7 @@ export function LogoAssetControls({
       enableLabel={`Show ${label.toLowerCase()} logo`}
       onEnabledChange={(enabled) =>
         handleLogoAssetLayoutChange(logoKey, 'enabled', enabled)}
+      sectionRef={sectionRef}
     >
       <LogoAssetControlBody
         {...props}

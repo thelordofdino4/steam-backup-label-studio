@@ -68,6 +68,10 @@ import {
   discTextPointSizeToSvgPercent,
   getResolvedDiscTextFontSizePercent,
 } from './pointSize.ts'
+import {
+  DISC_TEXT_STRAIGHT_SHADOW_STRONG,
+  DISC_TEXT_STRAIGHT_SHADOW_TIGHT,
+} from './straightTextPaintGeometry.ts'
 
 export type DiscTextSvgLayerParams = {
   settings: DiscTextSettings
@@ -87,28 +91,7 @@ export type DiscTextSvgLayerParams = {
   template?: DiscTemplate
 }
 
-let discTextMeasureContext: CanvasRenderingContext2D | null = null
-
-function getDiscTextMeasureContext() {
-  if (discTextMeasureContext) return discTextMeasureContext
-  if (typeof document === 'undefined') return null
-
-  discTextMeasureContext = document.createElement('canvas').getContext('2d')
-  return discTextMeasureContext
-}
-
-export const measureDiscTextWithBrowserCanvas: TextMeasureFunction = (text, font) => {
-  const context = getDiscTextMeasureContext()
-
-  if (!context) {
-    const fontSizeMatch = font.match(/(\d+(?:\.\d+)?)px/)
-    const fontSize = fontSizeMatch ? Number(fontSizeMatch[1]) : 1
-    return Array.from(text).length * fontSize * 0.58
-  }
-
-  context.font = font
-  return context.measureText(text).width
-}
+export { measureDiscTextWithBrowserCanvas } from './measurement.ts'
 
 function getCurvedUnderlineDeclarations({
   renderStyle,
@@ -801,8 +784,19 @@ export function buildDiscTextSvgLayer({
     >
       <defs>
         <filter id="${shadowFilterId}" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
-          <feDropShadow dx="0" dy="0.32" stdDeviation="0.62" flood-color="#000000" flood-opacity="0.85" />
-          <feDropShadow dx="0" dy="0" stdDeviation="0.22" flood-color="#000000" flood-opacity="0.9" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="${DISC_TEXT_STRAIGHT_SHADOW_STRONG.standardDeviation}" result="straight-shadow-blur-strong" />
+          <feOffset in="straight-shadow-blur-strong" dx="${DISC_TEXT_STRAIGHT_SHADOW_STRONG.offsetX}" dy="${DISC_TEXT_STRAIGHT_SHADOW_STRONG.offsetY}" result="straight-shadow-offset-strong" />
+          <feFlood flood-color="#000000" flood-opacity="0.85" result="straight-shadow-flood-strong" />
+          <feComposite in="straight-shadow-flood-strong" in2="straight-shadow-offset-strong" operator="in" result="straight-shadow-strong" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="${DISC_TEXT_STRAIGHT_SHADOW_TIGHT.standardDeviation}" result="straight-shadow-blur-tight" />
+          <feOffset in="straight-shadow-blur-tight" dx="${DISC_TEXT_STRAIGHT_SHADOW_TIGHT.offsetX}" dy="${DISC_TEXT_STRAIGHT_SHADOW_TIGHT.offsetY}" result="straight-shadow-offset-tight" />
+          <feFlood flood-color="#000000" flood-opacity="0.9" result="straight-shadow-flood-tight" />
+          <feComposite in="straight-shadow-flood-tight" in2="straight-shadow-offset-tight" operator="in" result="straight-shadow-tight" />
+          <feMerge>
+            <feMergeNode in="straight-shadow-strong" />
+            <feMergeNode in="straight-shadow-tight" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
         <filter id="${curvedShadowFilterId}" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
           <feGaussianBlur in="SourceAlpha" stdDeviation="0.62" result="curved-shadow-blur-strong" />

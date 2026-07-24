@@ -13,7 +13,10 @@ import {
   setEditorImageAssetContent,
 } from '../editor/imageAssetTransitions.ts'
 import { getDefaultTitleArtworkLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
-import { imageSizesWithContentBoundsMatch } from '../image/imageContentBounds.ts'
+import {
+  getImageContentSize,
+  imageSizesWithContentBoundsMatch,
+} from '../image/imageContentBounds.ts'
 import type { SteamArtworkAsset } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
@@ -63,6 +66,12 @@ export const TITLE_ARTWORK_SCALE_MAX = 5
 export const DEFAULT_TITLE_ARTWORK_SIZE: BackgroundImageSize = {
   width: 900,
   height: 360,
+}
+
+function getTitleArtworkRenderSize(
+  imageSize: BackgroundImageSize | null,
+) {
+  return imageSize ?? DEFAULT_TITLE_ARTWORK_SIZE
 }
 
 function normalizeTitleArtworkLabel(label: unknown, fallbackLabel: string) {
@@ -157,7 +166,7 @@ export function createTitleArtworkRenderItem(
     return null
   }
 
-  const imageSize = titleArtwork.imageSize ?? DEFAULT_TITLE_ARTWORK_SIZE
+  const imageSize = getTitleArtworkRenderSize(titleArtwork.imageSize)
 
   return createPercentPositionedImageRenderArtifact({
     imageDataUrl: titleArtwork.imageDataUrl,
@@ -172,6 +181,26 @@ export function createTitleArtworkRenderItem(
     ),
     sourceLabel: titleArtwork.sourceLabel,
   })
+}
+
+export function getTitleArtworkCanonicalVisualBounds(
+  titleArtwork: ProjectTitleArtwork,
+) {
+  if (!titleArtwork.imageDataUrl?.trim()) {
+    return null
+  }
+
+  const imageSize = getTitleArtworkRenderSize(titleArtwork.imageSize)
+
+  if (!getImageContentSize(imageSize)) {
+    return null
+  }
+
+  const bounds = getTitleArtworkBoundsPercent(imageSize, 1)
+
+  return bounds.halfWidth > 0 && bounds.halfHeight > 0
+    ? bounds
+    : null
 }
 
 export function setTitleArtworkLayout(

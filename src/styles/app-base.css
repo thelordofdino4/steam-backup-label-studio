@@ -6,6 +6,9 @@
   --editor-control-target-min: 24px;
   --editor-focus-outline: #93c5fd;
   --editor-focus-shadow: rgba(59, 130, 246, 0.24);
+  --editor-sidebar-content-inset: 24px;
+  --editor-role-scroll-inset: var(--editor-sidebar-content-inset);
+  --editor-section-scroll-inset: var(--editor-sidebar-content-inset);
 }
 
 html,
@@ -69,7 +72,7 @@ summary:focus-visible,
   min-height: 0;
   border-right: 1px solid #2a2e38;
   background: #101218;
-  padding: 24px;
+  padding: var(--editor-sidebar-content-inset);
   overflow-y: auto;
   overscroll-behavior: contain;
 }

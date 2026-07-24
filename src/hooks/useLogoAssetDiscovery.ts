@@ -1,7 +1,16 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
+import {
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
 import { applyImportedLogoAsset } from '../project/projectVisualAssetImport'
 import type { LogoAssetKey } from '../project/projectLogoAssets'
-import type { ProjectLogoAssets, ProjectMetadata } from '../project/projectTypes'
+import type {
+  ProjectImageAssetProvenance,
+  ProjectLogoAssets,
+  ProjectMetadata,
+} from '../project/projectTypes'
 import {
   discoverLogoCandidates,
   type LogoCandidateSourceStatus,
@@ -10,6 +19,7 @@ import {
 import { importRemoteLogoCandidateAsset } from '../steam/steamLogoCandidateImport'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
+import type { ImportedImageAsset } from '../utils/importedImageAsset'
 
 export type LogoCandidateDiscoverySlot = {
   candidates: RemoteLogoCandidate[]
@@ -29,7 +39,14 @@ type UseLogoAssetDiscoveryParams = {
   projectMetadata: ProjectMetadata
   selectedDiscTemplate: DiscTemplate
   setProjectLogoAssets: Dispatch<SetStateAction<ProjectLogoAssets>>
+  applyLogoAssetImport?: (
+    logoKey: LogoAssetKey,
+    importedImage: ImportedImageAsset,
+    imageSource: ProjectImageAssetProvenance | null,
+    additionalLogoId?: string,
+  ) => ProjectLogoAssets
   announceStatus: (message: string) => void
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 const EMPTY_DISCOVERY_SLOT: LogoCandidateDiscoverySlot = {
@@ -75,7 +92,9 @@ export function useLogoAssetDiscovery({
   projectMetadata,
   selectedDiscTemplate,
   setProjectLogoAssets,
+  applyLogoAssetImport,
   announceStatus,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseLogoAssetDiscoveryParams) {
   const [logoCandidateDiscovery, setLogoCandidateDiscovery] =
     useState<LogoCandidateDiscoveryState>(() => createInitialDiscoveryState())
@@ -156,16 +175,33 @@ export function useLogoAssetDiscovery({
       const { importedImage, imageSource } =
         await importRemoteLogoCandidateAsset(candidate)
 
-      setProjectLogoAssets((currentLogoAssets) =>
-        applyImportedLogoAsset(
-          currentLogoAssets,
+      if (applyLogoAssetImport) {
+        applyLogoAssetImport(
           logoKey,
           importedImage,
-          selectedDiscTemplate,
           imageSource,
           additionalLogoId,
-        ),
-      )
+        )
+      } else {
+        setProjectLogoAssets((currentLogoAssets) =>
+          applyImportedLogoAsset(
+            currentLogoAssets,
+            logoKey,
+            importedImage,
+            selectedDiscTemplate,
+            imageSource,
+            additionalLogoId,
+          ),
+        )
+      }
+
+      if (!additionalLogoId) {
+        onDiscGuidedSlotCompleted(
+          logoKey === 'developer'
+            ? DISC_GUIDED_COMPLETION_SLOT_IDS.developerLogo
+            : DISC_GUIDED_COMPLETION_SLOT_IDS.publisherLogo,
+        )
+      }
 
       updateSlot(logoKey, (slot) => ({
         ...slot,
@@ -184,7 +220,14 @@ export function useLogoAssetDiscovery({
       }))
       announceStatus(`Logo candidate import failed: ${message}`)
     }
-  }, [announceStatus, selectedDiscTemplate, setProjectLogoAssets, updateSlot])
+  }, [
+    announceStatus,
+    applyLogoAssetImport,
+    onDiscGuidedSlotCompleted,
+    selectedDiscTemplate,
+    setProjectLogoAssets,
+    updateSlot,
+  ])
 
   return {
     logoCandidateDiscovery: {

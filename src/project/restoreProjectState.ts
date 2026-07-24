@@ -58,6 +58,11 @@ import { normalizeProjectMetadata } from './projectMetadata.ts'
 import { normalizeProjectRatingBadge } from './projectRatingBadge.ts'
 import { normalizeProjectTechnicalMarks } from './projectTechnicalMarks.ts'
 import { normalizeProjectTitleArtwork } from './projectTitleArtwork.ts'
+import { restoreSavedDiscGuidedWorkflow } from './projectGuidedWorkflow.ts'
+import {
+  resolveDiscGuidedRestoreLayoutPolicy,
+} from './projectGuidedRestoreLayout.ts'
+import type { DiscGuidedWorkflowState } from '../guidedPresets/discGuidedWorkflow.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -85,6 +90,7 @@ export type RestoredProjectTemplateState = {
 }
 
 export type RestoredProjectState = {
+  discGuidedWorkflow: DiscGuidedWorkflowState
   manualGameTitle: string
   projectMetadata: ProjectMetadata
   projectLogoAssets: ProjectLogoAssets
@@ -256,6 +262,10 @@ export async function restoreSavedProjectState(
   options: RestoreProjectStateOptions = {},
 ): Promise<RestoredProjectState> {
   const template = restoreTemplateState(project)
+  const guidedRestoreLayoutPolicy = resolveDiscGuidedRestoreLayoutPolicy({
+    workflow: restoreSavedDiscGuidedWorkflow(project.editor),
+    selectedDiscTemplate: template.selectedDiscTemplate,
+  })
   const selectedSteamGame = project.game?.selectedSteamGame ?? null
   const manualGameTitle =
     project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label'
@@ -268,19 +278,37 @@ export async function restoreSavedProjectState(
     project.logoAssets,
     template.selectedDiscTemplate,
   )
-  const projectLogoAssets = clampProjectLogoAssetsToSafeZone(
+  const clampedLogoAssets = clampProjectLogoAssetsToSafeZone(
     loadedLogoAssets,
     template.selectedDiscTemplate,
   )
+  const projectLogoAssets = {
+    ...clampedLogoAssets,
+    developerLogoLayout: guidedRestoreLayoutPolicy.preservesTarget(
+      'developer-logo.primary',
+    )
+      ? loadedLogoAssets.developerLogoLayout
+      : clampedLogoAssets.developerLogoLayout,
+    publisherLogoLayout: guidedRestoreLayoutPolicy.preservesTarget(
+      'publisher-logo.primary',
+    )
+      ? loadedLogoAssets.publisherLogoLayout
+      : clampedLogoAssets.publisherLogoLayout,
+  }
   const loadedTitleArtwork = normalizeProjectTitleArtwork(
     project.titleArtwork,
     template.selectedDiscTemplate,
     project.steamBackupLogo.placement,
   )
-  const projectTitleArtwork = clampProjectTitleArtworkToSafeZone(
+  const clampedTitleArtwork = clampProjectTitleArtworkToSafeZone(
     loadedTitleArtwork,
     template.selectedDiscTemplate,
   )
+  const projectTitleArtwork = guidedRestoreLayoutPolicy.preservesTarget(
+    'game-title.artwork',
+  )
+    ? { ...clampedTitleArtwork, layout: loadedTitleArtwork.layout }
+    : clampedTitleArtwork
   const projectDiscNumberArtwork = normalizeProjectDiscNumberArtwork(
     project.discNumberArtwork,
   )
@@ -297,28 +325,47 @@ export async function restoreSavedProjectState(
     template.selectedDiscTemplate,
     projectMetadata,
   )
-  const projectRatingBadge = clampProjectRatingBadgeToSafeZone(
+  const clampedRatingBadge = clampProjectRatingBadgeToSafeZone(
     loadedRatingBadge,
     template.selectedDiscTemplate,
     projectMetadata,
   )
+  const projectRatingBadge = guidedRestoreLayoutPolicy.preservesTarget(
+    'rating.primary',
+  )
+    ? { ...clampedRatingBadge, layout: loadedRatingBadge.layout }
+    : clampedRatingBadge
   const loadedMediaMark = normalizeProjectMediaMark(
     project.mediaMark,
     template.selectedDiscTemplate,
   )
-  const projectMediaMark = {
+  const clampedMediaMark = {
     ...loadedMediaMark,
     layout: clampMediaMarkLayoutToSafeZone(
       loadedMediaMark,
       template.selectedDiscTemplate,
     ),
   }
+  const projectMediaMark = guidedRestoreLayoutPolicy.preservesTarget(
+    'media-format.primary',
+  )
+    ? { ...clampedMediaMark, layout: loadedMediaMark.layout }
+    : clampedMediaMark
   const loadedPlatformMarks = normalizeProjectPlatformMarks(
     project.platformMarks,
     project.mediaMark,
     template.selectedDiscTemplate,
     selectedSteamGame?.appId ?? null,
   )
+  const clampedPlatformMarks = clampProjectPlatformMarksToSafeZone(
+    loadedPlatformMarks,
+    template.selectedDiscTemplate,
+  )
+  const projectPlatformMarks = guidedRestoreLayoutPolicy.preservesTarget(
+    'operating-system-marks.enabled',
+  )
+    ? loadedPlatformMarks
+    : clampedPlatformMarks
   const loadedTechnicalMarks = normalizeProjectTechnicalMarks(
     project.technicalMarks,
     template.selectedDiscTemplate,
@@ -332,8 +379,27 @@ export async function restoreSavedProjectState(
     selectedSteamGame?.appId,
   )
   const discTextTitleValue = project.discText?.titleValue ?? ''
+  const loadedDiscTextLayout = normalizeDiscTextLayout(
+    project.discText?.layout,
+    project.steamBackupLogo.placement,
+    template.selectedDiscTemplate,
+  )
+  const clampedDiscTextLayout = clampDiscTextLayoutToSafeZone(
+    loadedDiscTextLayout,
+    template.selectedDiscTemplate,
+  )
+  const discTextLayout = {
+    ...clampedDiscTextLayout,
+    title: guidedRestoreLayoutPolicy.preservesTarget('game-title.text')
+      ? loadedDiscTextLayout.title
+      : clampedDiscTextLayout.title,
+    copyright: guidedRestoreLayoutPolicy.preservesTarget('legal.copyright')
+      ? loadedDiscTextLayout.copyright
+      : clampedDiscTextLayout.copyright,
+  }
 
   return {
+    discGuidedWorkflow: guidedRestoreLayoutPolicy.workflow,
     manualGameTitle,
     projectMetadata,
     projectLogoAssets,
@@ -342,10 +408,7 @@ export async function restoreSavedProjectState(
     projectAdditionalArtwork,
     projectRatingBadge,
     projectMediaMark,
-    projectPlatformMarks: clampProjectPlatformMarksToSafeZone(
-      loadedPlatformMarks,
-      template.selectedDiscTemplate,
-    ),
+    projectPlatformMarks,
     projectTechnicalMarks: clampProjectTechnicalMarksToSafeZone(
       loadedTechnicalMarks,
       template.selectedDiscTemplate,
@@ -377,14 +440,7 @@ export async function restoreSavedProjectState(
       project.discText?.htmlSources,
       project.discText?.markdownSources,
     ),
-    discTextLayout: clampDiscTextLayoutToSafeZone(
-      normalizeDiscTextLayout(
-        project.discText?.layout,
-        project.steamBackupLogo.placement,
-        template.selectedDiscTemplate,
-      ),
-      template.selectedDiscTemplate,
-    ),
+    discTextLayout,
     discTextStyles: normalizeDiscTextStyles(project.discText?.styles),
     backgroundScale: project.background.scale,
     backgroundOffset: project.background.offset,

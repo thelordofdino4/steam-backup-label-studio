@@ -1,5 +1,12 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../discText/index'
+import {
+  completeDiscGuidedSlotWhenSatisfied,
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  isDiscGuidedTitleArtworkOwnerSatisfied,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
 import {
   clampProjectTitleArtworkToSafeZone,
   clampTitleArtworkLayoutToSafeZone,
@@ -21,21 +28,52 @@ import {
   isImageFile,
   readImportedImageAssetFromFile,
 } from '../utils/importedImageAsset'
+import { preserveDiscPointOwnerPlacement } from '../presets/discPresetOwnerPlacement.ts'
 
 type UseTitleArtworkOptions = {
   selectedDiscTemplate: DiscTemplate
   steamLogoPlacement: SteamLogoPlacement
   announceStatus: (message: string) => void
+  applyActivePresetPlacement?: (
+    titleArtwork: ProjectTitleArtwork,
+  ) => ProjectTitleArtwork | null
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 export function useTitleArtwork({
   selectedDiscTemplate,
   steamLogoPlacement,
   announceStatus,
+  applyActivePresetPlacement = (titleArtwork) => titleArtwork,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseTitleArtworkOptions) {
   const [projectTitleArtwork, setProjectTitleArtwork] = useState<ProjectTitleArtwork>(() =>
     createDefaultProjectTitleArtwork(selectedDiscTemplate, steamLogoPlacement),
   )
+  const projectTitleArtworkRef = useRef(projectTitleArtwork)
+
+  useEffect(() => {
+    projectTitleArtworkRef.current = projectTitleArtwork
+  }, [projectTitleArtwork])
+
+  function commitProjectTitleArtwork(titleArtwork: ProjectTitleArtwork) {
+    projectTitleArtworkRef.current = titleArtwork
+    setProjectTitleArtwork(titleArtwork)
+  }
+
+  function applySemanticTitleArtworkChange(
+    titleArtwork: ProjectTitleArtwork,
+  ) {
+    const fittedTitleArtwork = applyActivePresetPlacement(titleArtwork) ?? {
+      ...titleArtwork,
+      layout: preserveDiscPointOwnerPlacement(
+        titleArtwork.layout,
+        projectTitleArtworkRef.current.layout,
+      ),
+    }
+    commitProjectTitleArtwork(fittedTitleArtwork)
+    return fittedTitleArtwork
+  }
 
   function clampProjectTitleArtworkToTemplate(template: DiscTemplate) {
     setProjectTitleArtwork((currentTitleArtwork) =>
@@ -69,20 +107,34 @@ export function useTitleArtwork({
     field: TitleArtworkLayoutField,
     value: boolean | number,
   ) {
-    setProjectTitleArtwork((currentTitleArtwork) => {
-      const nextTitleArtwork = updateTitleArtworkLayoutField(
-        currentTitleArtwork,
-        field,
-        value,
-      )
-      const nextLayout = clampTitleArtworkLayoutToSafeZone(
-        nextTitleArtwork.layout,
-        selectedDiscTemplate,
-        nextTitleArtwork.imageSize,
-      )
+    const nextTitleArtwork = updateTitleArtworkLayoutField(
+      projectTitleArtworkRef.current,
+      field,
+      value,
+    )
+    const nextLayout = clampTitleArtworkLayoutToSafeZone(
+      nextTitleArtwork.layout,
+      selectedDiscTemplate,
+      nextTitleArtwork.imageSize,
+    )
+    const clampedTitleArtwork = setTitleArtworkLayout(
+      nextTitleArtwork,
+      nextLayout,
+    )
+    let finalTitleArtwork = clampedTitleArtwork
+    if (field === 'enabled' && value === true) {
+      finalTitleArtwork = applySemanticTitleArtworkChange(clampedTitleArtwork)
+    } else {
+      commitProjectTitleArtwork(clampedTitleArtwork)
+    }
 
-      return setTitleArtworkLayout(nextTitleArtwork, nextLayout)
-    })
+    if (field === 'enabled' && value === true) {
+      completeDiscGuidedSlotWhenSatisfied(
+        onDiscGuidedSlotCompleted,
+        DISC_GUIDED_COMPLETION_SLOT_IDS.gameTitle,
+        isDiscGuidedTitleArtworkOwnerSatisfied(finalTitleArtwork),
+      )
+    }
   }
 
   function handleResetTitleArtworkLayout() {
@@ -91,11 +143,16 @@ export function useTitleArtwork({
   }
 
   function handleRestoreTitleArtworkDefault() {
-    setProjectTitleArtwork((currentTitleArtwork) =>
+    const nextTitleArtwork = applySemanticTitleArtworkChange(
       clampProjectTitleArtworkToSafeZone(
-        restoreTitleArtworkDefaultSteamLogo(currentTitleArtwork),
+        restoreTitleArtworkDefaultSteamLogo(projectTitleArtworkRef.current),
         selectedDiscTemplate,
       ),
+    )
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.gameTitle,
+      isDiscGuidedTitleArtworkOwnerSatisfied(nextTitleArtwork),
     )
     announceStatus('Restored game logo to the Steam default logo.')
   }
@@ -116,16 +173,21 @@ export function useTitleArtwork({
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
 
-      setProjectTitleArtwork((currentTitleArtwork) =>
+      const nextTitleArtwork = applySemanticTitleArtworkChange(
         clampProjectTitleArtworkToSafeZone(
           setCustomTitleArtworkImage(
-            currentTitleArtwork,
+            projectTitleArtworkRef.current,
             importedImage,
             selectedDiscTemplate,
             steamLogoPlacement,
           ),
           selectedDiscTemplate,
         ),
+      )
+      completeDiscGuidedSlotWhenSatisfied(
+        onDiscGuidedSlotCompleted,
+        DISC_GUIDED_COMPLETION_SLOT_IDS.gameTitle,
+        isDiscGuidedTitleArtworkOwnerSatisfied(nextTitleArtwork),
       )
       announceStatus('Custom game logo artwork selected.')
     } catch {
@@ -136,14 +198,27 @@ export function useTitleArtwork({
   async function applySteamTitleArtworkImport(importedGame: SteamImportedGame) {
     const titleArtworkImport = await createSteamTitleArtworkImport(
       importedGame,
-      projectTitleArtwork,
+      projectTitleArtworkRef.current,
       selectedDiscTemplate,
       steamLogoPlacement,
     )
+    const fittedTitleArtwork = titleArtworkImport.placementRefitRequired
+      ? applySemanticTitleArtworkChange(titleArtworkImport.titleArtwork)
+      : titleArtworkImport.titleArtwork
+    if (!titleArtworkImport.placementRefitRequired) {
+      commitProjectTitleArtwork(fittedTitleArtwork)
+    }
 
-    setProjectTitleArtwork(titleArtworkImport.titleArtwork)
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.gameTitle,
+      isDiscGuidedTitleArtworkOwnerSatisfied(fittedTitleArtwork),
+    )
 
-    return titleArtworkImport
+    return {
+      ...titleArtworkImport,
+      titleArtwork: fittedTitleArtwork,
+    }
   }
 
   return {

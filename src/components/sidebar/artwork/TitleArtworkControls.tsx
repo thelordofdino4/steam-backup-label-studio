@@ -1,5 +1,6 @@
 import type { Ref } from 'react'
 import { DISC_LAYOUT_CENTER_PERCENT } from '../../../disc/geometry'
+import { getDiscPresetScaleControlRange } from '../../../editor/discPresetScaleControlRange'
 import { getTitleArtworkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   canRestoreTitleArtworkDefaultSteamLogo,
@@ -48,6 +49,11 @@ export function TitleArtworkControls({
     projectTitleArtwork,
     selectedDiscTemplate,
   )
+  const titleArtworkScaleControlRange = getDiscPresetScaleControlRange({
+    currentScale: projectTitleArtwork.layout.scale,
+    nominalMin: TITLE_ARTWORK_SCALE_MIN,
+    nominalMax: TITLE_ARTWORK_SCALE_MAX,
+  })
   const xOffset = projectTitleArtwork.layout.x - DISC_LAYOUT_CENTER_PERCENT
   const xOffsetSliderRange = {
     min: sliderRanges.x.min - DISC_LAYOUT_CENTER_PERCENT,
@@ -125,8 +131,8 @@ export function TitleArtworkControls({
         <EditorRangeField
           id="title-artwork-scale"
           label="Scale"
-          min={TITLE_ARTWORK_SCALE_MIN}
-          max={TITLE_ARTWORK_SCALE_MAX}
+          min={titleArtworkScaleControlRange.min}
+          max={titleArtworkScaleControlRange.max}
           step={0.01}
           value={projectTitleArtwork.layout.scale}
           disabled={!isRenderable}

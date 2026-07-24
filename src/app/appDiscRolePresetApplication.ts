@@ -1,11 +1,26 @@
 import {
   applyDiscRolePresetToState,
+  getDiscRolePreset,
   type DiscRolePreset,
   type DiscRolePresetApplicationState,
   type DiscRolePresetFeatureOwner,
 } from '../layout/discRolePresets.ts'
+import type {
+  DiscPresetApplicationStatus,
+  DiscPresetApplicationWarning,
+} from '../presets/discPresetApplication.ts'
+import type {
+  ActiveDiscPresetRef,
+} from '../presets/discPresetTargetedApplication.ts'
+import type {
+  ResolvedDiscPresetDefinition,
+} from '../presets/discPresetResolution.ts'
 import type { ProjectDiscNumberArtwork } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
+import {
+  applyRegisteredDiscPresetToState,
+  type RegisteredDiscPresetFeatureOwner,
+} from './appRegisteredDiscPresetApplication.ts'
 
 type ValueSetter<T> = (value: T) => void
 type TemplateClamp = (template: DiscTemplate) => void
@@ -59,6 +74,7 @@ export type DiscRolePresetOwnerActions = {
     ValueSetter<DiscRolePresetCurrentState['titleArtwork']>
   clampProjectTitleArtworkToTemplate: TemplateClamp
   restoreDiscTextState: ValueSetter<DiscRolePresetDiscTextRestoreState>
+  setDiscTextLayout: ValueSetter<DiscRolePresetCurrentState['discTextLayout']>
   clampDiscTextLayoutToTemplate: TemplateClamp
   setProjectLogoAssets: ValueSetter<DiscRolePresetCurrentState['logoAssets']>
   clampProjectLogoAssetsToTemplate: TemplateClamp
@@ -78,12 +94,22 @@ export type DiscRolePresetOwnerActions = {
 export type DiscRolePresetOwnerApplicationResult =
   | {
       applied: false
+      status: 'rejected'
+      canonicalPresetId: string | null
+      activePresetRef: null
+      activeResolvedPreset: null
+      warnings: readonly DiscPresetApplicationWarning[]
       preset: null
       state: DiscRolePresetApplicationState
       dispatchedOwners: readonly []
     }
   | {
       applied: true
+      status: Exclude<DiscPresetApplicationStatus, 'rejected'>
+      canonicalPresetId: string | null
+      activePresetRef: ActiveDiscPresetRef | null
+      activeResolvedPreset: ResolvedDiscPresetDefinition | null
+      warnings: readonly DiscPresetApplicationWarning[]
       preset: DiscRolePreset
       state: DiscRolePresetApplicationState
       dispatchedOwners: readonly DiscRolePresetFeatureOwner[]
@@ -102,11 +128,64 @@ export function applyDiscRolePresetToOwners({
   selectedDiscTemplate,
   actions,
 }: ApplyDiscRolePresetToOwnersParams): DiscRolePresetOwnerApplicationResult {
-  const result = applyDiscRolePresetToState(currentState, presetId)
+  const registeredResult = applyRegisteredDiscPresetToState({
+    presetId,
+    currentState,
+    selectedDiscTemplate,
+  })
+
+  if (registeredResult) {
+    const preset = getDiscRolePreset(presetId)
+
+    if (registeredResult.status === 'rejected' || !preset) {
+      return {
+        applied: false,
+        status: 'rejected',
+        canonicalPresetId: registeredResult.canonicalPresetId,
+        activePresetRef: null,
+        activeResolvedPreset: null,
+        warnings: registeredResult.warnings,
+        preset: null,
+        state: registeredResult.state,
+        dispatchedOwners: [],
+      }
+    }
+
+    for (const owner of registeredResult.updatedOwners) {
+      dispatchRegisteredDiscPresetOwner(
+        owner,
+        registeredResult.state,
+        actions,
+      )
+    }
+
+    return {
+      applied: true,
+      status: registeredResult.status,
+      canonicalPresetId: registeredResult.canonicalPresetId,
+      activePresetRef: registeredResult.presetRef,
+      activeResolvedPreset: registeredResult.resolvedPreset,
+      warnings: registeredResult.warnings,
+      preset,
+      state: registeredResult.state,
+      dispatchedOwners: registeredResult.updatedOwners,
+    }
+  }
+
+  const result = applyDiscRolePresetToState(
+    currentState,
+    presetId,
+    selectedDiscTemplate,
+  )
 
   if (!result.applied || !result.preset) {
     return {
       applied: false,
+      status: 'rejected',
+      canonicalPresetId: null,
+      activePresetRef: null,
+      activeResolvedPreset: null,
+      warnings: [],
       preset: null,
       state: result.state,
       dispatchedOwners: [],
@@ -131,10 +210,58 @@ export function applyDiscRolePresetToOwners({
 
   return {
     applied: true,
+    status: 'applied',
+    canonicalPresetId: null,
+    activePresetRef: null,
+    activeResolvedPreset: null,
+    warnings: [],
     preset: result.preset,
     state: result.state,
     dispatchedOwners,
   }
+}
+
+function dispatchRegisteredDiscPresetOwner(
+  owner: RegisteredDiscPresetFeatureOwner,
+  nextState: DiscRolePresetApplicationState,
+  actions: DiscRolePresetOwnerActions,
+) {
+  switch (owner) {
+    case 'backgroundImage':
+      actions.restoreBackgroundImageState({
+        backgroundScale: nextState.background.scale,
+        backgroundOffset: nextState.background.offset,
+        backgroundImageUrl: nextState.background.imageDataUrl,
+        backgroundImageSource: nextState.background.imageSource ?? null,
+        backgroundImageSize: nextState.background.imageSize ?? null,
+        isBackgroundArtworkEnabled: nextState.background.enabled,
+      })
+      return
+    case 'titleArtwork':
+      actions.setProjectTitleArtwork(nextState.titleArtwork)
+      return
+    case 'discText':
+      actions.setDiscTextLayout(nextState.discTextLayout)
+      return
+    case 'ratingBadge':
+      actions.setProjectRatingBadge(nextState.ratingBadge)
+      return
+    case 'mediaMark':
+      actions.setProjectMediaMark(nextState.mediaMark)
+      return
+    case 'platformMarks':
+      actions.setProjectPlatformMarks(nextState.platformMarks)
+      return
+    case 'logoAssets':
+      actions.setProjectLogoAssets(nextState.logoAssets)
+      return
+    default:
+      return assertNever(owner)
+  }
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unsupported registered Disc preset owner: ${String(value)}`)
 }
 
 function dispatchDiscRolePresetOwner(

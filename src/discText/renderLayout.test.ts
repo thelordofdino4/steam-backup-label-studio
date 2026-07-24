@@ -4,6 +4,7 @@ import type { DiscTextLayout } from './index.ts'
 import type { DiscTextAvoidanceRegion } from './avoidance.ts'
 import {
   getStraightDiscTextRenderLayout,
+  getStraightDiscTextVisualBounds,
   type StraightDiscTextLineLayout,
   type StraightDiscTextRenderLayout,
 } from './renderLayout.ts'
@@ -21,6 +22,11 @@ function measureText(text: string) {
 function measureTextByFont(text: string, font: string) {
   const width = /Verdana/i.test(font) ? 4 : 1
   return Array.from(text).length * width
+}
+
+function measureTextByFontSize(text: string, font: string) {
+  const fontSize = Number(font.match(/(\d+(?:\.\d+)?)px/)?.[1] ?? 1)
+  return Array.from(text).length * fontSize * 0.55
 }
 
 function createLayout(layout: Partial<DiscTextLayout> = {}): DiscTextLayout {
@@ -267,4 +273,167 @@ test('straight disc rich-text layout exposes run-specific fonts and widths', () 
   assert.equal(line?.runs?.[0]?.width, 2)
   assert.equal(line?.runs?.[1]?.width, 8)
   assert.match(line?.runs?.[1]?.font ?? '', /Verdana/)
+})
+
+test('straight disc rich-text layout carries resolved run size into visual height', () => {
+  const template = discTemplates.standardPrintableDisc
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'I',
+    createLayout({ width: 60, y: 25 }),
+    measureTextByFontSize,
+    undefined,
+    {
+      richText: {
+        lines: [
+          {
+            text: 'I',
+            runs: [{ fontSizePt: 96, text: 'I' }],
+          },
+        ],
+      },
+      template,
+    },
+  )
+  const expectedFontSize = discTextPointSizeToSvgPercent(96, template)
+  const line = renderLayout.lines[0]
+  const bounds = getStraightDiscTextVisualBounds(
+    renderLayout,
+    measureTextByFontSize,
+  )
+
+  assert.equal(line?.runs?.[0]?.resolvedFontSize, expectedFontSize)
+  assert.equal(line?.lineHeight, expectedFontSize * 1.18)
+  assert.equal(bounds.centerY, 25)
+  assert.ok(
+    Math.abs(bounds.halfHeight * 2 - expectedFontSize * 1.18) < 1e-12,
+  )
+})
+
+test('rich-run measurement follows nested SVG paint precedence', () => {
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'I',
+    createLayout({ width: 60 }),
+    measureTextByFontSize,
+    undefined,
+    {
+      richText: {
+        lines: [{
+          text: 'I',
+          runs: [{
+            bold: true,
+            fontSizePt: 12,
+            fontSizePx: 96,
+            fontStyle: 'normal',
+            fontWeight: 400,
+            italic: true,
+            text: 'I',
+          }],
+        }],
+      },
+      template: discTemplates.standardPrintableDisc,
+    },
+  )
+  const run = renderLayout.lines[0]?.runs?.[0]
+
+  assert.equal(run?.resolvedFontSize, 96)
+  assert.match(run?.font ?? '', /^italic 700 96px /)
+  assert.equal(renderLayout.lines[0]?.lineHeight, 96 * 1.18)
+})
+
+test('mixed-size rich-text lines remain centered as one visual block', () => {
+  const template = discTemplates.standardPrintableDisc
+  const centerY = 42
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'Large\nSmall',
+    createLayout({ width: 60, y: centerY }),
+    measureTextByFontSize,
+    undefined,
+    {
+      richText: {
+        lines: [
+          {
+            text: 'Large',
+            runs: [{ fontSizePt: 36, text: 'Large' }],
+          },
+          {
+            text: 'Small',
+            runs: [{ fontSizePt: 12, text: 'Small' }],
+          },
+        ],
+      },
+      template,
+    },
+  )
+  const first = renderLayout.lines[0]
+  const second = renderLayout.lines[1]
+  const firstLineHeight = first?.lineHeight ?? 0
+  const secondLineHeight = second?.lineHeight ?? 0
+  const bounds = getStraightDiscTextVisualBounds(
+    renderLayout,
+    measureTextByFontSize,
+  )
+
+  assert.ok(firstLineHeight > secondLineHeight)
+  assert.equal(
+    (first?.y ?? 0) + firstLineHeight / 2,
+    (second?.y ?? 0) - secondLineHeight / 2,
+  )
+  assert.equal(bounds.centerY, centerY)
+  assert.ok(
+    Math.abs(
+      bounds.halfHeight * 2 -
+      (firstLineHeight + secondLineHeight),
+    ) < 1e-12,
+  )
+})
+
+test('mixed-size Legal rich text remains centered as one visual block', () => {
+  const template = discTemplates.standardPrintableDisc
+  const centerY = 42
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'copyright',
+    'Large\nSmall',
+    createLayout({ width: 60, y: centerY }),
+    measureTextByFontSize,
+    undefined,
+    {
+      richText: {
+        lines: [
+          {
+            text: 'Large',
+            runs: [{ fontSizePt: 36, text: 'Large' }],
+          },
+          {
+            text: 'Small',
+            runs: [{ fontSizePt: 12, text: 'Small' }],
+          },
+        ],
+      },
+      template,
+    },
+  )
+  const first = renderLayout.lines[0]
+  const second = renderLayout.lines[1]
+  const firstLineHeight = first?.lineHeight ?? 0
+  const secondLineHeight = second?.lineHeight ?? 0
+  const bounds = getStraightDiscTextVisualBounds(
+    renderLayout,
+    measureTextByFontSize,
+  )
+
+  assert.ok(firstLineHeight > secondLineHeight)
+  assert.equal(
+    (first?.y ?? 0) + firstLineHeight / 2,
+    (second?.y ?? 0) - secondLineHeight / 2,
+  )
+  assert.equal(bounds.centerY, centerY)
+  assert.ok(
+    Math.abs(
+      bounds.halfHeight * 2 -
+      (firstLineHeight + secondLineHeight),
+    ) < 1e-12,
+  )
 })

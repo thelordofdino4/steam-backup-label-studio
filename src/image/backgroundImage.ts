@@ -1,4 +1,5 @@
 import { clampNumber } from '../disc/geometry.ts'
+import { clampDiscPresetScaleControlValue } from '../editor/discPresetScaleControlRange.ts'
 import type { BackgroundImageSize, BackgroundOffset } from '../project/projectTypes'
 import { getImageContentSize } from './imageContentBounds.ts'
 
@@ -52,8 +53,16 @@ export function createSelectedBackgroundImageState(
   }
 }
 
-export function updateBackgroundScale(value: number) {
-  return clampNumber(value, BACKGROUND_SCALE_MIN, BACKGROUND_SCALE_MAX)
+export function updateBackgroundScale(
+  value: number,
+  currentScale = DEFAULT_BACKGROUND_SCALE,
+) {
+  return clampDiscPresetScaleControlValue({
+    value,
+    currentScale,
+    nominalMin: BACKGROUND_SCALE_MIN,
+    nominalMax: BACKGROUND_SCALE_MAX,
+  })
 }
 
 function normalizeSliderRangeValue(value: number) {

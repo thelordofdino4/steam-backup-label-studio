@@ -7,14 +7,18 @@ import type {
 
 type CompanyLogoFocusRegistrationController = Pick<
   EditorRoleFocusController,
-  'registerFocusTarget' | 'registerFocusTargetFallback'
+  | 'registerFocusTarget'
+  | 'registerFocusTargetFallback'
+  | 'registerSectionAlignmentTarget'
 >
 
 type RegisterAlwaysMountedCompanyLogoFocusTargetsOptions =
   CompanyLogoFocusRegistrationController & {
     developerEnableElement: () => HTMLElement | null
+    developerSectionElement: () => HTMLElement | null
     openCompanyLogoPanel: () => void
     publisherEnableElement: () => HTMLElement | null
+    publisherSectionElement: () => HTMLElement | null
   }
 
 type RegisterCompanyLogoUploadFocusTargetOptions = Pick<
@@ -35,12 +39,23 @@ export function shouldOpenCompanyLogoPanelForRequest(
 
 export function registerAlwaysMountedCompanyLogoFocusTargets({
   developerEnableElement,
+  developerSectionElement,
   openCompanyLogoPanel,
   publisherEnableElement,
+  publisherSectionElement,
   registerFocusTarget,
   registerFocusTargetFallback,
+  registerSectionAlignmentTarget,
 }: RegisterAlwaysMountedCompanyLogoFocusTargetsOptions) {
   const openAncestors = [openCompanyLogoPanel]
+  const unregisterDeveloperSection = registerSectionAlignmentTarget(
+    'disc:company-logo:developer-section',
+    { element: developerSectionElement },
+  )
+  const unregisterPublisherSection = registerSectionAlignmentTarget(
+    'disc:company-logo:publisher-section',
+    { element: publisherSectionElement },
+  )
   const unregisterDeveloperEnable = registerFocusTarget(
     'disc:company-logo:developer-enable',
     {
@@ -69,6 +84,8 @@ export function registerAlwaysMountedCompanyLogoFocusTargets({
     unregisterDeveloperUploadFallback()
     unregisterPublisherEnable()
     unregisterDeveloperEnable()
+    unregisterPublisherSection()
+    unregisterDeveloperSection()
   }
 }
 

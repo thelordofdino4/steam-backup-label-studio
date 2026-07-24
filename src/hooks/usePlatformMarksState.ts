@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampProjectPlatformMarksToSafeZone } from '../layout/discElementSafeZone'
 import {
+  completeDiscGuidedSlotWhenSatisfied,
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  isDiscGuidedPlatformMarksOwnerSatisfied,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
+import {
   clearPlatformMarkImage,
   createDefaultProjectPlatformMarks,
   markProjectPlatformMarksManual,
@@ -24,17 +31,24 @@ import {
   isImageFile,
   readImportedImageAssetFromFile,
 } from '../utils/importedImageAsset'
+import { preserveDiscPlatformMarkPlacements } from '../presets/discPresetOwnerPlacement.ts'
 
 type UsePlatformMarksStateOptions = {
   selectedDiscTemplate: DiscTemplate
   selectedSteamGame: SteamImportedGame | null
   announceStatus: (message: string) => void
+  applyActivePresetPlacement?: (
+    platformMarks: ProjectPlatformMarks,
+  ) => ProjectPlatformMarks | null
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 export function usePlatformMarksState({
   selectedDiscTemplate,
   selectedSteamGame,
   announceStatus,
+  applyActivePresetPlacement = (platformMarks) => platformMarks,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UsePlatformMarksStateOptions) {
   const [projectPlatformMarks, setProjectPlatformMarks] =
     useState<ProjectPlatformMarks>(() => createDefaultProjectPlatformMarks())
@@ -48,6 +62,25 @@ export function usePlatformMarksState({
     return markProjectPlatformMarksManual(marks, selectedSteamGame?.appId ?? null)
   }
 
+  function finalizeEligibilityChange(nextMarks: ProjectPlatformMarks) {
+    const finalMarks = applyActivePresetPlacement(nextMarks) ??
+      preserveDiscPlatformMarkPlacements(
+        nextMarks,
+        projectPlatformMarksRef.current,
+        selectedDiscTemplate,
+      )
+    projectPlatformMarksRef.current = finalMarks
+    return finalMarks
+  }
+
+  function completePlatformMarksIfSatisfied(platformMarks: ProjectPlatformMarks) {
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.operatingSystemMarks,
+      isDiscGuidedPlatformMarksOwnerSatisfied(platformMarks),
+    )
+  }
+
   function clampProjectPlatformMarksToTemplate(template: DiscTemplate) {
     setProjectPlatformMarks((currentMarks) =>
       clampProjectPlatformMarksToSafeZone(currentMarks, template),
@@ -59,19 +92,21 @@ export function usePlatformMarksState({
   }
 
   function handlePlatformMarkToggle(value: PlatformMarkValue, enabled: boolean) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = clampProjectPlatformMarksToSafeZone(
-        updatePlatformMarkToggle(
-          currentMarks,
-          value,
-          enabled,
+    const nextMarks = finalizeEligibilityChange(
+      markCurrentProjectPlatformMarksManual(
+        clampProjectPlatformMarksToSafeZone(
+          updatePlatformMarkToggle(
+            projectPlatformMarksRef.current,
+            value,
+            enabled,
+            selectedDiscTemplate,
+          ),
           selectedDiscTemplate,
         ),
-        selectedDiscTemplate,
-      )
-
-      return markCurrentProjectPlatformMarksManual(nextMarks)
-    })
+      ),
+    )
+    setProjectPlatformMarks(nextMarks)
+    if (enabled) completePlatformMarksIfSatisfied(nextMarks)
   }
 
   async function handlePlatformMarkUpload(
@@ -92,17 +127,20 @@ export function usePlatformMarksState({
 
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-      const nextMarks = markCurrentProjectPlatformMarksManual(
-        applyImportedPlatformMark(
-          projectPlatformMarksRef.current,
-          value,
-          importedImage,
-          selectedDiscTemplate,
+      const nextMarks = finalizeEligibilityChange(
+        markCurrentProjectPlatformMarksManual(
+          applyImportedPlatformMark(
+            projectPlatformMarksRef.current,
+            value,
+            importedImage,
+            selectedDiscTemplate,
+          ),
         ),
       )
 
       projectPlatformMarksRef.current = nextMarks
       setProjectPlatformMarks(nextMarks)
+      completePlatformMarksIfSatisfied(nextMarks)
 
       announceStatus(`Using ${file.name} as the platform mark.`)
       return nextMarks
@@ -112,27 +150,35 @@ export function usePlatformMarksState({
   }
 
   function handlePlatformMarkSourceChange(value: PlatformMarkValue, source: PlatformMarkSource) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = clampProjectPlatformMarksToSafeZone(
-        updatePlatformMarkSource(currentMarks, value, source),
-        selectedDiscTemplate,
-      )
-
-      return markCurrentProjectPlatformMarksManual(nextMarks)
-    })
+    const nextMarks = finalizeEligibilityChange(
+      markCurrentProjectPlatformMarksManual(
+        clampProjectPlatformMarksToSafeZone(
+          updatePlatformMarkSource(
+            projectPlatformMarksRef.current,
+            value,
+            source,
+          ),
+          selectedDiscTemplate,
+        ),
+      ),
+    )
+    setProjectPlatformMarks(nextMarks)
+    completePlatformMarksIfSatisfied(nextMarks)
   }
 
   function handlePlatformMarkThemeChange(value: PlatformMarkValue, theme: PlatformMarkTheme) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = updatePlatformMarkTheme(
-        currentMarks,
-        value,
-        theme,
-        selectedDiscTemplate,
-      )
-
-      return markCurrentProjectPlatformMarksManual(nextMarks)
-    })
+    const nextMarks = finalizeEligibilityChange(
+      markCurrentProjectPlatformMarksManual(
+        updatePlatformMarkTheme(
+          projectPlatformMarksRef.current,
+          value,
+          theme,
+          selectedDiscTemplate,
+        ),
+      ),
+    )
+    setProjectPlatformMarks(nextMarks)
+    completePlatformMarksIfSatisfied(nextMarks)
   }
 
   function handlePlatformMarkLayoutChange(
@@ -140,14 +186,25 @@ export function usePlatformMarksState({
     field: PlatformMarkLayoutField,
     layoutValue: boolean | number,
   ) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = clampProjectPlatformMarksToSafeZone(
-        updatePlatformMarkLayoutField(currentMarks, platformValue, field, layoutValue),
-        selectedDiscTemplate,
-      )
+    const nextMarks = clampProjectPlatformMarksToSafeZone(
+      updatePlatformMarkLayoutField(
+        projectPlatformMarksRef.current,
+        platformValue,
+        field,
+        layoutValue,
+      ),
+      selectedDiscTemplate,
+    )
+    const manualMarks = markCurrentProjectPlatformMarksManual(nextMarks)
+    const finalMarks = field === 'enabled'
+      ? finalizeEligibilityChange(manualMarks)
+      : manualMarks
+    projectPlatformMarksRef.current = finalMarks
+    setProjectPlatformMarks(finalMarks)
 
-      return markCurrentProjectPlatformMarksManual(nextMarks)
-    })
+    if (field === 'enabled' && layoutValue === true) {
+      completePlatformMarksIfSatisfied(finalMarks)
+    }
   }
 
   function handleClearPlatformMarkImage(value: PlatformMarkValue) {
@@ -157,7 +214,9 @@ export function usePlatformMarksState({
         selectedDiscTemplate,
       )
 
-      return markCurrentProjectPlatformMarksManual(nextMarks)
+      return finalizeEligibilityChange(
+        markCurrentProjectPlatformMarksManual(nextMarks),
+      )
     })
 
     announceStatus('Cleared custom platform mark image.')
@@ -176,6 +235,15 @@ export function usePlatformMarksState({
     announceStatus('Reset platform mark layout.')
   }
 
+  function applyProjectPlatformMarksEligibilityChange(
+    nextMarks: ProjectPlatformMarks,
+  ) {
+    const finalMarks = finalizeEligibilityChange(nextMarks)
+    setProjectPlatformMarks(finalMarks)
+    completePlatformMarksIfSatisfied(finalMarks)
+    return finalMarks
+  }
+
   return {
     projectPlatformMarks,
     setProjectPlatformMarks,
@@ -188,5 +256,6 @@ export function usePlatformMarksState({
     handlePlatformMarkLayoutChange,
     handleClearPlatformMarkImage,
     handleResetPlatformMarkLayout,
+    applyProjectPlatformMarksEligibilityChange,
   }
 }

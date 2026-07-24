@@ -1,39 +1,24 @@
-import {
-  getDiscTextContent,
-  getDiscTextHtmlSource,
-  isDiscTextHtmlEnabled,
-  type DiscTextHtmlSources,
-  type DiscTextSettings,
-  type DiscTextValues,
-} from '../discText/index.ts'
-import { resolveDiscTextMetadataState } from '../discText/metadataStateTransitions.ts'
-import { isOptionalVisualFeatureEnabled } from '../editor/optionalVisualFeature.ts'
 import type { DiscRolePresetRole } from '../layout/discRolePresets.ts'
-import type { DiscTextValueSources } from '../project/metadataDiscText.ts'
 import { shouldRenderAdditionalArtworkElement } from '../project/projectAdditionalArtwork.ts'
-import { DEFAULT_DISC_PROJECT_TITLE } from '../project/projectMetadata.ts'
-import { shouldRenderRatingBadge } from '../project/projectRatingBadge.ts'
-import { shouldRenderTitleArtwork } from '../project/projectTitleArtwork.ts'
+import {
+  isDiscGuidedBackgroundOwnerSatisfied,
+  isDiscGuidedMediaMarkOwnerSatisfied,
+  isDiscGuidedPlatformMarksOwnerSatisfied,
+  isDiscGuidedPrimaryLogoOwnerSatisfied,
+  isDiscGuidedRatingBadgeOwnerSatisfied,
+  isDiscGuidedTextOwnerSatisfied,
+  isDiscGuidedTitleArtworkOwnerSatisfied,
+} from './discGuidedCompletion.ts'
 import type {
-  ProjectAdditionalArtwork,
-  ProjectLogoAssets,
-  ProjectMetadata,
-  ProjectRatingBadge,
-  ProjectTitleArtwork,
-} from '../project/projectTypes.ts'
-import { parseHtmlText } from '../text/htmlText.ts'
+  DiscGuidedSlotId,
+  DiscGuidedSlotState,
+} from './discGuidedSlotState.ts'
 
-export const DISC_GUIDED_SLOT_IDS = [
-  'disc:guided:game-title:primary',
-  'disc:guided:background-image:primary',
-  'disc:guided:rating:primary',
-  'disc:guided:company-logo:primary',
-  'disc:guided:legal-text:copyright',
-  'disc:guided:additional-artwork:primary',
-  'disc:guided:additional-text:custom-note',
-] as const
-
-export type DiscGuidedSlotId = (typeof DISC_GUIDED_SLOT_IDS)[number]
+export { DISC_GUIDED_SLOT_IDS } from './discGuidedSlotState.ts'
+export type {
+  DiscGuidedSlotId,
+  DiscGuidedSlotState,
+} from './discGuidedSlotState.ts'
 
 export type GuidedContentKind = 'image' | 'text' | 'domain-mark'
 
@@ -41,7 +26,25 @@ export type GuidedSlotLifecycle =
   | 'unfilled'
   | 'suggested'
   | 'filled'
-  | 'skipped'
+  | 'completed'
+  | 'omitted'
+  | 'unsupported'
+
+export type DiscGuidedSlotPresentation =
+  | 'unsupported'
+  | 'available'
+  | 'suggested'
+  | 'owner-filled'
+  | 'completed'
+  | 'omitted'
+
+export type DiscGuidedSlotResolutionFlags = Readonly<{
+  unsupported: boolean
+  omitted: boolean
+  completed: boolean
+  ownerFilled: boolean
+  suggested: boolean
+}>
 
 export type DiscGuidedSlotRequirement = 'expected' | 'optional'
 
@@ -55,6 +58,11 @@ export type DiscGuidedBindingCandidate =
   | {
       owner: 'ratingBadge'
       badgeKey: 'primary'
+    }
+  | { owner: 'mediaMark' }
+  | {
+      owner: 'platformMarks'
+      selection: 'enabled-values'
     }
   | {
       owner: 'logoAssets'
@@ -97,7 +105,7 @@ export type DiscGuidedSlotDefinition = {
   preferredContentKind?: GuidedContentKind
   candidateBindings: readonly DiscGuidedBindingCandidate[]
   requirement: DiscGuidedSlotRequirement
-  skippable: boolean
+  omittable: boolean
   suggestionSourceKinds: readonly DiscGuidedSuggestionSourceKind[]
   autoFillEligibility: DiscGuidedAutoFillEligibility
   placeholderGeometry?: DiscGuidedPlaceholderGeometryRef
@@ -110,50 +118,14 @@ export type DiscGuidedSlotSuggestion = {
   sourceKind: DiscGuidedSuggestionSourceKind
 }
 
-export type DiscGuidedSlotState = {
-  background: {
-    enabled: boolean
-    imageDataUrl: string | null
-  }
-  titleArtwork: ProjectTitleArtwork
-  metadata: ProjectMetadata
-  ratingBadge: ProjectRatingBadge
-  logoAssets: Pick<
-    ProjectLogoAssets,
-    | 'developerLogoDataUrl'
-    | 'developerLogoLayout'
-    | 'publisherLogoDataUrl'
-    | 'publisherLogoLayout'
-  >
-  additionalArtwork: ProjectAdditionalArtwork
-  discText: {
-    settings: DiscTextSettings
-    values: DiscTextValues
-    valueSources: DiscTextValueSources
-    titleValue: string
-    htmlSources: DiscTextHtmlSources
-  }
-}
-
-export type DiscGuidedSlotResolution =
-  | {
-      lifecycle: 'filled'
-      definition: DiscGuidedSlotDefinition
-      binding: DiscGuidedResolvedBinding
-      suggestion: null
-    }
-  | {
-      lifecycle: 'suggested'
-      definition: DiscGuidedSlotDefinition
-      binding: null
-      suggestion: DiscGuidedSlotSuggestion
-    }
-  | {
-      lifecycle: 'unfilled' | 'skipped'
-      definition: DiscGuidedSlotDefinition
-      binding: null
-      suggestion: null
-    }
+export type DiscGuidedSlotResolution = Readonly<{
+  lifecycle: GuidedSlotLifecycle
+  presentation: DiscGuidedSlotPresentation
+  flags: DiscGuidedSlotResolutionFlags
+  definition: DiscGuidedSlotDefinition
+  binding: DiscGuidedResolvedBinding | null
+  suggestion: DiscGuidedSlotSuggestion | null
+}>
 
 export const DISC_GUIDED_SLOT_DEFINITIONS = [
   {
@@ -167,7 +139,7 @@ export const DISC_GUIDED_SLOT_DEFINITIONS = [
       { owner: 'discText', key: 'title' },
     ],
     requirement: 'expected',
-    skippable: true,
+    omittable: true,
     suggestionSourceKinds: ['steam-import', 'metadata', 'external'],
     autoFillEligibility: 'accepted-import-result',
   },
@@ -179,34 +151,73 @@ export const DISC_GUIDED_SLOT_DEFINITIONS = [
     preferredContentKind: 'image',
     candidateBindings: [{ owner: 'backgroundImage' }],
     requirement: 'expected',
-    skippable: true,
+    omittable: true,
     suggestionSourceKinds: [],
     autoFillEligibility: 'none',
   },
   {
-    id: 'disc:guided:rating:primary',
+    id: 'disc:guided:rating-badge:primary',
     surface: 'disc',
     role: 'game-info-logos',
     acceptedContentKinds: ['domain-mark', 'image'],
     preferredContentKind: 'domain-mark',
     candidateBindings: [{ owner: 'ratingBadge', badgeKey: 'primary' }],
     requirement: 'optional',
-    skippable: true,
+    omittable: true,
     suggestionSourceKinds: ['metadata', 'configured-owner', 'external'],
     autoFillEligibility: 'accepted-metadata',
   },
   {
-    id: 'disc:guided:company-logo:primary',
+    id: 'disc:guided:media-format-mark:primary',
+    surface: 'disc',
+    role: 'game-info-logos',
+    acceptedContentKinds: ['domain-mark', 'image'],
+    preferredContentKind: 'domain-mark',
+    candidateBindings: [{ owner: 'mediaMark' }],
+    requirement: 'optional',
+    omittable: true,
+    suggestionSourceKinds: ['configured-owner', 'external'],
+    autoFillEligibility: 'none',
+  },
+  {
+    id: 'disc:guided:operating-system-marks:group',
+    surface: 'disc',
+    role: 'game-info-logos',
+    acceptedContentKinds: ['domain-mark', 'image'],
+    preferredContentKind: 'domain-mark',
+    candidateBindings: [
+      { owner: 'platformMarks', selection: 'enabled-values' },
+    ],
+    requirement: 'optional',
+    omittable: true,
+    suggestionSourceKinds: ['configured-owner', 'external'],
+    autoFillEligibility: 'none',
+  },
+  {
+    id: 'disc:guided:developer-logo:primary',
     surface: 'disc',
     role: 'company-logos',
     acceptedContentKinds: ['image'],
     preferredContentKind: 'image',
     candidateBindings: [
       { owner: 'logoAssets', logoKey: 'developer', scope: 'primary' },
+    ],
+    requirement: 'optional',
+    omittable: true,
+    suggestionSourceKinds: ['configured-owner', 'external'],
+    autoFillEligibility: 'accepted-import-result',
+  },
+  {
+    id: 'disc:guided:publisher-logo:primary',
+    surface: 'disc',
+    role: 'company-logos',
+    acceptedContentKinds: ['image'],
+    preferredContentKind: 'image',
+    candidateBindings: [
       { owner: 'logoAssets', logoKey: 'publisher', scope: 'primary' },
     ],
     requirement: 'optional',
-    skippable: true,
+    omittable: true,
     suggestionSourceKinds: ['configured-owner', 'external'],
     autoFillEligibility: 'accepted-import-result',
   },
@@ -218,7 +229,7 @@ export const DISC_GUIDED_SLOT_DEFINITIONS = [
     preferredContentKind: 'text',
     candidateBindings: [{ owner: 'discText', key: 'copyright' }],
     requirement: 'optional',
-    skippable: true,
+    omittable: true,
     suggestionSourceKinds: ['metadata', 'external'],
     autoFillEligibility: 'accepted-metadata',
   },
@@ -232,7 +243,7 @@ export const DISC_GUIDED_SLOT_DEFINITIONS = [
       { owner: 'additionalArtwork', selection: 'first-renderable-existing' },
     ],
     requirement: 'optional',
-    skippable: true,
+    omittable: true,
     suggestionSourceKinds: [],
     autoFillEligibility: 'none',
   },
@@ -244,7 +255,7 @@ export const DISC_GUIDED_SLOT_DEFINITIONS = [
     preferredContentKind: 'text',
     candidateBindings: [{ owner: 'discText', key: 'customNote' }],
     requirement: 'optional',
-    skippable: true,
+    omittable: true,
     suggestionSourceKinds: [],
     autoFillEligibility: 'none',
   },
@@ -256,76 +267,23 @@ export function getDiscGuidedSlotDefinition(slotId: string) {
   )
 }
 
-function getResolvedDiscTextContent(
-  state: DiscGuidedSlotState,
-  key: 'title' | 'copyright' | 'customNote',
-) {
-  const resolution = resolveDiscTextMetadataState(state.metadata, {
-    discTextValues: state.discText.values,
-    discTextValueSources: state.discText.valueSources,
-    discTextTitleValue: state.discText.titleValue,
-  })
-  const fallbackText = getDiscTextContent(
-    key,
-    resolution.metadataBoundDiscTextValues,
-    resolution.resolvedDiscTextTitle,
-  )
-
-  return isDiscTextHtmlEnabled(state.discText.htmlSources, key)
-    ? parseHtmlText(
-        getDiscTextHtmlSource(
-          state.discText.htmlSources,
-          key,
-          fallbackText,
-        ),
-      ).plainText
-    : fallbackText
-}
-
-function isUntouchedDefaultTitle(
-  state: DiscGuidedSlotState,
-  resolvedTitle: string,
-) {
-  return resolvedTitle.trim() === DEFAULT_DISC_PROJECT_TITLE &&
-    state.discText.valueSources.title === 'metadata' &&
-    state.metadata.title.trim() === DEFAULT_DISC_PROJECT_TITLE &&
-    state.discText.titleValue.trim() === '' &&
-    state.metadata.steamAppId.trim() === ''
-}
-
 function resolveDiscTextBinding(
   state: DiscGuidedSlotState,
   candidate: Extract<DiscGuidedBindingCandidate, { owner: 'discText' }>,
 ): DiscGuidedResolvedBinding | null {
-  if (!state.discText.settings[candidate.key]) {
-    return null
-  }
-
-  const content = getResolvedDiscTextContent(state, candidate.key)
-
-  if (!content.trim()) {
-    return null
-  }
-
-  if (candidate.key === 'title' && isUntouchedDefaultTitle(state, content)) {
-    return null
-  }
-
-  return candidate
+  return isDiscGuidedTextOwnerSatisfied(state, candidate.key)
+    ? candidate
+    : null
 }
 
 function resolveLogoBinding(
   state: DiscGuidedSlotState,
   candidate: Extract<DiscGuidedBindingCandidate, { owner: 'logoAssets' }>,
 ): DiscGuidedResolvedBinding | null {
-  const layout = candidate.logoKey === 'developer'
-    ? state.logoAssets.developerLogoLayout
-    : state.logoAssets.publisherLogoLayout
-  const imageDataUrl = candidate.logoKey === 'developer'
-    ? state.logoAssets.developerLogoDataUrl
-    : state.logoAssets.publisherLogoDataUrl
-
-  return isOptionalVisualFeatureEnabled(layout) && Boolean(imageDataUrl)
+  return isDiscGuidedPrimaryLogoOwnerSatisfied(
+    state.logoAssets,
+    candidate.logoKey,
+  )
     ? candidate
     : null
 }
@@ -336,15 +294,28 @@ function resolveBindingCandidate(
 ): DiscGuidedResolvedBinding | null {
   switch (candidate.owner) {
     case 'backgroundImage':
-      return state.background.enabled && Boolean(state.background.imageDataUrl)
+      return isDiscGuidedBackgroundOwnerSatisfied(state.background)
         ? candidate
         : null
     case 'titleArtwork':
-      return shouldRenderTitleArtwork(state.titleArtwork) ? candidate : null
+      return isDiscGuidedTitleArtworkOwnerSatisfied(state.titleArtwork)
+        ? candidate
+        : null
     case 'discText':
       return resolveDiscTextBinding(state, candidate)
     case 'ratingBadge':
-      return shouldRenderRatingBadge(state.metadata, state.ratingBadge)
+      return isDiscGuidedRatingBadgeOwnerSatisfied(
+        state.metadata,
+        state.ratingBadge,
+      )
+        ? candidate
+        : null
+    case 'mediaMark':
+      return isDiscGuidedMediaMarkOwnerSatisfied(state.mediaMark)
+        ? candidate
+        : null
+    case 'platformMarks':
+      return isDiscGuidedPlatformMarksOwnerSatisfied(state.platformMarks)
         ? candidate
         : null
     case 'logoAssets':
@@ -393,12 +364,16 @@ export function resolveDiscGuidedSlot({
   slotId,
   state,
   suggestions,
-  skippedSlotIds,
+  omittedSlotIds,
+  completedSlotIds = new Set<DiscGuidedSlotId>(),
+  unsupported = false,
 }: {
   slotId: DiscGuidedSlotId
   state: DiscGuidedSlotState
   suggestions: readonly DiscGuidedSlotSuggestion[]
-  skippedSlotIds: ReadonlySet<DiscGuidedSlotId>
+  omittedSlotIds: ReadonlySet<DiscGuidedSlotId>
+  completedSlotIds?: ReadonlySet<DiscGuidedSlotId>
+  unsupported?: boolean
 }): DiscGuidedSlotResolution {
   const definition = getDiscGuidedSlotDefinition(slotId)
 
@@ -406,60 +381,60 @@ export function resolveDiscGuidedSlot({
     throw new Error(`Unknown Disc guided slot: ${slotId}`)
   }
 
-  if (skippedSlotIds.has(slotId)) {
-    return {
-      lifecycle: 'skipped',
-      definition,
-      binding: null,
-      suggestion: null,
-    }
-  }
-
   const binding = resolveExistingBinding(definition, state)
-
-  if (binding) {
-    return {
-      lifecycle: 'filled',
-      definition,
-      binding,
-      suggestion: null,
-    }
-  }
-
   const suggestion = resolveSuggestion(definition, suggestions)
-
-  if (suggestion) {
-    return {
-      lifecycle: 'suggested',
-      definition,
-      binding: null,
-      suggestion,
-    }
+  const flags: DiscGuidedSlotResolutionFlags = {
+    unsupported,
+    omitted: omittedSlotIds.has(slotId),
+    completed: completedSlotIds.has(slotId),
+    ownerFilled: binding !== null,
+    suggested: suggestion !== null,
   }
+  const presentation: DiscGuidedSlotPresentation = flags.unsupported
+    ? 'unsupported'
+    : flags.omitted
+      ? 'omitted'
+      : flags.completed
+        ? 'completed'
+        : flags.ownerFilled
+          ? 'owner-filled'
+          : flags.suggested
+            ? 'suggested'
+            : 'available'
+  const lifecycle: GuidedSlotLifecycle = presentation === 'owner-filled'
+    ? 'filled'
+    : presentation === 'available'
+      ? 'unfilled'
+      : presentation
 
   return {
-    lifecycle: 'unfilled',
+    lifecycle,
+    presentation,
+    flags,
     definition,
-    binding: null,
-    suggestion: null,
+    binding,
+    suggestion,
   }
 }
 
 export function resolveDiscGuidedSlots({
   state,
   suggestions,
-  skippedSlotIds,
+  omittedSlotIds,
+  completedSlotIds = new Set<DiscGuidedSlotId>(),
 }: {
   state: DiscGuidedSlotState
   suggestions: readonly DiscGuidedSlotSuggestion[]
-  skippedSlotIds: ReadonlySet<DiscGuidedSlotId>
+  omittedSlotIds: ReadonlySet<DiscGuidedSlotId>
+  completedSlotIds?: ReadonlySet<DiscGuidedSlotId>
 }) {
   return DISC_GUIDED_SLOT_DEFINITIONS.map((definition) =>
     resolveDiscGuidedSlot({
       slotId: definition.id,
       state,
       suggestions,
-      skippedSlotIds,
+      omittedSlotIds,
+      completedSlotIds,
     }),
   )
 }

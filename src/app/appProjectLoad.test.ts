@@ -51,6 +51,8 @@ function createCaseInsertRestoreCallbacks(
 
 function createDiscRestoreCallbacks(calls: CallRecord[]): DiscRestoreCallbacks {
   return {
+    restoreDiscGuidedWorkflow:
+      recordValueCall(calls, 'restoreDiscGuidedWorkflow'),
     setManualGameTitle: recordValueCall(calls, 'setManualGameTitle'),
     setProjectMetadata: recordValueCall(calls, 'setProjectMetadata'),
     setProjectLogoAssets: recordValueCall(calls, 'setProjectLogoAssets'),
@@ -130,6 +132,10 @@ function createRestoredDiscProject(
   backgroundImageUrl: string | null = null,
 ): RestoredProjectState {
   return {
+    discGuidedWorkflow: {
+      activeLayout: null,
+      omittedSlotIds: [],
+    },
     manualGameTitle: 'Loaded Disc',
     projectMetadata: { title: 'Loaded Disc' },
     projectLogoAssets: { kind: 'logos' },

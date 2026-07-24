@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampMediaMarkLayoutToSafeZone } from '../layout/discElementSafeZone'
 import {
+  completeDiscGuidedSlotWhenSatisfied,
+  DISC_GUIDED_COMPLETION_SLOT_IDS,
+  ignoreDiscGuidedSlotCompletion,
+  isDiscGuidedMediaMarkOwnerSatisfied,
+  type DiscGuidedSlotCompletionHandler,
+} from '../guidedPresets/discGuidedCompletion.ts'
+import {
   clearMediaMarkImage,
   createDefaultProjectMediaMark,
   resetProjectMediaMarkLayout,
@@ -22,10 +29,15 @@ import {
   isImageFile,
   readImportedImageAssetFromFile,
 } from '../utils/importedImageAsset'
+import { preserveDiscPointOwnerPlacement } from '../presets/discPresetOwnerPlacement.ts'
 
 type UseMediaMarkStateOptions = {
   selectedDiscTemplate: DiscTemplate
   announceStatus: (message: string) => void
+  applyActivePresetPlacement?: (
+    mediaMark: ProjectMediaMark,
+  ) => ProjectMediaMark | null
+  onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
 function clampMediaMarkToTemplate(
@@ -41,6 +53,8 @@ function clampMediaMarkToTemplate(
 export function useMediaMarkState({
   selectedDiscTemplate,
   announceStatus,
+  applyActivePresetPlacement = (mediaMark) => mediaMark,
+  onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseMediaMarkStateOptions) {
   const [projectMediaMark, setProjectMediaMark] = useState<ProjectMediaMark>(() =>
     createDefaultProjectMediaMark(selectedDiscTemplate),
@@ -50,6 +64,19 @@ export function useMediaMarkState({
   useEffect(() => {
     projectMediaMarkRef.current = projectMediaMark
   }, [projectMediaMark])
+
+  function applySemanticMediaMarkChange(mediaMark: ProjectMediaMark) {
+    const fittedMediaMark = applyActivePresetPlacement(mediaMark) ?? {
+      ...mediaMark,
+      layout: preserveDiscPointOwnerPlacement(
+        mediaMark.layout,
+        projectMediaMarkRef.current.layout,
+      ),
+    }
+    projectMediaMarkRef.current = fittedMediaMark
+    setProjectMediaMark(fittedMediaMark)
+    return fittedMediaMark
+  }
 
   function clampProjectMediaMarkToTemplate(template: DiscTemplate) {
     setProjectMediaMark((currentMark) => {
@@ -73,6 +100,14 @@ export function useMediaMarkState({
     setProjectMediaMark(createDefaultProjectMediaMark(template))
   }
 
+  function completeMediaMarkIfSatisfied(mediaMark: ProjectMediaMark) {
+    completeDiscGuidedSlotWhenSatisfied(
+      onDiscGuidedSlotCompleted,
+      DISC_GUIDED_COMPLETION_SLOT_IDS.mediaFormatMark,
+      isDiscGuidedMediaMarkOwnerSatisfied(mediaMark),
+    )
+  }
+
   async function handleMediaMarkUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -94,53 +129,66 @@ export function useMediaMarkState({
         selectedDiscTemplate,
       )
 
-      projectMediaMarkRef.current = nextMark
-      setProjectMediaMark(nextMark)
+      const finalMark = applySemanticMediaMarkChange(nextMark)
+      completeMediaMarkIfSatisfied(finalMark)
 
       announceStatus(`Using ${file.name} as the media mark.`)
-      return nextMark
+      return finalMark
     } catch (error) {
       announceStatus(`Media mark import failed: ${String(error)}`)
     }
   }
 
   function handleMediaMarkValueChange(value: MediaMarkValue) {
-    setProjectMediaMark((currentMark) =>
-      updateMediaMarkValue(currentMark, value),
-    )
+    const nextMark = updateMediaMarkValue(projectMediaMarkRef.current, value)
+    const finalMark = applySemanticMediaMarkChange(nextMark)
+    completeMediaMarkIfSatisfied(finalMark)
   }
 
   function handleMediaMarkSourceChange(source: MediaMarkSource) {
-    setProjectMediaMark((currentMark) =>
-      clampMediaMarkToTemplate(
-        updateMediaMarkSource(currentMark, source),
-        selectedDiscTemplate,
-      ),
+    const nextMark = clampMediaMarkToTemplate(
+      updateMediaMarkSource(projectMediaMarkRef.current, source),
+      selectedDiscTemplate,
     )
+    const finalMark = applySemanticMediaMarkChange(nextMark)
+    completeMediaMarkIfSatisfied(finalMark)
   }
 
   function handleMediaMarkThemeChange(theme: MediaMarkTheme) {
-    setProjectMediaMark((currentMark) =>
-      updateMediaMarkTheme(currentMark, theme),
-    )
+    const nextMark = updateMediaMarkTheme(projectMediaMarkRef.current, theme)
+    const finalMark = applySemanticMediaMarkChange(nextMark)
+    completeMediaMarkIfSatisfied(finalMark)
   }
 
   function handleMediaMarkLayoutChange(
     field: MediaMarkLayoutField,
     value: boolean | number,
   ) {
-    setProjectMediaMark((currentMark) =>
-      clampMediaMarkToTemplate(
-        updateMediaMarkLayoutField(currentMark, field, value),
-        selectedDiscTemplate,
+    const nextMark = clampMediaMarkToTemplate(
+      updateMediaMarkLayoutField(
+        projectMediaMarkRef.current,
+        field,
+        value,
       ),
+      selectedDiscTemplate,
     )
+    let finalMark = nextMark
+    if (field === 'enabled' && value === true) {
+      finalMark = applySemanticMediaMarkChange(nextMark)
+    } else {
+      projectMediaMarkRef.current = nextMark
+      setProjectMediaMark(nextMark)
+    }
+
+    if (field === 'enabled' && value === true) {
+      completeMediaMarkIfSatisfied(finalMark)
+    }
   }
 
   function handleClearMediaMarkImage() {
-    setProjectMediaMark((currentMark) =>
+    applySemanticMediaMarkChange(
       clampMediaMarkToTemplate(
-        clearMediaMarkImage(currentMark),
+        clearMediaMarkImage(projectMediaMarkRef.current),
         selectedDiscTemplate,
       ),
     )

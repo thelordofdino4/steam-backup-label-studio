@@ -7,7 +7,11 @@ import {
 import { DEFAULT_STEAM_BANNER_FALLBACK_TEXT } from '../branding/steamBannerDefaults.ts'
 import type { SavedDiscProject } from './projectTypes.ts'
 
-const baseProject: SavedDiscProject = {
+type LegacySavedDiscProject = Omit<SavedDiscProject, 'schemaVersion'> & {
+  schemaVersion: '0.1.0'
+}
+
+const baseProject: LegacySavedDiscProject = {
   schemaVersion: '0.1.0',
   title: 'Saved Title',
   savedAt: '2026-01-01T00:00:00.000Z',

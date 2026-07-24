@@ -488,8 +488,19 @@ export type SavedCaseInsertEditorState = {
   activeCaseInsertTemplatePane?: CaseInsertTemplatePaneId
 }
 
+export type SavedDiscGuidedLayoutState = {
+  id: string
+  version: number
+  omittedSlotIds: string[]
+  completedSlotIds: string[]
+}
+
+export type SavedDiscEditorState = {
+  guidedLayout?: SavedDiscGuidedLayoutState
+}
+
 export type SavedProjectBase = {
-  schemaVersion: '0.1.0'
+  schemaVersion: '0.2.0'
   projectType?: EditorProjectType
   title: string
   savedAt: string
@@ -502,6 +513,7 @@ export type SavedProjectBase = {
 
 export type SavedDiscProject = SavedProjectBase & {
   projectType?: 'disc'
+  editor?: SavedDiscEditorState
   logoAssets?: ProjectLogoAssetsInput
   titleArtwork?: Partial<ProjectTitleArtwork>
   discNumberArtwork?: Partial<ProjectDiscNumberArtwork>

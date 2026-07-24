@@ -15,6 +15,7 @@ import type {
 import { discTemplates } from '../templates/discTemplates.ts'
 import {
   runSteamDiscVisualDefaultImport,
+  shouldApplySteamPlatformMarksEligibilityChange,
 } from './appSteamDiscVisualImport.ts'
 
 function createImportedGame(
@@ -88,6 +89,7 @@ test('Steam disc visual default import preserves the App import sequencing and r
   assert.deepEqual(callOrder, ['disc-text', 'title-artwork', 'platform-marks'])
   assert.equal(result.nextDiscTextResolution, nextDiscTextResolution)
   assert.equal(result.platformMarks, nextPlatformMarks)
+  assert.equal(result.platformMarkImportStatus, 'applied')
   assert.equal(
     result.titleArtworkStatusMessage,
     'Using Steam logo as the disc title artwork.',
@@ -106,7 +108,7 @@ test('Steam disc visual default import passes through copyright metadata source 
     resolvedDiscTextTitle: 'Portal 2',
   } as DiscTextMetadataResolution
 
-  await runSteamDiscVisualDefaultImport({
+  const result = await runSteamDiscVisualDefaultImport({
     importedGame,
     nextProjectMetadata: metadata,
     shouldUpdateCopyrightDiscTextSource: false,
@@ -129,4 +131,50 @@ test('Steam disc visual default import passes through copyright metadata source 
       statusMessage: 'Steam appdetails did not include reliable operating system metadata.',
     }),
   })
+
+  assert.equal(result.platformMarkImportStatus, 'no-data')
+  assert.equal(
+    shouldApplySteamPlatformMarksEligibilityChange(
+      result.platformMarkImportStatus,
+    ),
+    true,
+  )
+})
+
+test('Steam disc visual default import preserves skipped-manual OS placement eligibility', async () => {
+  const importedGame = createImportedGame()
+  const metadata = createDefaultProjectMetadata()
+  const platformMarks = createDefaultProjectPlatformMarks()
+
+  const result = await runSteamDiscVisualDefaultImport({
+    importedGame,
+    nextProjectMetadata: metadata,
+    shouldUpdateCopyrightDiscTextSource: false,
+    projectPlatformMarks: platformMarks,
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+    selectedSteamGame: importedGame,
+    applySteamImportedDiscTextValues: () => ({
+      resolvedDiscTextTitle: 'Portal 2',
+    }) as DiscTextMetadataResolution,
+    applySteamTitleArtworkImport: async () => ({
+      titleArtwork: {} as SteamTitleArtworkImportResult['titleArtwork'],
+      status: 'unavailable',
+      statusMessage: 'No Steam title/logo artwork was found.',
+    }),
+    applyPlatformMarksImport: (params) => ({
+      platformMarks: params.currentPlatformMarks,
+      status: 'skipped-manual',
+      values: params.currentPlatformMarks.values,
+      statusMessage: 'Kept manually edited operating system marks.',
+    }),
+  })
+
+  assert.equal(result.platformMarks, platformMarks)
+  assert.equal(result.platformMarkImportStatus, 'skipped-manual')
+  assert.equal(
+    shouldApplySteamPlatformMarksEligibilityChange(
+      result.platformMarkImportStatus,
+    ),
+    false,
+  )
 })

@@ -8,6 +8,7 @@ import {
 import {
   plainTextToRichTextDocument,
   type RichTextDocument,
+  type RichTextRun,
 } from '../text/htmlText.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import {
@@ -15,6 +16,7 @@ import {
 } from './pointSize.ts'
 import {
   getDiscTextFontString,
+  getDiscTextRunFontSize,
   getDiscTextRunFontString,
   wrapMeasuredTextLines,
   wrapMeasuredTextLinesBySegments,
@@ -22,6 +24,10 @@ import {
   wrapRichTextDocumentLinesBySegments,
   type TextMeasureFunction,
 } from './straightTextWrapping.ts'
+import {
+  DISC_TEXT_BOX_BORDER_WIDTH,
+  getStraightDiscTextPaintInsets,
+} from './straightTextPaintGeometry.ts'
 
 export {
   getDiscTextFontString,
@@ -33,6 +39,7 @@ export type { TextMeasureFunction } from './straightTextWrapping.ts'
 export type StraightDiscTextLineLayout = {
   text: string
   runs?: StraightDiscTextRunLayout[]
+  lineHeight?: number
   width: number
   x: number
   y: number
@@ -49,6 +56,7 @@ export type StraightDiscTextRunLayout = {
   fontFamily?: string
   fontSizePt?: number
   fontSizePx?: number
+  resolvedFontSize?: number
   fontWeight?: number
   fontStyle?: 'normal' | 'italic'
   textDecoration?: 'none' | 'underline'
@@ -82,12 +90,21 @@ type DiscTextLineSegment = {
   y: number
 }
 
+const STRAIGHT_DISC_TEXT_LINE_HEIGHT_FACTOR = 1.18
+
 export type StraightDiscTextVisualBounds = {
   centerX: number
   centerY: number
   halfWidth: number
   halfHeight: number
 }
+
+type StraightDiscTextBoundsRect = Readonly<{
+  bottom: number
+  left: number
+  right: number
+  top: number
+}>
 
 function getBaseTextSegment(layout: DiscTextLayout) {
   const centerX = 50 + layout.x
@@ -168,15 +185,16 @@ function getPreferredSegment(
 
 function getAvoidanceLineSegments(
   layout: DiscTextLayout,
-  lineCount: number,
-  lineHeight: number,
+  lineHeights: readonly number[],
   regions: DiscTextAvoidanceRegion[],
 ): DiscTextLineSegment[] {
   const baseSegment = getBaseTextSegment(layout)
-  const firstLineY = layout.y - ((lineCount - 1) * lineHeight) / 2
+  const linePlacements = getCenteredLineVerticalPlacements(
+    layout.y,
+    lineHeights,
+  )
 
-  return Array.from({ length: Math.max(1, lineCount) }, (_, index) => {
-    const y = firstLineY + index * lineHeight
+  return linePlacements.map(({ lineHeight, y }) => {
     const top = y - lineHeight / 2
     const bottom = y + lineHeight / 2
     const overlappingRegions = regions.filter((region) =>
@@ -199,6 +217,80 @@ function getAvoidanceLineSegments(
   })
 }
 
+function getCenteredLineVerticalPlacements(
+  centerY: number,
+  lineHeights: readonly number[],
+) {
+  const totalHeight = lineHeights.reduce(
+    (height, lineHeight) => height + lineHeight,
+    0,
+  )
+  let nextTop = centerY - totalHeight / 2
+
+  return lineHeights.map((lineHeight) => {
+    const placement = {
+      lineHeight,
+      y: nextTop + lineHeight / 2,
+    }
+    nextTop += lineHeight
+    return placement
+  })
+}
+
+function getRichTextLineHeight(
+  runs: readonly RichTextRun[],
+  baseFontSize: number,
+  template?: DiscTemplate,
+) {
+  const maximumFontSize = runs.reduce(
+    (maximum, run) => run.text
+      ? Math.max(
+          maximum,
+          getDiscTextRunFontSize({
+            fontSize: baseFontSize,
+            run,
+            template,
+          }),
+        )
+      : maximum,
+    baseFontSize,
+  )
+
+  return maximumFontSize * STRAIGHT_DISC_TEXT_LINE_HEIGHT_FACTOR
+}
+
+function getRichTextLineHeights(
+  lines: readonly { runs: readonly RichTextRun[] }[],
+  baseFontSize: number,
+  template?: DiscTemplate,
+  useResolvedRunSizes = true,
+) {
+  const baseLineHeight =
+    baseFontSize * STRAIGHT_DISC_TEXT_LINE_HEIGHT_FACTOR
+
+  if (!useResolvedRunSizes) {
+    return getUniformLineHeights(lines.length, baseLineHeight)
+  }
+
+  if (lines.length === 0) {
+    return [baseLineHeight]
+  }
+
+  return lines.map((line) =>
+    getRichTextLineHeight(line.runs, baseFontSize, template))
+}
+
+function usesResolvedRichTextLineHeights(key: DiscTextKey) {
+  return key === 'title' || key === 'copyright'
+}
+
+function getUniformLineHeights(lineCount: number, lineHeight: number) {
+  return Array.from(
+    { length: Math.max(1, lineCount) },
+    () => lineHeight,
+  )
+}
+
 function wrapMeasuredTextLinesWithAvoidance(
   text: string,
   layout: DiscTextLayout,
@@ -213,8 +305,7 @@ function wrapMeasuredTextLinesWithAvoidance(
   for (let attempt = 0; attempt < 6; attempt += 1) {
     const lineSegments = getAvoidanceLineSegments(
       layout,
-      Math.max(1, lines.length),
-      lineHeight,
+      getUniformLineHeights(lines.length, lineHeight),
       regions,
     )
     const nextLines = wrapMeasuredTextLinesBySegments(
@@ -239,8 +330,7 @@ function wrapMeasuredTextLinesWithAvoidance(
     lines,
     lineSegments: getAvoidanceLineSegments(
       layout,
-      Math.max(1, lines.length),
-      lineHeight,
+      getUniformLineHeights(lines.length, lineHeight),
       regions,
     ),
   }
@@ -249,9 +339,9 @@ function wrapMeasuredTextLinesWithAvoidance(
 function wrapRichTextDocumentWithAvoidance(
   document: RichTextDocument,
   layout: DiscTextLayout,
-  lineHeight: number,
   maxLines: number,
   regions: DiscTextAvoidanceRegion[],
+  useResolvedLineHeights: boolean,
   options: {
     baseFontStyle: string
     baseFontWeight: number
@@ -271,8 +361,12 @@ function wrapRichTextDocumentWithAvoidance(
   for (let attempt = 0; attempt < 6; attempt += 1) {
     const lineSegments = getAvoidanceLineSegments(
       layout,
-      Math.max(1, lines.length),
-      lineHeight,
+      getRichTextLineHeights(
+        lines,
+        options.fontSize,
+        options.template,
+        useResolvedLineHeights,
+      ),
       regions,
     )
     const nextLines = wrapRichTextDocumentLinesBySegments(
@@ -299,8 +393,12 @@ function wrapRichTextDocumentWithAvoidance(
     lines,
     lineSegments: getAvoidanceLineSegments(
       layout,
-      Math.max(1, lines.length),
-      lineHeight,
+      getRichTextLineHeights(
+        lines,
+        options.fontSize,
+        options.template,
+        useResolvedLineHeights,
+      ),
       regions,
     ),
   }
@@ -367,16 +465,84 @@ export function getStraightDiscTextLineVisualBounds(
   )
 
   return {
-    bottom: line.y + layout.lineHeight / 2,
+    bottom: line.y + (line.lineHeight ?? layout.lineHeight) / 2,
     left: horizontalBounds.left,
     right: horizontalBounds.right,
-    top: line.y - layout.lineHeight / 2,
+    top: line.y - (line.lineHeight ?? layout.lineHeight) / 2,
+  }
+}
+
+function isItalicDiscTextFont(font: string) {
+  return /^italic(?:\s|$)/.test(font)
+}
+
+export function getStraightDiscTextLinePaintBounds(
+  line: StraightDiscTextLineLayout,
+  layout: StraightDiscTextRenderLayout,
+  measureText: TextMeasureFunction,
+): StraightDiscTextBoundsRect {
+  const logicalBounds = getStraightDiscTextLineVisualBounds(
+    line,
+    layout,
+    measureText,
+  )
+  const visibleRuns = line.runs?.filter((run) => run.text)
+  const maximumFontSize = visibleRuns && visibleRuns.length > 0
+    ? visibleRuns.reduce(
+        (maximum, run) => Math.max(
+          maximum,
+          run.resolvedFontSize ?? layout.fontSize,
+        ),
+        layout.fontSize,
+      )
+    : layout.fontSize
+  const italic = visibleRuns && visibleRuns.length > 0
+    ? visibleRuns.some((run) => isItalicDiscTextFont(run.font))
+    : layout.fontStyle === 'italic'
+  const insets = getStraightDiscTextPaintInsets({
+    fontSize: maximumFontSize,
+    italic,
+    style: layout.style,
+  })
+
+  return {
+    bottom: logicalBounds.bottom + insets.bottom,
+    left: logicalBounds.left - insets.left,
+    right: logicalBounds.right + insets.right,
+    top: logicalBounds.top - insets.top,
+  }
+}
+
+function unionStraightDiscTextBounds(
+  first: StraightDiscTextBoundsRect,
+  second: StraightDiscTextBoundsRect,
+): StraightDiscTextBoundsRect {
+  return {
+    bottom: Math.max(first.bottom, second.bottom),
+    left: Math.min(first.left, second.left),
+    right: Math.max(first.right, second.right),
+    top: Math.min(first.top, second.top),
+  }
+}
+
+function toStraightDiscTextVisualBounds(
+  bounds: StraightDiscTextBoundsRect,
+): StraightDiscTextVisualBounds {
+  return {
+    centerX: (bounds.left + bounds.right) / 2,
+    centerY: (bounds.top + bounds.bottom) / 2,
+    halfWidth: (bounds.right - bounds.left) / 2,
+    halfHeight: (bounds.bottom - bounds.top) / 2,
   }
 }
 
 export function getStraightDiscTextVisualBounds(
   layout: StraightDiscTextRenderLayout,
   measureText: TextMeasureFunction,
+  options: Readonly<{
+    includeRenderedBox?: boolean
+    includeRenderedPaint?: boolean
+  }> = {},
 ): StraightDiscTextVisualBounds {
   if (layout.lines.length === 0) {
     return {
@@ -387,10 +553,8 @@ export function getStraightDiscTextVisualBounds(
     }
   }
 
-  let left = Number.POSITIVE_INFINITY
-  let right = Number.NEGATIVE_INFINITY
-  let top = Number.POSITIVE_INFINITY
-  let bottom = Number.NEGATIVE_INFINITY
+  let logicalBounds: StraightDiscTextBoundsRect | null = null
+  let renderedBounds: StraightDiscTextBoundsRect | null = null
 
   for (const line of layout.lines) {
     const lineBounds = getStraightDiscTextLineVisualBounds(
@@ -398,19 +562,46 @@ export function getStraightDiscTextVisualBounds(
       layout,
       measureText,
     )
+    const lineRenderedBounds = options.includeRenderedPaint
+      ? getStraightDiscTextLinePaintBounds(line, layout, measureText)
+      : lineBounds
 
-    left = Math.min(left, lineBounds.left)
-    right = Math.max(right, lineBounds.right)
-    top = Math.min(top, lineBounds.top)
-    bottom = Math.max(bottom, lineBounds.bottom)
+    logicalBounds = logicalBounds
+      ? unionStraightDiscTextBounds(logicalBounds, lineBounds)
+      : lineBounds
+    renderedBounds = renderedBounds
+      ? unionStraightDiscTextBounds(renderedBounds, lineRenderedBounds)
+      : lineRenderedBounds
   }
 
-  return {
-    centerX: (left + right) / 2,
-    centerY: (top + bottom) / 2,
-    halfWidth: (right - left) / 2,
-    halfHeight: (bottom - top) / 2,
+  if (!logicalBounds || !renderedBounds) {
+    return {
+      centerX: 50,
+      centerY: 50,
+      halfWidth: 0,
+      halfHeight: 0,
+    }
   }
+
+  if (
+    !options.includeRenderedBox ||
+    (!layout.style.backgroundEnabled && !layout.style.borderEnabled)
+  ) {
+    return toStraightDiscTextVisualBounds(renderedBounds)
+  }
+
+  const expansion = layout.style.backgroundPadding +
+    (layout.style.borderEnabled ? DISC_TEXT_BOX_BORDER_WIDTH / 2 : 0)
+  const boxBounds = {
+    bottom: logicalBounds.bottom + expansion,
+    left: logicalBounds.left - expansion,
+    right: logicalBounds.right + expansion,
+    top: logicalBounds.top - expansion,
+  }
+
+  return toStraightDiscTextVisualBounds(
+    unionStraightDiscTextBounds(renderedBounds, boxBounds),
+  )
 }
 
 export function getStraightDiscTextRenderLayout(
@@ -427,7 +618,7 @@ export function getStraightDiscTextRenderLayout(
     key,
     options.template,
   )
-  const lineHeight = fontSize * 1.18
+  const lineHeight = fontSize * STRAIGHT_DISC_TEXT_LINE_HEIGHT_FACTOR
   const font = getDiscTextFontString(
     renderStyle.fontWeight,
     fontSize,
@@ -453,9 +644,9 @@ export function getStraightDiscTextRenderLayout(
     ? wrapRichTextDocumentWithAvoidance(
         renderedDocument,
         layout,
-        lineHeight,
         maxLines,
         avoidanceRegions,
+        usesResolvedRichTextLineHeights(key),
         richOptions,
       )
     : null
@@ -489,7 +680,6 @@ export function getStraightDiscTextRenderLayout(
     )
   )
   const lines = richLines ?? plainLines ?? []
-  const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
   const firstLineWidth = lines.length > 0
     ? typeof lines[0] === 'string'
       ? Math.max(0, measureText(lines[0], font))
@@ -498,6 +688,18 @@ export function getStraightDiscTextRenderLayout(
   const x = getAnchorX(layout, firstLineWidth)
   const lineSegments = richAvoidanceResult?.lineSegments ??
     avoidanceResult?.lineSegments
+  const lineHeights = richLines
+    ? getRichTextLineHeights(
+        richLines,
+        fontSize,
+        options.template,
+        usesResolvedRichTextLineHeights(key),
+      )
+    : getUniformLineHeights(lines.length, lineHeight)
+  const linePlacements = getCenteredLineVerticalPlacements(
+    layout.y,
+    lineHeights,
+  )
 
   return {
     align: layout.align,
@@ -517,6 +719,7 @@ export function getStraightDiscTextRenderLayout(
         ? Math.max(0, measureText(line, font))
         : line.width
       const lineSegment = lineSegments?.[index]
+      const linePlacement = linePlacements[index]
       const segmentX = lineSegment
         ? getLineSegmentAnchorX(lineSegment, layout.align)
         : x
@@ -540,6 +743,11 @@ export function getStraightDiscTextRenderLayout(
             fontFamily: run.fontFamily,
             fontSizePt: run.fontSizePt,
             fontSizePx: run.fontSizePx,
+            resolvedFontSize: getDiscTextRunFontSize({
+              fontSize,
+              run,
+              template: options.template,
+            }),
             fontWeight: run.fontWeight,
             fontStyle: run.fontStyle,
             textDecoration: run.textDecoration,
@@ -549,9 +757,10 @@ export function getStraightDiscTextRenderLayout(
       return {
         text: lineText,
         ...(runs ? { runs } : {}),
+        lineHeight: linePlacement?.lineHeight ?? lineHeight,
         width: lineWidth,
         x: segmentX,
-        y: lineSegment?.y ?? firstLineY + index * lineHeight,
+        y: lineSegment?.y ?? linePlacement?.y ?? layout.y,
       }
     }),
   }

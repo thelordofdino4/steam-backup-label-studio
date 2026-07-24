@@ -8,6 +8,11 @@ export type EditorRoleFocusSurfaceId = 'disc-label'
 
 export type EditorRoleFocusBehavior = 'reveal' | 'focus'
 
+export type EditorRoleFocusScrollAlignment =
+  | 'nearest'
+  | 'role-start'
+  | 'section-start'
+
 export type EditorRoleFocusRequestId = number
 
 export const DISC_COMPANY_LOGO_FOCUS_TARGET_IDS = [
@@ -36,16 +41,50 @@ export type DiscAdditionalArtworkItemFocusTarget = Extract<
   | 'disc:additional-artwork:upload'
 >
 
+export const DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS = [
+  'disc:rating:enable',
+  'disc:rating:system',
+  'disc:rating:value',
+  'disc:rating:source',
+  'disc:media-format-mark:enable',
+  'disc:media-format-mark:format',
+  'disc:operating-system-marks:enable',
+] as const
+
+export type DiscGameInfoLogoFocusTarget =
+  (typeof DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS)[number]
+
+export const DISC_GAME_INFO_SECTION_ALIGNMENT_TARGET_IDS = [
+  'disc:media-format-mark:section',
+  'disc:operating-system-marks:section',
+] as const
+
+export type DiscGameInfoSectionAlignmentTarget =
+  (typeof DISC_GAME_INFO_SECTION_ALIGNMENT_TARGET_IDS)[number]
+
+export const DISC_COMPANY_LOGO_SECTION_ALIGNMENT_TARGET_IDS = [
+  'disc:company-logo:developer-section',
+  'disc:company-logo:publisher-section',
+] as const
+
+export type DiscCompanyLogoSectionAlignmentTarget =
+  (typeof DISC_COMPANY_LOGO_SECTION_ALIGNMENT_TARGET_IDS)[number]
+
+export const DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS = [
+  ...DISC_GAME_INFO_SECTION_ALIGNMENT_TARGET_IDS,
+  ...DISC_COMPANY_LOGO_SECTION_ALIGNMENT_TARGET_IDS,
+] as const
+
+export type DiscRoleSectionAlignmentTarget =
+  (typeof DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS)[number]
+
 export const DISC_ROLE_FOCUS_TARGET_IDS = [
   'disc:background-image:enable',
   'disc:background-image:local-upload',
   'disc:game-title:artwork-enable',
   'disc:game-title:artwork-upload',
   'disc:game-title:text-fallback',
-  'disc:rating:enable',
-  'disc:rating:system',
-  'disc:rating:value',
-  'disc:rating:source',
+  ...DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS,
   ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
   'disc:legal-text:copyright',
   ...DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
@@ -73,7 +112,7 @@ export type EditorRoleFocusTargetIdentityInput =
   | DiscFixedRoleFocusTargetId
   | EditorRoleFocusTargetIdentity
 
-export type DiscRoleFocusDestination =
+type DiscBackgroundRoleFocusDestination =
   | {
       roleId: Extract<DiscRolePresetRole, 'background-artwork'>
       focusTarget:
@@ -87,23 +126,17 @@ export type DiscRoleFocusDestination =
         | 'disc:game-title:artwork-upload'
         | 'disc:game-title:text-fallback'
     }
-  | {
-      roleId: Extract<DiscRolePresetRole, 'game-info-logos'>
-      focusTarget:
-        | 'disc:rating:enable'
-        | 'disc:rating:system'
-        | 'disc:rating:value'
-        | 'disc:rating:source'
-    }
-  | {
-      roleId: Extract<DiscRolePresetRole, 'company-logos'>
-      focusTarget: DiscCompanyLogoFocusTarget
-    }
+
+type DiscCompanyLogoControlFocusDestination = {
+  roleId: Extract<DiscRolePresetRole, 'company-logos'>
+  focusTarget: DiscCompanyLogoFocusTarget
+}
+
+type DiscFixedTextRoleFocusDestination =
   | {
       roleId: Extract<DiscRolePresetRole, 'legal-info'>
       focusTarget: 'disc:legal-text:copyright'
     }
-  | DiscAdditionalArtworkRoleFocusDestination
   | {
       roleId: Extract<DiscRolePresetRole, 'additional-text'>
       focusTarget: 'disc:additional-text:custom-note'
@@ -122,17 +155,114 @@ export type DiscAdditionalArtworkRoleFocusDestination =
       elementId: string
     }
 
+type DiscGameInfoLogoControlFocusDestination = {
+  roleId: Extract<DiscRolePresetRole, 'game-info-logos'>
+  focusTarget: DiscGameInfoLogoFocusTarget
+}
+
+export const DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET = {
+  'disc:media-format-mark:enable': {
+    roleId: 'game-info-logos',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+  },
+  'disc:media-format-mark:format': {
+    roleId: 'game-info-logos',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+  },
+  'disc:operating-system-marks:enable': {
+    roleId: 'game-info-logos',
+    sectionAlignmentTarget: 'disc:operating-system-marks:section',
+  },
+  'disc:company-logo:developer-enable': {
+    roleId: 'company-logos',
+    sectionAlignmentTarget: 'disc:company-logo:developer-section',
+  },
+  'disc:company-logo:developer-upload': {
+    roleId: 'company-logos',
+    sectionAlignmentTarget: 'disc:company-logo:developer-section',
+  },
+  'disc:company-logo:publisher-enable': {
+    roleId: 'company-logos',
+    sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+  },
+  'disc:company-logo:publisher-upload': {
+    roleId: 'company-logos',
+    sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+  },
+} as const satisfies Partial<Record<
+  DiscRoleFocusTargetId,
+  {
+    roleId: DiscRolePresetRole
+    sectionAlignmentTarget: DiscRoleSectionAlignmentTarget
+  }
+>>
+
+type DiscSectionStartFocusTarget =
+  keyof typeof DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET
+
+export type DiscSectionStartRoleFocusDestination = {
+  [FocusTarget in DiscSectionStartFocusTarget]: {
+    focusTarget: FocusTarget
+    roleId:
+      (typeof DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET)[FocusTarget]['roleId']
+    sectionAlignmentTarget:
+      (typeof DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET)[FocusTarget]['sectionAlignmentTarget']
+  }
+}[DiscSectionStartFocusTarget]
+
+export type DiscGameInfoLogoRoleFocusDestination =
+  | DiscGameInfoLogoControlFocusDestination
+  | Extract<
+      DiscSectionStartRoleFocusDestination,
+      { roleId: 'game-info-logos' }
+    >
+
+export type DiscCompanyLogoRoleFocusDestination =
+  | DiscCompanyLogoControlFocusDestination
+  | Extract<
+      DiscSectionStartRoleFocusDestination,
+      { roleId: 'company-logos' }
+    >
+
+export type DiscControlFocusDestination =
+  | DiscBackgroundRoleFocusDestination
+  | DiscGameInfoLogoControlFocusDestination
+  | DiscCompanyLogoControlFocusDestination
+  | DiscFixedTextRoleFocusDestination
+  | DiscAdditionalArtworkRoleFocusDestination
+
+export type DiscRoleFocusDestination =
+  | DiscControlFocusDestination
+  | DiscSectionStartRoleFocusDestination
+
 export type EditorRoleFocusOwnerTarget =
   | DiscGuidedBindingCandidate
   | DiscGuidedResolvedBinding
 
-export type EditorRoleFocusRequest = {
+type EditorRoleFocusRequestBase = {
   requestId: EditorRoleFocusRequestId
   surfaceId: EditorRoleFocusSurfaceId
-  behavior: EditorRoleFocusBehavior
-  destination: DiscRoleFocusDestination
   ownerTarget?: EditorRoleFocusOwnerTarget
 }
+
+export type EditorRoleFocusRequest = EditorRoleFocusRequestBase & (
+  | {
+      behavior: EditorRoleFocusBehavior
+      destination: DiscControlFocusDestination
+      scrollAlignment?: Exclude<
+        EditorRoleFocusScrollAlignment,
+        'section-start'
+      >
+    }
+  | {
+      behavior: Extract<EditorRoleFocusBehavior, 'focus'>
+      destination: DiscSectionStartRoleFocusDestination
+      scrollAlignment: Extract<
+        EditorRoleFocusScrollAlignment,
+        'section-start'
+      >
+    }
+)
 
 export type EditorRoleFocusRequestParseError =
   | 'invalid-request'
@@ -140,9 +270,13 @@ export type EditorRoleFocusRequestParseError =
   | 'invalid-request-id'
   | 'invalid-surface'
   | 'invalid-behavior'
+  | 'invalid-scroll-alignment'
+  | 'invalid-section-alignment'
   | 'invalid-destination'
   | 'invalid-role'
   | 'invalid-focus-target'
+  | 'invalid-section-alignment-target'
+  | 'invalid-section-alignment-target-combination'
   | 'invalid-role-target-combination'
   | 'invalid-element-id'
   | 'invalid-owner-target'
@@ -178,10 +312,7 @@ const FOCUS_TARGETS_BY_ROLE = {
     'disc:game-title:text-fallback',
   ],
   'game-info-logos': [
-    'disc:rating:enable',
-    'disc:rating:system',
-    'disc:rating:value',
-    'disc:rating:source',
+    ...DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS,
   ],
   'company-logos': [
     ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
@@ -219,6 +350,13 @@ function isPositiveSafeInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && typeof value === 'number' && value > 0
 }
 
+function isEditorRoleFocusScrollAlignment(
+  value: unknown,
+): value is EditorRoleFocusScrollAlignment {
+  return value === 'nearest' || value === 'role-start' ||
+    value === 'section-start'
+}
+
 function isDiscRolePresetRole(value: unknown): value is DiscRolePresetRole {
   return typeof value === 'string' &&
     (DISC_ROLE_FOCUS_ROLE_IDS as readonly string[]).includes(value)
@@ -229,6 +367,27 @@ function isDiscRoleFocusTargetId(
 ): value is DiscRoleFocusTargetId {
   return typeof value === 'string' &&
     (DISC_ROLE_FOCUS_TARGET_IDS as readonly string[]).includes(value)
+}
+
+function isDiscRoleSectionAlignmentTarget(
+  value: unknown,
+): value is DiscRoleSectionAlignmentTarget {
+  return typeof value === 'string' &&
+    (DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS as readonly string[])
+      .includes(value)
+}
+
+function isSectionAlignmentTargetCompatibleWithFocusTarget(
+  roleId: DiscRolePresetRole,
+  sectionAlignmentTarget: DiscRoleSectionAlignmentTarget,
+  focusTarget: DiscRoleFocusTargetId,
+) {
+  const expected = DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET[
+    focusTarget as DiscSectionStartFocusTarget
+  ]
+
+  return expected?.roleId === roleId &&
+    expected.sectionAlignmentTarget === sectionAlignmentTarget
 }
 
 function isDiscAdditionalArtworkItemFocusTarget(
@@ -306,6 +465,59 @@ function parseDestination(
   if (!(FOCUS_TARGETS_BY_ROLE[value.roleId] as readonly string[])
     .includes(value.focusTarget)) {
     return { ok: false, error: 'invalid-role-target-combination' }
+  }
+
+  if (value.roleId === 'game-info-logos' ||
+    value.roleId === 'company-logos') {
+    const hasSectionAlignmentTarget = hasOwn(
+      value,
+      'sectionAlignmentTarget',
+    )
+
+    if (!hasOnlyKeys(
+      value,
+      hasSectionAlignmentTarget
+        ? ['roleId', 'focusTarget', 'sectionAlignmentTarget']
+        : ['roleId', 'focusTarget'],
+    )) {
+      return { ok: false, error: 'unexpected-field' }
+    }
+
+    if (!hasSectionAlignmentTarget) {
+      return {
+        ok: true,
+        value: {
+          roleId: value.roleId,
+          focusTarget: value.focusTarget,
+        } as DiscControlFocusDestination,
+      }
+    }
+
+    if (!isDiscRoleSectionAlignmentTarget(
+      value.sectionAlignmentTarget,
+    )) {
+      return { ok: false, error: 'invalid-section-alignment-target' }
+    }
+
+    if (!isSectionAlignmentTargetCompatibleWithFocusTarget(
+      value.roleId,
+      value.sectionAlignmentTarget,
+      value.focusTarget,
+    )) {
+      return {
+        ok: false,
+        error: 'invalid-section-alignment-target-combination',
+      }
+    }
+
+    return {
+      ok: true,
+      value: {
+        roleId: value.roleId,
+        focusTarget: value.focusTarget,
+        sectionAlignmentTarget: value.sectionAlignmentTarget,
+      } as DiscSectionStartRoleFocusDestination,
+    }
   }
 
   if (value.roleId === 'additional-artwork') {
@@ -395,6 +607,19 @@ function parseOwnerTarget(
         }
       }
       break
+    case 'mediaMark':
+      return hasOnlyKeys(value, ['owner'])
+        ? { ok: true, value: { owner: value.owner } }
+        : { ok: false, error: 'invalid-owner-target' }
+    case 'platformMarks':
+      if (hasOnlyKeys(value, ['owner', 'selection']) &&
+        value.selection === 'enabled-values') {
+        return {
+          ok: true,
+          value: { owner: value.owner, selection: value.selection },
+        }
+      }
+      break
     case 'logoAssets':
       if (hasOnlyKeys(value, ['owner', 'logoKey', 'scope']) &&
         (value.logoKey === 'developer' || value.logoKey === 'publisher') &&
@@ -443,8 +668,22 @@ function isOwnerTargetCompatibleWithDestination(
         ? ownerTarget.owner === 'discText' && ownerTarget.key === 'title'
         : ownerTarget.owner === 'titleArtwork'
     case 'game-info-logos':
-      return ownerTarget.owner === 'ratingBadge' &&
-        ownerTarget.badgeKey === 'primary'
+      switch (destination.focusTarget) {
+        case 'disc:rating:enable':
+        case 'disc:rating:system':
+        case 'disc:rating:value':
+        case 'disc:rating:source':
+          return ownerTarget.owner === 'ratingBadge' &&
+            ownerTarget.badgeKey === 'primary'
+        case 'disc:media-format-mark:enable':
+        case 'disc:media-format-mark:format':
+          return ownerTarget.owner === 'mediaMark'
+        case 'disc:operating-system-marks:enable':
+          return ownerTarget.owner === 'platformMarks' &&
+            ownerTarget.selection === 'enabled-values'
+      }
+
+      return false
     case 'company-logos': {
       if (ownerTarget.owner !== 'logoAssets' ||
         ownerTarget.scope !== 'primary') {
@@ -492,6 +731,7 @@ function parseEditorRoleFocusRequestUnsafe(
     'surfaceId',
     'behavior',
     'destination',
+    'scrollAlignment',
     'ownerTarget',
   ])) {
     return { ok: false, error: 'unexpected-field' }
@@ -509,10 +749,38 @@ function parseEditorRoleFocusRequestUnsafe(
     return { ok: false, error: 'invalid-behavior' }
   }
 
+  const hasScrollAlignment = hasOwn(value, 'scrollAlignment')
+  const scrollAlignment = hasScrollAlignment
+    ? value.scrollAlignment
+    : undefined
+
+  if (hasScrollAlignment &&
+    !isEditorRoleFocusScrollAlignment(scrollAlignment)) {
+    return { ok: false, error: 'invalid-scroll-alignment' }
+  }
+
+  const validatedScrollAlignment =
+    isEditorRoleFocusScrollAlignment(scrollAlignment)
+      ? scrollAlignment
+      : undefined
+
   const destination = parseDestination(value.destination)
 
   if (!destination.ok) {
     return destination
+  }
+
+  const hasSectionAlignmentTarget =
+    'sectionAlignmentTarget' in destination.value
+
+  if ((validatedScrollAlignment === 'section-start') !==
+    hasSectionAlignmentTarget) {
+    return { ok: false, error: 'invalid-section-alignment' }
+  }
+
+  if (validatedScrollAlignment === 'section-start' &&
+    value.behavior !== 'focus') {
+    return { ok: false, error: 'invalid-section-alignment' }
   }
 
   if (hasOwn(value, 'ownerTarget')) {
@@ -536,8 +804,11 @@ function parseEditorRoleFocusRequestUnsafe(
         surfaceId: value.surfaceId,
         behavior: value.behavior,
         destination: destination.value,
+        ...(validatedScrollAlignment
+          ? { scrollAlignment: validatedScrollAlignment }
+          : {}),
         ownerTarget: ownerTarget.value,
-      },
+      } as EditorRoleFocusRequest,
     }
   }
 
@@ -548,7 +819,10 @@ function parseEditorRoleFocusRequestUnsafe(
       surfaceId: value.surfaceId,
       behavior: value.behavior,
       destination: destination.value,
-    },
+      ...(validatedScrollAlignment
+        ? { scrollAlignment: validatedScrollAlignment }
+        : {}),
+    } as EditorRoleFocusRequest,
   }
 }
 

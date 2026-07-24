@@ -317,7 +317,10 @@ test('each disc role preset targets the Disc surface and declares role intent', 
 
 test('each disc role preset groups updates by current feature owner', () => {
   for (const preset of DISC_ROLE_PRESETS) {
-    assert.ok(preset.updatePlan.length > 0)
+    if (preset.id === 'classic-top-title') {
+      assert.deepEqual(preset.updatePlan, [])
+      continue
+    }
 
     for (const ownerPlan of preset.updatePlan) {
       assert.ok(ownerPlan.owner.length > 0)
@@ -386,33 +389,32 @@ test('disc role preset lookup handles known and unknown ids safely', () => {
   assert.deepEqual(getDiscRolePresetUpdatePlan('unknown-preset-id'), [])
 })
 
-test('applying each starter disc role preset updates expected layout fields', () => {
+test('legacy role preset application retains the two non-Classic built-ins', () => {
   const expectations = {
-    'classic-top-title': {
-      title: { x: 50, y: 19.5, scale: 1 },
-      copyright: { mode: 'curved', arcSide: 'bottom' },
-      textKey: 'appId',
-      textY: 72,
-      developerLogo: { x: 22, y: 64, scale: 0.82 },
-    },
     'centered-logo-archive': {
       title: { x: 50, y: 50, scale: 1.35 },
-      copyright: { mode: 'curved', arcSide: 'bottom' },
+      copyright: { mode: 'curved', arcSide: 'bottom', enabled: true },
       textKey: 'backupDate',
       textY: 74,
-      developerLogo: { x: 24, y: 76, scale: 0.72 },
+      textEnabled: true,
+      developerLogo: { x: 24, y: 76, scale: 0.72, enabled: true },
     },
     'clean-metadata-footer': {
       title: { x: 50, y: 24, scale: 0.84 },
-      copyright: { mode: 'straight', arcSide: 'bottom' },
+      copyright: { mode: 'straight', arcSide: 'bottom', enabled: true },
       textKey: 'developer',
       textY: 68,
-      developerLogo: { x: 24, y: 78, scale: 0.68 },
+      textEnabled: true,
+      developerLogo: { x: 24, y: 78, scale: 0.68, enabled: true },
     },
   } as const
 
-  for (const presetId of DISC_ROLE_PRESET_IDS) {
-    const result = applyDiscRolePresetToState(createApplicationState(), presetId)
+  for (const presetId of [
+    'centered-logo-archive',
+    'clean-metadata-footer',
+  ] as const) {
+    const initialState = createApplicationState()
+    const result = applyDiscRolePresetToState(initialState, presetId)
     const expected = expectations[presetId]
 
     assert.equal(result.applied, true)
@@ -423,7 +425,10 @@ test('applying each starter disc role preset updates expected layout fields', ()
       enabled: true,
       ...expected.title,
     })
-    assert.equal(result.state.discTextSettings.copyright, true)
+    assert.equal(
+      result.state.discTextSettings.copyright,
+      expected.copyright.enabled,
+    )
     assert.equal(
       result.state.discTextLayout.copyright.mode,
       expected.copyright.mode,
@@ -432,10 +437,15 @@ test('applying each starter disc role preset updates expected layout fields', ()
       result.state.discTextLayout.copyright.arcSide,
       expected.copyright.arcSide,
     )
-    assert.equal(result.state.discTextSettings[expected.textKey], true)
-    assert.equal(result.state.discTextLayout[expected.textKey].y, expected.textY)
+    assert.equal(
+      result.state.discTextSettings[expected.textKey],
+      expected.textEnabled,
+    )
+    if (expected.textEnabled) {
+      assert.equal(result.state.discTextLayout[expected.textKey].y, expected.textY)
+    }
     assert.deepEqual(result.state.logoAssets.developerLogoLayout, {
-      enabled: true,
+      enabled: expected.developerLogo.enabled,
       ...expected.developerLogo,
     })
   }
@@ -565,37 +575,10 @@ test('disc role preset application handles unknown preset ids safely', () => {
   assert.equal(result.state, state)
 })
 
-test('disc role presets do not enable rating badges without rating metadata', () => {
-  const state = createApplicationState()
-  const result = applyDiscRolePresetToState(state, 'classic-top-title').state
+test('Classic keeps its menu metadata but no longer owns a legacy update plan', () => {
+  const preset = getDiscRolePreset('classic-top-title')
 
-  assert.equal(state.metadata?.ratingSystem, 'none')
-  assert.equal(result.ratingBadge.layout.enabled, false)
-  assert.equal(result.ratingBadge.source, state.ratingBadge.source)
-  assert.equal(
-    result.ratingBadge.customImageDataUrl,
-    state.ratingBadge.customImageDataUrl,
-  )
-})
-
-test('disc role presets enable preserved rating sources with valid rating metadata', () => {
-  const state = createApplicationState()
-  const result = applyDiscRolePresetToState(
-    {
-      ...state,
-      metadata: {
-        ...state.metadata!,
-        ratingSystem: 'ESRB',
-        ratingValue: 'T',
-      },
-    },
-    'classic-top-title',
-  ).state
-
-  assert.equal(result.ratingBadge.layout.enabled, true)
-  assert.equal(result.ratingBadge.source, state.ratingBadge.source)
-  assert.equal(
-    result.ratingBadge.customImageDataUrl,
-    state.ratingBadge.customImageDataUrl,
-  )
+  assert.equal(preset?.label, 'Classic Top Title')
+  assert.deepEqual(preset?.updatePlan, [])
+  assert.deepEqual(getDiscRolePresetUpdatePlan('classic-top-title'), [])
 })

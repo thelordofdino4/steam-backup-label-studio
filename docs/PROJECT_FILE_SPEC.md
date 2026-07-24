@@ -6,7 +6,7 @@
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 
-Last refreshed: 2026-07-04.
+Last refreshed: 2026-07-11.
 
 ## Purpose
 
@@ -43,7 +43,7 @@ The future package format should not block disc-editor alpha unless a specific s
 
 ## Current Saved State
 
-Current disc project files use schema version `0.1.0` and include:
+Current disc project files use schema version `0.2.0` and include:
 
 - top-level title and saved timestamp
 - selected Steam game data and manual title
@@ -61,6 +61,8 @@ Current disc project files use schema version `0.1.0` and include:
 - operating-system mark state, including platform-specific built-in styles where supported, and inference metadata
 - technical mark state
 - disc text enabled state, values, metadata/manual value sources, title override, layout, and styles
+- optional Disc guided-layout identity/version plus independent canonical
+  omitted and completed slot IDs
 
 ## Asset Embedding And Provenance
 
@@ -81,7 +83,7 @@ This sketch is intentionally descriptive. `src/project/projectTypes.ts` remains 
 
 ```ts
 type SavedDiscProject = {
-  schemaVersion: '0.1.0'
+  schemaVersion: '0.2.0'
   title: string
   savedAt: string
   game: {
@@ -89,6 +91,14 @@ type SavedDiscProject = {
     selectedSteamGame: SteamImportedGame | null
   }
   metadata?: ProjectMetadata
+  editor?: {
+    guidedLayout?: {
+      id: string
+      version: number
+      omittedSlotIds: string[]
+      completedSlotIds: string[]
+    }
+  }
   logoAssets?: ProjectLogoAssetsInput
   titleArtwork?: Partial<ProjectTitleArtwork>
   discNumberArtwork?: Partial<ProjectDiscNumberArtwork>
@@ -138,7 +148,7 @@ type SavedDiscProject = {
 
 ## Current Case Insert State
 
-Jewel case projects are active current JSON projects in the same `0.1.0`
+Jewel case projects are active current JSON projects in the same `0.2.0`
 project family. The case insert editor supports cover, tray, left spine, and
 right spine state, preview, save/load, guide settings, and PNG export paths.
 This does not mean jewel case alpha is complete; #126 and #149 still track the
@@ -168,7 +178,7 @@ The current descriptive shape is:
 
 ```ts
 type SavedCaseInsertProject = {
-  schemaVersion: '0.1.0'
+  schemaVersion: '0.2.0'
   projectType: 'caseInsert'
   title: string
   savedAt: string
@@ -202,7 +212,7 @@ is an object, that the schema version is either current or has a registered
 migration path to the current version, and that the top-level saved project shape
 has the required current sections for its editor type. It remains intentionally
 shallow; feature-specific normalization still belongs to the existing
-project/domain modules so sparse `0.1.0` data can be restored safely.
+project/domain modules so sparse migrated data can be restored safely.
 
 Loader normalization should:
 
@@ -216,6 +226,53 @@ Loader normalization should:
 - normalize sparse jewel case data to safe front/back/spine defaults
 - preserve case image asset provenance and embedded data where present
 - preserve optional case image, text, artwork, logo, mark, and export state when controls are toggled off
+
+### Guided Workflow Metadata
+
+Disc projects may store `editor.guidedLayout`. The compact persisted contract is
+the stable guided layout ID, its positive contract version, stable omitted slot
+IDs, and stable completed slot IDs in canonical layout order. The two arrays are
+independent and may contain the same semantic slot ID. An inactive workflow
+omits `editor` rather than writing an empty no-op object. An active supported
+layout remains active when both progress arrays are empty. A valid `0.2.0`
+payload that predates completion and omits `completedSlotIds` normalizes it to
+an empty array.
+
+Loading translates persistence-boundary strings through the pure Disc guided
+workflow normalizer. Unknown layout IDs, unsupported future versions, and
+malformed guided metadata deactivate guidance without rejecting the project.
+Unknown, duplicate, removed, cross-layout, and non-omittable slot IDs are
+discarded from omission; surviving IDs are ordered by the supported layout
+definition. Completion is normalized separately: non-array and non-string
+values are ignored, duplicates and IDs outside the active catalog are removed,
+and surviving IDs are canonically ordered without requiring `omittable`.
+Runtime support status does not erase either stored flag.
+
+Omission and completion suppress guidance only. Completion records that a user
+handled a setup prompt; it is not inferred from owner coordinates or duplicated
+owner content. Neither flag disables an owner, removes content, changes
+geometry, or alters preview/render/export behavior. Real owner state continues
+to save, restore, render, and export through its existing feature contract.
+Canonical preset identity/revision, template-resolved definitions, setup menus,
+selected/focused placeholders, role-focus requests, open panels, hover state,
+labels, copied geometry, DOM IDs, and array indexes are never stored in
+`editor.guidedLayout`.
+
+After load, valid guided identity is mapped back to the canonical reusable
+preset and resolved transiently for the restored Disc template and owner state.
+That reconstruction restores guidance and targeted OS/Legal behavior without
+reapplying placement to any restored owner. The resulting preset reference and
+resolved geometry remain runtime-only.
+
+### Schema 0.1.0 Migration
+
+`src/project/projectSchema.ts` registers the explicit migration `0.1.0 ->
+0.2.0`. It preserves all existing project fields and changes only
+`schemaVersion`. It does not add `editor`, infer Classic Top Title from current
+coordinates, create omissions or completions, enable owners, or change
+rendering/export.
+Legacy `0.1.0` JSON remains accepted through this migration; new snapshots use
+`0.2.0`.
 
 ## Future Package Direction
 
@@ -237,7 +294,7 @@ See `docs/PROJECT_PACKAGE_FORMAT_DECISION.md` for the #56 decision record.
 
 ## Future Schema Work
 
-- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), and the role-based preset model is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). These documents do not add current saved-project fields; any future role, preset identity, or role-layout schema must go through explicit schema and migration work in this spec.
+- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), and the role-based preset model is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). Schema `0.2.0` adds only the focused Disc guided-workflow identity plus omission/completion metadata described above; broader role, preset, or role-layout persistence still requires explicit schema and migration work in this spec.
 - Register focused project schema migrations in `src/project/projectSchema.ts`
   before changing saved-project semantics.
 - Keep migrations one version step at a time and make each migration produce the

@@ -84,25 +84,39 @@ function requestCompanyTarget(
 function registerAlways({
   calls,
   developerEnable,
+  developerSection,
   publisherEnable,
+  publisherSection,
   setPanelOpen,
   store,
 }: {
   calls: string[]
   developerEnable: HTMLElement | null
+  developerSection?: HTMLElement | null
   publisherEnable: HTMLElement | null
+  publisherSection?: HTMLElement | null
   setPanelOpen?: (open: boolean) => void
   store: EditorRoleFocusControllerStore
 }) {
+  const resolvedDeveloperSection = developerSection === undefined
+    ? createElement('developer-section', calls)
+    : developerSection
+  const resolvedPublisherSection = publisherSection === undefined
+    ? createElement('publisher-section', calls)
+    : publisherSection
+
   return registerAlwaysMountedCompanyLogoFocusTargets({
     developerEnableElement: () => developerEnable,
+    developerSectionElement: () => resolvedDeveloperSection,
     openCompanyLogoPanel: () => {
       calls.push('ancestor:company-logo-panel')
       setPanelOpen?.(true)
     },
     publisherEnableElement: () => publisherEnable,
+    publisherSectionElement: () => resolvedPublisherSection,
     registerFocusTarget: store.registerFocusTarget,
     registerFocusTargetFallback: store.registerFocusTargetFallback,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
   })
 }
 
@@ -295,6 +309,104 @@ test('disabled uploads fall back only to matching enables without replay', () =>
   ])
 })
 
+test('guided disabled uploads top-align matching logo sections', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const developerEnable = createElement('developer-enable', calls)
+  const developerSection = createElement('developer-section', calls)
+  const publisherEnable = createElement('publisher-enable', calls)
+  const publisherSection = createElement('publisher-section', calls)
+  registerAlways({
+    calls,
+    developerEnable,
+    developerSection,
+    publisherEnable,
+    publisherSection,
+    store,
+  })
+
+  for (const route of [
+    {
+      focusTarget: 'disc:company-logo:developer-upload',
+      sectionAlignmentTarget: 'disc:company-logo:developer-section',
+    },
+    {
+      focusTarget: 'disc:company-logo:publisher-upload',
+      sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+    },
+  ] as const) {
+    store.requestRoleFocus({
+      surfaceId: 'disc-label',
+      behavior: 'focus',
+      scrollAlignment: 'section-start',
+      destination: { roleId: 'company-logos', ...route },
+    })
+    assert.equal(store.processPendingRequest(), 'target-focused')
+  }
+
+  assert.deepEqual(calls, [
+    'ancestor:company-logo-panel',
+    'developer-section:scroll:start:auto',
+    'developer-enable:focus:true',
+    'developer-section:scroll:start:auto',
+    'ancestor:company-logo-panel',
+    'publisher-section:scroll:start:auto',
+    'publisher-enable:focus:true',
+    'publisher-section:scroll:start:auto',
+  ])
+})
+
+test('guided enabled uploads keep exact focus within matching sections', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  registerAlways({
+    calls,
+    developerEnable: createElement('developer-enable', calls),
+    publisherEnable: createElement('publisher-enable', calls),
+    store,
+  })
+  registerDeveloperUpload({
+    calls,
+    store,
+    upload: createElement('developer-upload', calls),
+  })
+  registerPublisherUpload({
+    calls,
+    store,
+    upload: createElement('publisher-upload', calls),
+  })
+
+  for (const route of [
+    {
+      focusTarget: 'disc:company-logo:developer-upload',
+      sectionAlignmentTarget: 'disc:company-logo:developer-section',
+    },
+    {
+      focusTarget: 'disc:company-logo:publisher-upload',
+      sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+    },
+  ] as const) {
+    store.requestRoleFocus({
+      surfaceId: 'disc-label',
+      behavior: 'focus',
+      scrollAlignment: 'section-start',
+      destination: { roleId: 'company-logos', ...route },
+    })
+    assert.equal(store.processPendingRequest(), 'target-focused')
+  }
+
+  assert.deepEqual(calls, [
+    'ancestor:company-logo-panel',
+    'developer-section:scroll:start:auto',
+    'developer-upload:focus:true',
+    'developer-section:scroll:start:auto',
+    'ancestor:company-logo-panel',
+    'publisher-section:scroll:start:auto',
+    'publisher-upload:focus:true',
+    'publisher-section:scroll:start:auto',
+  ])
+})
+
 test('all enablement combinations resolve each primary upload independently', () => {
   for (const [developerEnabled, publisherEnabled] of [
     [false, false],
@@ -397,7 +509,7 @@ test('matching and omitted owners reach the fixed semantic registrations', () =>
   assert.equal(store.getSnapshot().pendingRequest, null)
 })
 
-test('registration replacement and cleanup are generation-safe per identity', () => {
+test('registration cleanup permits fresh section and control identities', () => {
   const store = createEditorRoleFocusControllerStore()
   const calls: string[] = []
   const unregisterOldAlways = registerAlways({
@@ -406,13 +518,13 @@ test('registration replacement and cleanup are generation-safe per identity', ()
     publisherEnable: createElement('old-publisher-enable', calls),
     store,
   })
+  unregisterOldAlways()
   registerAlways({
     calls,
     developerEnable: createElement('new-developer-enable', calls),
     publisherEnable: createElement('new-publisher-enable', calls),
     store,
   })
-  unregisterOldAlways()
   const unregisterOldDeveloper = registerDeveloperUpload({
     calls,
     store,
@@ -524,6 +636,11 @@ test('adapter and generic controls expose only primary refs and shared panel sta
       .length,
     4,
   )
+  assert.equal(
+    (adapterSource.match(/useRef<HTMLDivElement \| null>\(null\)/g) ?? [])
+      .length,
+    2,
+  )
   assert.match(adapterSource, /if \(!developerEnabled\) return undefined/)
   assert.match(adapterSource, /if \(!publisherEnabled\) return undefined/)
   assert.match(
@@ -538,9 +655,13 @@ test('adapter and generic controls expose only primary refs and shared panel sta
   assert.match(companyControlsSource, /onOpenChange=\{onPanelOpenChange\}/)
   assert.match(companyControlsSource, /logoKey="developer"/)
   assert.match(companyControlsSource, /logoKey="publisher"/)
+  assert.match(companyControlsSource, /sectionRef=\{developerSectionRef\}/)
+  assert.match(companyControlsSource, /sectionRef=\{publisherSectionRef\}/)
   assert.match(logoControlsSource, /enableControlRef\?: Ref<HTMLInputElement>/)
+  assert.match(logoControlsSource, /sectionRef\?: Ref<HTMLDivElement>/)
   assert.match(logoControlsSource, /uploadControlRef\?: Ref<HTMLInputElement>/)
   assert.match(optionalFeatureSource, /ref=\{enableControlRef\}/)
+  assert.match(optionalFeatureSource, /<div ref=\{sectionRef\}/)
   assert.match(editorLogoControlsSource, /ref=\{uploadControlRef\}/)
   assert.match(editorLogoControlsSource, /className="logo-file-input"/)
   assert.match(
@@ -569,10 +690,20 @@ test('production integration is Disc primary-logo-only and dependency-safe', () 
   const targetIds = registrationSource.match(/disc:company-logo:[a-z-]+/g) ?? []
   assert.deepEqual([...new Set(targetIds)].sort(), [
     'disc:company-logo:developer-enable',
+    'disc:company-logo:developer-section',
     'disc:company-logo:developer-upload',
     'disc:company-logo:publisher-enable',
+    'disc:company-logo:publisher-section',
     'disc:company-logo:publisher-upload',
   ])
+  assert.match(
+    registrationSource,
+    /'disc:company-logo:developer-section',[\s\S]*developerSectionElement/,
+  )
+  assert.match(
+    registrationSource,
+    /'disc:company-logo:publisher-section',[\s\S]*publisherSectionElement/,
+  )
   assert.match(
     registrationSource,
     /'disc:company-logo:developer-upload',[\s\S]*'disc:company-logo:developer-enable'/,
@@ -592,6 +723,9 @@ test('production integration is Disc primary-logo-only and dependency-safe', () 
     '.click(',
     'setTimeout',
     'setInterval',
+    'scrollBy',
+    'scrollTo',
+    'scrollTop',
     'MutationObserver',
     'requestAnimationFrame',
     'projectSchema',

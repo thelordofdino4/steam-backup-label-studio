@@ -13,6 +13,13 @@ import {
   getResolvedDiscTextRenderStyle,
   type DiscTextStyleInput,
 } from './styles.ts'
+import {
+  DISC_TEXT_BOX_BORDER_WIDTH,
+  DISC_TEXT_STRAIGHT_STROKE_COLOR,
+  DISC_TEXT_STRAIGHT_STROKE_WIDTH,
+  hasStraightDiscTextShadow,
+  hasStraightDiscTextStroke,
+} from './straightTextPaintGeometry.ts'
 import { discTextPointSizeToSvgPercent } from './pointSize.ts'
 import { DISC_TEXT_KEY_ATTRIBUTE } from '../editor/previewEditableRegistry.ts'
 import type { RichTextDocument, RichTextRun } from '../text/htmlText.ts'
@@ -23,16 +30,12 @@ import { escapeSvgAttribute, escapeSvgText } from '../utils/svg.ts'
 export type ResolvedDiscTextRenderStyle =
   ReturnType<typeof getResolvedDiscTextRenderStyle>
 
-const DISC_TEXT_STROKE_COLOR = 'rgba(0, 0, 0, 0.58)'
-const DISC_TEXT_STRAIGHT_STROKE_WIDTH = 0.28
-const DISC_TEXT_BOX_BORDER_WIDTH = 0.18
-
 export function hasDiscTextShadow(style: ResolvedDiscTextRenderStyle) {
-  return style.contrast === 'shadow' || style.contrast === 'strokeShadow'
+  return hasStraightDiscTextShadow(style)
 }
 
 export function hasDiscTextStroke(style: ResolvedDiscTextRenderStyle) {
-  return style.contrast === 'stroke' || style.contrast === 'strokeShadow'
+  return hasStraightDiscTextStroke(style)
 }
 
 export function formatSvgNumber(value: number) {
@@ -60,7 +63,7 @@ export function buildTextStyleAttribute(
     typeof letterSpacing === 'number' ? `letter-spacing:${letterSpacing}px` : '',
     hasDiscTextShadow(style) && includeShadowFilter ? `filter:url(#${shadowFilterId})` : '',
     'paint-order:stroke fill',
-    `stroke:${hasDiscTextStroke(style) ? DISC_TEXT_STROKE_COLOR : 'transparent'}`,
+    `stroke:${hasDiscTextStroke(style) ? DISC_TEXT_STRAIGHT_STROKE_COLOR : 'transparent'}`,
     `stroke-width:${hasDiscTextStroke(style) ? strokeWidth : 0}px`,
     'stroke-linejoin:round',
   ].filter(Boolean)
@@ -126,12 +129,13 @@ export function buildStraightTextRunStyle(
     run.underline ? 'text-decoration:underline' : '',
     run.color ? `fill:${run.color}` : '',
     run.fontFamily ? `font-family:${run.fontFamily}` : '',
-    run.fontSizePt
-      ? `font-size:${discTextPointSizeToSvgPercent(run.fontSizePt, template)}px`
-      : '',
-    run.fontSizePx ? `font-size:${run.fontSizePx}px` : '',
+    run.fontSizePx
+      ? `font-size:${run.fontSizePx}px`
+      : run.fontSizePt
+        ? `font-size:${discTextPointSizeToSvgPercent(run.fontSizePt, template)}px`
+        : '',
     run.fontWeight && !run.bold ? `font-weight:${run.fontWeight}` : '',
-    run.fontStyle === 'italic' && !run.italic ? 'font-style:italic' : '',
+    run.fontStyle && !run.italic ? `font-style:${run.fontStyle}` : '',
     run.textDecoration === 'underline' && !run.underline
       ? 'text-decoration:underline'
       : '',

@@ -5,19 +5,23 @@ import type { BrandingPanelProps } from './types'
 
 export type CompanyLogoControlsProps = BrandingPanelProps & {
   developerEnableControlRef?: Ref<HTMLInputElement>
+  developerSectionRef?: Ref<HTMLDivElement>
   developerUploadControlRef?: Ref<HTMLInputElement>
   onPanelOpenChange?: (open: boolean) => void
   panelOpen?: boolean
   publisherEnableControlRef?: Ref<HTMLInputElement>
+  publisherSectionRef?: Ref<HTMLDivElement>
   publisherUploadControlRef?: Ref<HTMLInputElement>
 }
 
 export function CompanyLogoControls({
   developerEnableControlRef,
+  developerSectionRef,
   developerUploadControlRef,
   onPanelOpenChange,
   panelOpen,
   publisherEnableControlRef,
+  publisherSectionRef,
   publisherUploadControlRef,
   ...props
 }: CompanyLogoControlsProps) {
@@ -37,6 +41,7 @@ export function CompanyLogoControls({
         imageDataUrl={projectLogoAssets.developerLogoDataUrl}
         imageSize={projectLogoAssets.developerLogoSize}
         layout={projectLogoAssets.developerLogoLayout}
+        sectionRef={developerSectionRef}
         uploadControlRef={developerUploadControlRef}
         {...props}
       />
@@ -47,6 +52,7 @@ export function CompanyLogoControls({
         imageDataUrl={projectLogoAssets.publisherLogoDataUrl}
         imageSize={projectLogoAssets.publisherLogoSize}
         layout={projectLogoAssets.publisherLogoLayout}
+        sectionRef={publisherSectionRef}
         uploadControlRef={publisherUploadControlRef}
         {...props}
       />

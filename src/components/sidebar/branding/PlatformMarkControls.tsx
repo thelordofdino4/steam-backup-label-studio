@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { useState } from 'react'
+import { getDiscPresetScaleControlRange } from '../../../editor/discPresetScaleControlRange'
 import { getPlatformMarkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   PLATFORM_MARK_OPTIONS,
@@ -33,6 +34,7 @@ type PlatformMarkSetupControlsProps = Pick<
   | 'handlePlatformMarkLayoutChange'
   | 'handleClearPlatformMarkImage'
 > & {
+  enableControlRef?: Ref<HTMLInputElement>
   renderLayoutControls?: (
     value: PlatformMarkValue,
     label: string,
@@ -49,6 +51,7 @@ export function PlatformMarkSetupControls({
   handlePlatformMarkThemeChange,
   handlePlatformMarkLayoutChange,
   handleClearPlatformMarkImage,
+  enableControlRef,
   renderLayoutControls,
   idPrefix,
 }: PlatformMarkSetupControlsProps) {
@@ -74,7 +77,7 @@ export function PlatformMarkSetupControls({
 
   return (
     <div>
-      <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} /> Show operating system marks</label>
+      <label className="field-label"><input ref={enableControlRef} type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} /> Show operating system marks</label>
       {shouldShowInferenceHint ? <p className="hint">{inference.message}</p> : null}
       {!isEnabled ? null : (
         <>
@@ -161,7 +164,7 @@ export function PlatformMarkControls({
   | 'handlePlatformMarkLayoutChange'
   | 'handleClearPlatformMarkImage'
   | 'handleResetPlatformMarkLayout'
->) {
+> & Pick<PlatformMarkSetupControlsProps, 'enableControlRef'>) {
   return (
     <PlatformMarkSetupControls
       {...props}
@@ -172,14 +175,19 @@ export function PlatformMarkControls({
           { ...asset, value },
           selectedDiscTemplate,
         )
+        const platformMarkScaleControlRange = getDiscPresetScaleControlRange({
+          currentScale: asset.layout.scale,
+          nominalMin: 0.25,
+          nominalMax: 2,
+        })
 
         return (
           <>
             <EditorStackedRangeField
               id={`platform-mark-scale-${value}`}
               label="Scale"
-              min={0.25}
-              max={2}
+              min={platformMarkScaleControlRange.min}
+              max={platformMarkScaleControlRange.max}
               step={0.01}
               value={asset.layout.scale}
               onInput={(nextValue) =>

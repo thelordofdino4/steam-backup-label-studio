@@ -212,6 +212,7 @@ Key files:
 
 - `src/project/projectTypes.ts`
 - `src/project/projectSchema.ts`
+- `src/project/projectGuidedWorkflow.ts`
 - `src/project/createProjectSnapshot.ts`
 - `src/project/restoreProjectState.ts`
 - `src/project/caseInsertProjectAdapters.ts`
@@ -225,8 +226,11 @@ Key files:
 Source-of-truth state:
 
 - `SavedProjectBase`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case-insert project types live in `src/project/projectTypes.ts`.
-- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.1.0` in `src/project/projectSchema.ts`.
-- `PROJECT_SCHEMA_MIGRATIONS` is currently empty.
+- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.2.0` in `src/project/projectSchema.ts`.
+- `PROJECT_SCHEMA_MIGRATIONS` contains the explicit `0.1.0 -> 0.2.0` compatibility step.
+- `projectGuidedWorkflow.ts` owns the compact Disc workflow snapshot adapter
+  for active layout identity plus independent omission/completion arrays and
+  tolerant restoration through the pure guided normalizer.
 
 Render path:
 
@@ -276,7 +280,8 @@ Tests:
 Risks:
 
 - Schema validation is shallow compared with the number of nested editor states.
-- Migration support exists structurally but has no migrations.
+- Migration support currently contains only the explicit `0.1.0` to `0.2.0`
+  compatibility step.
 - Open issue `#48` tracks schema validation and migration support.
 
 ## Templates and Workspace Types
@@ -347,11 +352,137 @@ Key files:
 - `src/export/exportPng.ts`
 - `src/export/exportPreflight.ts`
 - `src/export/discDesignCheck.ts`
+- `src/presets/discPresetDefinition.ts`
+- `src/presets/discPresetResolution.ts`
+- `src/presets/discPresetOwnerPlacement.ts`
+- `src/presets/discPresetPlacementAdapters.ts`
+- `src/presets/discPresetApplication.ts`
+- `src/presets/discPresetTargetedApplication.ts`
+- `src/presets/fitVisualBoundsToDiscPresetRegion.ts`
+- `src/presets/adapters/discPointPresetAdapters.ts`
+- `src/presets/adapters/discTextPresetAdapters.ts`
+- `src/presets/adapters/discBackgroundPresetAdapter.ts`
+- `src/presets/adapters/discPlatformMarksPresetAdapter.ts`
+- `src/presets/discPresetProductionAdapterRegistry.ts`
+- `src/presets/discPresetRegistry.ts`
+- `src/presets/builtins/classicTopTitleDiscPreset.ts`
+- `src/guidedPresets/discGuidedLayouts.ts`
+- `src/guidedPresets/discGuidedCompletion.ts`
+- `src/guidedPresets/discGuidedSlotState.ts`
+- `src/guidedPresets/discGuidedRestoreItems.ts`
+- `src/guidedPresets/discGuidedWorkflow.ts`
+- `src/hooks/useDiscGuidedPlaceholderPreview.ts`
+- `src/project/projectGuidedWorkflow.ts`
+- `src/project/projectGuidedRestoreLayout.ts`
+- `src/app/appRegisteredDiscPresetApplication.ts`
+- `src/app/appProjectRestore.ts`
+- `src/app/appDiscRolePresetApplication.ts`
+- `src/app/appActiveDiscPresetBackground.ts`
+- `src/app/appActiveDiscPresetPointOwners.ts`
+- `src/app/appActiveDiscPresetTitleText.ts`
+- `src/app/appActiveDiscPresetPlatformMarks.ts`
+- `src/app/appActiveDiscPresetLegalText.ts`
+- `src/hooks/useActiveDiscPreset.ts`
+- `src/render/ratingBadgeRenderModel.ts`
+- `src/render/mediaMarkRenderModel.ts`
+- `src/project/projectTitleArtwork.ts`
+- `src/project/projectLogoAssets.ts`
 
 Source-of-truth state:
 
 - Runtime state is split between `App.tsx` and disc feature hooks.
 - Persisted state is `SavedDiscProject` in `src/project/projectTypes.ts`.
+- Reusable Disc preset layout contracts are immutable, JSON-compatible
+  definitions under `src/presets/`; they contain no project content or enabled
+  state. Template resolution produces transient nominal/resolved slot geometry
+  with structured warnings. A trusted semantic adapter registry and pure
+  application-plan builder provide deterministic partial/rejected planning
+  without dynamic state paths or runtime side effects. Focused concrete adapters
+  emit placement-only typed updates for point, straight-text, and centered
+  Background targets while preserving owner enablement and payload. The strict
+  size-policy parser accepts fixed scale or one JSON-compatible
+  `contain-region` contract and rejects unknown fields, invalid optionals, the
+  retired `fit-region` spelling, and unsupported future modes.
+  `fitVisualBoundsToDiscPresetRegion.ts` owns the pure normalized
+  aspect-preserving calculations. Its rectangle helper owns the Classic
+  limiting-axis/cap classification, anchor-offset compensation, exact fitted
+  bounds, and full resolved-rectangle containment; Classic adapters do not apply
+  a second safe-annulus/center-hole shrink or post-fit clamp. Its older region
+  composition remains as a separately tested legacy-compatible
+  annulus/inner-hole calculation. Focused providers in
+  `projectTitleArtwork.ts`, `projectLogoAssets.ts`,
+  `ratingBadgeRenderModel.ts`, and `mediaMarkRenderModel.ts` expose the same
+  canonical bounds used by preview/export truth. Supplemental
+  USK and additional logos are excluded; primary Developer/Publisher built-in
+  fallback placeholders supply renderable manifest bounds and follow the same
+  fit. Truly dimensionless point owners seed the resolved center while
+  preserving scale and fit on the first valid bounds. The OS group adapter
+  delegates resolved-region geometry to
+  `src/layout/groupedPlatformMarkPlacement.ts` and emits stable
+  platform-mark-identity layout updates without replacing owner state. Preset
+  contain mode evaluates centered one/two-row candidates and selects the largest
+  valid common scale after reserving fixed gaps, with rectangle-boundary and
+  no-overlap safety. The resolved preset rectangle is authoritative and the
+  legacy non-preset annulus-aware offset path remains available. The production
+  registry covers all Classic targets. Classic guided geometry and real owner
+  placement now derive from the same canonical built-in definition.
+  `appRegisteredDiscPresetApplication.ts` owns the focused immutable owner
+  snapshot, generic resolution/planning call, exhaustive typed update
+  translation, and updated-owner list. `appDiscRolePresetApplication.ts`
+  dispatches each touched owner family once without Classic's legacy broad
+  post-clamp behavior. `discPresetTargetedApplication.ts` owns exact
+  ID/revision and one-target resolution with structured fail-closed outcomes.
+  Content-aware adapters may return one validated resolved-slot patch;
+  application merges it without changing nominal geometry or slot order.
+  Title and Legal fitting use app-injected browser-canvas measurement while the
+  pure engine remains browser-free. Title uses canonical straight-SVG paint
+  bounds whose shared stroke, directional-shadow, italic-overhang, and box
+  constants also drive rendering. It persists a paint-safe wrap width and
+  compensating anchor so painted content remains centered, and paint-geometry
+  style changes target-refit it. Title otherwise retains its template-aware
+  preferred size, 8pt minimum, and 0.25pt steps without border-seeking
+  enlargement. Legal retains its 7pt/3pt/0.25pt policy while containing its
+  complete rendered box and paint bounds. Both text fits use the exact resolved rectangle and receive no second
+  annulus/hole reduction. Classic Background derives content-aware full-disc
+  source draw bounds at scale one, then uses the shared rectangular contain
+  primitive and zero pixel offset; it stops at the first limiting X or Y edge
+  rather than covering/cropping the resolved slot. Legacy cover intents remain
+  supported for other presets.
+  `useActiveDiscPreset.ts` owns the non-persisted canonical active ID/revision
+  and latest resolved runtime definition. Guided projection consumes that
+  resolved definition and suppresses unsupported slots.
+  `discGuidedWorkflow.ts` separately owns active guided layout identity/version
+  and independent canonical omission/completion transitions. Schema `0.2.0`
+  snapshots only that compact workflow through `projectGuidedWorkflow.ts`;
+  progress controls never mutate feature owners. The focused completion service
+  records slot IDs only from explicit owner actions, while new/different layout
+  activation seeds currently satisfied slots once; no reactive effect watches
+  owner state. The Layout Presets panel projects canonical Removed and Completed
+  item view models plus one reset action with deterministic focus restoration.
+  Contain-fit never reads or mutates completion, omission, or navigation state;
+  Guided Progress and focus actions never mutate fitted owner placement.
+  Disc project restoration reconstructs the transient canonical active preset
+  from the explicit layout-to-preset mapping after restored template and owner
+  state are available. It resolves/refines geometry without dispatching owner
+  updates, keeping late point-owner/Title fitting, OS grouping, and Legal
+  refitting active after load.
+  `appActiveDiscPresetBackground.ts` and `useBackgroundImage.ts` compose a first
+  or replacement image and retained-image enablement with the exact Background
+  adapter before one owner-state commit; direct scale/offset edits stay manual.
+  `appActiveDiscPresetPointOwners.ts` and the affected feature hooks compose
+  first/replacement assets and semantic bounds changes with one exact targeted
+  contain application before one owner-state commit. Direct x/y/scale edits do
+  not refit. `appActiveDiscPresetTitleText.ts` and `useDiscTextState.ts` apply
+  the same boundary to canonical Title content and fit-geometry-relevant style
+  changes while leaving direct layout edits alone.
+  `appActiveDiscPresetPlatformMarks.ts` and `usePlatformMarksState.ts` compose
+  late OS eligibility/bounds changes with only the production OS adapter before
+  the final owner-state commit; layout x/y/scale updates do not recurse.
+  `appActiveDiscPresetLegalText.ts` and `useDiscTextState.ts` do the same for
+  Legal enablement, canonical content, and fit-geometry-relevant styles while
+  leaving direct Legal layout edits alone.
+  `discRolePresets.ts` retains Classic menu metadata only; Centered Logo Archive
+  and Clean Metadata Footer remain on the transitional legacy path.
 
 Render path:
 
@@ -378,6 +509,33 @@ Export path:
 
 Tests:
 
+- `src/presets/discPresetDefinition.test.ts` covers strict `contain-region`
+  parsing/round trips and rejection of malformed, unknown, and retired policy
+  shapes.
+- `src/presets/fitVisualBoundsToDiscPresetRegion.test.ts` covers wide, tall,
+  square, capped/inset, anchor-offset, determinism, immutability, and
+  limiting-axis rectangular cases plus retained legacy annulus/inner-hole cases.
+- `src/presets/adapters/discPointPresetAdapters.test.ts` and
+  `src/app/appActiveDiscPresetPointOwners.test.ts` cover focused canonical
+  point-owner updates, dormant seeding, semantic targeted refits, and
+  non-placement preservation; `src/app/appRegisteredDiscPresetApplication.test.ts`
+  covers Classic integration.
+- `src/project/projectTitleArtwork.test.ts`,
+  `src/project/projectLogoAssets.test.ts`,
+  `src/project/projectRatingBadge.test.ts`, and
+  `src/project/projectMediaMark.test.ts` cover the target-specific canonical
+  bounds inputs and primary/supplemental exclusions.
+- `src/presets/adapters/discBackgroundPresetAdapter.test.ts` and
+  `src/app/appActiveDiscPresetBackground.test.ts` cover Classic rectangular
+  contain, retained legacy cover, and focused semantic Background refitting.
+- `src/layout/groupedPlatformMarkPlacement.test.ts` covers strict centered
+  contain grouping separately from the retained legacy non-preset behavior.
+- `src/presets/adapters/discTextPresetAdapters.test.ts` and
+  `src/app/appActiveDiscPresetTitleText.test.ts` cover template-aware Title
+  fitting and Legal regression behavior.
+- `src/hooks/activeDiscPresetSemanticRefitWiring.test.ts` guards semantic
+  point/text trigger routing, manual-layout bypasses, supplemental/additional
+  exclusions, and effect-loop isolation.
 - Disc text tests under `src/discText/*.test.ts`.
 - Disc export/preflight/design tests under `src/export/*disc*.test.ts` and `src/export/exportPreflight.test.ts`.
 - Layout tests for disc safe zones, occupied regions, and template geometry.
@@ -522,6 +680,7 @@ Key files:
 
 - `src/discText/index.ts`
 - `src/discText/renderLayout.ts`
+- `src/discText/straightTextPaintGeometry.ts`
 - `src/discText/straightTextWrapping.ts`
 - `src/discText/svgLayer.ts`
 - `src/discText/svgTextMarkup.ts`
@@ -1158,6 +1317,10 @@ Current `npm run test` covers these broad areas:
 - Export preflight, design checks, canvas image helpers, Steam banner drawing, rating/mark drawing, and warning helpers.
 - Drag geometry.
 - Disc and jewel-case layout helpers.
+- Strict Disc preset size-policy parsing, canonical point-owner contain fitting,
+  rectangle-authoritative Classic placement, retained legacy
+  safe-annulus/inner-hole geometry, semantic targeted refits, centered OS
+  fixed-gap common-scale grouping, and template-aware Title/Legal text fitting.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
 - Shared project parity harness diagnostics for representative disc and case
   insert runtime/saved/restored/export inputs, including split disc and case
@@ -1174,7 +1337,8 @@ Unknowns:
 
 - `App.tsx` remains a large orchestration component and owns many cross-feature flows.
 - Case insert editor hooks and export are large and centralize many behaviors.
-- Project schema migration support exists as a structure, but no migrations are implemented.
+- Project schema migration support currently contains only the explicit
+  `0.1.0` to `0.2.0` compatibility step.
 - Preview and export rendering are separate paths for both disc and case insert editors.
 - Inline preview text editing depends on DOM measurement, caret math, wrapped text behavior, and CSS.
 - Case insert parity is active work, especially tray/spine structured layout and alpha finish-line work.

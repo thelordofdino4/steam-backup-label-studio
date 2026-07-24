@@ -22,6 +22,7 @@ import type {
   ProjectTechnicalMarks,
   ProjectTitleArtwork,
 } from '../project/projectTypes'
+import type { DiscTemplate } from '../types/template.ts'
 
 export const DISC_ROLE_PRESET_IDS = [
   'classic-top-title',
@@ -185,164 +186,15 @@ export const DISC_ROLE_PRESETS = [
       'game-info-logos',
       'company-logos',
       'legal-info',
-      'additional-text',
     ],
-    intentionallyUntouchedRoles: ['additional-artwork'],
+    intentionallyUntouchedRoles: ['additional-artwork', 'additional-text'],
     enablementBehavior:
-      'Enable intended visible layout slots without changing sources, selected values, text content, or user-created repeatable objects.',
-    updatePlan: [
-      {
-        owner: 'backgroundImage',
-        updates: [
-          {
-            role: 'background-artwork',
-            slot: 'background',
-            condition: 'always',
-            enablement: 'enable-if-renderable',
-            fields: [
-              { field: 'enabled', value: true },
-              { field: 'scale', value: 1 },
-              { field: 'offset.x', value: 0 },
-              { field: 'offset.y', value: 0 },
-            ],
-          },
-        ],
-      },
-      {
-        owner: 'titleArtwork',
-        updates: [
-          {
-            role: 'game-title',
-            slot: 'titleArtwork',
-            condition: 'always',
-            enablement: 'enable-if-renderable',
-            fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 50 },
-              { field: 'layout.y', value: 19.5 },
-              { field: 'layout.scale', value: 1 },
-            ],
-          },
-        ],
-      },
-      {
-        owner: 'discText',
-        updates: [
-          {
-            role: 'game-title',
-            slot: 'titleTextFallback',
-            condition: 'when-title-artwork-is-not-renderable',
-            enablement: 'enable-intended-slot',
-            fields: [
-              { field: 'textSetting.enabled', value: true },
-              { field: 'textLayout.x', value: 0 },
-              { field: 'textLayout.y', value: 19.5 },
-              { field: 'textLayout.width', value: 62 },
-              { field: 'textLayout.scale', value: 1.05 },
-              { field: 'textLayout.align', value: 'center' },
-              { field: 'textLayout.mode', value: 'straight' },
-            ],
-          },
-          {
-            role: 'legal-info',
-            slot: 'copyrightText',
-            condition: 'always',
-            enablement: 'enable-intended-slot',
-            fields: [
-              { field: 'textSetting.enabled', value: true },
-              { field: 'textLayout.x', value: 0 },
-              { field: 'textLayout.y', value: 8 },
-              { field: 'textLayout.scale', value: 1 },
-              { field: 'textLayout.align', value: 'center' },
-              { field: 'textLayout.mode', value: 'curved' },
-              { field: 'textLayout.arcDegrees', value: 210 },
-              { field: 'textLayout.arcSide', value: 'bottom' },
-            ],
-          },
-          {
-            role: 'additional-text',
-            slot: 'appIdText',
-            condition: 'always',
-            enablement: 'enable-intended-slot',
-            fields: [
-              { field: 'textSetting.enabled', value: true },
-              { field: 'textLayout.x', value: 0 },
-              { field: 'textLayout.y', value: 72 },
-              { field: 'textLayout.width', value: 44 },
-              { field: 'textLayout.scale', value: 0.82 },
-              { field: 'textLayout.align', value: 'center' },
-              { field: 'textLayout.mode', value: 'straight' },
-            ],
-          },
-        ],
-      },
-      {
-        owner: 'ratingBadge',
-        updates: [
-          {
-            role: 'game-info-logos',
-            slot: 'ratingBadge',
-            condition: 'always',
-            enablement: 'enable-if-renderable',
-            fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 78 },
-              { field: 'layout.y', value: 68 },
-              { field: 'layout.scale', value: 0.9 },
-            ],
-          },
-        ],
-      },
-      {
-        owner: 'mediaMark',
-        updates: [
-          {
-            role: 'game-info-logos',
-            slot: 'mediaMark',
-            condition: 'always',
-            enablement: 'enable-if-renderable',
-            fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 74 },
-              { field: 'layout.y', value: 78 },
-              { field: 'layout.scale', value: 0.85 },
-            ],
-          },
-        ],
-      },
-      {
-        owner: 'logoAssets',
-        updates: [
-          {
-            role: 'company-logos',
-            slot: 'developerLogo',
-            condition: 'always',
-            enablement: 'enable-if-renderable',
-            fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 22 },
-              { field: 'layout.y', value: 64 },
-              { field: 'layout.scale', value: 0.82 },
-            ],
-          },
-          {
-            role: 'company-logos',
-            slot: 'publisherLogo',
-            condition: 'always',
-            enablement: 'enable-if-renderable',
-            fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 22 },
-              { field: 'layout.y', value: 74 },
-              { field: 'layout.scale', value: 0.82 },
-            ],
-          },
-        ],
-      },
-    ],
+      'Place existing content without enabling optional roles or changing sources, selected values, text content, or user-created repeatable objects.',
+    updatePlan: [],
     notes: [
+      'Classic Top Title placement resolves through the generic registered Disc preset engine.',
       'Additional artwork is deliberately untouched so the MVP does not create, delete, or rearrange user-created artwork elements.',
-      'Platform and technical marks are left for manual follow-up unless integration adds existing-value slot handling.',
+      'Selected enabled operating-system marks use deterministic grouped placement without changing selection or enablement.',
     ],
   },
   {
@@ -720,7 +572,9 @@ export function getDiscRolePresetUpdatePlan(
 export function applyDiscRolePresetToState(
   state: DiscRolePresetApplicationState,
   presetId: string,
+  _selectedDiscTemplate?: DiscTemplate,
 ): DiscRolePresetApplicationResult {
+  void _selectedDiscTemplate
   const preset = getDiscRolePreset(presetId)
 
   if (!preset) {

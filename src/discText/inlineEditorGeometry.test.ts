@@ -3,10 +3,14 @@ import test from 'node:test'
 import {
   getDiscInlineTextEditorGeometryLines,
 } from './inlineEditorGeometry.ts'
-import type {
-  StraightDiscTextRenderLayout,
-  StraightDiscTextVisualBounds,
+import {
+  getStraightDiscTextRenderLayout,
+  getStraightDiscTextVisualBounds,
+  type StraightDiscTextRenderLayout,
+  type StraightDiscTextVisualBounds,
 } from './renderLayout.ts'
+import type { DiscTextLayout } from './types.ts'
+import { discTemplates } from '../templates/discTemplates.ts'
 
 function measureText(text: string) {
   return text.length
@@ -15,6 +19,11 @@ function measureText(text: string) {
 function measureTextByFont(text: string, font: string) {
   if (/Verdana/i.test(font)) return text.length * 4
   return text.length
+}
+
+function measureTextByFontSize(text: string, font: string) {
+  const fontSize = Number(font.match(/(\d+(?:\.\d+)?)px/)?.[1] ?? 1)
+  return Array.from(text).length * fontSize * 0.55
 }
 
 function createRenderLayout(
@@ -128,4 +137,75 @@ test('disc inline editor geometry uses rich-text run fonts for caret positions',
   })
 
   assert.deepEqual(geometryLines[0]?.caretXRatios, [0, 0.1, 0.2, 0.6, 1])
+})
+
+test('Title inline editor geometry follows variable rich-text line heights', () => {
+  const layout: DiscTextLayout = {
+    x: 0,
+    y: 50,
+    width: 60,
+    scale: 1,
+    fontSizePt: 12,
+    align: 'center',
+    mode: 'straight',
+    arcDegrees: 210,
+    arcSide: 'bottom',
+    avoidVisualElements: false,
+  }
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'Large\nSmall',
+    layout,
+    measureTextByFontSize,
+    undefined,
+    {
+      richText: {
+        lines: [
+          {
+            text: 'Large',
+            runs: [{ fontSizePt: 36, text: 'Large' }],
+          },
+          {
+            text: 'Small',
+            runs: [{ fontSizePt: 12, text: 'Small' }],
+          },
+        ],
+      },
+      template: discTemplates.standardPrintableDisc,
+    },
+  )
+  const bounds = getStraightDiscTextVisualBounds(
+    renderLayout,
+    measureTextByFontSize,
+  )
+  const geometryLines = getDiscInlineTextEditorGeometryLines({
+    bounds,
+    measureText: measureTextByFontSize,
+    renderLayout,
+  })
+  const hostTop = bounds.centerY - bounds.halfHeight
+  const hostHeight = bounds.halfHeight * 2
+
+  assert.equal(geometryLines.length, 2)
+  assert.ok(
+    (geometryLines[0]?.heightRatio ?? 0) >
+      (geometryLines[1]?.heightRatio ?? 0),
+  )
+
+  renderLayout.lines.forEach((line, index) => {
+    const lineHeight = line.lineHeight ?? renderLayout.lineHeight
+    const geometry = geometryLines[index]
+
+    assert.ok(
+      Math.abs(
+        (geometry?.heightRatio ?? 0) - lineHeight / hostHeight,
+      ) < 1e-12,
+    )
+    assert.ok(
+      Math.abs(
+        (geometry?.topRatio ?? 0) -
+          (line.y - lineHeight / 2 - hostTop) / hostHeight,
+      ) < 1e-12,
+    )
+  })
 })

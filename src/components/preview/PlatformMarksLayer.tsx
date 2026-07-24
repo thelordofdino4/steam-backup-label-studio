@@ -67,7 +67,7 @@ export function PlatformMarksLayer({
         onPointerCancel={handlePlatformMarkPointerUp}
       >
         <ContentBoundedImage
-          className={`disc-media-mark-image${model.isPlaceholderImage ? ' disc-placeholder-svg-image' : ''}`}
+          className={`disc-media-mark-image disc-canonical-visual-bounds-image${model.isPlaceholderImage ? ' disc-placeholder-svg-image' : ''}`}
           src={model.imageDataUrl}
           alt={model.alt}
           imageSize={model.imageSize}

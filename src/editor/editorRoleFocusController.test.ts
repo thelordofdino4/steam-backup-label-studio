@@ -20,12 +20,44 @@ const GAME_TITLE_REVEAL_REQUEST = {
   behavior: 'reveal',
 } as const satisfies EditorRoleFocusRequestInput
 
+const GAME_TITLE_ROLE_START_FOCUS_REQUEST = {
+  ...GAME_TITLE_FOCUS_REQUEST,
+  scrollAlignment: 'role-start',
+} as const satisfies EditorRoleFocusRequestInput
+
+const GAME_TITLE_ROLE_START_REVEAL_REQUEST = {
+  ...GAME_TITLE_REVEAL_REQUEST,
+  scrollAlignment: 'role-start',
+} as const satisfies EditorRoleFocusRequestInput
+
 const RATING_FOCUS_REQUEST = {
   surfaceId: 'disc-label',
   behavior: 'focus',
   destination: {
     roleId: 'game-info-logos',
     focusTarget: 'disc:rating:value',
+  },
+} as const satisfies EditorRoleFocusRequestInput
+
+const MEDIA_FORMAT_FOCUS_REQUEST = {
+  surfaceId: 'disc-label',
+  behavior: 'focus',
+  scrollAlignment: 'section-start',
+  destination: {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:media-format-mark:format',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+  },
+} as const satisfies EditorRoleFocusRequestInput
+
+const OPERATING_SYSTEM_MARKS_FOCUS_REQUEST = {
+  surfaceId: 'disc-label',
+  behavior: 'focus',
+  scrollAlignment: 'section-start',
+  destination: {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:operating-system-marks:enable',
+    sectionAlignmentTarget: 'disc:operating-system-marks:section',
   },
 } as const satisfies EditorRoleFocusRequestInput
 
@@ -55,6 +87,36 @@ test('generates positive monotonic IDs and ignores caller ID injection', () => {
   assert.equal(second.requestId, 2)
   assert.ok(Number.isSafeInteger(first.requestId) && first.requestId > 0)
   assert.deepEqual(first.destination, second.destination)
+})
+
+test('generated requests preserve explicit alignment and omit the default', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const omitted = store.requestRoleFocus(GAME_TITLE_FOCUS_REQUEST)
+  store.processPendingRequest()
+  const roleStart = store.requestRoleFocus(GAME_TITLE_ROLE_START_FOCUS_REQUEST)
+
+  assert.equal(Object.hasOwn(omitted, 'scrollAlignment'), false)
+  assert.equal(roleStart.scrollAlignment, 'role-start')
+})
+
+test('new Media and OS requests receive distinct IDs and open Game Info Logos', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const media = store.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  const operatingSystems = store.requestRoleFocus(
+    OPERATING_SYSTEM_MARKS_FOCUS_REQUEST,
+  )
+
+  assert.equal(media.requestId, 1)
+  assert.equal(operatingSystems.requestId, 2)
+  assert.deepEqual(media.destination, MEDIA_FORMAT_FOCUS_REQUEST.destination)
+  assert.deepEqual(
+    operatingSystems.destination,
+    OPERATING_SYSTEM_MARKS_FOCUS_REQUEST.destination,
+  )
+  assert.equal(media.scrollAlignment, 'section-start')
+  assert.equal(operatingSystems.scrollAlignment, 'section-start')
+  assert.equal(store.isRoleOpen('game-info-logos'), true)
+  assert.equal(store.getSnapshot().pendingRequest?.requestId, 2)
 })
 
 test('integrates reducer role state without accordion behavior', () => {
@@ -189,6 +251,276 @@ test('focus opens explicit ancestors in order then focuses and reveals', () => {
     'target:scroll:nearest:auto',
   ])
   assert.equal(store.getSnapshot().pendingRequest, null)
+})
+
+test('role-start focuses after ancestors then aligns the owning summary last', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('summary', calls)
+  const target = createElement('target', calls)
+  store.registerRolePanel('game-title', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  store.registerFocusTarget('disc:game-title:artwork-upload', {
+    openAncestors: [
+      () => calls.push('ancestor:first'),
+      () => calls.push('ancestor:second'),
+    ],
+    element: () => target,
+  })
+  store.requestRoleFocus(GAME_TITLE_ROLE_START_FOCUS_REQUEST)
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'ancestor:first',
+    'ancestor:second',
+    'target:focus:true',
+    'summary:scroll:start:auto',
+  ])
+  assert.equal(store.getSnapshot().pendingRequest, null)
+})
+
+test('role-start uses registered details when the role summary is unavailable', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const details = createElement('details', calls)
+  const target = createElement('target', calls)
+  store.registerRolePanel('game-title', {
+    detailsElement: () => details as unknown as HTMLDetailsElement,
+    summaryElement: () => null,
+  })
+  store.registerFocusTarget('disc:game-title:artwork-upload', {
+    element: () => target,
+  })
+  store.requestRoleFocus(GAME_TITLE_ROLE_START_FOCUS_REQUEST)
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'target:focus:true',
+    'details:scroll:start:auto',
+  ])
+})
+
+test('role-start fallback focuses the resolved target and aligns the original role', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('game-title-summary', calls)
+  const enableTarget = createElement('artwork-enable', calls)
+  store.registerRolePanel('game-title', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  store.registerFocusTargetFallback(
+    'disc:game-title:artwork-upload',
+    'disc:game-title:artwork-enable',
+  )
+  store.registerFocusTarget('disc:game-title:artwork-enable', {
+    element: () => enableTarget,
+  })
+  store.requestRoleFocus(GAME_TITLE_ROLE_START_FOCUS_REQUEST)
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'artwork-enable:focus:true',
+    'game-title-summary:scroll:start:auto',
+  ])
+})
+
+test('role-start reveal aligns the role without resolving or focusing targets', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('summary', calls)
+  store.registerRolePanel('game-title', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  store.registerFocusTarget('disc:game-title:artwork-upload', {
+    openAncestors: [() => calls.push('unexpected-ancestor')],
+    element: () => createElement('unexpected-target', calls),
+  })
+  store.requestRoleFocus(GAME_TITLE_ROLE_START_REVEAL_REQUEST)
+
+  assert.equal(store.processPendingRequest(), 'role-revealed')
+  assert.deepEqual(calls, ['summary:scroll:start:auto'])
+})
+
+test('repeated role-start requests realign without closing unrelated roles', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('summary', calls)
+  const target = createElement('target', calls)
+  store.setRoleOpen('legal-info', true)
+  store.registerRolePanel('game-title', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  store.registerFocusTarget('disc:game-title:artwork-upload', {
+    element: () => target,
+  })
+
+  store.requestRoleFocus(GAME_TITLE_ROLE_START_FOCUS_REQUEST)
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  store.requestRoleFocus(GAME_TITLE_ROLE_START_FOCUS_REQUEST)
+  assert.equal(store.processPendingRequest(), 'target-focused')
+
+  assert.deepEqual(calls, [
+    'target:focus:true',
+    'summary:scroll:start:auto',
+    'target:focus:true',
+    'summary:scroll:start:auto',
+  ])
+  assert.equal(store.isRoleOpen('game-title'), true)
+  assert.equal(store.isRoleOpen('legal-info'), true)
+})
+
+test('section-start aligns the nested section around exact focus', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const roleSummary = createElement('role-summary', calls)
+  const section = createElement('media-section', calls)
+  const format = createElement('media-format', calls)
+  store.registerRolePanel('game-info-logos', {
+    detailsElement: () => null,
+    summaryElement: () => roleSummary,
+  })
+  store.registerSectionAlignmentTarget('disc:media-format-mark:section', {
+    element: () => section,
+  })
+  store.registerFocusTarget('disc:media-format-mark:format', {
+    element: () => format,
+    openAncestors: [() => calls.push('ancestor:media')],
+  })
+
+  store.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'ancestor:media',
+    'media-section:scroll:start:auto',
+    'media-format:focus:true',
+    'media-section:scroll:start:auto',
+  ])
+})
+
+test('section-start keeps the requested section when focus falls back', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const section = createElement('media-section', calls)
+  const enable = createElement('media-enable', calls)
+  store.registerSectionAlignmentTarget('disc:media-format-mark:section', {
+    element: () => section,
+  })
+  store.registerFocusTargetFallback(
+    'disc:media-format-mark:format',
+    'disc:media-format-mark:enable',
+  )
+  store.registerFocusTarget('disc:media-format-mark:enable', {
+    element: () => enable,
+    openAncestors: [() => calls.push('ancestor:media')],
+  })
+
+  store.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'ancestor:media',
+    'media-section:scroll:start:auto',
+    'media-enable:focus:true',
+    'media-section:scroll:start:auto',
+  ])
+})
+
+test('section registrations reject duplicates and clean up exact identities', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const oldMedia = createElement('old-media-section', calls)
+  const newMedia = createElement('new-media-section', calls)
+  const osSection = createElement('os-section', calls)
+  const unregisterOld = store.registerSectionAlignmentTarget(
+    'disc:media-format-mark:section',
+    { element: () => oldMedia },
+  )
+  assert.throws(
+    () => store.registerSectionAlignmentTarget(
+      'disc:media-format-mark:section',
+      { element: () => newMedia },
+    ),
+    /Duplicate editor section-alignment target/,
+  )
+  unregisterOld()
+  store.registerSectionAlignmentTarget('disc:media-format-mark:section', {
+    element: () => newMedia,
+  })
+  store.registerSectionAlignmentTarget(
+    'disc:operating-system-marks:section',
+    { element: () => osSection },
+  )
+  store.registerFocusTarget('disc:media-format-mark:format', {
+    element: () => createElement('media-format', calls),
+  })
+  store.registerFocusTarget('disc:operating-system-marks:enable', {
+    element: () => createElement('os-enable', calls),
+  })
+
+  store.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  store.requestRoleFocus(OPERATING_SYSTEM_MARKS_FOCUS_REQUEST)
+  assert.equal(store.processPendingRequest(), 'target-focused')
+
+  assert.equal(calls.includes('old-media-section:scroll:start:auto'), false)
+  assert.equal(
+    calls.filter((call) =>
+      call === 'new-media-section:scroll:start:auto').length,
+    2,
+  )
+  assert.equal(
+    calls.filter((call) => call === 'os-section:scroll:start:auto').length,
+    2,
+  )
+})
+
+test('section-start reports missing and conflicting registrations exactly', () => {
+  const missingSectionStore = createEditorRoleFocusControllerStore()
+  missingSectionStore.registerFocusTarget(
+    'disc:media-format-mark:format',
+    { element: () => createElement('format', []) },
+  )
+  missingSectionStore.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  assert.equal(
+    missingSectionStore.processPendingRequest(),
+    'section-alignment-target-unavailable',
+  )
+  assert.equal(
+    missingSectionStore.processPendingRequest(),
+    'no-pending-request',
+  )
+
+  const missingFocusStore = createEditorRoleFocusControllerStore()
+  missingFocusStore.registerSectionAlignmentTarget(
+    'disc:media-format-mark:section',
+    { element: () => createElement('section', []) },
+  )
+  missingFocusStore.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  assert.equal(
+    missingFocusStore.processPendingRequest(),
+    'section-focus-target-unavailable',
+  )
+
+  const conflictStore = createEditorRoleFocusControllerStore()
+  const shared = createElement('shared', [])
+  conflictStore.registerSectionAlignmentTarget(
+    'disc:media-format-mark:section',
+    { element: () => shared },
+  )
+  conflictStore.registerFocusTarget('disc:media-format-mark:format', {
+    element: () => shared,
+  })
+  conflictStore.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  assert.equal(
+    conflictStore.processPendingRequest(),
+    'section-target-conflict',
+  )
 })
 
 test('explicit target fallback is bounded and processes repeated requests', () => {
