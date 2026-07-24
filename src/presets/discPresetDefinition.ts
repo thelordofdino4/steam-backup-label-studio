@@ -9,6 +9,7 @@ export const DISC_PRESET_MAX_SLOTS = 32
 export const DISC_PRESET_MAX_NAME_LENGTH = 120
 export const DISC_PRESET_MAX_DESCRIPTION_LENGTH = 1000
 export const DISC_PRESET_MAX_TEMPLATE_ID_LENGTH = 120
+export const DISC_PRESET_OWNER_SCALE_MAX = 10
 
 export type DiscPresetId =
   | `builtin:disc-preset:${string}`
@@ -43,9 +44,16 @@ export type DiscTextPresetTarget =
   | 'game-title.text'
   | 'legal.copyright'
 
+export type DiscContainRegionSizePolicyV1 = Readonly<{
+  mode: 'contain-region'
+  allowUpscale: boolean
+  maximumScale?: number
+  insetPercent?: number
+}>
+
 export type DiscPresetSizePolicyV1 =
   | Readonly<{ mode: 'fixed-scale'; scale: number }>
-  | Readonly<{ mode: 'fit-region' }>
+  | DiscContainRegionSizePolicyV1
 
 export type DiscPointPlacementIntentV1 = Readonly<{
   kind: 'point'
@@ -62,18 +70,31 @@ export type DiscTextPlacementIntentV1 = Readonly<{
   fontSizePt?: number
 }>
 
-export type DiscBackgroundPlacementIntentV1 = Readonly<{
-  kind: 'background'
-  target: 'background.primary'
-  fit: 'cover'
-  scale: number
-}>
+export type DiscBackgroundPlacementIntentV1 =
+  | Readonly<{
+      kind: 'background'
+      target: 'background.primary'
+      fit: 'cover'
+      scale: number
+    }>
+  | Readonly<{
+      kind: 'background'
+      target: 'background.primary'
+      fit: 'contain-region'
+      size: DiscContainRegionSizePolicyV1
+    }>
 
-export type DiscGroupPlacementIntentV1 = Readonly<{
-  kind: 'group'
-  target: 'operating-system-marks.enabled'
-  preferredScale?: number
-}>
+export type DiscGroupPlacementIntentV1 =
+  | Readonly<{
+      kind: 'group'
+      target: 'operating-system-marks.enabled'
+      preferredScale?: number
+    }>
+  | Readonly<{
+      kind: 'group'
+      target: 'operating-system-marks.enabled'
+      size: DiscContainRegionSizePolicyV1
+    }>
 
 export type DiscPresetPlacementIntentV1 =
   | DiscPointPlacementIntentV1
@@ -201,10 +222,17 @@ const TEXT_FIELDS = new Set([
   'fit',
   'fontSizePt',
 ])
-const BACKGROUND_FIELDS = new Set(['kind', 'target', 'fit', 'scale'])
-const GROUP_FIELDS = new Set(['kind', 'target', 'preferredScale'])
+const COVER_BACKGROUND_FIELDS = new Set(['kind', 'target', 'fit', 'scale'])
+const CONTAIN_BACKGROUND_FIELDS = new Set(['kind', 'target', 'fit', 'size'])
+const LEGACY_GROUP_FIELDS = new Set(['kind', 'target', 'preferredScale'])
+const CONTAIN_GROUP_FIELDS = new Set(['kind', 'target', 'size'])
 const FIXED_SCALE_FIELDS = new Set(['mode', 'scale'])
-const FIT_REGION_FIELDS = new Set(['mode'])
+const CONTAIN_REGION_FIELDS = new Set([
+  'mode',
+  'allowUpscale',
+  'maximumScale',
+  'insetPercent',
+])
 const SUPPORTED_SLOT_IDS = new Set<string>(DISC_GUIDED_SLOT_IDS)
 const SUPPORTED_PLACEMENT_TARGETS =
   new Set<string>(DISC_PRESET_PLACEMENT_TARGETS)
@@ -257,7 +285,20 @@ function isFiniteInRange(value: unknown, min: number, max: number): value is num
 }
 
 function isPositiveScale(value: unknown): value is number {
-  return isFiniteInRange(value, Number.EPSILON, 10)
+  return isFiniteInRange(
+    value,
+    Number.EPSILON,
+    DISC_PRESET_OWNER_SCALE_MAX,
+  )
+}
+
+function isPositiveContainRegionMaximumScale(
+  value: unknown,
+): value is number {
+  return typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value > 0 &&
+    value <= DISC_PRESET_OWNER_SCALE_MAX
 }
 
 export function isDiscPresetId(value: unknown): value is DiscPresetId {
@@ -336,9 +377,37 @@ function parseSizePolicy(value: unknown): DiscPresetSizePolicyV1 | null {
       : null
   }
 
-  return value.mode === 'fit-region' && hasOnlyFields(value, FIT_REGION_FIELDS)
-    ? Object.freeze({ mode: value.mode })
-    : null
+  if (
+    value.mode !== 'contain-region' ||
+    !hasOnlyFields(value, CONTAIN_REGION_FIELDS) ||
+    typeof value.allowUpscale !== 'boolean' ||
+    (
+      value.maximumScale !== undefined &&
+      !isPositiveContainRegionMaximumScale(value.maximumScale)
+    ) ||
+    (
+      value.insetPercent !== undefined &&
+      (
+        typeof value.insetPercent !== 'number' ||
+        !Number.isFinite(value.insetPercent) ||
+        value.insetPercent < 0 ||
+        value.insetPercent >= 50
+      )
+    )
+  ) {
+    return null
+  }
+
+  return Object.freeze({
+    mode: value.mode,
+    allowUpscale: value.allowUpscale,
+    ...(value.maximumScale === undefined
+      ? {}
+      : { maximumScale: value.maximumScale }),
+    ...(value.insetPercent === undefined
+      ? {}
+      : { insetPercent: value.insetPercent }),
+  })
 }
 
 function parsePlacementIntent(value: unknown): DiscPresetPlacementIntentV1 | null {
@@ -383,33 +452,71 @@ function parsePlacementIntent(value: unknown): DiscPresetPlacementIntentV1 | nul
   }
 
   if (value.kind === 'background') {
-    if (
-      !hasOnlyFields(value, BACKGROUND_FIELDS) ||
-      value.target !== 'background.primary' ||
-      value.fit !== 'cover' ||
-      !isPositiveScale(value.scale)
-    ) return null
-    return Object.freeze({
-      kind: value.kind,
-      target: value.target,
-      fit: value.fit,
-      scale: value.scale,
-    })
+    if (value.target !== 'background.primary') return null
+
+    if (value.fit === 'cover') {
+      if (
+        !hasOnlyFields(value, COVER_BACKGROUND_FIELDS) ||
+        !isPositiveScale(value.scale)
+      ) return null
+
+      return Object.freeze({
+        kind: value.kind,
+        target: value.target,
+        fit: value.fit,
+        scale: value.scale,
+      })
+    }
+
+    if (value.fit === 'contain-region') {
+      const size = parseSizePolicy(value.size)
+      if (
+        !hasOnlyFields(value, CONTAIN_BACKGROUND_FIELDS) ||
+        !size ||
+        size.mode !== 'contain-region'
+      ) return null
+
+      return Object.freeze({
+        kind: value.kind,
+        target: value.target,
+        fit: value.fit,
+        size,
+      })
+    }
+
+    return null
   }
 
   if (value.kind === 'group') {
-    if (
-      !hasOnlyFields(value, GROUP_FIELDS) ||
-      value.target !== 'operating-system-marks.enabled' ||
-      (value.preferredScale !== undefined && !isPositiveScale(value.preferredScale))
-    ) return null
-    return Object.freeze({
-      kind: value.kind,
-      target: value.target,
-      ...(value.preferredScale === undefined
-        ? {}
-        : { preferredScale: value.preferredScale }),
-    })
+    if (value.target !== 'operating-system-marks.enabled') return null
+
+    if (hasOnlyFields(value, LEGACY_GROUP_FIELDS)) {
+      if (
+        value.preferredScale !== undefined &&
+        !isPositiveScale(value.preferredScale)
+      ) return null
+
+      return Object.freeze({
+        kind: value.kind,
+        target: value.target,
+        ...(value.preferredScale === undefined
+          ? {}
+          : { preferredScale: value.preferredScale }),
+      })
+    }
+
+    if (hasOnlyFields(value, CONTAIN_GROUP_FIELDS)) {
+      const size = parseSizePolicy(value.size)
+      if (!size || size.mode !== 'contain-region') return null
+
+      return Object.freeze({
+        kind: value.kind,
+        target: value.target,
+        size,
+      })
+    }
+
+    return null
   }
 
   return null

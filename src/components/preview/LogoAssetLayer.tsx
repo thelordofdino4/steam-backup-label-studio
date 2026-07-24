@@ -53,7 +53,10 @@ function LogoAssetPreview({
 
   return (
     <ContentBoundedImage
-      className="disc-logo-asset"
+      className={[
+        'disc-logo-asset',
+        additionalLogoId ? '' : 'disc-canonical-visual-bounds-image',
+      ].filter(Boolean).join(' ')}
       src={renderImageDataUrl}
       alt={`${label} logo`}
       imageSize={renderImageSize}

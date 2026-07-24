@@ -63,16 +63,32 @@ export function getDiscTextRunFontString({
   run: RichTextRun
   template?: DiscTemplate
 }) {
-  const runFontSize = typeof run.fontSizePt === 'number'
-    ? discTextPointSizeToSvgPercent(run.fontSizePt, template)
-    : run.fontSizePx ?? fontSize
+  const runFontSize = getDiscTextRunFontSize({ fontSize, run, template })
 
   return getDiscTextFontString(
-    run.fontWeight ?? (run.bold ? RICH_TEXT_BOLD_FONT_WEIGHT : baseFontWeight),
+    run.bold
+      ? RICH_TEXT_BOLD_FONT_WEIGHT
+      : run.fontWeight ?? baseFontWeight,
     runFontSize,
     run.fontFamily ?? fontFamily,
-    run.fontStyle ?? (run.italic ? 'italic' : baseFontStyle),
+    run.italic ? 'italic' : run.fontStyle ?? baseFontStyle,
   )
+}
+
+export function getDiscTextRunFontSize({
+  fontSize,
+  run,
+  template,
+}: {
+  fontSize: number
+  run: RichTextRun
+  template?: DiscTemplate
+}) {
+  return typeof run.fontSizePx === 'number'
+    ? run.fontSizePx
+    : typeof run.fontSizePt === 'number'
+      ? discTextPointSizeToSvgPercent(run.fontSizePt, template)
+      : fontSize
 }
 
 function measureRichTextRun(

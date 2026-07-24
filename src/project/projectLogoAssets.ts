@@ -43,6 +43,8 @@ import {
   normalizeNullableString,
   normalizePositiveNumber,
 } from './savedProjectNormalization.ts'
+import { getLogoAssetBoundsPercent } from '../disc/geometry.ts'
+import { getImageContentSize } from '../image/imageContentBounds.ts'
 
 export type LogoAssetKey = LogoAssetKind
 export type LogoAssetLayoutField = keyof LogoAssetLayout
@@ -117,6 +119,15 @@ function getPrimaryLogoAssetSize(
   return logoKey === 'developer'
     ? logoAssets.developerLogoSize
     : logoAssets.publisherLogoSize
+}
+
+function getPrimaryLogoAssetDataUrl(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+) {
+  return logoKey === 'developer'
+    ? logoAssets.developerLogoDataUrl
+    : logoAssets.publisherLogoDataUrl
 }
 
 function getPrimaryLogoAssetSource(
@@ -256,6 +267,27 @@ export function getLogoAssetSize(
   }
 
   return getPrimaryLogoAssetSize(logoAssets, logoKey)
+}
+
+export function getPrimaryLogoAssetCanonicalVisualBounds(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+) {
+  const imageDataUrl = getPrimaryLogoAssetDataUrl(logoAssets, logoKey)
+  const imageSize = getPrimaryLogoAssetSize(logoAssets, logoKey)
+  const canonicalImageSize = imageDataUrl?.trim()
+    ? getLogoAssetRenderSize(imageSize)
+    : getLogoPlaceholderImageSize(logoKey)
+
+  if (!getImageContentSize(canonicalImageSize)) {
+    return null
+  }
+
+  const bounds = getLogoAssetBoundsPercent(canonicalImageSize, 1)
+
+  return bounds.halfWidth > 0 && bounds.halfHeight > 0
+    ? bounds
+    : null
 }
 
 export function getLogoAssetSource(

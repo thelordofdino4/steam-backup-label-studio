@@ -3,10 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import { getPlatformMarkPlaceholderImageSize } from '../../assets/assetManifest.ts'
-import {
-  doesRectAvoidDiscCenterCircle,
-  getPlatformMarkBoundsPercent,
-} from '../../disc/geometry.ts'
+import { getPlatformMarkBoundsPercent } from '../../disc/geometry.ts'
 import {
   createDefaultProjectPlatformMarkAsset,
   createDefaultProjectPlatformMarks,
@@ -51,7 +48,12 @@ const classicPlacement = classicSlot?.placements.find(
   ({ target }) => target === 'operating-system-marks.enabled',
 )
 
-if (!classicSlot || !classicPlacement) {
+if (
+  !classicSlot ||
+  !classicPlacement ||
+  classicPlacement.kind !== 'group' ||
+  !('size' in classicPlacement)
+) {
   throw new Error('Classic OS group fixture is missing.')
 }
 
@@ -103,16 +105,18 @@ function createContext(
   platformMarks: ProjectPlatformMarks,
   options: Readonly<{
     region?: typeof classicSlot.resolvedContentRegion
-    preferredScale?: number
+    legacyPreferredScale?: number
     ownerTemplate?: DiscTemplate
+    resolutionTemplate?: DiscTemplate
   }> = {},
 ): DiscPresetOwnerPlacementContext<'operating-system-marks.enabled'> {
-  const placement = {
-    ...classicPlacement,
-    ...(options.preferredScale === undefined
-      ? {}
-      : { preferredScale: options.preferredScale }),
-  }
+  const placement = options.legacyPreferredScale === undefined
+    ? classicPlacement
+    : {
+        kind: 'group' as const,
+        target: 'operating-system-marks.enabled' as const,
+        preferredScale: options.legacyPreferredScale,
+      }
 
   return {
     slot: {
@@ -130,7 +134,9 @@ function createContext(
       platformMarks,
       template: options.ownerTemplate ?? template,
     },
-    template: templateInput,
+    template: options.resolutionTemplate
+      ? createDiscPresetTemplateResolutionInput(options.resolutionTemplate)
+      : templateInput,
   }
 }
 
@@ -209,20 +215,6 @@ function assertValidGroup(
       GROUP_CENTER_TOLERANCE_PERCENT,
   )
 
-  const physicalHoleRadius =
-    template.physicalCenterHoleDiameterMm / template.outerDiameterMm * 50
-
-  updates.forEach((update) => {
-    assert.equal(
-      doesRectAvoidDiscCenterCircle(
-        { x: update.layout.x, y: update.layout.y },
-        physicalHoleRadius,
-        getUpdateBounds(platformMarks, update),
-      ),
-      true,
-    )
-  })
-
   for (let index = 0; index < updates.length; index += 1) {
     const first = updates[index]
     const firstBounds = getUpdateBounds(platformMarks, first)
@@ -283,6 +275,23 @@ test('zero eligible marks is an immutable applied no-op', () => {
   assert.ok(Object.isFrozen(result.updates))
 })
 
+test('Classic contain-fit places one Windows mark at scale 1.25 and exact slot center', () => {
+  const platformMarks = createMarks(['windows'])
+  const result = DISC_PLATFORM_MARKS_PRESET_ADAPTER.buildUpdate(
+    createContext(platformMarks),
+  )
+  const updates = result.updates.filter(
+    (update) => update.kind === 'platform-mark-layout',
+  )
+
+  assert.equal(result.status, 'applied')
+  assert.deepEqual(updates.map(({ markId, layout }) => ({ markId, layout })), [{
+    markId: 'windows',
+    layout: { x: 50, y: 73, scale: 1.25 },
+  }])
+  assertValidGroup(platformMarks, updates)
+})
+
 for (const values of [
   ['windows'] as const,
   ['windows', 'pc'] as const,
@@ -330,7 +339,6 @@ test('supports one row and a balanced two-row group with center parity', () => {
   const oneRowResult = DISC_PLATFORM_MARKS_PRESET_ADAPTER.buildUpdate(
     createContext(oneRowMarks, {
       region: oneRowRegion,
-      preferredScale: 0.7,
     }),
   )
   const oneRowUpdates = oneRowResult.updates.filter(
@@ -360,7 +368,6 @@ test('supports one row and a balanced two-row group with center parity', () => {
   const twoRowResult = DISC_PLATFORM_MARKS_PRESET_ADAPTER.buildUpdate(
     createContext(twoRowMarks, {
       region: twoRowRegion,
-      preferredScale: 0.7,
     }),
   )
   const twoRowUpdates = twoRowResult.updates.filter(
@@ -376,11 +383,11 @@ test('supports one row and a balanced two-row group with center parity', () => {
   assertValidGroup(twoRowMarks, twoRowUpdates, twoRowRegion)
 })
 
-test('preferred scale remains a bounded preference', () => {
+test('legacy preferredScale remains a bounded preference outside Classic', () => {
   const platformMarks = createMarks(['pc', 'windows', 'linux'])
   const preferredScale = 0.65
   const result = DISC_PLATFORM_MARKS_PRESET_ADAPTER.buildUpdate(
-    createContext(platformMarks, { preferredScale }),
+    createContext(platformMarks, { legacyPreferredScale: preferredScale }),
   )
   const updates = result.updates.filter(
     (update) => update.kind === 'platform-mark-layout',
@@ -521,6 +528,38 @@ test('maps invalid and impossible geometry to structured no-op failures', () => 
   }])
 })
 
+test('Classic strict contain keeps the resolved rectangle authoritative across the inner hole', () => {
+  const platformMarks = createMarks(['windows'])
+  const innerHoleTemplate = {
+    ...template,
+    id: 'test-large-inner-no-print-hole',
+    physicalCenterHoleDiameterMm: 15,
+    innerHoleDiameterMm: 64,
+  }
+  const result = DISC_PLATFORM_MARKS_PRESET_ADAPTER.buildUpdate(
+    createContext(platformMarks, {
+      ownerTemplate: innerHoleTemplate,
+      resolutionTemplate: innerHoleTemplate,
+    }),
+  )
+
+  assert.deepEqual(result, {
+    status: 'applied',
+    updates: [{
+      kind: 'platform-mark-layout',
+      slotId: 'disc:guided:operating-system-marks:group',
+      target: 'operating-system-marks.enabled',
+      markId: 'windows',
+      layout: {
+        x: 50,
+        y: 73,
+        scale: 1.25,
+      },
+    }],
+    warnings: [],
+  })
+})
+
 test('rejects missing state, template mismatch, and invalid preferred scale', () => {
   const platformMarks = createMarks(['windows'])
   const context = createContext(platformMarks)
@@ -541,11 +580,7 @@ test('rejects missing state, template mismatch, and invalid preferred scale', ()
     } as unknown as typeof context.ownerState,
   })
   const invalidScale = DISC_PLATFORM_MARKS_PRESET_ADAPTER.buildUpdate({
-    ...context,
-    placement: {
-      ...context.placement,
-      preferredScale: 0,
-    },
+    ...createContext(platformMarks, { legacyPreferredScale: 0 }),
   })
 
   assert.equal(missing.status, 'unsupported')

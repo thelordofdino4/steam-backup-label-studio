@@ -2,6 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import type { DiscTextLayout } from '../../discText/types.ts'
+import { getDefaultDiscTextPointSize } from '../../discText/pointSize.ts'
+import {
+  getStraightDiscTextRenderLayout,
+  getStraightDiscTextVisualBounds,
+} from '../../discText/renderLayout.ts'
 import { createDefaultDiscTextStyles } from '../../discText/styles.ts'
 import { discTemplates } from '../../templates/discTemplates.ts'
 import { CLASSIC_TOP_TITLE_DISC_PRESET } from '../builtins/classicTopTitleDiscPreset.ts'
@@ -42,7 +47,9 @@ const baseLayout: DiscTextLayout = {
   arcSide: 'top',
   avoidVisualElements: true,
 }
-const legalStyle = createDefaultDiscTextStyles().copyright
+const textStyles = createDefaultDiscTextStyles()
+const titleStyle = textStyles.title
+const legalStyle = textStyles.copyright
 const measureText = (text: string, font: string) => {
   const fontSize = Number(font.match(/(\d+(?:\.\d+)?)px/)?.[1] ?? 1)
   return Array.from(text).length * fontSize * 0.55
@@ -72,7 +79,10 @@ function getContext<TTarget extends 'game-title.text' | 'legal.copyright'>(
     : {
         key: 'title' as const,
         enabled,
+        content: Object.freeze({ plainText: 'Portal 2' }),
         layout: baseLayout,
+        style: titleStyle,
+        template: discTemplates.standardPrintableDisc,
       }
 
   return {
@@ -108,7 +118,7 @@ test('converts Disc center-relative text coordinates through one helper', () => 
   }), { x: 29, y: 32 })
 })
 
-test('applies straight title geometry without enabling or fitting content', () => {
+test('applies dormant measured Title geometry at the template default size', () => {
   const owner = {
     key: 'title',
     enabled: false,
@@ -125,7 +135,10 @@ test('applies straight title geometry without enabling or fitting content', () =
     ownerState: {
       key: 'title',
       enabled: owner.enabled,
+      content: { plainText: owner.value },
       layout: owner.layout,
+      style: titleStyle,
+      template: discTemplates.standardPrintableDisc,
     },
   })
 
@@ -139,13 +152,80 @@ test('applies straight title geometry without enabling or fitting content', () =
       x: 0,
       y: 19.5,
       width: 62,
+      fontSizePt: getDefaultDiscTextPointSize(
+        'title',
+        1,
+        discTemplates.standardPrintableDisc,
+        'straight',
+      ),
       align: 'center',
       mode: 'straight',
+      avoidVisualElements: false,
     },
   }])
   assert.equal('enabled' in (result.updates[0]?.layout ?? {}), false)
-  assert.equal('fontSizePt' in (result.updates[0]?.layout ?? {}), false)
   assert.equal(JSON.stringify(owner), before)
+})
+
+test('fits enabled Title content below its template default without patching the shared slot', () => {
+  const context = getContext('game-title.text', 'title', true)
+  const preferredPointSize = getDefaultDiscTextPointSize(
+    'title',
+    1,
+    discTemplates.standardPrintableDisc,
+    'straight',
+  )
+  const short = DISC_GAME_TITLE_TEXT_PRESET_ADAPTER.buildUpdate({
+    ...context,
+    ownerState: {
+      ...context.ownerState!,
+      content: { plainText: 'Portal 2' },
+    },
+  })
+  const long = DISC_GAME_TITLE_TEXT_PRESET_ADAPTER.buildUpdate({
+    ...context,
+    ownerState: {
+      ...context.ownerState!,
+      content: {
+        plainText:
+          'The Unreasonably Elaborate Adventures of a Very Determined Archivist',
+      },
+    },
+  })
+
+  assert.equal(short.status, 'applied')
+  assert.equal(short.updates[0]?.layout.fontSizePt, preferredPointSize)
+  assert.equal(short.resolvedSlotPatch, undefined)
+  assert.equal(long.status, 'applied')
+  assert.ok((long.updates[0]?.layout.fontSizePt ?? 0) < preferredPointSize)
+  assert.ok((long.updates[0]?.layout.fontSizePt ?? 0) >= 8)
+  assert.ok(long.warnings.some(({ kind }) => kind === 'text-fit-adjusted'))
+  assert.equal(long.resolvedSlotPatch, undefined)
+})
+
+test('impossible Title content leaves the shared Title slot unpatched', () => {
+  const context = getContext('game-title.text', 'title', true)
+  const result = DISC_GAME_TITLE_TEXT_PRESET_ADAPTER.buildUpdate({
+    ...context,
+    ownerState: {
+      ...context.ownerState!,
+      content: {
+        plainText: Array.from(
+          { length: 20 },
+          (_, index) => `Title line ${index + 1}`,
+        ).join('\n'),
+      },
+    },
+  })
+
+  assert.equal(result.status, 'partial')
+  assert.deepEqual(result.updates, [])
+  assert.equal(result.resolvedSlotPatch, undefined)
+  assert.deepEqual(result.warnings, [{
+    kind: 'text-fit-impossible',
+    slotId: 'disc:guided:game-title:primary',
+    target: 'game-title.text',
+  }])
 })
 
 test('disabled Legal content receives dormant measured placement', () => {
@@ -205,6 +285,58 @@ test('disabled Legal content receives dormant measured placement', () => {
   })
   assert.deepEqual(result.warnings, [])
   assert.equal(JSON.stringify(owner), before)
+})
+
+test('Legal preset fitting contains every rendered box and paint effect in its resolved rectangle', () => {
+  const context = getContext('legal.copyright', 'copyright', true)
+  const decoratedStyle = {
+    ...legalStyle,
+    backgroundEnabled: true,
+    backgroundPadding: 3,
+    borderEnabled: true,
+  }
+  const content = 'Copyright content'
+  const result = DISC_LEGAL_TEXT_PRESET_ADAPTER.buildUpdate({
+    ...context,
+    ownerState: {
+      ...context.ownerState!,
+      content: { plainText: content },
+      style: decoratedStyle,
+    },
+  })
+
+  assert.equal(result.status, 'applied')
+  const update = result.updates[0]
+  assert.equal(update?.kind, 'disc-text-layout')
+  if (!update || update.kind !== 'disc-text-layout') return
+  assert.ok((update.layout.fontSizePt ?? 7) < 7)
+
+  const fittedLayout: DiscTextLayout = {
+    ...baseLayout,
+    ...update.layout,
+  }
+  const bounds = getStraightDiscTextVisualBounds(
+    getStraightDiscTextRenderLayout(
+      'copyright',
+      content,
+      fittedLayout,
+      measureText,
+      { copyright: decoratedStyle },
+      { template: discTemplates.standardPrintableDisc },
+    ),
+    measureText,
+    { includeRenderedBox: true, includeRenderedPaint: true },
+  )
+  const region = context.slot.resolvedContentRegion
+
+  assert.ok(bounds.centerX - bounds.halfWidth >=
+    region.centerXPercent - region.widthPercent / 2 - 0.000001)
+  assert.ok(bounds.centerX + bounds.halfWidth <=
+    region.centerXPercent + region.widthPercent / 2 + 0.000001)
+  assert.ok(bounds.centerY - bounds.halfHeight >=
+    region.centerYPercent - region.heightPercent / 2 - 0.000001)
+  assert.ok(bounds.centerY + bounds.halfHeight <=
+    region.centerYPercent + region.heightPercent / 2 + 0.000001)
 })
 
 test('impossible enabled Legal content produces no false owner update', () => {

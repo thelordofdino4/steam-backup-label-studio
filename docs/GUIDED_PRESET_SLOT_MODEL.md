@@ -1,5 +1,5 @@
 # Guided Preset Slot Model
-> Status: Implemented Disc domain, persistence, passive guidance, setup menus, typed navigation, and persistent completion contract for issues #283, #287, #289, #292, and #295.
+> Status: Implemented Disc domain, persistence, passive guidance, setup menus, typed navigation, persistent completion, and contain-fit contract for issues #283, #287, #289, #292, #295, and #296.
 > Purpose: Define the Disc guided preset slot identity, lifecycle, binding, and architecture boundaries for parent issue #281.
 > Read when: Working on guided Disc presets, slot resolution, edit-mode placeholders, role-focus navigation, guided persistence, or safe content suggestions.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `ROLE_BASED_PRESET_MODEL.md` for layout presets; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
@@ -45,10 +45,14 @@ artwork/text, Background, Rating, Media Format Mark, primary Developer and
 Publisher Logos, Operating System Marks, and copyright text. Every Classic
 placement target therefore has a concrete generic adapter. They consume focused
 owner-layout slices, emit placement-only updates, and can seed dormant disabled
-fixed owners without enabling or populating them. The OS adapter consumes the
-resolved region and reuses `placeGroupedPlatformMarks` for canonical ordering,
-implicit built-in materialization, safe centered grouping, and preferred-scale
-reduction. It preserves mark selection, enablement, source, theme, custom
+owners without enabling or populating them. Point intents strictly parse either
+`fixed-scale` or the canonical JSON-compatible `contain-region` policy;
+`contain-region` requires `allowUpscale`, permits only validated
+`maximumScale`/`insetPercent` optionals, rejects unknown fields, and retires the
+unused `fit-region` synonym. The OS adapter consumes the resolved region and
+reuses `placeGroupedPlatformMarks` for canonical ordering, implicit built-in
+materialization, centered one/two-row evaluation, and largest-valid common-scale
+selection. It preserves mark selection, enablement, source, theme, custom
 assets, and inference metadata.
 
 Classic production application now routes through
@@ -60,19 +64,49 @@ no longer live in `discRolePresets.ts`; the other two built-in presets retain
 their legacy plans.
 
 Guidance geometry and real Classic owner placement therefore derive from the
-same canonical definition. Disabled fixed owners receive dormant layout without
-being enabled, and the Classic path applies adapter-safe resolved placement
-directly instead of broadly reclamping unrelated text, technical marks, or
-repeated logos. Copyright uses injected measurement plus canonical straight-text
-render geometry to fit the resolved region without truncation. Normal blank,
-disabled, short, and realistic Legal cases are fully applied; only a genuinely
-impossible fit remains partial and marks that slot unsupported. The OS adapter
-positions only marks already selected, enabled, and renderable. After
-application, one transient canonical preset ID/revision and latest resolved
-definition remain shared by guidance and targeted placement. OS eligibility
-changes re-resolve only the OS target. Legal enablement, canonical content, and
-measurement-relevant style changes re-resolve only the Legal target. The two
-slot refinements coexist, and no other slot is reapplied.
+same canonical definition. Title artwork, primary Rating, primary Media, and
+primary Developer/Publisher Logo intents uniformly fit their canonical
+preview/export bounds inside the exact resolved slot, preserve aspect ratio,
+and keep the rendered-bounds center on the guide center. The
+resolved rectangle is authoritative: after any declared inset or scale cap,
+uniform contain stops when width or height reaches its first limiting edge.
+Classic preset fitting does not apply a second safe-annulus or center-hole
+shrink. Supplemental USK and additional logos are not primary-owner fit inputs.
+The renderable built-in Developer and Publisher fallback placeholders do
+participate using their manifest dimensions; only an owner with no valid
+renderable dimensions receives dormant center seeding with its current scale
+and waits for the first valid bounds. The Classic path applies adapter-safe
+resolved placement directly instead of broadly reclamping unrelated text,
+technical marks, or repeated logos.
+
+Title text uses injected measurement and canonical straight-text paint geometry
+with the existing template-aware preferred size, an 8pt minimum, and
+deterministic 0.25pt steps. Renderer-shared stroke, directional shadow, italic
+overhang, and optional box insets reduce its persisted wrap width inside the
+resolved region; an anchor offset keeps the resulting painted bounds centered.
+Paint-geometry style changes target-refit Title, while short text is not
+enlarged merely to meet a border. Copyright retains its independent 7pt
+preferred, 3pt minimum, and 0.25pt policy while containing its complete
+rendered box and paint bounds inside the resolved rectangle.
+Neither path truncates or applies a post-fit annulus/hole reduction; their
+resolved rectangles are the preset containment boundary, subject to their
+declared preferred/minimum text-size policies. Classic Background is centered
+and uniformly contain-fitted to its exact resolved rectangle, stopping on the
+first limiting X or Y edge instead of covering/cropping it; legacy cover remains
+available outside that Classic intent.
+
+Genuinely impossible geometry keeps application partial without a false owner
+update. Point targets and Legal can mark their dedicated slots unsupported;
+Title text reports a target-specific failure without hiding the Game Title slot
+it shares with artwork. The OS adapter positions only marks already selected,
+enabled, and renderable. After application, one transient canonical preset
+ID/revision and latest resolved definition remain shared by guidance and
+targeted placement. Semantic changes that can alter the canonical bounds of a
+point owner re-resolve only that exact target from its next authoritative state;
+Title content/styles target only Title text, OS eligibility/assets target only
+OS, and Legal retains its focused content/style target. Direct layout edits do
+not trigger refitting. All slot refinements coexist, and no unrelated slot is
+reapplied.
 
 Guidance projects the active resolved definition rather than independently
 looking up nominal geometry. Unfilled or suggested slots use its final resolved
@@ -134,8 +168,9 @@ route. Lifecycle-reachable native navigation has been validated. Persistent
 completion is recorded by semantic owner events and explicit Guided Progress
 restoration. Loading persisted guided identity reconstructs the transient
 canonical preset reference/resolved definition without reapplying owner
-placement. Aspect-preserving contain-fit is not implemented and remains tracked
-by #296. Issue #289 remains open.
+placement. Contain fitting, completion, omission, and navigation remain
+independent concerns: fitting mutates no progress arrays, and progress actions
+mutate no owner layout. Issue #289 remains open.
 
 Implemented role-focus infrastructure includes:
 
@@ -510,11 +545,29 @@ Applying the Classic layout no longer auto-enables Media Format Mark. Rating,
 Media, OS marks, Developer Logo, Publisher Logo, and Copyright remain disabled
 when disabled. Existing enabled/renderable owners are repositioned without
 changing content, source, theme, selected values, custom assets, or inference.
-Operating-system marks use deterministic grouped placement inside their exact
-region and receive only returned `x`, `y`, and `scale` updates.
-Copyright uses measured straight-text fitting inside its exact region and
-receives only placement-owned layout fields. Guidance consumes the fitted
-slot-local region/status from the active resolved definition.
+Title artwork, primary Rating, primary Media, and primary Developer/Publisher
+Logos use aspect-preserving `contain-region` sizing from canonical
+preview/export bounds. Their fitted visual centers equal the
+unchanged guide centers, and their complete bounds remain inside the exact
+resolved rectangles. Whichever X or Y edge limits uniform scaling first sets
+the final uncapped size; no second annulus/hole reduction follows. The primary
+Developer/Publisher built-in fallback placeholders are valid renderable bounds
+and follow the same rule. Supplemental USK and additional/repeated logos remain
+independent.
+
+Operating-system marks use strict centered one/two-row common-scale placement
+inside their exact rectangle. Fixed horizontal/vertical gaps are reserved
+before the common scale is calculated, then the resulting union reaches its
+nearest limiting edge unless capped. Preset OS containment does not shrink or
+translate for the Disc annulus or center hole and receives only returned `x`,
+`y`, and `scale` updates. Title and Copyright use measured straight-text fitting
+inside their exact regions and receive only placement-owned layout fields; the
+resolved rectangle, not the annulus/hole, is their preset fit boundary. Title
+uses a template-aware preferred size with an 8pt minimum and 0.25pt steps;
+Copyright retains 7pt/3pt/0.25pt. Classic Background uses centered rectangular
+contain and stops on its first limiting rectangle edge while retaining the
+existing feature-owned preview/export scale contract. Guidance consumes the
+fitted slot-local regions/statuses from the active resolved definition.
 
 ## 5. Lifecycle Derivation And Precedence
 
@@ -988,9 +1041,13 @@ four production section routes declare compatible typed section targets.
 Automated source coverage also verifies resolved
 Legal placeholder/owner parity, filled and cleared visibility, claimed
 Rating/Media/Developer/Publisher suppression, unsupported-slot suppression,
-and coexistence with targeted OS resolution. Persistent completion is owned by
-the workflow rather than feature owners. Aspect-preserving contain-fit remains
-unimplemented under #296.
+and coexistence among targeted point-owner, Title-text, OS, and Legal
+resolution. Focused suites cover strict size-policy parsing, canonical-bounds
+rectangular containment, limiting axes, renderable logo fallbacks,
+dormant/first-valid-bounds behavior, Title measurement, and centered OS grouping.
+Separate legacy-helper coverage retains safe-annulus/inner-hole behavior for
+non-preset/manual paths. Persistent completion is owned by the workflow rather
+than feature owners and is unchanged by those fits.
 
 ### Guided Progress UI
 
@@ -1040,12 +1097,21 @@ without blocking owner-state restoration.
 The saved workflow does not contain the canonical preset ID/revision or a
 template-resolved definition. After Disc project restoration, a focused
 post-restore boundary maps the valid guided layout to its canonical preset,
-resolves it for the restored template, refines content-aware Legal geometry
+resolves it for the restored template, refines content-aware Legal slot geometry
 with restored owner state and injected measurement, and stores only the
-transient active preset reference/resolved definition. It does not dispatch the
+transient active preset reference/resolved definition. It does not reapply Title
+owner geometry; the reconstructed policy enables a later semantic Title change
+to target-refit. It does not dispatch the
 computed owner placement updates or infer identity from coordinates. Failure
 preserves owner state and deactivates guidance safely rather than guessing
 Classic.
+
+Contain policy remains in the canonical reusable preset definition and the
+active resolved definition, not in new project fields. Existing feature-owner
+layout fields persist the fitted output under schema `0.2.0`, so restored
+preview and export use the saved `x`, `y`, scale, and text layout. Reconstruction
+does not reapply the full preset, but a later semantic asset/content change can
+still target-refit its exact owner from the reconstructed transient policy.
 
 Filled content remains ordinary project state under existing feature owners.
 Omission changes guidance only: owner enablement, content, geometry, preview,
@@ -1067,8 +1133,8 @@ or definition-owned and are not serialized.
 - Completion is event-recorded and activation-seeded; it is never continuously
   inferred from owner state.
 - Guided Progress restore/reset actions mutate no feature owner.
-- Aspect-preserving point-owner contain-fit is not yet implemented; #296 owns
-  that placement-policy extension.
+- Contain-fit may update only placement-owned fields of its exact semantic
+  target; it may not mutate completion, omission, navigation, or another owner.
 - No auto-fill implementation in this child issue.
 - No arbitrary layer model is introduced.
 - Preview, edit, save/load, and export parity remain intact for filled content.
@@ -1089,7 +1155,6 @@ or definition-owned and are not serialized.
 3. Filled-slot movement/export transition tests.
 4. Native Tauri omit/save/load/restore/reset/export validation before #292
    closeout.
-5. #296: aspect-preserving contain-fit for replacement visuals.
 
 Related issues and contracts:
 
@@ -1098,7 +1163,8 @@ Related issues and contracts:
 - #289: open Classic Top Title passive placeholder and guided setup track.
 - #292: open guided-slot omission workflow and restore-surface track.
 - #295: persistent guided-slot completion and post-load preset reconstruction.
-- #296: aspect-preserving contain-fit placement.
+- #296: open implementation track with the aspect-preserving contain-fit
+  placement contract implemented here.
 - #267: packaging role taxonomy and object-role model.
 - #269: role-based preset model and application contract.
 - #270: completed Disc layout preset MVP.

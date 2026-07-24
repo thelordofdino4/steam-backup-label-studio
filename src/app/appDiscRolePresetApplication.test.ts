@@ -451,7 +451,7 @@ test('adapter preserves background title text logo rating and media payloads', (
   assert.deepEqual(
     getCallValue(calls, 'restoreBackgroundImageState'),
     {
-      backgroundScale: 1,
+      backgroundScale: 92 / ((1920 / 1080) * 100),
       backgroundOffset: { x: 0, y: 0 },
       backgroundImageUrl: currentState.background.imageDataUrl,
       backgroundImageSource: currentState.background.imageSource,

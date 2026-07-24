@@ -34,6 +34,7 @@ function hasPlatformMarksOwnerState(
     typeof value.template.id === 'string' &&
     Number.isFinite(value.template.outerDiameterMm) &&
     Number.isFinite(value.template.physicalCenterHoleDiameterMm) &&
+    Number.isFinite(value.template.innerHoleDiameterMm) &&
     Number.isFinite(value.template.safeDiameterMm)
 }
 
@@ -69,6 +70,8 @@ function ownerTemplateMatchesContext(
       context.template.outerDiameterPercent &&
     ownerTemplate.physicalCenterHolePercent ===
       context.template.physicalCenterHolePercent &&
+    ownerTemplate.innerNoPrintDiameterPercent ===
+      context.template.innerNoPrintDiameterPercent &&
     ownerTemplate.safeDiameterPercent === context.template.safeDiameterPercent
 }
 
@@ -122,7 +125,9 @@ export const DISC_PLATFORM_MARKS_PRESET_ADAPTER:
         return placementUnsupported(context, 'owner-state-unsupported')
       }
 
-      const preferredScale = context.placement.preferredScale
+      const preferredScale = 'preferredScale' in context.placement
+        ? context.placement.preferredScale
+        : undefined
       if (
         preferredScale !== undefined &&
         (!Number.isFinite(preferredScale) || preferredScale <= 0)
@@ -134,6 +139,9 @@ export const DISC_PLATFORM_MARKS_PRESET_ADAPTER:
         platformMarks: context.ownerState.platformMarks,
         region: context.slot.resolvedContentRegion,
         template: context.ownerState.template,
+        ...('size' in context.placement
+          ? { fitPolicy: context.placement.size }
+          : {}),
         ...(preferredScale === undefined ? {} : { preferredScale }),
       })
       const ignoredWarnings = createIgnoredMarkWarnings(

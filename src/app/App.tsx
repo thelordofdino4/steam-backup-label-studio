@@ -91,17 +91,42 @@ import type { DiscGuidedSlotState } from '../guidedPresets/discGuidedSlots'
 import { useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
 import { useActiveDiscPreset } from '../hooks/useActiveDiscPreset'
 import {
+  applyActiveDiscPresetToBackgroundState,
+  isActiveDiscPresetBackgroundFitImpossible,
+} from './appActiveDiscPresetBackground'
+import {
   applyActiveDiscPresetToPlatformMarkState,
+  isActiveDiscPresetPlatformFitImpossible,
 } from './appActiveDiscPresetPlatformMarks'
+import {
+  applyActiveDiscPresetToLogoAssetsState,
+  applyActiveDiscPresetToMediaMarkState,
+  applyActiveDiscPresetToRatingBadgeState,
+  applyActiveDiscPresetToTitleArtworkState,
+  isActiveDiscPresetPointFitImpossible,
+} from './appActiveDiscPresetPointOwners'
+import {
+  applySupplementalUskRatingCandidate,
+} from './appSupplementalUskRatingCandidate'
 import {
   ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
   applyActiveDiscPresetToLegalTextState,
   hasDiscPresetLegalFitImpossibleWarning,
   isActiveDiscPresetLegalFitImpossible,
 } from './appActiveDiscPresetLegalText'
+import {
+  ACTIVE_DISC_PRESET_TITLE_FIT_IMPOSSIBLE_MESSAGE,
+  applyActiveDiscPresetToTitleTextState,
+  hasDiscPresetTitleFitImpossibleWarning,
+  isActiveDiscPresetTitleFitImpossible,
+} from './appActiveDiscPresetTitleText'
 import type {
   ActiveDiscPresetRef,
 } from '../presets/discPresetTargetedApplication'
+import {
+  preserveDiscPointOwnerPlacement,
+  type DiscBackgroundPresetOwnerState,
+} from '../presets/discPresetOwnerPlacement'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
@@ -128,11 +153,13 @@ import {
 } from '../caseInsert/steamImportDefaults'
 import {
   updateRatingBadgeEnabledState,
-  updateSupplementalUskRatingBadgeEnabledState,
-  updateSupplementalUskRatingBadgeValue,
 } from '../project/projectRatingBadge'
 import type {
+  ProjectLogoAssets,
+  ProjectMediaMark,
   ProjectMetadata,
+  ProjectRatingBadge,
+  ProjectTitleArtwork,
 } from '../project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
 import {
@@ -175,6 +202,7 @@ import {
 } from './appSteamImportPlan'
 import {
   runSteamDiscVisualDefaultImport,
+  shouldApplySteamPlatformMarksEligibilityChange,
 } from './appSteamDiscVisualImport'
 import {
   runAppProjectSave,
@@ -313,6 +341,21 @@ function App() {
   } = useSteamBannerState({
     announceStatus,
   })
+  const activeDiscPreset = useActiveDiscPreset()
+
+  function applyActiveBackgroundPresetPlacement(
+    background: DiscBackgroundPresetOwnerState,
+  ) {
+    const result = applyActiveDiscPresetToBackgroundState({
+      presetState: activeDiscPreset.getActivePresetState(),
+      selectedDiscTemplate,
+      background,
+    })
+    activeDiscPreset.recordTargetedPresetApplication(result.application)
+    return isActiveDiscPresetBackgroundFitImpossible(result.application)
+      ? null
+      : result.background
+  }
   const {
     backgroundImageUrl,
     backgroundImageSource,
@@ -343,6 +386,7 @@ function App() {
     discPreviewSize,
     steamLogoPlacement,
     announceStatus,
+    applyActivePresetPlacement: applyActiveBackgroundPresetPlacement,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
   const {
@@ -361,9 +405,85 @@ function App() {
     setSelectedArtworkId,
     announceStatus,
   })
-  const activeDiscPreset = useActiveDiscPreset()
+  const lastAnnouncedImpossibleTitlePresetRef =
+    useRef<ActiveDiscPresetRef | null>(null)
   const lastAnnouncedImpossibleLegalPresetRef =
     useRef<ActiveDiscPresetRef | null>(null)
+
+  function applyActiveTitleArtworkPresetPlacement(
+    titleArtwork: ProjectTitleArtwork,
+  ) {
+    const result = applyActiveDiscPresetToTitleArtworkState({
+      presetState: activeDiscPreset.getActivePresetState(),
+      selectedDiscTemplate,
+      titleArtwork,
+    })
+    activeDiscPreset.recordTargetedPresetApplication(result.application)
+    return isActiveDiscPresetPointFitImpossible(
+      result.application,
+      'game-title.artwork',
+    )
+      ? null
+      : result.titleArtwork
+  }
+
+  function applyActiveRatingBadgePresetPlacement(
+    ratingBadge: ProjectRatingBadge,
+    metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
+  ) {
+    const result = applyActiveDiscPresetToRatingBadgeState({
+      presetState: activeDiscPreset.getActivePresetState(),
+      selectedDiscTemplate,
+      ratingBadge,
+      metadata,
+    })
+    activeDiscPreset.recordTargetedPresetApplication(result.application)
+    return isActiveDiscPresetPointFitImpossible(
+      result.application,
+      'rating.primary',
+    )
+      ? null
+      : result.ratingBadge
+  }
+
+  function applyActiveMediaMarkPresetPlacement(
+    mediaMark: ProjectMediaMark,
+  ) {
+    const result = applyActiveDiscPresetToMediaMarkState({
+      presetState: activeDiscPreset.getActivePresetState(),
+      selectedDiscTemplate,
+      mediaMark,
+    })
+    activeDiscPreset.recordTargetedPresetApplication(result.application)
+    return isActiveDiscPresetPointFitImpossible(
+      result.application,
+      'media-format.primary',
+    )
+      ? null
+      : result.mediaMark
+  }
+
+  function applyActiveLogoPresetPlacement(
+    logoAssets: ProjectLogoAssets,
+    logoKey: 'developer' | 'publisher',
+  ) {
+    const result = applyActiveDiscPresetToLogoAssetsState({
+      presetState: activeDiscPreset.getActivePresetState(),
+      selectedDiscTemplate,
+      logoAssets,
+      logoKey,
+    })
+    activeDiscPreset.recordTargetedPresetApplication(result.application)
+    const target = logoKey === 'developer'
+      ? 'developer-logo.primary' as const
+      : 'publisher-logo.primary' as const
+    return isActiveDiscPresetPointFitImpossible(
+      result.application,
+      target,
+    )
+      ? null
+      : result.logoAssets
+  }
   const {
     projectDiscNumberArtwork,
     discTextSettings,
@@ -383,7 +503,6 @@ function App() {
     restoreDiscTextState,
     clampDiscTextLayoutToTemplate,
     repositionDiscTextForSteamLogoPlacement,
-    clampDiscTextLayoutForContent,
     clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
     handleDiscTextToggle,
     handleDiscTextPreviewEditStart,
@@ -414,6 +533,33 @@ function App() {
     selectedDiscTemplate,
     steamLogoPlacement,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
+    applyActivePresetTitlePlacement: (input) => {
+      const result = applyActiveDiscPresetToTitleTextState({
+        presetState: activeDiscPreset.getActivePresetState(),
+        selectedDiscTemplate,
+        titleText: {
+          key: 'title',
+          ...input,
+        },
+      })
+      const activePresetRef = activeDiscPreset.getActivePresetRef()
+      const fitIsImpossible =
+        isActiveDiscPresetTitleFitImpossible(result.application)
+
+      if (
+        fitIsImpossible &&
+        activePresetRef &&
+        lastAnnouncedImpossibleTitlePresetRef.current !== activePresetRef
+      ) {
+        lastAnnouncedImpossibleTitlePresetRef.current = activePresetRef
+        announceStatus(ACTIVE_DISC_PRESET_TITLE_FIT_IMPOSSIBLE_MESSAGE)
+      } else if (!fitIsImpossible) {
+        lastAnnouncedImpossibleTitlePresetRef.current = null
+      }
+
+      activeDiscPreset.recordTargetedPresetApplication(result.application)
+      return fitIsImpossible ? null : result.titleText.layout
+    },
     applyActivePresetLegalPlacement: (input) => {
       const result = applyActiveDiscPresetToLegalTextState({
         presetState: activeDiscPreset.getActivePresetState(),
@@ -439,12 +585,13 @@ function App() {
       }
 
       activeDiscPreset.recordTargetedPresetApplication(result.application)
-      return result.legalText.layout
+      return fitIsImpossible ? null : result.legalText.layout
     },
   })
   const {
     projectLogoAssets,
     setProjectLogoAssets,
+    applyLogoAssetImport,
     clampProjectLogoAssetsToTemplate,
     resetProjectLogoAssets,
     handleLogoAssetUpload,
@@ -457,6 +604,7 @@ function App() {
   } = useProjectLogoAssets({
     selectedDiscTemplate,
     announceStatus,
+    applyActivePresetPlacement: applyActiveLogoPresetPlacement,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
   const {
@@ -479,6 +627,7 @@ function App() {
     selectedDiscTemplate,
     projectMetadata,
     announceStatus,
+    applyActivePresetPlacement: applyActiveRatingBadgePresetPlacement,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
   const {
@@ -496,6 +645,7 @@ function App() {
   } = useMediaMarkState({
     selectedDiscTemplate,
     announceStatus,
+    applyActivePresetPlacement: applyActiveMediaMarkPresetPlacement,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
   const {
@@ -523,7 +673,9 @@ function App() {
         platformMarks,
       })
       activeDiscPreset.recordTargetedPresetApplication(result.application)
-      return result.platformMarks
+      return isActiveDiscPresetPlatformFitImpossible(result.application)
+        ? null
+        : result.platformMarks
     },
   })
   const {
@@ -559,6 +711,7 @@ function App() {
     selectedDiscTemplate,
     steamLogoPlacement,
     announceStatus,
+    applyActivePresetPlacement: applyActiveTitleArtworkPresetPlacement,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
   const {
@@ -592,6 +745,7 @@ function App() {
     projectMetadata,
     selectedDiscTemplate,
     setProjectLogoAssets,
+    applyLogoAssetImport,
     announceStatus,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
@@ -867,10 +1021,22 @@ function App() {
       true,
     )
 
+    let announcedFitIssue = false
+    if (hasDiscPresetTitleFitImpossibleWarning(result.warnings)) {
+      lastAnnouncedImpossibleTitlePresetRef.current =
+        result.activePresetRef
+      announceStatus(ACTIVE_DISC_PRESET_TITLE_FIT_IMPOSSIBLE_MESSAGE)
+      announcedFitIssue = true
+    }
+
     if (hasDiscPresetLegalFitImpossibleWarning(result.warnings)) {
       lastAnnouncedImpossibleLegalPresetRef.current =
         result.activePresetRef
       announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
+      announcedFitIssue = true
+    }
+
+    if (announcedFitIssue) {
       return true
     }
 
@@ -889,13 +1055,25 @@ function App() {
       selectedDiscTemplate,
       nextState.metadata,
     )
+    const finalRatingBadge = enabled
+      ? applyActiveRatingBadgePresetPlacement(
+          nextRatingBadge,
+          nextState.metadata,
+        ) ?? {
+          ...nextRatingBadge,
+          layout: preserveDiscPointOwnerPlacement(
+            nextRatingBadge.layout,
+            projectRatingBadge.layout,
+          ),
+        }
+      : nextRatingBadge
 
     setProjectMetadata(nextState.metadata)
-    setProjectRatingBadge(nextRatingBadge)
+    setProjectRatingBadge(finalRatingBadge)
     completeDiscGuidedRatingBadgeAction(
       completeActiveDiscGuidedSlot,
       nextState.metadata,
-      nextRatingBadge,
+      finalRatingBadge,
     )
 
     if (enabled) {
@@ -978,12 +1156,19 @@ function App() {
       affectedMetadataFields.includes('ratingSystem') ||
       affectedMetadataFields.includes('ratingValue')
     ) {
-      setProjectRatingBadge((currentBadge) =>
-        clampProjectRatingBadgeToSafeZone(
-          currentBadge,
-          selectedDiscTemplate,
+      const clampedRatingBadge = clampProjectRatingBadgeToSafeZone(
+        projectRatingBadge,
+        selectedDiscTemplate,
+        nextProjectMetadata,
+      )
+      setProjectRatingBadge(
+        applyActiveRatingBadgePresetPlacement(
+          clampedRatingBadge,
           nextProjectMetadata,
-        ),
+        ) ?? {
+          ...clampedRatingBadge,
+          layout: projectRatingBadge.layout,
+        },
       )
     }
   }
@@ -1011,25 +1196,18 @@ function App() {
       projectMetadata.ratingSystem === 'PEGI'
 
     if (shouldApplyAsSupplementalUsk) {
-      setProjectRatingBadge((currentBadge) => {
-        const enabledBadge = {
-          ...currentBadge,
-          layout: {
-            ...currentBadge.layout,
-            enabled: true,
-          },
-        }
-        const nextBadge = updateSupplementalUskRatingBadgeEnabledState(
-          updateSupplementalUskRatingBadgeValue(enabledBadge, candidate.ratingValue),
-          true,
-        )
-
-        return clampProjectRatingBadgeToSafeZone(
-          nextBadge,
-          selectedDiscTemplate,
-          projectMetadata,
-        )
+      const nextRatingBadge = applySupplementalUskRatingCandidate({
+        ratingBadge: projectRatingBadge,
+        metadata: projectMetadata,
+        supplementalRatingValue: candidate.ratingValue,
+        selectedDiscTemplate,
+        applyActivePrimaryRatingPlacement: (ratingBadge) =>
+          applyActiveRatingBadgePresetPlacement(
+            ratingBadge,
+            projectMetadata,
+          ),
       })
+      setProjectRatingBadge(nextRatingBadge)
 
       if (options.announce ?? true) {
         announceStatus(
@@ -1409,9 +1587,15 @@ function App() {
       }
 
       if (discVisualImport) {
-        applyProjectPlatformMarksEligibilityChange(
-          discVisualImport.platformMarks,
-        )
+        if (
+          shouldApplySteamPlatformMarksEligibilityChange(
+            discVisualImport.platformMarkImportStatus,
+          )
+        ) {
+          applyProjectPlatformMarksEligibilityChange(
+            discVisualImport.platformMarks,
+          )
+        }
         if (autoLegalCandidate) {
           enableCurvedCopyrightDiscText(autoLegalCandidate.text)
         } else if (shouldResetGameScopedLegal) {
@@ -1422,12 +1606,14 @@ function App() {
         } else if (shouldResetGameScopedRating) {
           setRatingBadgeEnabled(false)
         }
-        clampDiscTextLayoutForContent(
-          'title',
-          discVisualImport.nextDiscTextResolution.resolvedDiscTextTitle,
-        )
         clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
-          ['steamAppId', 'developer', 'publisher', 'copyrightText'],
+          [
+            'title',
+            'steamAppId',
+            'developer',
+            'publisher',
+            'copyrightText',
+          ],
           nextProjectMetadata,
           discVisualImport.nextDiscTextResolution,
         )

@@ -33,7 +33,11 @@ const CLASSIC_TOP_TITLE_DISC_PRESET_SOURCE = {
         {
           kind: 'point',
           target: 'game-title.artwork',
-          size: { mode: 'fixed-scale', scale: 1 },
+          size: {
+            mode: 'contain-region',
+            allowUpscale: true,
+            insetPercent: 0,
+          },
         },
         {
           kind: 'text',
@@ -63,8 +67,12 @@ const CLASSIC_TOP_TITLE_DISC_PRESET_SOURCE = {
         {
           kind: 'background',
           target: 'background.primary',
-          fit: 'cover',
-          scale: 1,
+          fit: 'contain-region',
+          size: {
+            mode: 'contain-region',
+            allowUpscale: true,
+            insetPercent: 0,
+          },
         },
       ],
     },
@@ -81,7 +89,11 @@ const CLASSIC_TOP_TITLE_DISC_PRESET_SOURCE = {
         {
           kind: 'point',
           target: 'rating.primary',
-          size: { mode: 'fixed-scale', scale: 0.75 },
+          size: {
+            mode: 'contain-region',
+            allowUpscale: true,
+            insetPercent: 0,
+          },
         },
       ],
     },
@@ -98,7 +110,11 @@ const CLASSIC_TOP_TITLE_DISC_PRESET_SOURCE = {
         {
           kind: 'point',
           target: 'media-format.primary',
-          size: { mode: 'fixed-scale', scale: 0.7 },
+          size: {
+            mode: 'contain-region',
+            allowUpscale: true,
+            insetPercent: 0,
+          },
         },
       ],
     },
@@ -115,6 +131,11 @@ const CLASSIC_TOP_TITLE_DISC_PRESET_SOURCE = {
         {
           kind: 'group',
           target: 'operating-system-marks.enabled',
+          size: {
+            mode: 'contain-region',
+            allowUpscale: true,
+            insetPercent: 0,
+          },
         },
       ],
     },
@@ -131,7 +152,11 @@ const CLASSIC_TOP_TITLE_DISC_PRESET_SOURCE = {
         {
           kind: 'point',
           target: 'developer-logo.primary',
-          size: { mode: 'fixed-scale', scale: 0.7 },
+          size: {
+            mode: 'contain-region',
+            allowUpscale: true,
+            insetPercent: 0,
+          },
         },
       ],
     },
@@ -148,7 +173,11 @@ const CLASSIC_TOP_TITLE_DISC_PRESET_SOURCE = {
         {
           kind: 'point',
           target: 'publisher-logo.primary',
-          size: { mode: 'fixed-scale', scale: 0.7 },
+          size: {
+            mode: 'contain-region',
+            allowUpscale: true,
+            insetPercent: 0,
+          },
         },
       ],
     },

@@ -37,6 +37,9 @@ import type {
   DiscPresetOwnerUpdate,
 } from '../presets/discPresetPlacementAdapters.ts'
 import {
+  createDiscCanonicalVisualBoundsFromCenteredRenderBounds,
+} from '../presets/discPresetOwnerPlacement.ts'
+import {
   DISC_PRESET_PRODUCTION_ADAPTER_REGISTRY,
 } from '../presets/discPresetProductionAdapterRegistry.ts'
 import {
@@ -51,6 +54,18 @@ import {
 import {
   getProjectPlatformMarkAsset,
 } from '../project/projectPlatformMarks.ts'
+import {
+  getPrimaryLogoAssetCanonicalVisualBounds,
+} from '../project/projectLogoAssets.ts'
+import {
+  getTitleArtworkCanonicalVisualBounds,
+} from '../project/projectTitleArtwork.ts'
+import {
+  getMediaMarkCanonicalVisualBounds,
+} from '../render/mediaMarkRenderModel.ts'
+import {
+  getPrimaryRatingBadgeCanonicalVisualBounds,
+} from '../render/ratingBadgeRenderModel.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import {
   DISC_PRESET_PRODUCTION_APPLICATION_SERVICES,
@@ -137,15 +152,31 @@ export function createRegisteredDiscPresetOwnerStateSnapshot(
     textResolution.metadataBoundDiscTextValues,
     textResolution.resolvedDiscTextTitle,
   )
+  const titleFallback = getDiscTextContent(
+    'title',
+    textResolution.metadataBoundDiscTextValues,
+    textResolution.resolvedDiscTextTitle,
+  )
 
   return Object.freeze({
     'game-title.artwork': Object.freeze({
       layout: Object.freeze({ ...state.titleArtwork.layout }),
+      canonicalVisualBoundsAtScaleOne:
+        createDiscCanonicalVisualBoundsFromCenteredRenderBounds(
+          getTitleArtworkCanonicalVisualBounds(state.titleArtwork),
+        ),
     }),
     'game-title.text': Object.freeze({
       key: 'title',
       enabled: state.discTextSettings.title,
+      content: getDiscTextRenderableContent({
+        fallbackText: titleFallback,
+        htmlSources: state.discTextHtmlSources,
+        key: 'title',
+      }),
       layout: Object.freeze({ ...state.discTextLayout.title }),
+      style: Object.freeze({ ...state.discTextStyles.title }),
+      template: Object.freeze({ ...selectedDiscTemplate }),
     }),
     'background.primary': Object.freeze({
       enabled: state.background.enabled,
@@ -157,9 +188,20 @@ export function createRegisteredDiscPresetOwnerStateSnapshot(
     }),
     'rating.primary': Object.freeze({
       layout: Object.freeze({ ...state.ratingBadge.layout }),
+      canonicalVisualBoundsAtScaleOne:
+        createDiscCanonicalVisualBoundsFromCenteredRenderBounds(
+          getPrimaryRatingBadgeCanonicalVisualBounds(
+            state.metadata,
+            state.ratingBadge,
+          ),
+        ),
     }),
     'media-format.primary': Object.freeze({
       layout: Object.freeze({ ...state.mediaMark.layout }),
+      canonicalVisualBoundsAtScaleOne:
+        createDiscCanonicalVisualBoundsFromCenteredRenderBounds(
+          getMediaMarkCanonicalVisualBounds(state.mediaMark),
+        ),
     }),
     'operating-system-marks.enabled': Object.freeze({
       platformMarks: state.platformMarks,
@@ -168,10 +210,24 @@ export function createRegisteredDiscPresetOwnerStateSnapshot(
     'developer-logo.primary': Object.freeze({
       logoKey: 'developer',
       layout: Object.freeze({ ...state.logoAssets.developerLogoLayout }),
+      canonicalVisualBoundsAtScaleOne:
+        createDiscCanonicalVisualBoundsFromCenteredRenderBounds(
+          getPrimaryLogoAssetCanonicalVisualBounds(
+            state.logoAssets,
+            'developer',
+          ),
+        ),
     }),
     'publisher-logo.primary': Object.freeze({
       logoKey: 'publisher',
       layout: Object.freeze({ ...state.logoAssets.publisherLogoLayout }),
+      canonicalVisualBoundsAtScaleOne:
+        createDiscCanonicalVisualBoundsFromCenteredRenderBounds(
+          getPrimaryLogoAssetCanonicalVisualBounds(
+            state.logoAssets,
+            'publisher',
+          ),
+        ),
     }),
     'legal.copyright': Object.freeze({
       key: 'copyright',

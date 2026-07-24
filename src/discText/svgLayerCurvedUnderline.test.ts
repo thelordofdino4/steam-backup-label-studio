@@ -21,6 +21,16 @@ function getStyleForClass(svg: string, className: string) {
   return match[1]
 }
 
+function getFilterById(svg: string, filterId: string) {
+  const escapedFilterId = filterId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = svg.match(
+    new RegExp(`<filter id="${escapedFilterId}"[\\s\\S]*?<\\/filter>`),
+  )
+
+  assert.ok(match, `Expected SVG to contain ${filterId}`)
+  return match[0]
+}
+
 test('curved disc copyright underlines only selected rich-text runs', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,
@@ -206,6 +216,10 @@ test('curved underline paints above shadow-only copies instead of through the sh
   const textIndex = svg.indexOf('class="disc-text-render-text"')
   const visibleUnderlineStyle = getStyleForClass(svg, 'disc-text-curved-underline')
   const shadowUnderlineStyle = getStyleForClass(svg, 'disc-text-curved-underline-shadow')
+  const curvedShadowFilter = getFilterById(
+    svg,
+    'disc-text-layer-curved-shadow-only',
+  )
 
   assert.ok(shadowFilterIndex > -1, 'expected a curved shadow-only filter')
   assert.ok(shadowUnderlineIndex > -1, 'expected an underline shadow copy')
@@ -220,9 +234,9 @@ test('curved underline paints above shadow-only copies instead of through the sh
   assert.match(visibleUnderlineStyle, /stroke:#38bdf8/)
   assert.match(visibleUnderlineStyle, /stroke-opacity:1/)
   assert.match(visibleUnderlineStyle, /opacity:1/)
-  assert.doesNotMatch(svg, /<feMergeNode in="SourceGraphic"\s*\/>/)
-  assert.match(svg, /<feMergeNode in="curved-shadow-strong"\s*\/>/)
-  assert.match(svg, /<feMergeNode in="curved-shadow-tight"\s*\/>/)
+  assert.doesNotMatch(curvedShadowFilter, /<feMergeNode in="SourceGraphic"\s*\/>/)
+  assert.match(curvedShadowFilter, /<feMergeNode in="curved-shadow-strong"\s*\/>/)
+  assert.match(curvedShadowFilter, /<feMergeNode in="curved-shadow-tight"\s*\/>/)
 })
 
 test('curved underline follows top and bottom wrapped line arcs without stray horizontal segments', () => {

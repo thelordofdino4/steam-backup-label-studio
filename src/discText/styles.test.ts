@@ -7,6 +7,8 @@ import {
   DISC_TEXT_RENDER_STYLES,
   DISC_TEXT_STYLE_PRESETS,
   applyDiscTextStylePreset,
+  areDiscTitlePresetFitStylesEquivalent,
+  areDiscTextStylesMeasurementEquivalent,
   createDefaultDiscTextStyles,
   normalizeDiscTextStyles,
   resetDiscTextStyle,
@@ -83,6 +85,78 @@ test('updates and resets a single disc text style without touching other text el
   assert.equal(updatedStyles.title.color, '#224466')
   assert.equal(updatedStyles.subtitle.color, defaultStyles.subtitle.color)
   assert.equal(resetStyles.title.color, defaultStyles.title.color)
+})
+
+test('measurement-style equivalence ignores visual-only fields', () => {
+  const baseline = createDefaultDiscTextStyles().title
+  const visualOnlyChange = {
+    ...baseline,
+    backgroundColor: '#ffffff',
+    color: '#000000',
+    underline: !baseline.underline,
+  }
+
+  assert.equal(
+    areDiscTextStylesMeasurementEquivalent(baseline, visualOnlyChange),
+    true,
+  )
+
+  for (const measurementChange of [
+    { ...baseline, bold: !baseline.bold },
+    { ...baseline, fontFamily: 'georgia' as const },
+    { ...baseline, italic: !baseline.italic },
+  ]) {
+    assert.equal(
+      areDiscTextStylesMeasurementEquivalent(baseline, measurementChange),
+      false,
+    )
+  }
+})
+
+test('Title preset-fit style equivalence tracks paint and rendered box geometry', () => {
+  const baseline = createDefaultDiscTextStyles().title
+  const hiddenPadding = { ...baseline, backgroundPadding: 4 }
+  const background = {
+    ...hiddenPadding,
+    backgroundEnabled: true,
+  }
+
+  assert.equal(
+    areDiscTitlePresetFitStylesEquivalent(baseline, hiddenPadding),
+    true,
+  )
+  assert.equal(
+    areDiscTitlePresetFitStylesEquivalent(
+      baseline,
+      { ...baseline, contrast: 'none' },
+    ),
+    false,
+  )
+  assert.equal(
+    areDiscTitlePresetFitStylesEquivalent(hiddenPadding, background),
+    false,
+  )
+  assert.equal(
+    areDiscTitlePresetFitStylesEquivalent(
+      background,
+      { ...background, backgroundPadding: 3 },
+    ),
+    false,
+  )
+  assert.equal(
+    areDiscTitlePresetFitStylesEquivalent(
+      background,
+      { ...background, borderEnabled: true },
+    ),
+    false,
+  )
+  assert.equal(
+    areDiscTitlePresetFitStylesEquivalent(
+      { ...background, borderEnabled: true },
+      { ...background, backgroundEnabled: false, borderEnabled: true },
+    ),
+    true,
+  )
 })
 
 test('title bold toggles between supported visible font weights', () => {

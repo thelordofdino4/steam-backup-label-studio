@@ -3,6 +3,7 @@ import {
   BACKGROUND_SCALE_MAX,
   BACKGROUND_SCALE_MIN,
 } from '../../../image/backgroundImage'
+import { getDiscPresetScaleControlRange } from '../../../editor/discPresetScaleControlRange'
 import {
   canTuneBackgroundArtworkSource,
   type ActiveBackgroundArtworkSource,
@@ -92,6 +93,11 @@ function BackgroundArtworkFineTuneControls({
     hasBackgroundImage,
   )
   const activeSourceLabel = BACKGROUND_SOURCE_LABELS[backgroundArtworkSource]
+  const backgroundScaleControlRange = getDiscPresetScaleControlRange({
+    currentScale: backgroundScale,
+    nominalMin: BACKGROUND_SCALE_MIN,
+    nominalMax: BACKGROUND_SCALE_MAX,
+  })
   const statusMessage = !hasBackgroundImage
     ? `Choose ${sectionLabel.toLowerCase()} to unlock scale, X/Y position, fit, and reset controls here.`
     : canTune
@@ -111,8 +117,8 @@ function BackgroundArtworkFineTuneControls({
         <EditorRangeField
           id={`${idPrefix}-background-scale`}
           label="Scale"
-          min={BACKGROUND_SCALE_MIN}
-          max={BACKGROUND_SCALE_MAX}
+          min={backgroundScaleControlRange.min}
+          max={backgroundScaleControlRange.max}
           step={0.01}
           value={backgroundScale}
           onInput={handleBackgroundScaleChange}

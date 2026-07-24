@@ -20,13 +20,42 @@ import type {
   RatingBadgeLayout,
   TitleArtworkLayout,
 } from '../project/projectTypes.ts'
+import { getProjectPlatformMarkAsset } from '../project/projectPlatformMarks.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import type {
   DiscPresetPlacementTarget,
 } from './discPresetDefinition.ts'
+import type {
+  DiscCanonicalVisualBounds,
+} from './fitVisualBoundsToDiscPresetRegion.ts'
+
+export function createDiscCanonicalVisualBoundsFromCenteredRenderBounds(
+  bounds: Readonly<{
+    halfWidth: number
+    halfHeight: number
+  }> | null,
+): DiscCanonicalVisualBounds | null {
+  if (
+    !bounds ||
+    !Number.isFinite(bounds.halfWidth) ||
+    !Number.isFinite(bounds.halfHeight) ||
+    bounds.halfWidth <= 0 ||
+    bounds.halfHeight <= 0
+  ) {
+    return null
+  }
+
+  return Object.freeze({
+    centerOffsetXPercent: 0,
+    centerOffsetYPercent: 0,
+    widthPercent: bounds.halfWidth * 2,
+    heightPercent: bounds.halfHeight * 2,
+  })
+}
 
 type PointLayoutState<TLayout> = Readonly<{
   layout: Readonly<TLayout>
+  canonicalVisualBoundsAtScaleOne: DiscCanonicalVisualBounds | null
 }>
 
 export type DiscTitleArtworkPresetOwnerState =
@@ -53,6 +82,13 @@ export type DiscTextPresetOwnerState<
   layout: Readonly<DiscTextLayout>
 }>
 
+export type DiscTitleTextPresetOwnerState =
+  DiscTextPresetOwnerState<'title'> & Readonly<{
+    content: DiscTextRenderableContent
+    style: Readonly<DiscTextStyle>
+    template: Readonly<DiscTemplate>
+  }>
+
 export type DiscLegalTextPresetOwnerState =
   DiscTextPresetOwnerState<'copyright'> & Readonly<{
     content: DiscTextRenderableContent
@@ -76,7 +112,7 @@ export type DiscPlatformMarksPresetOwnerState = Readonly<{
 
 export type DiscPresetFocusedOwnerStateByTarget = Readonly<{
   'game-title.artwork': DiscTitleArtworkPresetOwnerState
-  'game-title.text': DiscTextPresetOwnerState<'title'>
+  'game-title.text': DiscTitleTextPresetOwnerState
   'background.primary': DiscBackgroundPresetOwnerState
   'rating.primary': DiscRatingPresetOwnerState
   'media-format.primary': DiscMediaMarkPresetOwnerState
@@ -124,6 +160,57 @@ export type DiscBackgroundLayoutPresetUpdate = Readonly<{
 export type DiscPlatformMarkLayoutPresetUpdate = Readonly<
   Pick<PlatformMarkLayout, 'x' | 'y' | 'scale'>
 >
+
+type DiscPointOwnerLayout = {
+  enabled: boolean
+  x: number
+  y: number
+  scale: number
+}
+
+export function preserveDiscPointOwnerPlacement<
+  TLayout extends DiscPointOwnerLayout,
+>(
+  semanticLayout: TLayout,
+  previousLayout: Readonly<Pick<TLayout, 'x' | 'y' | 'scale'>>,
+): TLayout {
+  return {
+    ...semanticLayout,
+    x: previousLayout.x,
+    y: previousLayout.y,
+    scale: previousLayout.scale,
+  }
+}
+
+export function preserveDiscPlatformMarkPlacements(
+  semanticPlatformMarks: ProjectPlatformMarks,
+  previousPlatformMarks: ProjectPlatformMarks,
+  template: DiscTemplate,
+): ProjectPlatformMarks {
+  const assets = { ...semanticPlatformMarks.assets }
+
+  for (const value of Object.keys(assets) as PlatformMarkValue[]) {
+    const semanticAsset = assets[value]
+    if (!semanticAsset) continue
+
+    assets[value] = {
+      ...semanticAsset,
+      layout: preserveDiscPointOwnerPlacement(
+        semanticAsset.layout,
+        getProjectPlatformMarkAsset(
+          previousPlatformMarks,
+          value,
+          template,
+        ).layout,
+      ),
+    }
+  }
+
+  return {
+    ...semanticPlatformMarks,
+    assets,
+  }
+}
 
 export type DiscPresetOwnerUpdate =
   | Readonly<{

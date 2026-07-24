@@ -106,6 +106,7 @@ export function getDiscInlineTextEditorGeometryLines({
   }
 
   return renderLayout.lines.map((line) => {
+    const lineHeight = line.lineHeight ?? renderLayout.lineHeight
     const lineWidth = Math.max(0, line.width ?? measureText(line.text, renderLayout.font))
     const lineLeft = getLineLeft({
       lineWidth,
@@ -121,10 +122,10 @@ export function getDiscInlineTextEditorGeometryLines({
 
     return {
       caretXRatios,
-      heightRatio: renderLayout.lineHeight / hostHeight,
+      heightRatio: lineHeight / hostHeight,
       text: line.text,
       topRatio: toHostRatio(
-        line.y - renderLayout.lineHeight / 2,
+        line.y - lineHeight / 2,
         hostTop,
         hostHeight,
       ),

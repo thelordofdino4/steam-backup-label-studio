@@ -2,11 +2,21 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import {
+  getPlatformMarkPlaceholderImageSize,
+} from '../assets/assetManifest.ts'
+import { getPlatformMarkBoundsPercent } from '../disc/geometry.ts'
+import {
   DEFAULT_DISC_TEXT_SETTINGS,
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
 } from '../discText/index.ts'
 import { createDefaultDiscTextStyles } from '../discText/styles.ts'
+import { getDefaultDiscTextPointSize } from '../discText/pointSize.ts'
+import {
+  getStraightDiscTextRenderLayout,
+  getStraightDiscTextVisualBounds,
+} from '../discText/renderLayout.ts'
+import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
 import {
   placeGroupedPlatformMarks,
 } from '../layout/groupedPlatformMarkPlacement.ts'
@@ -14,13 +24,18 @@ import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
   applyDiscGuidedLayout,
 } from '../guidedPresets/discGuidedWorkflow.ts'
+import { getBackgroundDrawSize } from '../image/backgroundImage.ts'
 import {
+  CLASSIC_TOP_TITLE_DISC_PRESET,
   CLASSIC_TOP_TITLE_DISC_PRESET_ID,
 } from '../presets/builtins/classicTopTitleDiscPreset.ts'
 import type {
   DiscPresetRegistry,
 } from '../presets/discPresetRegistry.ts'
-import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
+import {
+  createDefaultProjectLogoAssets,
+  getPrimaryLogoAssetCanonicalVisualBounds,
+} from '../project/projectLogoAssets.ts'
 import {
   createDefaultDiscTextValueSources,
 } from '../project/metadataDiscText.ts'
@@ -32,9 +47,27 @@ import {
 } from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
 import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
-import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'
+import {
+  createDefaultProjectTitleArtwork,
+  getTitleArtworkCanonicalVisualBounds,
+} from '../project/projectTitleArtwork.ts'
+import {
+  getMediaMarkCanonicalVisualBounds,
+} from '../render/mediaMarkRenderModel.ts'
+import {
+  getPrimaryRatingBadgeCanonicalVisualBounds,
+} from '../render/ratingBadgeRenderModel.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import type { DiscTemplate } from '../types/template.ts'
+import {
+  getNextActiveDiscPresetStateForTargetedApplication,
+} from '../hooks/useActiveDiscPreset.ts'
+import {
+  applyActiveDiscPresetToTitleArtworkState,
+} from './appActiveDiscPresetPointOwners.ts'
+import {
+  applyActiveDiscPresetToTitleTextState,
+} from './appActiveDiscPresetTitleText.ts'
 import {
   applyRegisteredDiscPresetToState,
   createRegisteredDiscPresetOwnerStateSnapshot,
@@ -59,6 +92,17 @@ const wrapperSource = readFileSync(
 )
 const legacySource = readFileSync('src/layout/discRolePresets.ts', 'utf8')
 const appSource = readFileSync('src/app/App.tsx', 'utf8')
+const classicOperatingSystemPlacement = CLASSIC_TOP_TITLE_DISC_PRESET.slots
+  .flatMap(({ placements }) => placements)
+  .find(({ target }) => target === 'operating-system-marks.enabled')
+
+if (
+  !classicOperatingSystemPlacement ||
+  classicOperatingSystemPlacement.kind !== 'group' ||
+  !('size' in classicOperatingSystemPlacement)
+) {
+  throw new Error('Classic OS contain-fit fixture is missing.')
+}
 
 function createState(): TestState {
   const template = discTemplates.standardPrintableDisc
@@ -222,6 +266,40 @@ function applyClassic(state: TestState, template = discTemplates.standardPrintab
   return result
 }
 
+function getResolvedRegionForTarget(
+  result: ReturnType<typeof applyClassic>,
+  target: string,
+) {
+  const slot = result.resolvedPreset?.slots.find((candidate) =>
+    candidate.placements.some((placement) => placement.target === target),
+  )
+
+  assert.ok(slot, `Missing resolved Classic slot for ${target}`)
+  return slot.resolvedContentRegion
+}
+
+function assertContainedAndTouchesLimitingEdge({
+  height,
+  label,
+  region,
+  width,
+}: Readonly<{
+  height: number
+  label: string
+  region: Readonly<{ widthPercent: number; heightPercent: number }>
+  width: number
+}>) {
+  const tolerance = 0.000001
+
+  assert.ok(width <= region.widthPercent + tolerance, `${label} exceeds width`)
+  assert.ok(height <= region.heightPercent + tolerance, `${label} exceeds height`)
+  assert.ok(
+    Math.abs(width - region.widthPercent) <= tolerance ||
+      Math.abs(height - region.heightPercent) <= tolerance,
+    `${label} does not touch either limiting edge`,
+  )
+}
+
 function createClassicWorkflow() {
   return applyDiscGuidedLayout(INITIAL_DISC_GUIDED_WORKFLOW_STATE, {
     id: 'disc:guided-layout:classic-top-title',
@@ -321,11 +399,185 @@ test('active preset reconstruction is canonical, transient, and owner-pure', () 
   assert.deepEqual(state.background.offset, { x: 11, y: -9 })
 })
 
+test('post-load Classic reconstruction enables a later point-owner refit only', () => {
+  const template = discTemplates.standardPrintableDisc
+  const initialState = createState()
+  const restoredState: TestState = {
+    ...initialState,
+    titleArtwork: {
+      ...createDefaultProjectTitleArtwork(template, 'top'),
+      layout: {
+        enabled: false,
+        x: 37,
+        y: 58,
+        scale: 0.41,
+      },
+    },
+  }
+  const stateBeforeReconstruction = structuredClone(restoredState)
+  const activePresetState = reconstructActiveDiscPresetState({
+    workflow: createClassicWorkflow(),
+    currentState: restoredState,
+    selectedDiscTemplate: template,
+  })
+
+  assert.ok(activePresetState)
+  assert.deepEqual(restoredState, stateBeforeReconstruction)
+
+  const lateTitleArtwork = {
+    ...restoredState.titleArtwork,
+    source: 'custom' as const,
+    sourceLabel: 'late-wide-title.png',
+    imageDataUrl: 'data:image/png;base64,late-wide-title',
+    imageSize: { width: 1_200, height: 120 },
+    layout: {
+      ...restoredState.titleArtwork.layout,
+      enabled: true,
+    },
+  }
+  const targeted = applyActiveDiscPresetToTitleArtworkState({
+    presetState: activePresetState,
+    selectedDiscTemplate: template,
+    titleArtwork: lateTitleArtwork,
+  })
+  const nextActivePresetState =
+    getNextActiveDiscPresetStateForTargetedApplication({
+      currentPresetState: activePresetState,
+      application: targeted.application,
+    })
+
+  assert.equal(targeted.application?.status, 'applied')
+  assert.deepEqual(
+    targeted.application?.updates.map(({ target }) => target),
+    ['game-title.artwork'],
+  )
+  assert.deepEqual(targeted.titleArtwork.layout, {
+    enabled: true,
+    x: 50,
+    y: 19.5,
+    scale: targeted.titleArtwork.layout.scale,
+  })
+  assert.notEqual(
+    targeted.titleArtwork.layout.scale,
+    lateTitleArtwork.layout.scale,
+  )
+  assert.equal(targeted.titleArtwork.imageDataUrl, lateTitleArtwork.imageDataUrl)
+  assert.equal(targeted.titleArtwork.sourceLabel, lateTitleArtwork.sourceLabel)
+  assert.equal(nextActivePresetState?.ref, activePresetState.ref)
+  assert.equal(
+    nextActivePresetState?.resolvedDefinition,
+    targeted.application && 'resolvedPreset' in targeted.application
+      ? targeted.application.resolvedPreset
+      : null,
+  )
+  assert.deepEqual(restoredState, stateBeforeReconstruction)
+  assert.equal(restoredState.background, initialState.background)
+  assert.equal(restoredState.ratingBadge, initialState.ratingBadge)
+  assert.equal(restoredState.mediaMark, initialState.mediaMark)
+  assert.equal(restoredState.logoAssets, initialState.logoAssets)
+  assert.equal(restoredState.discTextLayout, initialState.discTextLayout)
+  assert.equal(restoredState.unrelated, initialState.unrelated)
+})
+
+test('post-load Classic reconstruction enables a later Title text refit only', () => {
+  const template = discTemplates.standardPrintableDisc
+  const restoredState = createState()
+  const copyrightLayout = restoredState.discTextLayout.copyright
+  const titleArtwork = restoredState.titleArtwork
+  const background = restoredState.background
+  const ratingBadge = restoredState.ratingBadge
+  const mediaMark = restoredState.mediaMark
+  const logoAssets = restoredState.logoAssets
+  const unrelated = restoredState.unrelated
+  const stateBeforeReconstruction = structuredClone(restoredState)
+  const activePresetState = reconstructActiveDiscPresetState({
+    workflow: createClassicWorkflow(),
+    currentState: restoredState,
+    selectedDiscTemplate: template,
+  })
+
+  assert.ok(activePresetState)
+  assert.deepEqual(restoredState, stateBeforeReconstruction)
+
+  const manuallyEditedLayout = {
+    ...restoredState.discTextLayout.title,
+    x: 24,
+    y: 55,
+    width: 35,
+    fontSizePt: 30,
+  }
+  const lateTitleText = Object.freeze({
+    key: 'title' as const,
+    enabled: true,
+    content: Object.freeze({
+      plainText:
+        'The Unreasonably Elaborate Adventures of a Determined Archivist',
+    }),
+    layout: Object.freeze(manuallyEditedLayout),
+    style: restoredState.discTextStyles.title,
+    template,
+  })
+  const targeted = applyActiveDiscPresetToTitleTextState({
+    presetState: activePresetState,
+    selectedDiscTemplate: template,
+    titleText: lateTitleText,
+  })
+  const nextActivePresetState =
+    getNextActiveDiscPresetStateForTargetedApplication({
+      currentPresetState: activePresetState,
+      application: targeted.application,
+    })
+
+  assert.equal(targeted.application?.status, 'applied')
+  assert.deepEqual(
+    targeted.application?.updates.map(({ target }) => target),
+    ['game-title.text'],
+  )
+  assert.equal(targeted.titleText.layout.x, 0)
+  assert.ok(targeted.titleText.layout.y < 19.5)
+  assert.ok(targeted.titleText.layout.width < 62)
+  const paintedBounds = getStraightDiscTextVisualBounds(
+    getStraightDiscTextRenderLayout(
+      'title',
+      lateTitleText.content.plainText,
+      targeted.titleText.layout,
+      measureDiscTextWithBrowserCanvas,
+      { title: targeted.titleText.style },
+      { template },
+    ),
+    measureDiscTextWithBrowserCanvas,
+    { includeRenderedBox: true, includeRenderedPaint: true },
+  )
+  assert.ok(Math.abs(paintedBounds.centerX - 50) <= 0.000001)
+  assert.ok(Math.abs(paintedBounds.centerY - 19.5) <= 0.000001)
+  assert.notEqual(
+    targeted.titleText.layout.fontSizePt,
+    manuallyEditedLayout.fontSizePt,
+  )
+  assert.equal(targeted.titleText.content, lateTitleText.content)
+  assert.equal(targeted.titleText.style, lateTitleText.style)
+  assert.equal(nextActivePresetState?.ref, activePresetState.ref)
+  assert.equal(
+    nextActivePresetState?.resolvedDefinition,
+    targeted.application && 'resolvedPreset' in targeted.application
+      ? targeted.application.resolvedPreset
+      : null,
+  )
+  assert.deepEqual(restoredState, stateBeforeReconstruction)
+  assert.equal(restoredState.discTextLayout.copyright, copyrightLayout)
+  assert.equal(restoredState.titleArtwork, titleArtwork)
+  assert.equal(restoredState.background, background)
+  assert.equal(restoredState.ratingBadge, ratingBadge)
+  assert.equal(restoredState.mediaMark, mediaMark)
+  assert.equal(restoredState.logoAssets, logoAssets)
+  assert.equal(restoredState.unrelated, unrelated)
+})
+
 test('reconstruction refines Legal geometry with injected measurement without applying it', () => {
   const state = createState()
   state.discTextSettings.copyright = true
   state.discTextValues.copyright = Array.from(
-    { length: 12 },
+    { length: 7 },
     (_, index) => `Clause ${index + 1}: reserved legal terms`,
   ).join(' ')
   state.discTextValueSources.copyright = 'manual'
@@ -457,6 +709,37 @@ test('Legal owner snapshot resolves manual metadata and HTML content canonically
   )
 })
 
+test('Title owner snapshot resolves canonical text, rich content, style, and template', () => {
+  const state = createState()
+  state.discTextTitleValue = 'Fallback title'
+  state.discTextValueSources.title = 'manual'
+  state.discTextHtmlSources.title =
+    '<strong>Rich</strong><br><em>title</em>'
+  state.discTextStyles.title = {
+    ...state.discTextStyles.title,
+    fontFamily: 'georgia',
+    italic: true,
+  }
+
+  const title = createRegisteredDiscPresetOwnerStateSnapshot(
+    state,
+    discTemplates.standardPrintableDisc,
+  )['game-title.text']!
+
+  assert.equal(title.content.plainText, 'Rich\ntitle')
+  assert.equal(
+    title.content.richText?.source,
+    '<p><strong>Rich</strong></p><p><em>title</em></p>',
+  )
+  assert.deepEqual(title.style, state.discTextStyles.title)
+  assert.deepEqual(title.template, discTemplates.standardPrintableDisc)
+  assert.notEqual(title.style, state.discTextStyles.title)
+  assert.notEqual(title.template, discTemplates.standardPrintableDisc)
+  assert.equal(Object.isFrozen(title.content), true)
+  assert.equal(Object.isFrozen(title.style), true)
+  assert.equal(Object.isFrozen(title.template), true)
+})
+
 test('normal Legal content is applied while genuinely impossible content stays partial', () => {
   const shortState = createState()
   shortState.discTextSettings.copyright = true
@@ -473,7 +756,7 @@ test('normal Legal content is applied while genuinely impossible content stays p
   const adjustedState = createState()
   adjustedState.discTextSettings.copyright = true
   adjustedState.discTextValues.copyright = Array.from(
-    { length: 12 },
+    { length: 7 },
     (_, index) => `Clause ${index + 1}: reserved legal terms`,
   ).join(' ')
   adjustedState.discTextValueSources.copyright = 'manual'
@@ -533,52 +816,100 @@ test('registered application injects its text measurement service', () => {
   assert.ok(measuredFonts.length > 0)
 })
 
-test('Classic seeds every dormant fixed owner without changing enablement', () => {
+test('Classic contain-fits valid owners and center-seeds dormant owners without enabling them', () => {
   const before = createState()
   const result = applyClassic(before)
   const after = result.state
 
   assert.equal(after.background.enabled, false)
   assert.deepEqual(after.background.offset, { x: 0, y: 0 })
-  assert.equal(after.background.scale, 1)
-  assert.deepEqual(after.titleArtwork.layout, {
-    enabled: false,
-    x: 50,
-    y: 19.5,
-    scale: 1,
+  const backgroundDrawSize = getBackgroundDrawSize(
+    after.background.imageSize,
+    after.background.scale,
+    100,
+  )
+  assertContainedAndTouchesLimitingEdge({
+    label: 'Background',
+    width: backgroundDrawSize.width,
+    height: backgroundDrawSize.height,
+    region: getResolvedRegionForTarget(result, 'background.primary'),
   })
+
+  assert.equal(after.titleArtwork.layout.enabled, false)
+  assert.equal(after.titleArtwork.layout.x, 50)
+  assert.equal(after.titleArtwork.layout.y, 19.5)
+  const titleBounds = getTitleArtworkCanonicalVisualBounds(after.titleArtwork)
+  assert.ok(titleBounds)
+  assertContainedAndTouchesLimitingEdge({
+    label: 'Title artwork',
+    width: titleBounds.halfWidth * 2 * after.titleArtwork.layout.scale,
+    height: titleBounds.halfHeight * 2 * after.titleArtwork.layout.scale,
+    region: getResolvedRegionForTarget(result, 'game-title.artwork'),
+  })
+
   assert.equal(after.discTextSettings.title, false)
   assert.equal(after.discTextLayout.title.x, 0)
   assert.equal(after.discTextLayout.title.y, 19.5)
   assert.equal(after.discTextLayout.title.width, 62)
   assert.equal(after.discTextLayout.title.scale, 1.17)
-  assert.equal(after.discTextLayout.title.fontSizePt, 17)
+  assert.equal(
+    after.discTextLayout.title.fontSizePt,
+    getDefaultDiscTextPointSize(
+      'title',
+      1,
+      discTemplates.standardPrintableDisc,
+      'straight',
+    ),
+  )
   assert.equal(after.discTextLayout.title.align, 'center')
   assert.equal(after.discTextLayout.title.mode, 'straight')
-  assert.deepEqual(after.ratingBadge.layout, {
-    enabled: false,
-    x: 79,
-    y: 62,
-    scale: 0.75,
+  assert.equal(after.ratingBadge.layout.enabled, false)
+  assert.equal(after.ratingBadge.layout.x, 79)
+  assert.equal(after.ratingBadge.layout.y, 62)
+  assert.equal(after.ratingBadge.layout.scale, before.ratingBadge.layout.scale)
+  assert.equal(
+    getPrimaryRatingBadgeCanonicalVisualBounds(
+      after.metadata,
+      after.ratingBadge,
+    ),
+    null,
+  )
+
+  assert.equal(after.mediaMark.layout.enabled, false)
+  assert.equal(after.mediaMark.layout.x, 80)
+  assert.equal(after.mediaMark.layout.y, 76)
+  const mediaBounds = getMediaMarkCanonicalVisualBounds(after.mediaMark)
+  assert.ok(mediaBounds)
+  assertContainedAndTouchesLimitingEdge({
+    label: 'Media mark',
+    width: mediaBounds.halfWidth * 2 * after.mediaMark.layout.scale,
+    height: mediaBounds.halfHeight * 2 * after.mediaMark.layout.scale,
+    region: getResolvedRegionForTarget(result, 'media-format.primary'),
   })
-  assert.deepEqual(after.mediaMark.layout, {
-    enabled: false,
-    x: 80,
-    y: 76,
-    scale: 0.7,
-  })
-  assert.deepEqual(after.logoAssets.developerLogoLayout, {
-    enabled: false,
-    x: 21,
-    y: 62,
-    scale: 0.7,
-  })
-  assert.deepEqual(after.logoAssets.publisherLogoLayout, {
-    enabled: false,
-    x: 21,
-    y: 74,
-    scale: 0.7,
-  })
+
+  for (const logoKey of ['developer', 'publisher'] as const) {
+    const layout = logoKey === 'developer'
+      ? after.logoAssets.developerLogoLayout
+      : after.logoAssets.publisherLogoLayout
+    const bounds = getPrimaryLogoAssetCanonicalVisualBounds(
+      after.logoAssets,
+      logoKey,
+    )
+
+    assert.equal(layout.enabled, false)
+    assert.equal(layout.x, 21)
+    assert.equal(layout.y, logoKey === 'developer' ? 62 : 74)
+    assert.ok(bounds)
+    assertContainedAndTouchesLimitingEdge({
+      label: `${logoKey} logo`,
+      width: bounds.halfWidth * 2 * layout.scale,
+      height: bounds.halfHeight * 2 * layout.scale,
+      region: getResolvedRegionForTarget(
+        result,
+        `${logoKey}-logo.primary`,
+      ),
+    })
+  }
   assert.equal(after.discTextSettings.copyright, false)
   assert.equal(after.discTextLayout.copyright.x, 0)
   assert.equal(after.discTextLayout.copyright.y, 85)
@@ -600,7 +931,50 @@ test('Classic seeds every dormant fixed owner without changing enablement', () =
   assert.equal(enabledAfterward.ratingBadge.layout.y, 62)
 })
 
-test('completed fixed-owner centers match their resolved Classic slots', () => {
+test('fresh Classic apply refits built-in ESRB M from preserved manual coordinates', () => {
+  const state = createState()
+  state.metadata = {
+    ...state.metadata,
+    ratingSystem: 'ESRB',
+    ratingValue: 'M',
+  }
+  state.ratingBadge = {
+    ...createDefaultProjectRatingBadge(discTemplates.standardPrintableDisc),
+    source: 'placeholder',
+    layout: {
+      enabled: true,
+      x: 78.32301740812379,
+      y: 49.9110251450677,
+      scale: 1.0769230769230769,
+    },
+  }
+
+  const result = applyClassic(state)
+  const layout = result.state.ratingBadge.layout
+
+  assert.equal(layout.enabled, true)
+  assert.equal(layout.x, 79)
+  assert.equal(layout.y, 62)
+  const ratingBounds = getPrimaryRatingBadgeCanonicalVisualBounds(
+    result.state.metadata,
+    result.state.ratingBadge,
+  )
+  assert.ok(ratingBounds)
+  assertContainedAndTouchesLimitingEdge({
+    label: 'ESRB M badge',
+    width: ratingBounds.halfWidth * 2 * layout.scale,
+    height: ratingBounds.halfHeight * 2 * layout.scale,
+    region: getResolvedRegionForTarget(result, 'rating.primary'),
+  })
+  assert.deepEqual(
+    result.updates
+      .filter(({ target }) => target === 'rating.primary')
+      .map(({ layout }) => layout),
+    [{ x: 79, y: 62, scale: layout.scale }],
+  )
+})
+
+test('completed owner centers match their resolved Classic slots', () => {
   const result = applyClassic(createState())
   assert.ok(result.resolvedPreset)
   const slots = new Map(result.resolvedPreset.slots.map((slot) => [
@@ -747,6 +1121,7 @@ test('enabled owners and selected OS marks receive canonical placement only', ()
       heightPercent: 10,
     },
     template,
+    fitPolicy: classicOperatingSystemPlacement.size,
   })
   assert.equal(expected.status, 'placed')
 
@@ -788,7 +1163,7 @@ test('enabled owners and selected OS marks receive canonical placement only', ()
   }
 })
 
-test('impossible OS grouping stays partial while other owner updates apply', () => {
+test('large center hole does not shrink or reject rectangle-authoritative OS grouping', () => {
   const template = {
     ...discTemplates.standardPrintableDisc,
     id: 'large-center-hole',
@@ -811,11 +1186,37 @@ test('impossible OS grouping stays partial while other owner updates apply', () 
     },
   }
   const result = applyClassic(state, template)
+  const afterWindows = getProjectPlatformMarkAsset(
+    result.state.platformMarks,
+    'windows',
+    template,
+  )
+  const imageSize = getPlatformMarkPlaceholderImageSize(
+    'windows',
+    afterWindows.theme,
+  )
+  const region = getResolvedRegionForTarget(
+    result,
+    'operating-system-marks.enabled',
+  )
 
-  assert.equal(result.status, 'partial')
-  assert.ok(result.warnings.some((warning) =>
-    warning.kind === 'grouped-placement-impossible'))
-  assert.equal(result.state.platformMarks, state.platformMarks)
+  assert.equal(result.status, 'applied')
+  assert.ok(result.warnings.every((warning) =>
+    warning.kind !== 'grouped-placement-impossible'))
+  assert.notEqual(result.state.platformMarks, state.platformMarks)
+  assert.equal(afterWindows.layout.x, region.centerXPercent)
+  assert.equal(afterWindows.layout.y, region.centerYPercent)
+  assert.ok(imageSize)
+  const bounds = getPlatformMarkBoundsPercent(
+    imageSize,
+    afterWindows.layout.scale,
+  )
+  assertContainedAndTouchesLimitingEdge({
+    label: 'Windows OS mark group',
+    width: bounds.halfWidth * 2,
+    height: bounds.halfHeight * 2,
+    region,
+  })
   assert.equal(result.state.ratingBadge.layout.x, 79)
   assert.equal(result.state.mediaMark.layout.y, 76)
 })
@@ -867,7 +1268,10 @@ test('Classic production routing has no legacy coordinates or App target switch'
     /DISC_PRESET_PRODUCTION_ADAPTER_REGISTRY/,
   )
   assert.doesNotMatch(wrapperSource, /from ['"]react['"]/)
-  assert.doesNotMatch(appSource, /game-title\.artwork|legal\.copyright/)
+  assert.doesNotMatch(
+    appSource,
+    /case\s+['"](?:game-title\.artwork|legal\.copyright)['"]\s*:/,
+  )
   assert.doesNotMatch(appSource, /switch\s*\(\s*(?:slot|target)/)
   assert.doesNotMatch(wrapperSource, /content-measurement-required/)
 })

@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from 'react'
 import { useState } from 'react'
+import { getDiscPresetScaleControlRange } from '../../../editor/discPresetScaleControlRange'
 import { getPlatformMarkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   PLATFORM_MARK_OPTIONS,
@@ -174,14 +175,19 @@ export function PlatformMarkControls({
           { ...asset, value },
           selectedDiscTemplate,
         )
+        const platformMarkScaleControlRange = getDiscPresetScaleControlRange({
+          currentScale: asset.layout.scale,
+          nominalMin: 0.25,
+          nominalMax: 2,
+        })
 
         return (
           <>
             <EditorStackedRangeField
               id={`platform-mark-scale-${value}`}
               label="Scale"
-              min={0.25}
-              max={2}
+              min={platformMarkScaleControlRange.min}
+              max={platformMarkScaleControlRange.max}
               step={0.01}
               value={asset.layout.scale}
               onInput={(nextValue) =>

@@ -266,3 +266,12 @@
 .disc-placeholder-svg-image {
   filter: none;
 }
+
+.disc-placeholder-svg-image.content-bounded-image .content-bounded-image-source {
+  filter: none;
+}
+
+.disc-canonical-visual-bounds-image,
+.disc-canonical-visual-bounds-image.content-bounded-image .content-bounded-image-source {
+  filter: none;
+}

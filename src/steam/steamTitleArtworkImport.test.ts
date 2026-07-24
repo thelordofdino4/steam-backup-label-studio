@@ -6,6 +6,7 @@ import {
   createDefaultProjectTitleArtwork,
   setCustomTitleArtworkImage,
   setTitleArtworkImage,
+  setTitleArtworkLayout,
 } from '../project/projectTitleArtwork.ts'
 import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
 import type { SteamArtworkAsset, SteamImportedGame } from './steamApi.ts'
@@ -73,6 +74,7 @@ test('selecting a Steam game with the Steam CDN logo seeds title artwork from th
   )
 
   assert.equal(result.status, 'seeded')
+  assert.equal(result.placementRefitRequired, true)
   assert.equal(downloadedUrl, logoUrl)
   assert.equal(result.titleArtwork.steamArtworkAssetId, 'cdn-logo')
   assert.equal(result.titleArtwork.sourceLabel, 'Steam CDN logo')
@@ -129,13 +131,17 @@ test('missing Steam title artwork clears stale artwork and leaves rendered text 
     url: 'https://cdn.akamai.steamstatic.com/steam/apps/12345/logo.png',
     kind: 'logo',
   }
-  const currentTitleArtwork = setTitleArtworkImage(
+  const seededTitleArtwork = setTitleArtworkImage(
     createDefaultProjectTitleArtwork(standardDiscTemplate, 'top'),
     createImportedImage('data:image/png;base64,old-logo'),
     previousLogo,
     standardDiscTemplate,
     'top',
   )
+  const currentTitleArtwork = setTitleArtworkLayout(seededTitleArtwork, {
+    ...seededTitleArtwork.layout,
+    scale: 2.25,
+  })
 
   const result = await createSteamTitleArtworkImport(
     createSteamGame([
@@ -152,9 +158,11 @@ test('missing Steam title artwork clears stale artwork and leaves rendered text 
   )
 
   assert.equal(result.status, 'unavailable')
+  assert.equal(result.placementRefitRequired, true)
   assert.equal(result.titleArtwork.imageDataUrl, null)
   assert.equal(result.titleArtwork.steamArtworkAssetId, null)
   assert.equal(result.titleArtwork.layout.enabled, false)
+  assert.equal(result.titleArtwork.layout.scale, 2.25)
 })
 
 test('missing Steam title artwork preserves custom title artwork upload', async () => {
@@ -177,18 +185,93 @@ test('missing Steam title artwork preserves custom title artwork upload', async 
     standardDiscTemplate,
     'top',
   )
+  const manuallyPlacedTitleArtwork = setTitleArtworkLayout(
+    currentTitleArtwork,
+    {
+      ...currentTitleArtwork.layout,
+      scale: 2.25,
+      x: 68,
+      y: 44,
+    },
+  )
 
   const result = await createSteamTitleArtworkImport(
     createSteamGame([]),
-    currentTitleArtwork,
+    manuallyPlacedTitleArtwork,
     standardDiscTemplate,
     'top',
   )
 
   assert.equal(result.status, 'unavailable')
+  assert.equal(result.placementRefitRequired, false)
   assert.equal(result.titleArtwork.source, 'custom')
   assert.equal(result.titleArtwork.imageDataUrl, 'data:image/png;base64,custom-logo')
   assert.equal(result.titleArtwork.defaultSteamLogo, null)
   assert.equal(canRestoreTitleArtworkDefaultSteamLogo(result.titleArtwork), false)
   assert.equal(result.titleArtwork.layout.enabled, true)
+  assert.deepEqual(
+    result.titleArtwork.layout,
+    manuallyPlacedTitleArtwork.layout,
+  )
+})
+
+test('failed Steam logo download preserves dormant scale or retained custom placement', async () => {
+  const logoAsset: SteamArtworkAsset = {
+    id: 'cdn-logo',
+    label: 'Steam CDN logo',
+    url: 'https://cdn.akamai.steamstatic.com/steam/apps/12345/logo.png',
+    kind: 'logo',
+  }
+  const seeded = setTitleArtworkImage(
+    createDefaultProjectTitleArtwork(standardDiscTemplate, 'top'),
+    createImportedImage('data:image/png;base64,old-logo'),
+    logoAsset,
+    standardDiscTemplate,
+    'top',
+  )
+  const dormantScale = setTitleArtworkLayout(seeded, {
+    ...seeded.layout,
+    scale: 2.25,
+  })
+  const custom = setCustomTitleArtworkImage(
+    seeded,
+    createImportedImage('data:image/png;base64,custom-logo'),
+    standardDiscTemplate,
+    'top',
+  )
+  const customPlacement = setTitleArtworkLayout(custom, {
+    ...custom.layout,
+    scale: 1.8,
+    x: 67,
+    y: 43,
+  })
+  const failingOptions = {
+    downloadArtworkAsDataUrl: async () => {
+      throw new Error('offline')
+    },
+  }
+
+  const cleared = await createSteamTitleArtworkImport(
+    createSteamGame([logoAsset]),
+    dormantScale,
+    standardDiscTemplate,
+    'top',
+    failingOptions,
+  )
+  const retained = await createSteamTitleArtworkImport(
+    createSteamGame([logoAsset]),
+    customPlacement,
+    standardDiscTemplate,
+    'top',
+    failingOptions,
+  )
+
+  assert.equal(cleared.status, 'failed')
+  assert.equal(cleared.placementRefitRequired, true)
+  assert.equal(cleared.titleArtwork.imageDataUrl, null)
+  assert.equal(cleared.titleArtwork.layout.scale, 2.25)
+  assert.equal(retained.status, 'failed')
+  assert.equal(retained.placementRefitRequired, false)
+  assert.equal(retained.titleArtwork.imageDataUrl, custom.imageDataUrl)
+  assert.deepEqual(retained.titleArtwork.layout, customPlacement.layout)
 })

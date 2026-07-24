@@ -8,10 +8,12 @@ import {
 import {
   shouldRenderSupplementalUskRatingBadge,
   shouldRenderRatingBadge,
-  shouldUseCustomRatingBadgeImage,
   type RatingBadgeElementKey,
 } from '../../project/projectRatingBadge'
 import type { ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout } from '../../project/projectTypes'
+import {
+  createPrimaryRatingBadgeRenderModel,
+} from '../../render/ratingBadgeRenderModel.ts'
 import {
   createPreviewEditableAttributes,
   createPreviewEditableElementId,
@@ -31,11 +33,20 @@ export type RatingBadgeLayerProps = {
 
 type RatingBadgeLayerItemProps = {
   ariaLabel: string
-  metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>
-  layout: RatingBadgeLayout
-  shouldUseCustomImage: boolean
-  customImageDataUrl?: string | null
-  customImageSize?: ProjectRatingBadge['customImageSize']
+  visual: {
+    imageDataUrl: string
+    imageSize?: ProjectRatingBadge['customImageSize']
+    isCustomImage: boolean
+    isPlaceholderImage: boolean
+    layout: RatingBadgeLayout
+    overlayLabel: string | null
+    textColor: string
+    alt: string
+    unscaledBounds: {
+      halfWidth: number
+      halfHeight: number
+    }
+  }
   badgeKey: RatingBadgeElementKey
   handleRatingBadgePointerDown?: RatingBadgeLayerProps['handleRatingBadgePointerDown']
   handleRatingBadgePointerMove?: RatingBadgeLayerProps['handleRatingBadgePointerMove']
@@ -44,24 +55,15 @@ type RatingBadgeLayerItemProps = {
 
 function RatingBadgeLayerItem({
   ariaLabel,
-  metadata,
-  layout,
-  shouldUseCustomImage,
-  customImageDataUrl,
-  customImageSize,
+  visual,
   badgeKey,
   handleRatingBadgePointerDown,
   handleRatingBadgePointerMove,
   handleRatingBadgePointerUp,
 }: RatingBadgeLayerItemProps) {
-  const placeholderRenderModel = getRatingBadgePlaceholderRenderModel(metadata)
-  const unscaledBounds =
-    shouldUseCustomImage && customImageSize
-      ? getRatingBadgeBoundsPercent(customImageSize, 1)
-      : getRatingBadgeBoundsPercent(placeholderRenderModel.imageSize, 1)
   const unscaledLayerSize = {
-    width: `${unscaledBounds.halfWidth * 2}%`,
-    height: `${unscaledBounds.halfHeight * 2}%`,
+    width: `${visual.unscaledBounds.halfWidth * 2}%`,
+    height: `${visual.unscaledBounds.halfHeight * 2}%`,
   }
   const fillLayerSize = {
     width: '100%',
@@ -72,10 +74,7 @@ function RatingBadgeLayerItem({
     <div
       className={[
         'disc-rating-badge-layer',
-        shouldUseCustomImage && customImageSize?.contentShape
-          ? 'disc-rating-badge-layer--content-shaped'
-          : '',
-        !shouldUseCustomImage && placeholderRenderModel.imageSize.contentShape
+        visual.imageSize?.contentShape
           ? 'disc-rating-badge-layer--content-shaped'
           : '',
       ].filter(Boolean).join(' ')}
@@ -86,58 +85,51 @@ function RatingBadgeLayerItem({
         kind: 'mark',
       })}
       style={{
-        left: `${layout.x}%`,
-        top: `${layout.y}%`,
+        left: `${visual.layout.x}%`,
+        top: `${visual.layout.y}%`,
         ...unscaledLayerSize,
-        transform: `translate(-50%, -50%) scale(${layout.scale})`,
+        transform: `translate(-50%, -50%) scale(${visual.layout.scale})`,
       }}
       onPointerDown={(event) => handleRatingBadgePointerDown?.(event, badgeKey)}
       onPointerMove={handleRatingBadgePointerMove}
       onPointerUp={handleRatingBadgePointerUp}
       onPointerCancel={handleRatingBadgePointerUp}
     >
-      {shouldUseCustomImage ? (
-        <ContentBoundedImage
-          className="disc-rating-badge-image"
-          src={customImageDataUrl ?? ''}
-          alt="Rating badge"
-          imageSize={customImageSize}
-          draggable={false}
-          style={fillLayerSize}
-        />
-      ) : (
-        <>
-          <ContentBoundedImage
-            className="disc-rating-badge-image disc-placeholder-svg-image"
-            src={placeholderRenderModel.imageUrl}
-            alt={placeholderRenderModel.altLabel}
-            imageSize={placeholderRenderModel.imageSize}
-            draggable={false}
-            style={fillLayerSize}
-          />
-          {placeholderRenderModel.overlayLabel ? (
-            <svg
-              className="disc-rating-badge-text-overlay"
-              viewBox="0 0 90 130"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <text
-                x="45"
-                y="66"
-                fill={placeholderRenderModel.textColor}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontFamily="Arial, sans-serif"
-                fontSize="36"
-                fontWeight="900"
-              >
-                {placeholderRenderModel.overlayLabel}
-              </text>
-            </svg>
-          ) : null}
-        </>
-      )}
+      <ContentBoundedImage
+        className={[
+          'disc-rating-badge-image',
+          badgeKey === 'primary'
+            ? 'disc-canonical-visual-bounds-image'
+            : '',
+          visual.isPlaceholderImage ? 'disc-placeholder-svg-image' : '',
+        ].filter(Boolean).join(' ')}
+        src={visual.imageDataUrl}
+        alt={visual.alt}
+        imageSize={visual.imageSize}
+        draggable={false}
+        style={fillLayerSize}
+      />
+      {visual.overlayLabel ? (
+        <svg
+          className="disc-rating-badge-text-overlay"
+          viewBox="0 0 90 130"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <text
+            x="45"
+            y="66"
+            fill={visual.textColor}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontFamily="Arial, sans-serif"
+            fontSize="36"
+            fontWeight="900"
+          >
+            {visual.overlayLabel}
+          </text>
+        </svg>
+      ) : null}
     </div>
   )
 }
@@ -162,18 +154,35 @@ export function RatingBadgeLayer({
     return null
   }
 
-  const shouldUseCustomImage = shouldUseCustomRatingBadgeImage(projectRatingBadge)
+  const primaryVisual = createPrimaryRatingBadgeRenderModel(
+    projectMetadata,
+    projectRatingBadge,
+  )
+  const uskPlaceholder = getRatingBadgePlaceholderRenderModel({
+    ratingSystem: 'USK',
+    ratingValue: projectRatingBadge.uskBadge.ratingValue,
+  })
+  const uskVisual = {
+    imageDataUrl: uskPlaceholder.imageUrl,
+    imageSize: uskPlaceholder.imageSize,
+    isCustomImage: false,
+    isPlaceholderImage: true,
+    layout: projectRatingBadge.uskBadge.layout,
+    overlayLabel: uskPlaceholder.overlayLabel,
+    textColor: uskPlaceholder.textColor,
+    alt: uskPlaceholder.altLabel,
+    unscaledBounds: getRatingBadgeBoundsPercent(
+      uskPlaceholder.imageSize,
+      1,
+    ),
+  }
 
   return (
     <>
-      {shouldRenderPrimaryBadge ? (
+      {shouldRenderPrimaryBadge && primaryVisual ? (
         <RatingBadgeLayerItem
           ariaLabel="Rating badge layer"
-          metadata={projectMetadata}
-          layout={projectRatingBadge.layout}
-          shouldUseCustomImage={shouldUseCustomImage}
-          customImageDataUrl={projectRatingBadge.customImageDataUrl}
-          customImageSize={projectRatingBadge.customImageSize}
+          visual={primaryVisual}
           badgeKey="primary"
           handleRatingBadgePointerDown={handleRatingBadgePointerDown}
           handleRatingBadgePointerMove={handleRatingBadgePointerMove}
@@ -183,12 +192,7 @@ export function RatingBadgeLayer({
       {shouldRenderUskBadge ? (
         <RatingBadgeLayerItem
           ariaLabel="Additional USK rating badge layer"
-          metadata={{
-            ratingSystem: 'USK',
-            ratingValue: projectRatingBadge.uskBadge.ratingValue,
-          }}
-          layout={projectRatingBadge.uskBadge.layout}
-          shouldUseCustomImage={false}
+          visual={uskVisual}
           badgeKey="usk"
           handleRatingBadgePointerDown={handleRatingBadgePointerDown}
           handleRatingBadgePointerMove={handleRatingBadgePointerMove}

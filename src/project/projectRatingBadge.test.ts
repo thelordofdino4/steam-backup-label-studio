@@ -10,6 +10,10 @@ import {
 } from './projectMetadata.ts'
 import { getRatingBadgePlaceholderRenderModel } from '../assets/assetManifest.ts'
 import {
+  createPrimaryRatingBadgeRenderModel,
+  getPrimaryRatingBadgeCanonicalVisualBounds,
+} from '../render/ratingBadgeRenderModel.ts'
+import {
   createDefaultProjectRatingBadge,
   shouldRenderRatingBadge,
   shouldRenderSupplementalUskRatingBadge,
@@ -18,6 +22,135 @@ import {
   updateSupplementalUskRatingBadgeValue,
   updateRatingBadgeEnabledState,
 } from './projectRatingBadge.ts'
+
+test('primary rating render model exposes generated bounds while disabled', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'ESRB' as const,
+    ratingValue: 'E',
+  }
+  const ratingBadge = createDefaultProjectRatingBadge()
+  const model = createPrimaryRatingBadgeRenderModel(metadata, ratingBadge)
+
+  assert.ok(model)
+  assert.equal(model.isCustomImage, false)
+  assert.match(model.imageDataUrl, /rating-badge-esrb-e\.svg$/)
+  assert.deepEqual(
+    getPrimaryRatingBadgeCanonicalVisualBounds(metadata, ratingBadge),
+    model.unscaledBounds,
+  )
+})
+
+test('primary rating canonical bounds preserve custom wide, tall 1:4, and content-trimmed square geometry', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'custom' as const,
+    ratingValue: 'Community',
+  }
+  const variants = [
+    {
+      imageSize: {
+        width: 1000,
+        height: 500,
+        contentBounds: { x: 100, y: 100, width: 800, height: 200 },
+      },
+      expected: { halfWidth: 4.5, halfHeight: 1.125 },
+    },
+    {
+      imageSize: {
+        width: 1000,
+        height: 1000,
+        contentBounds: { x: 400, y: 100, width: 200, height: 800 },
+      },
+      expected: { halfWidth: 1.625, halfHeight: 6.5 },
+    },
+    {
+      imageSize: {
+        width: 1600,
+        height: 900,
+        contentBounds: { x: 550, y: 200, width: 500, height: 500 },
+      },
+      expected: { halfWidth: 4.5, halfHeight: 4.5 },
+    },
+  ]
+
+  for (const [index, variant] of variants.entries()) {
+    const ratingBadge = {
+      ...createDefaultProjectRatingBadge(),
+      source: 'custom' as const,
+      customImageDataUrl: `data:image/png;base64,rating-${index}`,
+      customImageSize: variant.imageSize,
+    }
+    const model = createPrimaryRatingBadgeRenderModel(metadata, ratingBadge)
+
+    assert.ok(model)
+    assert.equal(model.isCustomImage, true)
+    assert.equal(model.imageDataUrl, ratingBadge.customImageDataUrl)
+    assert.deepEqual(model.unscaledBounds, variant.expected)
+    assert.deepEqual(
+      getPrimaryRatingBadgeCanonicalVisualBounds(metadata, ratingBadge),
+      model.unscaledBounds,
+    )
+    assert.equal(
+      model.unscaledBounds.halfWidth / model.unscaledBounds.halfHeight,
+      variant.imageSize.contentBounds.width /
+        variant.imageSize.contentBounds.height,
+    )
+    assert.equal(
+      getPrimaryRatingBadgeCanonicalVisualBounds(metadata, {
+        ...ratingBadge,
+        customImageSize: null,
+      }),
+      null,
+    )
+  }
+})
+
+test('primary rating canonical bounds follow an alternate generated USK model', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'USK' as const,
+    ratingValue: '16',
+  }
+  const ratingBadge = createDefaultProjectRatingBadge()
+  const model = createPrimaryRatingBadgeRenderModel(metadata, ratingBadge)
+
+  assert.ok(model)
+  assert.equal(model.isCustomImage, false)
+  assert.match(model.imageDataUrl, /rating-badge-usk-16\.svg$/)
+  assert.deepEqual(model.unscaledBounds, { halfWidth: 4.5, halfHeight: 4.5 })
+  assert.deepEqual(
+    getPrimaryRatingBadgeCanonicalVisualBounds(metadata, ratingBadge),
+    model.unscaledBounds,
+  )
+})
+
+test('primary rating model excludes supplemental USK selection and no-rating state', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'PEGI' as const,
+    ratingValue: '16',
+  }
+  const ratingBadge = updateSupplementalUskRatingBadgeValue(
+    updateSupplementalUskRatingBadgeEnabledState(
+      createDefaultProjectRatingBadge(),
+      true,
+    ),
+    '18',
+  )
+  const model = createPrimaryRatingBadgeRenderModel(metadata, ratingBadge)
+
+  assert.ok(model)
+  assert.match(model.imageDataUrl, /rating-badge-pegi-16\.png$/)
+  assert.doesNotMatch(model.imageDataUrl, /usk/)
+  assert.equal(
+    getPrimaryRatingBadgeCanonicalVisualBounds(
+      createDefaultProjectMetadata(),
+      ratingBadge,
+    ),
+    null,
+  )
+})
 
 test('clean default project enables a renderable default rating badge', () => {
   const metadata = createDefaultProjectMetadata()

@@ -1,6 +1,3 @@
-import {
-  doesRectFitTemplateSafeAnnulus,
-} from '../disc/geometry.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import type { RichTextDocument } from '../text/htmlText.ts'
 import {
@@ -86,6 +83,8 @@ export function fitStraightDiscTextToRegion({
   content,
   currentLayout,
   key,
+  includeRenderedBoxBounds = false,
+  includeRenderedPaintBounds = false,
   measureText,
   minimumPointSize = DISC_PRESET_TEXT_MINIMUM_POINT_SIZE,
   preferredPointSize = DISC_PRESET_TEXT_PREFERRED_POINT_SIZE,
@@ -98,6 +97,8 @@ export function fitStraightDiscTextToRegion({
   content: string
   currentLayout: DiscTextLayout
   key: DiscTextKey
+  includeRenderedBoxBounds?: boolean
+  includeRenderedPaintBounds?: boolean
   measureText: TextMeasureFunction
   minimumPointSize?: number
   preferredPointSize?: number
@@ -137,12 +138,12 @@ export function fitStraightDiscTextToRegion({
       normalizedMinimum,
       preferredPointSize - index * normalizedStep,
     )
-    const layout = createRegionLayout(
+    let layout = createRegionLayout(
       currentLayout,
       resolvedRegion,
       fontSizePt,
     )
-    const renderLayout = getStraightDiscTextRenderLayout(
+    let renderLayout = getStraightDiscTextRenderLayout(
       key,
       content,
       layout,
@@ -153,17 +154,101 @@ export function fitStraightDiscTextToRegion({
         template,
       },
     )
-    const bounds = getStraightDiscTextVisualBounds(
+    let bounds = getStraightDiscTextVisualBounds(
       renderLayout,
       measureText,
-    )
-    const fitsSafeAnnulus = doesRectFitTemplateSafeAnnulus(
-      { x: bounds.centerX, y: bounds.centerY },
-      template,
-      { halfWidth: bounds.halfWidth, halfHeight: bounds.halfHeight },
+      {
+        includeRenderedBox: includeRenderedBoxBounds,
+        includeRenderedPaint: includeRenderedPaintBounds,
+      },
     )
 
-    if (fitsRegion(bounds, resolvedRegion) && fitsSafeAnnulus) {
+    if (includeRenderedPaintBounds) {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const logicalBounds = getStraightDiscTextVisualBounds(
+          renderLayout,
+          measureText,
+        )
+        const leftPaintInset = Math.max(
+          0,
+          logicalBounds.centerX - logicalBounds.halfWidth -
+            (bounds.centerX - bounds.halfWidth),
+        )
+        const rightPaintInset = Math.max(
+          0,
+          bounds.centerX + bounds.halfWidth -
+            (logicalBounds.centerX + logicalBounds.halfWidth),
+        )
+        const paintSafeWidth = Math.max(
+          FIT_EPSILON,
+          resolvedRegion.widthPercent - leftPaintInset - rightPaintInset,
+        )
+
+        if (layout.width <= paintSafeWidth + FIT_EPSILON) break
+
+        layout = {
+          ...layout,
+          width: paintSafeWidth,
+        }
+        renderLayout = getStraightDiscTextRenderLayout(
+          key,
+          content,
+          layout,
+          measureText,
+          styles,
+          {
+            richText,
+            template,
+          },
+        )
+        bounds = getStraightDiscTextVisualBounds(
+          renderLayout,
+          measureText,
+          {
+            includeRenderedBox: includeRenderedBoxBounds,
+            includeRenderedPaint: true,
+          },
+        )
+      }
+
+      const centerOffsetX =
+        resolvedRegion.centerXPercent - bounds.centerX
+      const centerOffsetY =
+        resolvedRegion.centerYPercent - bounds.centerY
+
+      if (
+        Math.abs(centerOffsetX) > FIT_EPSILON ||
+        Math.abs(centerOffsetY) > FIT_EPSILON
+      ) {
+        layout = {
+          ...layout,
+          x: layout.x + centerOffsetX,
+          y: layout.y + centerOffsetY,
+        }
+        renderLayout = getStraightDiscTextRenderLayout(
+          key,
+          content,
+          layout,
+          measureText,
+          styles,
+          {
+            richText,
+            template,
+          },
+        )
+        bounds = getStraightDiscTextVisualBounds(
+          renderLayout,
+          measureText,
+          {
+            includeRenderedBox: includeRenderedBoxBounds,
+            includeRenderedPaint: true,
+          },
+        )
+      }
+    }
+    // Template compatibility belongs to preset resolution. Once a rectangle is
+    // resolved, this fitter must preserve that exact box as the sole boundary.
+    if (fitsRegion(bounds, resolvedRegion)) {
       const atMinimum =
         Math.abs(fontSizePt - normalizedMinimum) <= FIT_EPSILON
       const warnings: StraightDiscTextFitWarning[] = []

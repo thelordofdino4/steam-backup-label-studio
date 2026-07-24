@@ -36,9 +36,13 @@ export const ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE =
   'Could not fit copyright text inside the active layout. Shorten the text or reduce rich-text sizing; the content remains editable.'
 
 export function hasDiscPresetLegalFitImpossibleWarning(
-  warnings: readonly Readonly<{ kind: string }>[],
+  warnings: readonly Readonly<{
+    kind: string
+    target?: string
+  }>[],
 ) {
-  return warnings.some(({ kind }) => kind === 'text-fit-impossible')
+  return warnings.some(({ kind, target }) =>
+    kind === 'text-fit-impossible' && target === 'legal.copyright')
 }
 
 export function isActiveDiscPresetLegalFitImpossible(

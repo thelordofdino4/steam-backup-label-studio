@@ -19,6 +19,13 @@ import type {
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
 } from '../project/projectTypes.ts'
+import {
+  DISC_PRESET_OWNER_SCALE_MAX,
+  type DiscContainRegionSizePolicyV1,
+} from '../presets/discPresetDefinition.ts'
+import {
+  fitVisualBoundsToDiscPresetRectangle,
+} from '../presets/fitVisualBoundsToDiscPresetRegion.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import { clampPlatformMarkLayoutToSafeZone } from './discElementSafeZone.ts'
 
@@ -64,11 +71,15 @@ export type GroupedPlatformMarkPlacementResult = Readonly<{
   ignoredMarks: readonly GroupedPlatformMarkPlacementIgnoredMark[]
 }>
 
+export type GroupedPlatformMarkContainFitPolicy =
+  DiscContainRegionSizePolicyV1
+
 export type GroupedPlatformMarkPlacementInput = Readonly<{
   platformMarks: ProjectPlatformMarks
   region: DiscNormalizedRegion
   template: DiscTemplate
   gapPercent?: number
+  fitPolicy?: GroupedPlatformMarkContainFitPolicy
   preferredScale?: number
   minimumScale?: number
 }>
@@ -112,7 +123,7 @@ function isFinitePositive(value: number) {
   return Number.isFinite(value) && value > 0
 }
 
-function isValidRegion(region: DiscNormalizedRegion, template: DiscTemplate) {
+function isValidNormalizedRegion(region: DiscNormalizedRegion) {
   if (
     !Number.isFinite(region.centerXPercent) ||
     !Number.isFinite(region.centerYPercent) ||
@@ -137,6 +148,15 @@ function isValidRegion(region: DiscNormalizedRegion, template: DiscTemplate) {
   ) {
     return false
   }
+
+  return true
+}
+
+function isValidRegion(region: DiscNormalizedRegion, template: DiscTemplate) {
+  if (!isValidNormalizedRegion(region)) return false
+
+  const halfWidth = region.widthPercent / 2
+  const halfHeight = region.heightPercent / 2
 
   const deltaX = Math.abs(region.centerXPercent - 50)
   const deltaY = Math.abs(region.centerYPercent - 50)
@@ -568,7 +588,311 @@ function toUpdates(positioned: readonly PositionedMark[]) {
   }))
 }
 
+function isValidContainFitPolicy(
+  value: unknown,
+): value is GroupedPlatformMarkContainFitPolicy {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+
+  const policy = value as Record<string, unknown>
+
+  return policy.mode === 'contain-region' &&
+    typeof policy.allowUpscale === 'boolean' &&
+    (policy.maximumScale === undefined ||
+      (typeof policy.maximumScale === 'number' &&
+        isFinitePositive(policy.maximumScale) &&
+        policy.maximumScale <= DISC_PRESET_OWNER_SCALE_MAX)) &&
+    (policy.insetPercent === undefined ||
+      (typeof policy.insetPercent === 'number' &&
+        Number.isFinite(policy.insetPercent) &&
+        policy.insetPercent >= 0 &&
+        policy.insetPercent < 50))
+}
+
+function getInsetRegion(
+  region: DiscNormalizedRegion,
+  insetPercent: number,
+): DiscNormalizedRegion {
+  const retainedRatio = 1 - insetPercent * 2 / 100
+
+  return {
+    centerXPercent: region.centerXPercent,
+    centerYPercent: region.centerYPercent,
+    widthPercent: region.widthPercent * retainedRatio,
+    heightPercent: region.heightPercent * retainedRatio,
+  }
+}
+
+function getStrictContainRowCandidates(markCount: number) {
+  const candidates: number[][] = [[markCount]]
+
+  if (markCount <= 1) return candidates
+
+  const balancedFirstRowCount = Math.ceil(markCount / 2)
+
+  candidates.push([
+    balancedFirstRowCount,
+    markCount - balancedFirstRowCount,
+  ])
+
+  for (let firstRowCount = 1; firstRowCount < markCount; firstRowCount += 1) {
+    if (firstRowCount === balancedFirstRowCount) continue
+
+    candidates.push([firstRowCount, markCount - firstRowCount])
+  }
+
+  return candidates
+}
+
+function getStrictContainScale({
+  fitPolicy,
+  gapPercent,
+  marks,
+  region,
+  rowCounts,
+}: {
+  fitPolicy: GroupedPlatformMarkContainFitPolicy
+  gapPercent: number
+  marks: readonly EligibleMark[]
+  region: DiscNormalizedRegion
+  rowCounts: readonly number[]
+}) {
+  const rows = createRows(marks, rowCounts)
+
+  if (
+    rowCounts.some((count) => !Number.isInteger(count) || count <= 0) ||
+    rowCounts.reduce((total, count) => total + count, 0) !== marks.length
+  ) {
+    return 0
+  }
+
+  const rowMetrics = rows.map((row) => {
+    const boundsAtScaleOne = row.map((mark) => getBounds(mark, 1))
+
+    return {
+      scalableWidth: boundsAtScaleOne.reduce(
+        (total, bounds) => total + bounds.halfWidth * 2,
+        0,
+      ),
+      scalableHeight: Math.max(
+        0,
+        ...boundsAtScaleOne.map((bounds) => bounds.halfHeight * 2),
+      ),
+      fixedHorizontalGap: gapPercent * Math.max(0, row.length - 1),
+    }
+  })
+  const fixedVerticalGap = gapPercent * Math.max(0, rows.length - 1)
+  const gapReducedHeight = region.heightPercent - fixedVerticalGap
+  const canonicalHeight = rowMetrics.reduce(
+    (total, { scalableHeight }) => total + scalableHeight,
+    0,
+  )
+  const canonicalWidth = Math.max(
+    0,
+    ...rowMetrics.map(({ scalableWidth }) => scalableWidth),
+  )
+
+  if (
+    gapReducedHeight <= 0 ||
+    !isFinitePositive(canonicalWidth) ||
+    !isFinitePositive(canonicalHeight) ||
+    rowMetrics.some(({ fixedHorizontalGap, scalableHeight, scalableWidth }) =>
+      region.widthPercent - fixedHorizontalGap <= 0 ||
+      !isFinitePositive(scalableWidth) ||
+      !isFinitePositive(scalableHeight),
+    )
+  ) {
+    return 0
+  }
+
+  // Gaps are fixed normalized distances. Convert every row's gap-reduced
+  // width into the equivalent available width for the widest canonical row,
+  // then let the shared rectangle fitter choose the limiting axis and apply
+  // the policy cap. The final centered rows still use the configured gaps.
+  const gapReducedWidth = Math.min(
+    ...rowMetrics.map(({ fixedHorizontalGap, scalableWidth }) =>
+      (region.widthPercent - fixedHorizontalGap) *
+        canonicalWidth / scalableWidth,
+    ),
+  )
+
+  if (!isFinitePositive(gapReducedWidth)) return 0
+
+  const fit = fitVisualBoundsToDiscPresetRectangle({
+    region: {
+      centerXPercent: region.centerXPercent,
+      centerYPercent: region.centerYPercent,
+      widthPercent: gapReducedWidth,
+      heightPercent: gapReducedHeight,
+    },
+    boundsAtScaleOne: {
+      centerOffsetXPercent: 0,
+      centerOffsetYPercent: 0,
+      widthPercent: canonicalWidth,
+      heightPercent: canonicalHeight,
+    },
+    policy: {
+      ...fitPolicy,
+      insetPercent: 0,
+    },
+  })
+
+  return fit.status === 'fit' ? fit.scale : 0
+}
+
+function isStrictCenteredPlacement(
+  positioned: readonly PositionedMark[],
+  region: DiscNormalizedRegion,
+) {
+  if (positioned.length === 0) return false
+
+  const left = Math.min(
+    ...positioned.map(({ bounds, x }) => x - bounds.halfWidth),
+  )
+  const right = Math.max(
+    ...positioned.map(({ bounds, x }) => x + bounds.halfWidth),
+  )
+  const top = Math.min(
+    ...positioned.map(({ bounds, y }) => y - bounds.halfHeight),
+  )
+  const bottom = Math.max(
+    ...positioned.map(({ bounds, y }) => y + bounds.halfHeight),
+  )
+
+  return Math.abs((left + right) / 2 - region.centerXPercent) <= EPSILON &&
+    Math.abs((top + bottom) / 2 - region.centerYPercent) <= EPSILON
+}
+
+function validateStrictContainPlacement(
+  positioned: readonly PositionedMark[],
+  region: DiscNormalizedRegion,
+  gapPercent: number,
+) {
+  if (!isStrictCenteredPlacement(positioned, region)) return false
+
+  for (const item of positioned) {
+    if (!isInsideRegion(item, region)) {
+      return false
+    }
+  }
+
+  for (let index = 0; index < positioned.length; index += 1) {
+    for (let nextIndex = index + 1; nextIndex < positioned.length; nextIndex += 1) {
+      if (!hasRequiredGap(positioned[index], positioned[nextIndex], gapPercent)) {
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
+function tryStrictContainPlacementAtScale({
+  gapPercent,
+  marks,
+  region,
+  rowCounts,
+  scale,
+}: {
+  gapPercent: number
+  marks: readonly EligibleMark[]
+  region: DiscNormalizedRegion
+  rowCounts: readonly number[]
+  scale: number
+}) {
+  if (!isFinitePositive(scale)) return null
+
+  const positioned = buildCenteredRows({
+    gapPercent,
+    marks,
+    region,
+    rowCounts,
+    scale,
+  })
+
+  return positioned && validateStrictContainPlacement(
+    positioned,
+    region,
+    gapPercent,
+  )
+    ? positioned
+    : null
+}
+
+function findLargestStrictContainPlacement({
+  fitPolicy,
+  gapPercent,
+  marks,
+  region,
+  rowCounts,
+}: {
+  fitPolicy: GroupedPlatformMarkContainFitPolicy
+  gapPercent: number
+  marks: readonly EligibleMark[]
+  region: DiscNormalizedRegion
+  rowCounts: readonly number[]
+}) {
+  const scale = getStrictContainScale({
+    fitPolicy,
+    gapPercent,
+    marks,
+    region,
+    rowCounts,
+  })
+
+  return isFinitePositive(scale)
+    ? tryStrictContainPlacementAtScale({
+        gapPercent,
+        marks,
+        region,
+        rowCounts,
+        scale,
+      })
+    : null
+}
+
+function placeGroupedPlatformMarksWithStrictContain({
+  fitPolicy,
+  gapPercent,
+  ignoredMarks,
+  marks,
+  region,
+}: {
+  fitPolicy: GroupedPlatformMarkContainFitPolicy
+  gapPercent: number
+  ignoredMarks: readonly GroupedPlatformMarkPlacementIgnoredMark[]
+  marks: readonly EligibleMark[]
+  region: DiscNormalizedRegion
+}) {
+  const insetRegion = getInsetRegion(region, fitPolicy.insetPercent ?? 0)
+  let bestPlacement: readonly PositionedMark[] | null = null
+
+  for (const rowCounts of getStrictContainRowCandidates(marks.length)) {
+    const placement = findLargestStrictContainPlacement({
+      fitPolicy,
+      gapPercent,
+      marks,
+      region: insetRegion,
+      rowCounts,
+    })
+
+    if (
+      placement &&
+      (!bestPlacement ||
+        placement[0].scale > bestPlacement[0].scale + EPSILON)
+    ) {
+      bestPlacement = placement
+    }
+  }
+
+  return bestPlacement
+    ? freezeResult('placed', toUpdates(bestPlacement), ignoredMarks)
+    : freezeResult('cannot-fit', EMPTY_UPDATES, ignoredMarks)
+}
+
 export function placeGroupedPlatformMarks({
+  fitPolicy,
   gapPercent = DEFAULT_GAP_PERCENT,
   minimumScale = DEFAULT_MINIMUM_SCALE,
   platformMarks,
@@ -576,12 +900,22 @@ export function placeGroupedPlatformMarks({
   region,
   template,
 }: GroupedPlatformMarkPlacementInput): GroupedPlatformMarkPlacementResult {
+  const hasFitPolicy = fitPolicy !== undefined
+  const strictFitPolicy = hasFitPolicy && isValidContainFitPolicy(fitPolicy)
+    ? fitPolicy
+    : null
+  const regionIsValid = strictFitPolicy
+    ? isValidNormalizedRegion(region)
+    : isValidRegion(region, template)
+
   if (
-    !isValidRegion(region, template) ||
+    !regionIsValid ||
     !Number.isFinite(gapPercent) ||
     gapPercent < 0 ||
-    (preferredScale !== undefined && !isFinitePositive(preferredScale)) ||
-    !isFinitePositive(minimumScale)
+    (hasFitPolicy
+      ? !strictFitPolicy
+      : (preferredScale !== undefined && !isFinitePositive(preferredScale)) ||
+        !isFinitePositive(minimumScale))
   ) {
     return freezeResult('invalid-region')
   }
@@ -593,6 +927,16 @@ export function placeGroupedPlatformMarks({
 
   if (eligibleMarks.length === 0) {
     return freezeResult('no-eligible-marks', EMPTY_UPDATES, ignoredMarks)
+  }
+
+  if (strictFitPolicy) {
+    return placeGroupedPlatformMarksWithStrictContain({
+      fitPolicy: strictFitPolicy,
+      gapPercent,
+      ignoredMarks,
+      marks: eligibleMarks,
+      region,
+    })
   }
 
   const resolvedPreferredScale = preferredScale ?? Math.min(

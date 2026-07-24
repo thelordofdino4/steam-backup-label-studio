@@ -7,6 +7,10 @@ import {
   buildTextStyleAttribute,
 } from './svgTextMarkup.ts'
 import { getResolvedDiscTextRenderStyle } from './styles.ts'
+import {
+  DISC_TEXT_STRAIGHT_STROKE_COLOR,
+  DISC_TEXT_STRAIGHT_STROKE_WIDTH,
+} from './straightTextPaintGeometry.ts'
 
 function measureTextAsCharacters(text: string) {
   return Array.from(text).length
@@ -19,22 +23,30 @@ test('disc SVG text style helper preserves stroke and shadow filter semantics', 
     },
   })
 
-  const withShadow = buildTextStyleAttribute(style, 'shadow-id', 3, 700, 0.28)
+  const withShadow = buildTextStyleAttribute(
+    style,
+    'shadow-id',
+    3,
+    700,
+    DISC_TEXT_STRAIGHT_STROKE_WIDTH,
+  )
   const withoutShadow = buildTextStyleAttribute(
     style,
     'shadow-id',
     3,
     700,
-    0.28,
+    DISC_TEXT_STRAIGHT_STROKE_WIDTH,
     undefined,
     { includeShadowFilter: false },
   )
 
   assert.match(withShadow, /filter:url\(#shadow-id\)/)
-  assert.match(withShadow, /stroke:rgba\(0, 0, 0, 0\.58\)/)
-  assert.match(withShadow, /stroke-width:0\.28px/)
+  assert.ok(withShadow.includes(`stroke:${DISC_TEXT_STRAIGHT_STROKE_COLOR}`))
+  assert.ok(
+    withShadow.includes(`stroke-width:${DISC_TEXT_STRAIGHT_STROKE_WIDTH}px`),
+  )
   assert.doesNotMatch(withoutShadow, /filter:url/)
-  assert.match(withoutShadow, /stroke:rgba\(0, 0, 0, 0\.58\)/)
+  assert.ok(withoutShadow.includes(`stroke:${DISC_TEXT_STRAIGHT_STROKE_COLOR}`))
 })
 
 test('straight SVG line content escapes rich text runs inside tspans', () => {
@@ -51,6 +63,43 @@ test('straight SVG line content escapes rich text runs inside tspans', () => {
   )
 
   assert.equal(content, '<tspan style="font-weight:700">&lt;Bold&gt;</tspan>')
+})
+
+test('straight SVG run markup emits only the effective conflicting style values', () => {
+  const content = buildStraightTextLineContent(
+    [{
+      bold: true,
+      font: 'italic 700 96px Arial',
+      fontSizePt: 12,
+      fontSizePx: 96,
+      fontStyle: 'normal',
+      fontWeight: 400,
+      italic: true,
+      resolvedFontSize: 96,
+      text: 'I',
+      width: 52.8,
+    }],
+    'I',
+  )
+
+  assert.match(content, /font-weight:700/)
+  assert.match(content, /font-style:italic/)
+  assert.match(content, /font-size:96px/)
+  assert.doesNotMatch(content, /font-weight:400|font-style:normal|font-size:12/)
+})
+
+test('straight SVG runs can override an italic parent with explicit normal style', () => {
+  const content = buildStraightTextLineContent(
+    [{
+      font: '400 3px Arial',
+      fontStyle: 'normal',
+      text: 'Normal',
+      width: 6,
+    }],
+    'Normal',
+  )
+
+  assert.equal(content, '<tspan style="font-style:normal">Normal</tspan>')
 })
 
 test('straight SVG markup can hide selected glyphs while preserving paint boxes', () => {

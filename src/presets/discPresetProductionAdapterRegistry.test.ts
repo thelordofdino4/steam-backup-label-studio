@@ -47,6 +47,7 @@ const textLayout: DiscTextLayout = {
   avoidVisualElements: true,
 }
 const legalStyle = createDefaultDiscTextStyles().copyright
+const titleStyle = createDefaultDiscTextStyles().title
 const services = {
   textMeasurement: {
     measureText(text: string, font: string) {
@@ -79,11 +80,15 @@ function createPlatformMarks(
 const ownerState: DiscPresetOwnerStateCatalog = Object.freeze({
   'game-title.artwork': {
     layout: { enabled: false, x: 1, y: 2, scale: 1.1 },
+    canonicalVisualBoundsAtScaleOne: null,
   },
   'game-title.text': {
     key: 'title',
     enabled: false,
+    content: { plainText: '' },
     layout: textLayout,
+    style: titleStyle,
+    template: discTemplate,
   },
   'background.primary': {
     enabled: false,
@@ -95,9 +100,11 @@ const ownerState: DiscPresetOwnerStateCatalog = Object.freeze({
   },
   'rating.primary': {
     layout: { enabled: false, x: 11, y: 12, scale: 1.2 },
+    canonicalVisualBoundsAtScaleOne: null,
   },
   'media-format.primary': {
     layout: { enabled: false, x: 21, y: 22, scale: 0.8 },
+    canonicalVisualBoundsAtScaleOne: null,
   },
   'operating-system-marks.enabled': {
     platformMarks: createPlatformMarks(['windows', 'linux']),
@@ -106,10 +113,12 @@ const ownerState: DiscPresetOwnerStateCatalog = Object.freeze({
   'developer-logo.primary': {
     logoKey: 'developer',
     layout: { enabled: false, x: 31, y: 32, scale: 0.7 },
+    canonicalVisualBoundsAtScaleOne: null,
   },
   'publisher-logo.primary': {
     logoKey: 'publisher',
     layout: { enabled: true, x: 41, y: 42, scale: 0.6 },
+    canonicalVisualBoundsAtScaleOne: null,
   },
   'legal.copyright': {
     key: 'copyright',
@@ -183,6 +192,21 @@ test('Classic planning includes typed OS updates and measured dormant Legal plac
     warning.kind === 'missing-placement-adapter'), false)
   assert.equal(result.warnings.some((warning) =>
     warning.kind === 'text-fit-impossible'), false)
+  assert.deepEqual(
+    result.updates
+      .filter((update) => update.kind === 'platform-mark-layout')
+      .map(({ markId, layout }) => ({ markId, layout })),
+    [
+      {
+        markId: 'windows',
+        layout: { x: 44.983333333333334, y: 73, scale: 1.25 },
+      },
+      {
+        markId: 'linux',
+        layout: { x: 55.75, y: 73, scale: 1.25 },
+      },
+    ],
+  )
   assert.equal(JSON.stringify(ownerState), before)
   assert.ok(result.updates.every(Object.isFrozen))
   assert.ok(result.updates.every(({ layout }) => Object.isFrozen(layout)))
@@ -431,6 +455,44 @@ test('concrete adapters exclude side effects, dynamic paths, and UI/render owner
   )
   assert.doesNotMatch(
     sources,
-    /statePath|project\.owner|lodash\.set|setIn\(|set[A-Z][A-Za-z]+\s*:/,
+    /statePath|project\.owner|lodash\.set|setIn\(|\bset[A-Z][A-Za-z]+\s*:/,
+  )
+})
+
+test('point contain-fit math has one generic adapter owner', () => {
+  const pointAdapterSource = readFileSync(
+    new URL('./adapters/discPointPresetAdapters.ts', import.meta.url),
+    'utf8',
+  )
+  const pointOrchestrationSources = [
+    '../app/appActiveDiscPresetPointOwners.ts',
+    '../app/appRegisteredDiscPresetApplication.ts',
+    '../hooks/useTitleArtwork.ts',
+    '../hooks/useRatingBadgeState.ts',
+    '../hooks/useMediaMarkState.ts',
+    '../hooks/useProjectLogoAssets.ts',
+    '../app/App.tsx',
+  ].map((path) =>
+    readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n')
+  const appAndHookSources = [
+    '../hooks/useTitleArtwork.ts',
+    '../hooks/useRatingBadgeState.ts',
+    '../hooks/useMediaMarkState.ts',
+    '../hooks/useProjectLogoAssets.ts',
+    '../app/App.tsx',
+  ].map((path) =>
+    readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n')
+
+  assert.equal(
+    pointAdapterSource.match(/fitVisualBoundsToDiscPresetRectangle\(\{/g)?.length,
+    1,
+  )
+  assert.doesNotMatch(
+    pointOrchestrationSources,
+    /fitVisualBoundsToDiscPreset(?:Region|Rectangle)|\b(?:availableWidth|availableHeight|widthScale|heightScale|unconstrainedScale|insetFactor)\b|(?:resolvedContentRegion|contentRegion)\.\w*(?:width|height)Percent\s*\//,
+  )
+  assert.doesNotMatch(
+    appAndHookSources,
+    /canonicalVisualBoundsAtScaleOne|contain-region|fitVisualBoundsToDiscPreset(?:Region|Rectangle)/,
   )
 })

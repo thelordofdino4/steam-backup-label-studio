@@ -99,6 +99,17 @@ function isMatchingResolvedPreset(
     preset.templateId === template.templateId
 }
 
+function refreshResolvedSlotFromCurrentResolution(
+  activePreset: ResolvedDiscPresetDefinition,
+  resolvedSlot: ResolvedDiscPresetDefinition['slots'][number],
+): ResolvedDiscPresetDefinition {
+  return Object.freeze({
+    ...activePreset,
+    slots: Object.freeze(activePreset.slots.map((slot) =>
+      slot.id === resolvedSlot.id ? resolvedSlot : slot)),
+  })
+}
+
 function targetedWithoutUpdates(
   status: 'skipped' | 'unsupported' | 'rejected',
   presetRef: ActiveDiscPresetRef,
@@ -277,7 +288,7 @@ export function resolveDiscPresetPlacementForTarget({
     presetRef,
     template,
   )
-    ? activeResolvedPreset
+    ? refreshResolvedSlotFromCurrentResolution(activeResolvedPreset, slot)
     : resolution.preset
   const patch = result.resolvedSlotPatch
 

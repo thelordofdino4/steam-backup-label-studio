@@ -6,6 +6,7 @@ import { CLASSIC_TOP_TITLE_DISC_PRESET } from './builtins/classicTopTitleDiscPre
 import {
   DISC_PRESET_MAX_DESCRIPTION_LENGTH,
   DISC_PRESET_MAX_NAME_LENGTH,
+  DISC_PRESET_OWNER_SCALE_MAX,
   DISC_PRESET_MAX_SLOTS,
   isBuiltInDiscPresetId,
   isUserDiscPresetId,
@@ -180,8 +181,178 @@ test('accepts Game Title multi-intent and OS group placement', () => {
     ],
   )
   assert.deepEqual(result.value.slots[4]?.placements, [
-    { kind: 'group', target: 'operating-system-marks.enabled' },
+    {
+      kind: 'group',
+      target: 'operating-system-marks.enabled',
+      size: {
+        mode: 'contain-region',
+        allowUpscale: true,
+        insetPercent: 0,
+      },
+    },
   ])
+})
+
+test('strictly parses and serializes contain-region size policies', () => {
+  const definition = mutableClassic()
+  const slots = definition.slots as Array<Record<string, unknown>>
+  const placements = slots[0]!.placements as Array<Record<string, unknown>>
+  placements[0]!.size = {
+    mode: 'contain-region',
+    allowUpscale: false,
+    maximumScale: 2.5,
+    insetPercent: 12.5,
+  }
+
+  const result = parseDiscPresetDefinition(definition)
+  assert.equal(result.ok, true)
+  if (!result.ok) return
+
+  const pointPlacement = result.value.slots[0]?.placements[0]
+  assert.deepEqual(pointPlacement, {
+    kind: 'point',
+    target: 'game-title.artwork',
+    size: {
+      mode: 'contain-region',
+      allowUpscale: false,
+      maximumScale: 2.5,
+      insetPercent: 12.5,
+    },
+  })
+  assert.ok(Object.isFrozen(pointPlacement))
+  assert.ok(
+    pointPlacement?.kind === 'point' && Object.isFrozen(pointPlacement.size),
+  )
+
+  const roundTrip = parseDiscPresetDefinition(
+    JSON.parse(JSON.stringify(result.value)),
+  )
+  assert.equal(roundTrip.ok, true)
+  if (roundTrip.ok) assert.deepEqual(roundTrip.value, result.value)
+})
+
+test('strictly distinguishes Background contain-region from legacy cover', () => {
+  const contain = parseDiscPresetDefinition(mutableClassic())
+  assert.equal(contain.ok, true)
+  if (!contain.ok) return
+  assert.deepEqual(contain.value.slots[1]?.placements, [{
+    kind: 'background',
+    target: 'background.primary',
+    fit: 'contain-region',
+    size: {
+      mode: 'contain-region',
+      allowUpscale: true,
+      insetPercent: 0,
+    },
+  }])
+
+  const legacy = mutableClassic()
+  const legacySlots = legacy.slots as Array<Record<string, unknown>>
+  legacySlots[1]!.placements = [{
+    kind: 'background',
+    target: 'background.primary',
+    fit: 'cover',
+    scale: 1.25,
+  }]
+  assert.equal(parseDiscPresetDefinition(legacy).ok, true)
+
+  for (const placement of [
+    {
+      kind: 'background',
+      target: 'background.primary',
+      fit: 'contain-region',
+      size: { mode: 'fixed-scale', scale: 1 },
+    },
+    {
+      kind: 'background',
+      target: 'background.primary',
+      fit: 'contain-region',
+      size: { mode: 'contain-region', allowUpscale: true },
+      scale: 1,
+    },
+    {
+      kind: 'background',
+      target: 'background.primary',
+      fit: 'cover',
+      size: { mode: 'contain-region', allowUpscale: true },
+    },
+  ]) {
+    const invalid = mutableClassic()
+    const invalidSlots = invalid.slots as Array<Record<string, unknown>>
+    invalidSlots[1]!.placements = [placement]
+    expectFailure(invalid, 'invalid-placement')
+  }
+})
+
+test('accepts absent contain-region optionals and retains fixed-scale support', () => {
+  const definition = mutableClassic()
+  const slots = definition.slots as Array<Record<string, unknown>>
+  const placements = slots[0]!.placements as Array<Record<string, unknown>>
+
+  placements[0]!.size = {
+    mode: 'contain-region',
+    allowUpscale: true,
+  }
+  assert.equal(parseDiscPresetDefinition(definition).ok, true)
+
+  placements[0]!.size = { mode: 'fixed-scale', scale: 1.25 }
+  assert.equal(parseDiscPresetDefinition(definition).ok, true)
+
+  placements[0]!.size = {
+    mode: 'contain-region',
+    allowUpscale: true,
+    maximumScale: Number.EPSILON / 2,
+  }
+  assert.equal(parseDiscPresetDefinition(definition).ok, true)
+})
+
+test('rejects malformed contain-region and retired fit-region policies', () => {
+  const invalidPolicies: unknown[] = [
+    { mode: 'contain-region' },
+    { mode: 'contain-region', allowUpscale: 1 },
+    { mode: 'contain-region', allowUpscale: true, maximumScale: 0 },
+    { mode: 'contain-region', allowUpscale: true, maximumScale: Number.NaN },
+    {
+      mode: 'contain-region',
+      allowUpscale: true,
+      maximumScale: DISC_PRESET_OWNER_SCALE_MAX + 0.01,
+    },
+    { mode: 'contain-region', allowUpscale: true, insetPercent: -0.01 },
+    { mode: 'contain-region', allowUpscale: true, insetPercent: 50 },
+    { mode: 'contain-region', allowUpscale: true, insetPercent: Infinity },
+    { mode: 'contain-region', allowUpscale: true, crop: true },
+    { mode: 'fit-region' },
+    { mode: 'future-fit', allowUpscale: true },
+  ]
+
+  for (const policy of invalidPolicies) {
+    const definition = mutableClassic()
+    const slots = definition.slots as Array<Record<string, unknown>>
+    const placements = slots[0]!.placements as Array<Record<string, unknown>>
+    placements[0]!.size = policy
+    expectFailure(definition, 'invalid-placement')
+  }
+})
+
+test('strictly distinguishes legacy and contain-region OS group intents', () => {
+  const legacy = mutableClassic()
+  const legacySlots = legacy.slots as Array<Record<string, unknown>>
+  legacySlots[4]!.placements = [{
+    kind: 'group',
+    target: 'operating-system-marks.enabled',
+    preferredScale: 0.75,
+  }]
+  assert.equal(parseDiscPresetDefinition(legacy).ok, true)
+
+  const mixed = mutableClassic()
+  const mixedSlots = mixed.slots as Array<Record<string, unknown>>
+  mixedSlots[4]!.placements = [{
+    kind: 'group',
+    target: 'operating-system-marks.enabled',
+    preferredScale: 0.75,
+    size: { mode: 'contain-region', allowUpscale: true },
+  }]
+  expectFailure(mixed, 'invalid-placement')
 })
 
 test('enforces bounded strings and strict object fields without throwing', () => {

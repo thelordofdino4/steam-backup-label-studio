@@ -21,6 +21,9 @@ import type {
   DiscPresetTemplateResolutionInput,
   ResolvedDiscPresetSlot,
 } from './discPresetResolution.ts'
+import type {
+  DiscPresetContainFitWarning,
+} from './fitVisualBoundsToDiscPresetRegion.ts'
 import type { PlatformMarkValue } from '../project/projectTypes.ts'
 
 export type DiscPresetOwnerFamily =
@@ -55,6 +58,7 @@ export type DiscPresetAdapterWarningReason =
   | 'owner-state-unavailable'
   | 'placement-not-applicable'
   | 'placement-impossible'
+  | 'canonical-bounds-unavailable'
   | 'owner-state-unsupported'
   | 'invalid-scale'
   | 'unsupported-size-policy'
@@ -68,6 +72,31 @@ export type DiscPresetAdapterWarning =
       slotId: import('../guidedPresets/discGuidedSlots.ts').DiscGuidedSlotId
       target: DiscPresetPlacementTarget
       reason: DiscPresetAdapterWarningReason
+    }>
+  | Readonly<{
+      kind: 'placement-impossible'
+      slotId: import('../guidedPresets/discGuidedSlots.ts').DiscGuidedSlotId
+      target: DiscPointPresetTarget | 'background.primary'
+      reason: Extract<
+        DiscPresetContainFitWarning,
+        { kind: 'contain-fit-unsupported' }
+      >['reason']
+    }>
+  | Readonly<{
+      kind: 'contain-fit-adjusted'
+      slotId: import('../guidedPresets/discGuidedSlots.ts').DiscGuidedSlotId
+      target: DiscPointPresetTarget
+      reason: 'safe-annulus'
+      requestedScale: number
+      appliedScale: number
+    }>
+  | Readonly<{
+      kind:
+        | 'text-fit-adjusted'
+        | 'text-fit-minimum-reached'
+        | 'text-fit-impossible'
+      slotId: 'disc:guided:game-title:primary'
+      target: 'game-title.text'
     }>
   | Readonly<{
       kind:

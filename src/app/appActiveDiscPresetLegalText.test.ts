@@ -95,8 +95,8 @@ test('late Legal content restores only the active preset placement', () => {
 
   assert.equal(result.application?.status, 'applied')
   assert.equal(result.legalText.layout.x, 0)
-  assert.equal(result.legalText.layout.y, 85)
-  assert.equal(result.legalText.layout.width, 46)
+  assert.equal(result.legalText.layout.y, 84.68)
+  assert.equal(result.legalText.layout.width, 42)
   assert.ok(result.legalText.layout.fontSizePt <= 7)
   assert.equal(result.legalText.content, legalText.content)
   assert.equal(result.legalText.style, legalText.style)
@@ -144,6 +144,13 @@ test('impossible late Legal content preserves owner layout and hides its resolve
     hasDiscPresetLegalFitImpossibleWarning([]),
     false,
   )
+  assert.equal(
+    hasDiscPresetLegalFitImpossibleWarning([{
+      kind: 'text-fit-impossible',
+      target: 'game-title.text',
+    }]),
+    false,
+  )
   assert.match(
     ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
     /Could not fit copyright text/,
@@ -184,8 +191,8 @@ test('Legal resolution recovers when previously impossible content becomes fit-a
     isActiveDiscPresetLegalFitImpossible(recoveredResult.application),
     false,
   )
-  assert.equal(recoveredResult.legalText.layout.y, 85)
-  assert.equal(recoveredResult.legalText.layout.width, 46)
+  assert.equal(recoveredResult.legalText.layout.y, 84.68)
+  assert.equal(recoveredResult.legalText.layout.width, 42)
   assert.notEqual(recoveredResult.legalText.layout, defaultLayout)
   assert.equal(
     recoveredResult.application && 'resolvedPreset' in recoveredResult.application
@@ -273,7 +280,7 @@ test('late Legal integration uses targeted planning and no effects or broad pres
   )
   assert.match(
     hookSource,
-    /function handleDiscTextStyleChange[\s\S]*?isDiscTextMeasurementStyleField/,
+    /function handleDiscTextStyleChange[\s\S]*?didDiscTextPresetFitStyleChange/,
   )
   assert.match(
     hookSource,

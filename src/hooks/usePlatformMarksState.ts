@@ -31,6 +31,7 @@ import {
   isImageFile,
   readImportedImageAssetFromFile,
 } from '../utils/importedImageAsset'
+import { preserveDiscPlatformMarkPlacements } from '../presets/discPresetOwnerPlacement.ts'
 
 type UsePlatformMarksStateOptions = {
   selectedDiscTemplate: DiscTemplate
@@ -38,7 +39,7 @@ type UsePlatformMarksStateOptions = {
   announceStatus: (message: string) => void
   applyActivePresetPlacement?: (
     platformMarks: ProjectPlatformMarks,
-  ) => ProjectPlatformMarks
+  ) => ProjectPlatformMarks | null
   onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
@@ -62,7 +63,12 @@ export function usePlatformMarksState({
   }
 
   function finalizeEligibilityChange(nextMarks: ProjectPlatformMarks) {
-    const finalMarks = applyActivePresetPlacement(nextMarks)
+    const finalMarks = applyActivePresetPlacement(nextMarks) ??
+      preserveDiscPlatformMarkPlacements(
+        nextMarks,
+        projectPlatformMarksRef.current,
+        selectedDiscTemplate,
+      )
     projectPlatformMarksRef.current = finalMarks
     return finalMarks
   }

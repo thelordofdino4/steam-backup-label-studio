@@ -72,6 +72,7 @@ export type DiscPresetTemplateResolutionInput = Readonly<{
   templateId: string
   outerDiameterPercent: number
   physicalCenterHolePercent: number
+  innerNoPrintDiameterPercent: number
   safeDiameterPercent: number
 }>
 
@@ -229,7 +230,7 @@ function intersectsSafeAnnulus(
   return getMinimumDistanceFromDiscCenter(bounds) <=
       template.safeDiameterPercent / 2 &&
     getMaximumDistanceFromDiscCenter(bounds) >=
-      template.physicalCenterHolePercent / 2
+      template.innerNoPrintDiameterPercent / 2
 }
 
 function hasValidTemplateGeometry(
@@ -238,11 +239,14 @@ function hasValidTemplateGeometry(
   return template.templateId.trim().length > 0 &&
     Number.isFinite(template.outerDiameterPercent) &&
     Number.isFinite(template.physicalCenterHolePercent) &&
+    Number.isFinite(template.innerNoPrintDiameterPercent) &&
     Number.isFinite(template.safeDiameterPercent) &&
     template.outerDiameterPercent > 0 &&
     template.outerDiameterPercent <= 100 &&
     template.physicalCenterHolePercent >= 0 &&
-    template.physicalCenterHolePercent < template.safeDiameterPercent &&
+    template.physicalCenterHolePercent <=
+      template.innerNoPrintDiameterPercent &&
+    template.innerNoPrintDiameterPercent < template.safeDiameterPercent &&
     template.safeDiameterPercent <= template.outerDiameterPercent
 }
 
@@ -350,6 +354,7 @@ export function createDiscPresetTemplateResolutionInput(
     | 'id'
     | 'outerDiameterMm'
     | 'physicalCenterHoleDiameterMm'
+    | 'innerHoleDiameterMm'
     | 'safeDiameterMm'
   >,
 ): DiscPresetTemplateResolutionInput {
@@ -358,6 +363,11 @@ export function createDiscPresetTemplateResolutionInput(
     outerDiameterPercent: 100,
     physicalCenterHolePercent:
       template.physicalCenterHoleDiameterMm / template.outerDiameterMm * 100,
+    innerNoPrintDiameterPercent:
+      Math.max(
+        template.physicalCenterHoleDiameterMm,
+        template.innerHoleDiameterMm,
+      ) / template.outerDiameterMm * 100,
     safeDiameterPercent:
       template.safeDiameterMm / template.outerDiameterMm * 100,
   })

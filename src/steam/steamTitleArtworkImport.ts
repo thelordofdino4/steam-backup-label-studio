@@ -25,6 +25,7 @@ export type SteamTitleArtworkImportStatus =
   | 'failed'
 
 export type SteamTitleArtworkImportResult = {
+  placementRefitRequired: boolean
   titleArtwork: ProjectTitleArtwork
   status: SteamTitleArtworkImportStatus
   statusMessage: string
@@ -33,6 +34,23 @@ export type SteamTitleArtworkImportResult = {
 type SteamTitleArtworkImportOptions = {
   downloadArtworkAsDataUrl?: (url: string) => Promise<string>
   createImportedImageAsset?: (imageDataUrl: string) => Promise<ImportedImageAsset>
+}
+
+function clearSteamTitleArtworkWhilePreservingDormantScale(
+  titleArtwork: ProjectTitleArtwork,
+  selectedDiscTemplate: DiscTemplate,
+  steamLogoPlacement: SteamLogoPlacement,
+) {
+  const clearedTitleArtwork = clearTitleArtworkImage(
+    titleArtwork,
+    selectedDiscTemplate,
+    steamLogoPlacement,
+  )
+
+  return setTitleArtworkLayout(clearedTitleArtwork, {
+    ...clearedTitleArtwork.layout,
+    scale: titleArtwork.layout.scale,
+  })
 }
 
 export function findSteamTitleArtworkAsset(
@@ -70,11 +88,12 @@ export async function createSteamTitleArtworkImport(
       titleArtwork:
         currentTitleArtwork.source === 'custom'
           ? titleArtworkWithoutDefault
-          : clearTitleArtworkImage(
+          : clearSteamTitleArtworkWhilePreservingDormantScale(
               titleArtworkWithoutDefault,
               selectedDiscTemplate,
               steamLogoPlacement,
             ),
+      placementRefitRequired: currentTitleArtwork.source !== 'custom',
       status: 'unavailable',
       statusMessage:
         'No Steam title/logo artwork was found. Rendered title text and custom game logo upload remain available.',
@@ -106,6 +125,7 @@ export async function createSteamTitleArtworkImport(
 
     return {
       titleArtwork: setTitleArtworkLayout(nextTitleArtwork, nextLayout),
+      placementRefitRequired: true,
       status: 'seeded',
       statusMessage: `Using ${steamLogoAsset.label} as the disc title artwork.`,
     }
@@ -117,11 +137,12 @@ export async function createSteamTitleArtworkImport(
       titleArtwork:
         currentTitleArtwork.source === 'custom'
           ? titleArtworkWithoutDefault
-          : clearTitleArtworkImage(
+          : clearSteamTitleArtworkWhilePreservingDormantScale(
               titleArtworkWithoutDefault,
               selectedDiscTemplate,
               steamLogoPlacement,
             ),
+      placementRefitRequired: currentTitleArtwork.source !== 'custom',
       status: 'failed',
       statusMessage:
         'Steam title/logo artwork could not be downloaded. Rendered title text and custom game logo upload remain available.',

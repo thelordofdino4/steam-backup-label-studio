@@ -1,6 +1,7 @@
 import type { DiscTextLayoutSettings, DiscTextHtmlSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText/index'
 import type { DiscTextStyleSettings } from '../discText/styles'
 import { mmToPixels } from '../disc/geometry'
+import { getBackgroundDrawSize } from '../image/backgroundImage'
 import type { ExportGuideSelection } from './exportGuides'
 import type { BackgroundImageSize, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
@@ -132,13 +133,13 @@ export async function exportDiscLabelPngBytes(params: {
       return
     }
 
-    const coverScale = Math.max(
-      discContentSize / contentSize.width,
-      discContentSize / contentSize.height,
+    const drawSize = getBackgroundDrawSize(
+      params.backgroundImageSize ?? contentSize,
+      params.backgroundScale,
+      discContentSize,
     )
-    const drawScale = coverScale * params.backgroundScale
-    const drawWidth = contentSize.width * drawScale
-    const drawHeight = contentSize.height * drawScale
+    const drawWidth = drawSize.width
+    const drawHeight = drawSize.height
     const drawX = center - drawWidth / 2 + params.backgroundOffset.x * offsetScale
     const drawY = center - drawHeight / 2 + params.backgroundOffset.y * offsetScale
     drawImageContent(

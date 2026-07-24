@@ -5,7 +5,9 @@ import test from 'node:test'
 import {
   placeGroupedPlatformMarks,
 } from '../layout/groupedPlatformMarkPlacement.ts'
+import { clampProjectPlatformMarksToSafeZone } from '../layout/discElementSafeZone.ts'
 import {
+  CLASSIC_TOP_TITLE_DISC_PRESET,
   CLASSIC_TOP_TITLE_DISC_PRESET_ID,
 } from '../presets/builtins/classicTopTitleDiscPreset.ts'
 import {
@@ -15,6 +17,7 @@ import {
   clearPlatformMarkImage,
   createDefaultProjectPlatformMarks,
   getProjectPlatformMarkAsset,
+  setPlatformMarkCustomImage,
   updatePlatformMarkLayoutField,
   updatePlatformMarkSource,
   updatePlatformMarkTheme,
@@ -27,6 +30,7 @@ import type {
 import { discTemplates } from '../templates/discTemplates.ts'
 import {
   applyActiveDiscPresetToPlatformMarkState,
+  isActiveDiscPresetPlatformFitImpossible,
 } from './appActiveDiscPresetPlatformMarks.ts'
 import {
   applyRegisteredDiscPresetToState,
@@ -50,6 +54,17 @@ const orderedValues = Object.freeze([
   'macos',
   'pc',
 ] as const)
+const classicOperatingSystemPlacement = CLASSIC_TOP_TITLE_DISC_PRESET.slots
+  .flatMap(({ placements }) => placements)
+  .find(({ target }) => target === 'operating-system-marks.enabled')
+
+if (
+  !classicOperatingSystemPlacement ||
+  classicOperatingSystemPlacement.kind !== 'group' ||
+  !('size' in classicOperatingSystemPlacement)
+) {
+  throw new Error('Classic OS contain-fit fixture is missing.')
+}
 
 function selectMark(
   marks: ProjectPlatformMarks,
@@ -73,6 +88,7 @@ function assertMatchesGroupedPlacement(
     platformMarks: beforePlacement,
     region,
     template,
+    fitPolicy: classicOperatingSystemPlacement.size,
   })
   assert.equal(expected.status, 'placed')
   for (const update of expected.updates) {
@@ -124,6 +140,19 @@ test('late OS selection uses the active canonical preset target without broad ap
     'operating-system-marks.enabled',
   ])
   assertMatchesGroupedPlacement(selected, result.platformMarks)
+  const windowsLayout = getProjectPlatformMarkAsset(
+    result.platformMarks,
+    'windows',
+    template,
+  ).layout
+  assert.deepEqual(
+    {
+      x: windowsLayout.x,
+      y: windowsLayout.y,
+      scale: windowsLayout.scale,
+    },
+    { x: 50, y: 73, scale: 1.25 },
+  )
   assert.deepEqual(result.platformMarks.values, ['windows'])
   assert.deepEqual(result.platformMarks.inference, selected.inference)
 })
@@ -338,6 +367,102 @@ test('no active preset or a preset without the OS target preserves normal mark s
   assert.equal(absentTarget.platformMarks, marks)
 })
 
+test('rectangle-authoritative active OS contain-fit replaces semantic pre-clamp placement', () => {
+  const impossibleDefinition = {
+    kind: 'sbls/disc-preset',
+    formatVersion: 1,
+    id: 'user:disc-preset:5f6daf82-5244-4e47-9fcc-a0909fcacbc2',
+    revision: 1,
+    name: 'Hub-centered OS marks',
+    surface: 'disc',
+    compatibility: {
+      mode: 'any-disc-template',
+      onConflict: 'resolve',
+    },
+    slots: [{
+      id: 'disc:guided:operating-system-marks:group',
+      contentRegion: {
+        centerXPercent: 50,
+        centerYPercent: 50,
+        widthPercent: 40,
+        heightPercent: 40,
+      },
+      visualLayer: 'foreground',
+      placements: [{
+        kind: 'group',
+        target: 'operating-system-marks.enabled',
+        size: {
+          mode: 'contain-region',
+          allowUpscale: true,
+          insetPercent: 0,
+        },
+      }],
+    }],
+  } as const
+  const registryResult = createDiscPresetRegistry({
+    builtins: [],
+    users: [impossibleDefinition],
+  })
+  assert.equal(registryResult.ok, true)
+  if (!registryResult.ok) return
+
+  let previous = setPlatformMarkCustomImage(
+    createDefaultProjectPlatformMarks(),
+    'pc',
+    'data:image/png;base64,wide-platform-mark',
+    { width: 1000, height: 100 },
+    template,
+  )
+  previous = updatePlatformMarkSource(previous, 'pc', 'placeholder')
+  previous = updatePlatformMarkLayoutField(previous, 'pc', 'x', 92)
+  previous = updatePlatformMarkLayoutField(previous, 'pc', 'y', 50)
+  previous = updatePlatformMarkLayoutField(previous, 'pc', 'scale', 1)
+
+  const semanticMarks = clampProjectPlatformMarksToSafeZone(
+    updatePlatformMarkSource(previous, 'pc', 'custom'),
+    template,
+  )
+  assert.notEqual(
+    getProjectPlatformMarkAsset(semanticMarks, 'pc', template).layout.x,
+    92,
+  )
+
+  const result = applyActiveDiscPresetToPlatformMarkState({
+    presetRef: {
+      id: impossibleDefinition.id,
+      revision: impossibleDefinition.revision,
+    },
+    selectedDiscTemplate: template,
+    platformMarks: semanticMarks,
+    registry: registryResult.registry,
+  })
+  assert.equal(result.application?.status, 'applied')
+  assert.equal(
+    isActiveDiscPresetPlatformFitImpossible(result.application),
+    false,
+  )
+
+  const finalAsset = getProjectPlatformMarkAsset(
+    result.platformMarks,
+    'pc',
+    template,
+  )
+  assert.equal(finalAsset.source, 'custom')
+  assert.equal(
+    finalAsset.customImageDataUrl,
+    'data:image/png;base64,wide-platform-mark',
+  )
+  assert.deepEqual(
+    {
+      x: finalAsset.layout.x,
+      y: finalAsset.layout.y,
+      scale: finalAsset.layout.scale,
+    },
+    { x: 50, y: 50, scale: 40 / 12 },
+  )
+  assert.equal(finalAsset.layout.enabled, true)
+})
+
 test('initial full Classic placement remains the same targeted grouped result', () => {
   const source = readFileSync(
     'src/app/appRegisteredDiscPresetApplication.test.ts',
@@ -364,6 +489,10 @@ test('eligibility integration composes once and cannot recurse from x/y/scale up
   assert.match(
     hookSource,
     /field === 'enabled'[\s\S]*?finalizeEligibilityChange\(manualMarks\)/,
+  )
+  assert.match(
+    hookSource,
+    /applyActivePresetPlacement\(nextMarks\) \?\?[\s\S]*?preserveDiscPlatformMarkPlacements\([\s\S]*?projectPlatformMarksRef\.current/,
   )
   assert.doesNotMatch(
     helperSource,

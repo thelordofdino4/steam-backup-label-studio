@@ -5,15 +5,26 @@ import type {
 import {
   fitStraightDiscTextToRegion,
 } from '../../discText/fitStraightTextToRegion.ts'
+import {
+  getDefaultDiscTextPointSize,
+} from '../../discText/pointSize.ts'
 import type {
+  DiscLegalTextPresetOwnerState,
   DiscPresetOwnerUpdate,
   DiscTextLayoutPresetUpdate,
+  DiscTitleTextPresetOwnerState,
 } from '../discPresetOwnerPlacement.ts'
 import type {
   DiscPresetOwnerPlacementContext,
   DiscPresetOwnerPlacementResult,
   DiscPresetPlacementAdapter,
 } from '../discPresetPlacementAdapters.ts'
+
+export const DISC_PRESET_TITLE_TEXT_MINIMUM_POINT_SIZE = 8
+export const DISC_PRESET_TITLE_TEXT_POINT_SIZE_STEP = 0.25
+export const DISC_PRESET_LEGAL_TEXT_PREFERRED_POINT_SIZE = 7
+export const DISC_PRESET_LEGAL_TEXT_MINIMUM_POINT_SIZE = 3
+export const DISC_PRESET_LEGAL_TEXT_POINT_SIZE_STEP = 0.25
 
 export type DiscTextPresetPosition = Readonly<{
   x: number
@@ -96,10 +107,25 @@ function createDiscTextPresetAdapter<TTarget extends DiscTextPresetTarget>(
           : { fontSizePt: context.placement.fontSizePt }),
       })
 
-      if (target === 'legal.copyright' && context.placement.fit === 'region') {
-        const legalOwnerState = context.ownerState as
-          import('../discPresetOwnerPlacement.ts').DiscLegalTextPresetOwnerState
+      if (context.placement.fit === 'region') {
+        const measuredOwnerState = context.ownerState as
+          | DiscTitleTextPresetOwnerState
+          | DiscLegalTextPresetOwnerState
         const measureText = context.services.textMeasurement?.measureText
+        const preferredPointSize = target === 'game-title.text'
+          ? getDefaultDiscTextPointSize(
+              'title',
+              1,
+              measuredOwnerState.template,
+              'straight',
+            )
+          : DISC_PRESET_LEGAL_TEXT_PREFERRED_POINT_SIZE
+        const minimumPointSize = target === 'game-title.text'
+          ? DISC_PRESET_TITLE_TEXT_MINIMUM_POINT_SIZE
+          : DISC_PRESET_LEGAL_TEXT_MINIMUM_POINT_SIZE
+        const pointSizeStep = target === 'game-title.text'
+          ? DISC_PRESET_TITLE_TEXT_POINT_SIZE_STEP
+          : DISC_PRESET_LEGAL_TEXT_POINT_SIZE_STEP
 
         if (!measureText) {
           const update: DiscPresetOwnerUpdate = Object.freeze({
@@ -109,7 +135,7 @@ function createDiscTextPresetAdapter<TTarget extends DiscTextPresetTarget>(
             key,
             layout: Object.freeze({
               ...layout,
-              fontSizePt: 7,
+              fontSizePt: preferredPointSize,
               avoidVisualElements: false,
             }),
           })
@@ -127,33 +153,52 @@ function createDiscTextPresetAdapter<TTarget extends DiscTextPresetTarget>(
         }
 
         const fit = fitStraightDiscTextToRegion({
-          key: 'copyright',
-          content: legalOwnerState.enabled
-            ? legalOwnerState.content.plainText
+          key,
+          includeRenderedBoxBounds: true,
+          includeRenderedPaintBounds: true,
+          content: measuredOwnerState.enabled
+            ? measuredOwnerState.content.plainText
             : '',
-          currentLayout: legalOwnerState.layout,
+          currentLayout: measuredOwnerState.layout,
           measureText,
+          minimumPointSize,
+          pointSizeStep,
+          preferredPointSize,
           region: context.slot.resolvedContentRegion,
-          richText: legalOwnerState.enabled
-            ? legalOwnerState.content.richText
+          richText: measuredOwnerState.enabled
+            ? measuredOwnerState.content.richText
             : undefined,
-          styles: { copyright: legalOwnerState.style },
-          template: legalOwnerState.template,
+          styles: target === 'game-title.text'
+            ? { title: measuredOwnerState.style }
+            : { copyright: measuredOwnerState.style },
+          template: measuredOwnerState.template,
         })
 
         if (fit.status === 'impossible') {
+          const warning = target === 'game-title.text'
+            ? Object.freeze({
+                kind: 'text-fit-impossible' as const,
+                slotId: 'disc:guided:game-title:primary' as const,
+                target: 'game-title.text' as const,
+              })
+            : Object.freeze({
+                kind: 'text-fit-impossible' as const,
+                slotId: 'disc:guided:legal-text:copyright' as const,
+                target: 'legal.copyright' as const,
+              })
+
           return Object.freeze({
             status: 'partial',
             updates: Object.freeze([]),
-            resolvedSlotPatch: Object.freeze({
-              slotId: context.slot.id,
-              status: 'unsupported',
-            }),
-            warnings: Object.freeze([Object.freeze({
-              kind: 'text-fit-impossible',
-              slotId: 'disc:guided:legal-text:copyright',
-              target: 'legal.copyright',
-            })]),
+            ...(target === 'legal.copyright'
+              ? {
+                  resolvedSlotPatch: Object.freeze({
+                    slotId: context.slot.id,
+                    status: 'unsupported' as const,
+                  }),
+                }
+              : {}),
+            warnings: Object.freeze([warning]),
           })
         }
 
@@ -173,23 +218,35 @@ function createDiscTextPresetAdapter<TTarget extends DiscTextPresetTarget>(
           }),
         })
         const fittedRegion = Object.freeze({ ...fit.resolvedRegion })
+        const warnings = Object.freeze(fit.warnings.map((kind) =>
+          target === 'game-title.text'
+            ? Object.freeze({
+                kind,
+                slotId: 'disc:guided:game-title:primary' as const,
+                target: 'game-title.text' as const,
+              })
+            : Object.freeze({
+                kind,
+                slotId: 'disc:guided:legal-text:copyright' as const,
+                target: 'legal.copyright' as const,
+              })))
 
         return Object.freeze({
           status: 'applied',
           updates: Object.freeze([fittedUpdate]),
-          resolvedSlotPatch: Object.freeze({
-            slotId: context.slot.id,
-            resolvedContentRegion: fittedRegion,
-            resolvedActionRegion: fittedRegion,
-            status: fit.warnings.length > 0
-              ? 'adjusted'
-              : context.slot.status,
-          }),
-          warnings: Object.freeze(fit.warnings.map((kind) => Object.freeze({
-            kind,
-            slotId: 'disc:guided:legal-text:copyright' as const,
-            target: 'legal.copyright' as const,
-          }))),
+          ...(target === 'legal.copyright'
+            ? {
+                resolvedSlotPatch: Object.freeze({
+                  slotId: context.slot.id,
+                  resolvedContentRegion: fittedRegion,
+                  resolvedActionRegion: fittedRegion,
+                  status: fit.warnings.length > 0
+                    ? 'adjusted' as const
+                    : context.slot.status,
+                }),
+              }
+            : {}),
+          warnings,
         })
       }
 

@@ -1,108 +1,59 @@
-import type { ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from '../project/projectTypes.ts'
+import type {
+  ProjectMetadata,
+  ProjectRatingBadge,
+} from '../project/projectTypes.ts'
 import {
   shouldRenderSupplementalUskRatingBadge,
   shouldRenderRatingBadge,
-  shouldUseCustomRatingBadgeImage,
 } from '../project/projectRatingBadge.ts'
-import {
-  RATING_BADGE_BASE_HEIGHT_RATIO,
-  RATING_BADGE_BASE_WIDTH_RATIO,
-} from '../disc/geometry.ts'
+import { getRatingBadgeBoundsPercent } from '../disc/geometry.ts'
 import {
   getRatingBadgePlaceholderRenderModel,
 } from '../assets/assetManifest.ts'
+import {
+  createPrimaryRatingBadgeRenderModel,
+  type PrimaryRatingBadgeRenderModel,
+} from '../render/ratingBadgeRenderModel.ts'
 import {
   drawImageContent,
   getCanvasImageContentSize,
   loadCanvasSafeImage,
 } from './canvasImage.ts'
 
-type DrawableRatingBadge = {
-  source: RatingBadgeSource
-  customImageDataUrl: string | null
-  customImageSize: ProjectRatingBadge['customImageSize']
-  layout: RatingBadgeLayout
-}
-
 type RatingBadgeImageLoader = typeof loadCanvasSafeImage
 
-async function drawPlaceholderRatingBadge(
+type DrawableRatingBadgeRenderModel = Pick<
+  PrimaryRatingBadgeRenderModel,
+  | 'alt'
+  | 'imageDataUrl'
+  | 'imageSize'
+  | 'isCustomImage'
+  | 'layout'
+  | 'overlayLabel'
+  | 'scaledBounds'
+  | 'textColor'
+>
+
+async function drawResolvedRatingBadge(
   context: CanvasRenderingContext2D,
   discContentSize: number,
   discOrigin: number,
-  metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
-  badge: DrawableRatingBadge,
+  model: DrawableRatingBadgeRenderModel,
   imageLoader: RatingBadgeImageLoader,
 ) {
-  const renderModel = getRatingBadgePlaceholderRenderModel(metadata)
-
-  const image = await imageLoader(renderModel.imageUrl, renderModel.altLabel)
-  const contentSize = getCanvasImageContentSize(image, renderModel.imageSize)
-  const aspectRatio = contentSize
-    ? contentSize.width / contentSize.height
-    : 1
-  const maxWidth = discContentSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
-  const maxHeight = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
-
-  let drawWidth = maxWidth
-  let drawHeight = drawWidth / aspectRatio
-
-  if (drawHeight > maxHeight) {
-    drawHeight = maxHeight
-    drawWidth = drawHeight * aspectRatio
-  }
-
-  const centerX = discOrigin + discContentSize * (badge.layout.x / 100)
-  const centerY = discOrigin + discContentSize * (badge.layout.y / 100)
-  const x = centerX - drawWidth / 2
-  const y = centerY - drawHeight / 2
-
-  drawImageContent(
-    context,
-    image,
-    renderModel.imageSize,
-    { x, y, width: drawWidth, height: drawHeight },
+  const image = await imageLoader(
+    model.imageDataUrl,
+    model.isCustomImage ? 'custom rating badge image' : model.alt,
   )
-
-  if (!renderModel.overlayLabel) {
-    return
-  }
-
-  context.save()
-  context.fillStyle = renderModel.textColor
-  context.font = `900 ${drawHeight * (36 / 130)}px Arial, sans-serif`
-  context.textAlign = 'center'
-  context.textBaseline = 'middle'
-  context.fillText(
-    renderModel.overlayLabel,
-    x + drawWidth * (45 / 90),
-    y + drawHeight * (66 / 130),
-  )
-  context.restore()
-}
-
-async function drawCustomRatingBadge(
-  context: CanvasRenderingContext2D,
-  discContentSize: number,
-  discOrigin: number,
-  badge: DrawableRatingBadge,
-  imageLoader: RatingBadgeImageLoader,
-) {
-  if (!badge.customImageDataUrl) {
-    return
-  }
-
-  const image = await imageLoader(badge.customImageDataUrl, 'custom rating badge image')
-  const contentSize = getCanvasImageContentSize(image, badge.customImageSize)
+  const contentSize = getCanvasImageContentSize(image, model.imageSize)
 
   if (!contentSize) {
     return
   }
 
   const aspectRatio = contentSize.width / contentSize.height
-
-  const maxWidth = discContentSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
-  const maxHeight = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
+  const maxWidth = discContentSize * (model.scaledBounds.halfWidth * 2 / 100)
+  const maxHeight = discContentSize * (model.scaledBounds.halfHeight * 2 / 100)
 
   let drawWidth = maxWidth
   let drawHeight = drawWidth / aspectRatio
@@ -112,20 +63,59 @@ async function drawCustomRatingBadge(
     drawWidth = drawHeight * aspectRatio
   }
 
-  const centerX = discOrigin + discContentSize * (badge.layout.x / 100)
-  const centerY = discOrigin + discContentSize * (badge.layout.y / 100)
+  const centerX = discOrigin + discContentSize * (model.layout.x / 100)
+  const centerY = discOrigin + discContentSize * (model.layout.y / 100)
+  const x = centerX - drawWidth / 2
+  const y = centerY - drawHeight / 2
 
   drawImageContent(
     context,
     image,
-    badge.customImageSize,
-    {
-      x: centerX - drawWidth / 2,
-      y: centerY - drawHeight / 2,
-      width: drawWidth,
-      height: drawHeight,
-    },
+    model.imageSize,
+    { x, y, width: drawWidth, height: drawHeight },
   )
+
+  if (!model.overlayLabel) {
+    return
+  }
+
+  context.save()
+  context.beginPath()
+  context.rect(x, y, drawWidth, drawHeight)
+  context.clip()
+  context.fillStyle = model.textColor
+  context.font = `900 ${drawHeight * (36 / 130)}px Arial, sans-serif`
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText(
+    model.overlayLabel,
+    x + drawWidth * (45 / 90),
+    y + drawHeight * (66 / 130),
+  )
+  context.restore()
+}
+
+function createSupplementalUskRatingBadgeRenderModel(
+  ratingBadge: ProjectRatingBadge,
+): DrawableRatingBadgeRenderModel {
+  const placeholder = getRatingBadgePlaceholderRenderModel({
+    ratingSystem: 'USK',
+    ratingValue: ratingBadge.uskBadge.ratingValue,
+  })
+
+  return {
+    alt: placeholder.altLabel,
+    imageDataUrl: placeholder.imageUrl,
+    imageSize: placeholder.imageSize,
+    isCustomImage: false,
+    layout: ratingBadge.uskBadge.layout,
+    overlayLabel: placeholder.overlayLabel,
+    scaledBounds: getRatingBadgeBoundsPercent(
+      placeholder.imageSize,
+      ratingBadge.uskBadge.layout.scale,
+    ),
+    textColor: placeholder.textColor,
+  }
 }
 
 export async function drawRatingBadge(
@@ -133,39 +123,32 @@ export async function drawRatingBadge(
   discContentSize: number,
   discOrigin: number,
   metadata: ProjectMetadata,
-  badge: ProjectRatingBadge,
+  ratingBadge: ProjectRatingBadge,
   imageLoader: RatingBadgeImageLoader = loadCanvasSafeImage,
 ) {
-  if (shouldRenderRatingBadge(metadata, badge)) {
-    if (shouldUseCustomRatingBadgeImage(badge)) {
-      await drawCustomRatingBadge(context, discContentSize, discOrigin, badge, imageLoader)
-    } else {
-      await drawPlaceholderRatingBadge(
+  if (shouldRenderRatingBadge(metadata, ratingBadge)) {
+    const primaryModel = createPrimaryRatingBadgeRenderModel(
+      metadata,
+      ratingBadge,
+    )
+
+    if (primaryModel) {
+      await drawResolvedRatingBadge(
         context,
         discContentSize,
         discOrigin,
-        metadata,
-        badge,
+        primaryModel,
         imageLoader,
       )
     }
   }
 
-  if (shouldRenderSupplementalUskRatingBadge(metadata, badge)) {
-    await drawPlaceholderRatingBadge(
+  if (shouldRenderSupplementalUskRatingBadge(metadata, ratingBadge)) {
+    await drawResolvedRatingBadge(
       context,
       discContentSize,
       discOrigin,
-      {
-        ratingSystem: 'USK',
-        ratingValue: badge.uskBadge.ratingValue,
-      },
-      {
-        source: 'placeholder',
-        customImageDataUrl: null,
-        customImageSize: null,
-        layout: badge.uskBadge.layout,
-      },
+      createSupplementalUskRatingBadgeRenderModel(ratingBadge),
       imageLoader,
     )
   }

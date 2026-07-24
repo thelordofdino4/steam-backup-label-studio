@@ -18,6 +18,16 @@ const discVisualCss = readFileSync(
   new URL('../../styles/app-disc-visual-layers.css', import.meta.url),
   'utf8',
 )
+const canonicalOwnerPreviewSources = [
+  'TitleArtworkLayer.tsx',
+  'LogoAssetLayer.tsx',
+  'RatingBadgeLayer.tsx',
+  'MediaMarkLayer.tsx',
+  'PlatformMarksLayer.tsx',
+].map((fileName) => readFileSync(
+  new URL(fileName, import.meta.url),
+  'utf8',
+))
 
 test('guided layers sit behind real owner content and selection feedback', () => {
   assert.match(
@@ -95,4 +105,36 @@ test('visual guidance exposes no handles, movement cursor, or pointer behavior',
   ]) {
     assert.equal(visualCss.includes(forbidden), false, `unexpected style: ${forbidden}`)
   }
+})
+
+test('built-in content-bounded marks do not paint beyond canonical guide bounds', () => {
+  assert.match(
+    discVisualCss,
+    /\.disc-placeholder-svg-image\.content-bounded-image\s+\.content-bounded-image-source\s*\{[\s\S]*?filter:\s*none/,
+  )
+})
+
+test('contain-fit owner previews exclude non-exported paint outside canonical bounds', () => {
+  const finalDropShadowIndex = discVisualCss.lastIndexOf('filter: drop-shadow')
+  const canonicalBoundsOverrideIndex = discVisualCss.indexOf(
+    '.disc-canonical-visual-bounds-image,',
+  )
+
+  assert.ok(finalDropShadowIndex >= 0)
+  assert.ok(canonicalBoundsOverrideIndex > finalDropShadowIndex)
+  assert.match(
+    discVisualCss,
+    /\.disc-canonical-visual-bounds-image,\s*\.disc-canonical-visual-bounds-image\.content-bounded-image\s+\.content-bounded-image-source\s*\{[\s\S]*?filter:\s*none/,
+  )
+  canonicalOwnerPreviewSources.forEach((source) => {
+    assert.match(source, /disc-canonical-visual-bounds-image/)
+  })
+  assert.match(
+    canonicalOwnerPreviewSources[1],
+    /additionalLogoId\s*\?\s*''\s*:\s*'disc-canonical-visual-bounds-image'/,
+  )
+  assert.match(
+    canonicalOwnerPreviewSources[2],
+    /badgeKey === 'primary'[\s\S]*?'disc-canonical-visual-bounds-image'/,
+  )
 })

@@ -2,6 +2,11 @@ import type { DiscGuidedSlotId } from '../../guidedPresets/discGuidedSlots.ts'
 import type {
   DiscPointPresetTarget,
 } from '../discPresetDefinition.ts'
+import {
+  fitVisualBoundsToDiscPresetRectangle,
+  type DiscCanonicalVisualBounds,
+  type DiscPresetContainFitWarning,
+} from '../fitVisualBoundsToDiscPresetRegion.ts'
 import type {
   DiscMediaMarkLayoutPresetUpdate,
   DiscPresetOwnerUpdate,
@@ -56,6 +61,17 @@ function hasExpectedPointOwnerState(
   return true
 }
 
+function getCanonicalVisualBounds(
+  ownerState: unknown,
+): DiscCanonicalVisualBounds | null | undefined {
+  if (!isRecord(ownerState)) return undefined
+
+  const bounds = ownerState.canonicalVisualBoundsAtScaleOne
+  return bounds === null || isRecord(bounds)
+    ? bounds as DiscCanonicalVisualBounds | null
+    : undefined
+}
+
 function unsupportedPointPlacement(
   context: DiscPresetOwnerPlacementContext<DiscPointPresetTarget>,
   reason:
@@ -73,6 +89,38 @@ function unsupportedPointPlacement(
       target: context.placement.target,
       reason,
     })] as const),
+  })
+}
+
+function isContainFitUnsupportedWarning(
+  warning: DiscPresetContainFitWarning,
+): warning is Extract<
+  DiscPresetContainFitWarning,
+  { kind: 'contain-fit-unsupported' }
+> {
+  return warning.kind === 'contain-fit-unsupported'
+}
+
+function containFitImpossible(
+  context: DiscPresetOwnerPlacementContext<DiscPointPresetTarget>,
+  warning: Extract<
+    DiscPresetContainFitWarning,
+    { kind: 'contain-fit-unsupported' }
+  >,
+): DiscPresetOwnerPlacementResult {
+  return Object.freeze({
+    status: 'partial',
+    updates: Object.freeze([] as const),
+    resolvedSlotPatch: Object.freeze({
+      slotId: context.slot.id,
+      status: 'unsupported' as const,
+    }),
+    warnings: Object.freeze([Object.freeze({
+      kind: 'placement-impossible' as const,
+      slotId: context.slot.id,
+      target: context.placement.target,
+      reason: warning.reason,
+    })]),
   })
 }
 
@@ -102,26 +150,85 @@ function createDiscPointPresetAdapter<
         )
       }
 
-      if (context.placement.size.mode !== 'fixed-scale') {
+      if (context.placement.size.mode === 'fixed-scale') {
+        const scale = context.placement.size.scale
+        if (!Number.isFinite(scale) || scale <= 0) {
+          return unsupportedPointPlacement(
+            context as DiscPresetOwnerPlacementContext<DiscPointPresetTarget>,
+            'invalid-scale',
+          )
+        }
+
+        const layout = Object.freeze({
+          x: context.slot.resolvedContentRegion.centerXPercent,
+          y: context.slot.resolvedContentRegion.centerYPercent,
+          scale,
+        })
+        const update = Object.freeze(createUpdate(context.slot.id, layout))
+
+        return Object.freeze({
+          status: 'applied',
+          updates: Object.freeze([update]),
+          warnings: Object.freeze([]),
+        })
+      }
+
+      if (context.placement.size.mode !== 'contain-region') {
         return unsupportedPointPlacement(
           context as DiscPresetOwnerPlacementContext<DiscPointPresetTarget>,
           'unsupported-size-policy',
         )
       }
 
-      const scale = context.placement.size.scale
-      if (!Number.isFinite(scale) || scale <= 0) {
+      const canonicalVisualBoundsAtScaleOne = getCanonicalVisualBounds(
+        context.ownerState,
+      )
+      if (canonicalVisualBoundsAtScaleOne === undefined) {
         return unsupportedPointPlacement(
           context as DiscPresetOwnerPlacementContext<DiscPointPresetTarget>,
-          'invalid-scale',
+          'owner-state-unsupported',
         )
       }
 
-      const layout = Object.freeze({
-        x: context.slot.resolvedContentRegion.centerXPercent,
-        y: context.slot.resolvedContentRegion.centerYPercent,
-        scale,
+      if (canonicalVisualBoundsAtScaleOne === null) {
+        const layout = Object.freeze({
+          x: context.slot.resolvedContentRegion.centerXPercent,
+          y: context.slot.resolvedContentRegion.centerYPercent,
+          scale: context.ownerState.layout.scale,
+        })
+        const update = Object.freeze(createUpdate(context.slot.id, layout))
+
+        return Object.freeze({
+          status: 'applied',
+          updates: Object.freeze([update]),
+          warnings: Object.freeze([Object.freeze({
+            kind: 'placement-skipped' as const,
+            slotId: context.slot.id,
+            target,
+            reason: 'canonical-bounds-unavailable' as const,
+          })]),
+        })
+      }
+
+      const fit = fitVisualBoundsToDiscPresetRectangle({
+        region: context.slot.resolvedContentRegion,
+        boundsAtScaleOne: canonicalVisualBoundsAtScaleOne,
+        policy: context.placement.size,
       })
+
+      if (fit.status === 'unsupported') {
+        const warning = fit.warnings.find(isContainFitUnsupportedWarning) ??
+          Object.freeze({
+            kind: 'contain-fit-unsupported' as const,
+            reason: 'calculation-invalid' as const,
+          })
+        return containFitImpossible(
+          context as DiscPresetOwnerPlacementContext<DiscPointPresetTarget>,
+          warning,
+        )
+      }
+
+      const layout = Object.freeze({ x: fit.x, y: fit.y, scale: fit.scale })
       const update = Object.freeze(createUpdate(context.slot.id, layout))
 
       return Object.freeze({

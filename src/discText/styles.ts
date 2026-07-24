@@ -45,6 +45,10 @@ export type DiscTextStyleSettings = Record<DiscTextKey, DiscTextStyle>
 export type DiscTextStyleInput = Partial<Record<DiscTextKey, Partial<DiscTextStyle>>>
 export type DiscTextStyleField = keyof DiscTextStyle
 export type DiscTextStyleValue = DiscTextStyle[DiscTextStyleField]
+export type DiscTextMeasurementStyle = Pick<
+  DiscTextStyle,
+  'bold' | 'fontFamily' | 'italic'
+>
 
 export type DiscTextFontOption = {
   value: DiscTextFontFamily
@@ -122,6 +126,32 @@ export const DISC_TEXT_CONTRAST_OPTIONS: readonly DiscTextContrastOption[] = [
   { value: 'stroke', label: 'Stroke' },
   { value: 'none', label: 'None' },
 ]
+
+export function areDiscTextStylesMeasurementEquivalent(
+  first: DiscTextMeasurementStyle,
+  second: DiscTextMeasurementStyle,
+) {
+  return first.bold === second.bold &&
+    first.fontFamily === second.fontFamily &&
+    first.italic === second.italic
+}
+
+export function areDiscTitlePresetFitStylesEquivalent(
+  first: DiscTextStyle,
+  second: DiscTextStyle,
+) {
+  if (!areDiscTextStylesMeasurementEquivalent(first, second)) return false
+  if (first.contrast !== second.contrast) return false
+
+  const firstRendersBox = first.backgroundEnabled || first.borderEnabled
+  const secondRendersBox = second.backgroundEnabled || second.borderEnabled
+
+  return firstRendersBox === secondRendersBox &&
+    (!firstRendersBox || (
+      first.backgroundPadding === second.backgroundPadding &&
+      first.borderEnabled === second.borderEnabled
+    ))
+}
 
 export const DISC_TEXT_STYLE_PRESETS: readonly DiscTextStylePreset[] = [
   {

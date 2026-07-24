@@ -31,11 +31,16 @@ import {
   isImageFile,
   readImportedImageAssetFromFile,
 } from '../utils/importedImageAsset'
+import { preserveDiscPointOwnerPlacement } from '../presets/discPresetOwnerPlacement.ts'
 
 type UseRatingBadgeStateOptions = {
   selectedDiscTemplate: DiscTemplate
   projectMetadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>
   announceStatus: (message: string) => void
+  applyActivePresetPlacement?: (
+    ratingBadge: ProjectRatingBadge,
+    metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
+  ) => ProjectRatingBadge | null
   onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
@@ -43,6 +48,7 @@ export function useRatingBadgeState({
   selectedDiscTemplate,
   projectMetadata,
   announceStatus,
+  applyActivePresetPlacement = (ratingBadge) => ratingBadge,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseRatingBadgeStateOptions) {
   const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
@@ -53,6 +59,30 @@ export function useRatingBadgeState({
   useEffect(() => {
     projectRatingBadgeRef.current = projectRatingBadge
   }, [projectRatingBadge])
+
+  function commitProjectRatingBadge(ratingBadge: ProjectRatingBadge) {
+    projectRatingBadgeRef.current = ratingBadge
+    setProjectRatingBadge(ratingBadge)
+  }
+
+  function applySemanticRatingBadgeChange(
+    ratingBadge: ProjectRatingBadge,
+    metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'> =
+      projectMetadata,
+  ) {
+    const fittedRatingBadge = applyActivePresetPlacement(
+      ratingBadge,
+      metadata,
+    ) ?? {
+      ...ratingBadge,
+      layout: preserveDiscPointOwnerPlacement(
+        ratingBadge.layout,
+        projectRatingBadgeRef.current.layout,
+      ),
+    }
+    commitProjectRatingBadge(fittedRatingBadge)
+    return fittedRatingBadge
+  }
 
   function clampProjectRatingBadgeToTemplate(template: DiscTemplate) {
     setProjectRatingBadge((currentBadge) =>
@@ -89,9 +119,11 @@ export function useRatingBadgeState({
       projectMetadata,
     )
 
-    projectRatingBadgeRef.current = nextBadge
-    setProjectRatingBadge(nextBadge)
-    if (enabled) completeRatingBadgeIfSatisfied(nextBadge)
+    const finalBadge = enabled
+      ? applySemanticRatingBadgeChange(nextBadge)
+      : nextBadge
+    if (!enabled) commitProjectRatingBadge(nextBadge)
+    if (enabled) completeRatingBadgeIfSatisfied(finalBadge)
   }
 
   function setRatingBadgeEnabledForAppliedCandidate(candidate: RatingBoardCandidate) {
@@ -115,9 +147,11 @@ export function useRatingBadgeState({
       selectedDiscTemplate,
       candidateMetadata,
     )
-    projectRatingBadgeRef.current = nextBadge
-    setProjectRatingBadge(nextBadge)
-    if (enabled) completeRatingBadgeIfSatisfied(nextBadge, candidateMetadata)
+    const finalBadge = enabled
+      ? applySemanticRatingBadgeChange(nextBadge, candidateMetadata)
+      : nextBadge
+    if (!enabled) commitProjectRatingBadge(nextBadge)
+    if (enabled) completeRatingBadgeIfSatisfied(finalBadge, candidateMetadata)
   }
 
   async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -141,12 +175,11 @@ export function useRatingBadgeState({
         selectedDiscTemplate,
       )
 
-      projectRatingBadgeRef.current = nextBadge
-      setProjectRatingBadge(nextBadge)
-      completeRatingBadgeIfSatisfied(nextBadge)
+      const finalBadge = applySemanticRatingBadgeChange(nextBadge)
+      completeRatingBadgeIfSatisfied(finalBadge)
 
       announceStatus(`Using ${file.name} as the rating badge.`)
-      return nextBadge
+      return finalBadge
     } catch (error) {
       announceStatus(`Rating badge import failed: ${String(error)}`)
     }
@@ -158,33 +191,32 @@ export function useRatingBadgeState({
       selectedDiscTemplate,
       projectMetadata,
     )
-    projectRatingBadgeRef.current = nextBadge
-    setProjectRatingBadge(nextBadge)
-    completeRatingBadgeIfSatisfied(nextBadge)
+    const finalBadge = applySemanticRatingBadgeChange(nextBadge)
+    completeRatingBadgeIfSatisfied(finalBadge)
   }
 
   function handleRatingBadgeLayoutChange(
     field: RatingBadgeLayoutField,
     value: boolean | number,
   ) {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = updateRatingBadgeLayoutField(currentBadge, field, value)
-
-      return clampProjectRatingBadgeToSafeZone(
-        nextBadge,
-        selectedDiscTemplate,
-        projectMetadata,
-      )
-    })
+    const nextBadge = clampProjectRatingBadgeToSafeZone(
+      updateRatingBadgeLayoutField(
+        projectRatingBadgeRef.current,
+        field,
+        value,
+      ),
+      selectedDiscTemplate,
+      projectMetadata,
+    )
+    let finalBadge = nextBadge
+    if (field === 'enabled' && value === true) {
+      finalBadge = applySemanticRatingBadgeChange(nextBadge)
+    } else {
+      commitProjectRatingBadge(nextBadge)
+    }
 
     if (field === 'enabled' && value === true) {
-      completeRatingBadgeIfSatisfied({
-        ...projectRatingBadgeRef.current,
-        layout: {
-          ...projectRatingBadgeRef.current.layout,
-          enabled: true,
-        },
-      })
+      completeRatingBadgeIfSatisfied(finalBadge)
     }
   }
 
@@ -218,15 +250,13 @@ export function useRatingBadgeState({
   }
 
   function handleClearRatingBadgeImage() {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = clearRatingBadgeImage(currentBadge)
-
-      return clampProjectRatingBadgeToSafeZone(
-        nextBadge,
+    applySemanticRatingBadgeChange(
+      clampProjectRatingBadgeToSafeZone(
+        clearRatingBadgeImage(projectRatingBadgeRef.current),
         selectedDiscTemplate,
         projectMetadata,
-      )
-    })
+      ),
+    )
 
     announceStatus('Cleared custom rating badge image.')
   }

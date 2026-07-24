@@ -6,10 +6,54 @@ import {
   DEFAULT_DISC_TEXT_SETTINGS,
 } from './index.ts'
 import { buildDiscTextSvgLayer } from './svgLayer.ts'
+import {
+  DISC_TEXT_STRAIGHT_SHADOW_STRONG,
+  DISC_TEXT_STRAIGHT_SHADOW_TIGHT,
+} from './straightTextPaintGeometry.ts'
 
 function measureTextAsCharacters(text: string) {
   return Array.from(text).length
 }
+
+test('disc SVG renderer uses the canonical straight shadow geometry', () => {
+  const svg = buildDiscTextSvgLayer({
+    settings: DEFAULT_DISC_TEXT_SETTINGS,
+    values: createDefaultDiscTextValues(),
+    layoutSettings: createDefaultDiscTextLayout('none'),
+    title: 'Portal 2',
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  })
+
+  assert.ok(svg.includes(
+    `<feGaussianBlur in="SourceAlpha" ` +
+    `stdDeviation="${DISC_TEXT_STRAIGHT_SHADOW_STRONG.standardDeviation}" ` +
+    'result="straight-shadow-blur-strong"',
+  ))
+  assert.ok(svg.includes(
+    `<feOffset in="straight-shadow-blur-strong" ` +
+    `dx="${DISC_TEXT_STRAIGHT_SHADOW_STRONG.offsetX}" ` +
+    `dy="${DISC_TEXT_STRAIGHT_SHADOW_STRONG.offsetY}"`,
+  ))
+  assert.ok(svg.includes(
+    `<feGaussianBlur in="SourceAlpha" ` +
+    `stdDeviation="${DISC_TEXT_STRAIGHT_SHADOW_TIGHT.standardDeviation}" ` +
+    'result="straight-shadow-blur-tight"',
+  ))
+  assert.ok(svg.includes(
+    `<feOffset in="straight-shadow-blur-tight" ` +
+    `dx="${DISC_TEXT_STRAIGHT_SHADOW_TIGHT.offsetX}" ` +
+    `dy="${DISC_TEXT_STRAIGHT_SHADOW_TIGHT.offsetY}"`,
+  ))
+  assert.match(
+    svg,
+    /<feMerge>[\s\S]*<feMergeNode in="straight-shadow-strong" \/>[\s\S]*<feMergeNode in="straight-shadow-tight" \/>[\s\S]*<feMergeNode in="SourceGraphic" \/>[\s\S]*<\/feMerge>/,
+  )
+  assert.doesNotMatch(svg, /<feDropShadow/)
+})
 
 test('disc SVG renderer preserves straight text spaces for preview and export parity', () => {
   const settings = {

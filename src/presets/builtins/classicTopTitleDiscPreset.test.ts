@@ -64,6 +64,68 @@ test('Classic round trips through canonical JSON without runtime values', () => 
   assert.doesNotMatch(json, /function|undefined|\[object (Map|Set)\]/)
 })
 
+test('Classic uses contain-region only for applicable replacement owners', () => {
+  const pointPolicies = CLASSIC_TOP_TITLE_DISC_PRESET.slots
+    .flatMap(({ placements }) => placements)
+    .filter((placement) => placement.kind === 'point')
+    .map((placement) => [placement.target, placement.size])
+
+  assert.deepEqual(pointPolicies, [
+    ['game-title.artwork', {
+      mode: 'contain-region',
+      allowUpscale: true,
+      insetPercent: 0,
+    }],
+    ['rating.primary', {
+      mode: 'contain-region',
+      allowUpscale: true,
+      insetPercent: 0,
+    }],
+    ['media-format.primary', {
+      mode: 'contain-region',
+      allowUpscale: true,
+      insetPercent: 0,
+    }],
+    ['developer-logo.primary', {
+      mode: 'contain-region',
+      allowUpscale: true,
+      insetPercent: 0,
+    }],
+    ['publisher-logo.primary', {
+      mode: 'contain-region',
+      allowUpscale: true,
+      insetPercent: 0,
+    }],
+  ])
+
+  assert.deepEqual(CLASSIC_TOP_TITLE_DISC_PRESET.slots[4]?.placements, [{
+    kind: 'group',
+    target: 'operating-system-marks.enabled',
+    size: {
+      mode: 'contain-region',
+      allowUpscale: true,
+      insetPercent: 0,
+    },
+  }])
+  assert.deepEqual(CLASSIC_TOP_TITLE_DISC_PRESET.slots[1]?.placements, [{
+    kind: 'background',
+    target: 'background.primary',
+    fit: 'contain-region',
+    size: {
+      mode: 'contain-region',
+      allowUpscale: true,
+      insetPercent: 0,
+    },
+  }])
+  assert.deepEqual(CLASSIC_TOP_TITLE_DISC_PRESET.slots[7]?.placements, [{
+    kind: 'text',
+    target: 'legal.copyright',
+    mode: 'straight',
+    align: 'center',
+    fit: 'region',
+  }])
+})
+
 test('guided geometry imports Classic instead of declaring coordinate constants', () => {
   const guidedSource = readFileSync(
     new URL('../../guidedPresets/discGuidedLayouts.ts', import.meta.url),

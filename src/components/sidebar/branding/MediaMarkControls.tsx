@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from 'react'
+import { getDiscPresetScaleControlRange } from '../../../editor/discPresetScaleControlRange'
 import { getMediaMarkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   MEDIA_MARK_OPTIONS,
@@ -125,6 +126,11 @@ export function MediaMarkControls({
     projectMediaMark,
     selectedDiscTemplate,
   )
+  const mediaMarkScaleControlRange = getDiscPresetScaleControlRange({
+    currentScale: projectMediaMark.layout.scale,
+    nominalMin: 0.25,
+    nominalMax: 2,
+  })
 
   return (
     <MediaMarkSetupControls
@@ -135,8 +141,8 @@ export function MediaMarkControls({
       <EditorStackedRangeField
         id="media-mark-scale"
         label="Scale"
-        min={0.25}
-        max={2}
+        min={mediaMarkScaleControlRange.min}
+        max={mediaMarkScaleControlRange.max}
         step={0.01}
         value={projectMediaMark.layout.scale}
         onInput={(value) => handleMediaMarkLayoutChange('scale', value)}

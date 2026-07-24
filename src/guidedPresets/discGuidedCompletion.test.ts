@@ -375,9 +375,12 @@ test('completion architecture has no reactive, DOM, preset-definition, or App sl
   )
   assert.match(appSource, /completeDiscGuidedSlotsForMetadataAction\(/)
   assert.match(appSource, /completeDiscGuidedRatingBadgeAction\(/)
-  assert.doesNotMatch(ownerSources, /setDiscGuidedWorkflow|completedSlotIds/)
   assert.doesNotMatch(
-    `${completionSource}\n${ownerSources}`,
-    /containFit|contain-fit|fit:\s*['"]contain['"]/i,
+    ownerSources,
+    /setDiscGuidedWorkflow|completedSlotIds|omittedSlotIds/,
+  )
+  assert.doesNotMatch(
+    completionSource,
+    /fitVisualBoundsToDiscPresetRegion|contain-region|activeDiscPreset/i,
   )
 })

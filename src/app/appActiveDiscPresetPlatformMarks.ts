@@ -37,6 +37,13 @@ export type ActiveDiscPresetPlatformMarksResult = Readonly<{
   application: DiscPresetTargetedApplicationResult | null
 }>
 
+export function isActiveDiscPresetPlatformFitImpossible(
+  application: DiscPresetTargetedApplicationResult | null,
+) {
+  return application?.target === 'operating-system-marks.enabled' &&
+    application.status === 'unsupported'
+}
+
 type ApplyActiveDiscPresetToPlatformMarkStateInput = Readonly<{
   presetState?: ActiveDiscPresetState | null
   presetRef?: ActiveDiscPresetRef | null
@@ -109,7 +116,10 @@ export function applyActiveDiscPresetToPlatformMarkState({
     adapterRegistry: DISC_PRESET_PRODUCTION_ADAPTER_REGISTRY,
   })
 
-  if (application.status !== 'applied') {
+  if (
+    application.status !== 'applied' &&
+    application.status !== 'partial'
+  ) {
     return Object.freeze({ platformMarks, application })
   }
 

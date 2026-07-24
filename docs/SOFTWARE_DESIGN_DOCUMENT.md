@@ -528,6 +528,7 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 
 - `src/discText/index.ts`
 - `src/discText/renderLayout.ts`
+- `src/discText/straightTextPaintGeometry.ts`
 - `src/discText/straightTextWrapping.ts`
 - `src/discText/svgLayer.ts`
 - `src/discText/svgTextMarkup.ts`
@@ -1149,25 +1150,82 @@ Concrete pure adapters now translate resolved centers and V1 size intents into
 placement-only typed updates for title artwork/text, Background, primary Rating,
 primary Media Format Mark, primary Developer/Publisher Logos, and copyright
 text. Their focused owner-state slices support dormant disabled layouts without
-changing enablement or payload. Disc text uses the existing center-relative X
-contract. Legal region fitting receives browser-canvas measurement through an
-app-boundary service, reuses canonical straight-text render layout/bounds,
-checks both the requested region and template safe annulus, and returns a
-slot-local resolved geometry/status patch. Blank or disabled Legal receives
-dormant 7pt placement; fitting steps from 7pt to a 3pt minimum without
-truncation. Impossible content emits no owner update and marks only that slot
-unsupported. The generic engine and fit helper remain browser-independent.
-Background V1 supports only centered cover with zero pixel offset.
+changing enablement or payload. The definition parser strictly accepts
+`fixed-scale` or the canonical JSON-compatible `contain-region` policy.
+`contain-region` requires boolean `allowUpscale`; optional `maximumScale` must
+be finite, positive, and within the shared owner-scale ceiling, and optional
+`insetPercent` must be finite in `[0, 50)`. Unknown fields, malformed optionals,
+the retired `fit-region` spelling, and unsupported future policies fail closed.
+
+`src/presets/fitVisualBoundsToDiscPresetRegion.ts` owns the pure normalized
+contain calculations. `fitVisualBoundsToDiscPresetRectangle` is authoritative
+for Classic preset placement: it uniformly scales canonical bounds to the first
+limiting inset-region X or Y axis, respects declared no-upscale/maximum-scale
+caps, compensates for bounds-center offsets, and returns exact fitted bounds
+plus a horizontal, vertical, both, or capped classification. The complete
+fitted rectangle must stay inside the resolved rectangle. Classic adapters may
+not follow that result with a safe-annulus or center-hole shrink, translation,
+or broad clamp. The older `fitVisualBoundsToDiscPresetRegion` composition
+remains as a separately tested legacy-compatible annulus/inner-hole calculation;
+Classic adapters do not call it. Invalid regions or bounds return structured
+unsupported results.
+
+Canonical point-owner bounds reuse feature/render paths that also drive preview
+and export: alpha/content-trimmed Title artwork, uploaded primary-logo assets or
+their renderable built-in fallback placeholders, the primary Rating render model
+in `src/render/ratingBadgeRenderModel.ts`, and the primary Media render model.
+Supplemental USK and additional/repeated logos are excluded. Missing valid
+renderable dimensions seed the resolved center while preserving dormant scale,
+and the first valid bounds later target-refit only that semantic owner.
+Applicable Disc preview images suppress preview-only drop shadows outside these
+canonical bounds, matching the shadow-free PNG paths and keeping a zero-inset
+guide boundary equal to the visible replacement boundary.
+
+Disc text uses the existing center-relative X contract. Title fitting receives
+browser-canvas measurement through the app boundary, uses the template-aware
+default Title point size at scale one as preferred, and shrinks in 0.25pt steps
+to an 8pt minimum without enlarging short text to meet a border. Its canonical bounds
+include the renderer-shared straight-SVG stroke, directional shadow halo,
+italic overhang, and optional box geometry. The fitted layout persists a
+paint-safe wrap width inside the resolved region and offsets its text anchor
+when needed so the painted bounds, not the logical advance box, remain centered.
+Contrast and other paint-geometry style changes therefore participate in
+targeted Title refitting. Legal fitting remains 7pt preferred, 3pt minimum,
+and 0.25pt steps while containing its complete rendered box and paint bounds.
+Both use the exact
+resolved rectangle as their preset fit boundary, receive no later annulus/hole
+reduction, and never truncate. Legal returns a slot-local resolved
+geometry/status patch; Title preserves the shared Game Title slot geometry.
+Impossible content emits no owner update. Legal can mark its dedicated slot
+unsupported, while Title emits a target-specific warning without suppressing
+the shared artwork slot. The generic engine and fit helpers remain
+browser-independent. Background V1
+retains legacy centered-cover intents for other definitions, while Classic uses
+the shared rectangular contain primitive against its exact resolved region.
+Background canonical bounds at scale one match the content-aware full-disc
+source draw geometry used by preview and export; the fitted result keeps zero pixel
+offset and uniformly stops at the first limiting region axis. It intentionally
+uses the same rectangle-authoritative, no-post-fit-annulus rule as every other
+Classic guided owner. The Background layer still spans beneath the physical
+cutout and is circularly clipped by both preview and export. Active-preset image
+replacement and re-enable refit only Background; direct scale/offset edits
+remain manual.
 
 Operating System Marks use a focused platform-mark/template owner slice and
-delegate resolved-region grouping to `placeGroupedPlatformMarks`. The helper
-remains authoritative for canonical mark order, implicit built-in asset
-materialization, preferred-scale reduction, row balancing, safe-zone and
-physical-center-hole geometry, and non-overlap. The adapter emits only typed
-`x`, `y`, and `scale` updates keyed by `PlatformMarkValue`; selected values,
-enablement, source/theme, custom assets, and inference metadata remain
-feature-owned. The trusted production registry now covers every Classic
-placement target exactly once.
+delegate resolved-region grouping to `placeGroupedPlatformMarks`. Preset
+contain mode derives its upper scale from the resolved region/policy, evaluates
+centered one-row and two-row candidates in canonical order, and chooses the
+largest valid common scale while preserving each mark's aspect ratio. Each
+candidate reserves its configured fixed horizontal and vertical gaps before
+calculating that common scale. The preset rectangle is authoritative: the final
+union remains centered, fully region-contained, pairwise non-overlapping, and
+reaches the nearest limiting rectangle edge unless policy-capped. Preset
+contain mode does not shrink or translate the group for the Disc annulus or
+center hole. The legacy non-preset helper path retains its earlier offset/clamp
+behavior. The adapter emits only typed `x`, `y`, and `scale` updates keyed by
+`PlatformMarkValue`; selected values, enablement, source/theme, custom assets,
+and inference metadata remain feature-owned. The trusted production registry
+now covers every Classic placement target exactly once.
 
 Exact late placement is owned by
 `src/presets/discPresetTargetedApplication.ts`. Given a transient canonical
@@ -1183,16 +1241,44 @@ through the canonical registry, resolves the definition for the active Disc
 template, snapshots only the required owner slices, builds the generic plan,
 and immutably translates each discriminated update into feature-owner state.
 `src/app/appDiscRolePresetApplication.ts` dispatches each touched owner family
-once through existing setters. Disabled fixed owners receive dormant placement
-without enablement or content changes.
+once through existing setters. Disabled point/text owners receive dormant
+placement without enablement or content changes; dimensionless point owners
+preserve their dormant scale.
 
 `src/hooks/useActiveDiscPreset.ts` owns the single transient canonical active
 preset state: exact ID/revision plus the latest resolved runtime definition. It
 is cleared with the existing new/reset/workspace-exit/project-load lifecycle and
 never enters a project snapshot. Explicit application stores the final resolved
-definition; targeted OS or Legal application replaces only its matching
-resolved slot. Guidance consumes this state directly and fails closed when
-resolved geometry is unavailable. `src/app/appActiveDiscPresetPlatformMarks.ts`
+definition; targeted point-owner, Title-text, OS, or Legal application replaces
+only its matching resolved slot. Guidance consumes this state directly and
+fails closed when resolved geometry is unavailable.
+
+`src/project/projectGuidedRestoreLayout.ts` is the save/load placement-preservation
+boundary for persisted guided layouts. It resolves the exact saved guided
+layout ID/version through its exact canonical preset revision and the restored
+Disc template. After ordinary project normalization and safety clamping, only
+placements owned by resolved or adjusted guided slots recover their normalized
+saved values. This preserves rectangle-authoritative and later manual edits
+without reapplying a preset. Unknown, future, rejected, or unsupported mappings
+retain the ordinary clamp. Additional logos, supplemental USK, technical and
+additional artwork, and unrelated text never inherit a primary guided slot's
+restore authority. Omission and completion remain presentation state and do
+not affect placement restoration.
+
+`src/app/appActiveDiscPresetPointOwners.ts` requests one exact Title-artwork,
+Rating, Media, Developer, or Publisher target from the next authoritative owner
+state and merges only `x`, `y`, and scale. Feature hooks invoke it after semantic
+changes that can alter valid canonical bounds, including first/replacement
+assets, enablement with retained content, value/system/source/theme changes,
+and dimension/provenance changes. Direct layout edits do not invoke it. The
+providers in `projectTitleArtwork.ts`, `projectLogoAssets.ts`,
+`mediaMarkRenderModel.ts`, and `ratingBadgeRenderModel.ts` keep target-specific
+visual truth out of `App.tsx` and the generic fitter.
+
+`src/app/appActiveDiscPresetTitleText.ts` and `useDiscTextState.ts` similarly
+request only `game-title.text` for canonical content and
+measurement-relevant style changes.
+`src/app/appActiveDiscPresetPlatformMarks.ts`
 requests only the OS group target and merges only x/y/scale.
 `usePlatformMarksState.ts`
 composes selection, enablement, source/theme/custom-asset changes with that
@@ -1214,25 +1300,38 @@ explicit user-domain actions. Presentation retains orthogonal unsupported,
 omitted, completed, owner-filled, and suggested facts, then applies that
 precedence without erasing stored overlap.
 
+Contain-fit is independent of guided progress and navigation. It neither reads
+nor mutates `omittedSlotIds`, `completedSlotIds`, completion triggers, Guided
+Progress controls, or semantic focus routes. Omitted or completed owners still
+target-refit after a semantic replacement because those flags affect guidance
+presentation only; impossible fit does not resurrect a guide. Guided reset,
+Include/Show actions, and navigation do not change owner placement. Fitted
+feature-owner fields remain the shared edit/save/load inputs and drive both
+preview and PNG export; guidance and progress UI remain editor-only and never
+export.
+
 Disc project load uses a focused post-restore boundary to map valid guided
 layout identity to the canonical preset, resolve it for the restored template,
-refine content-aware Legal geometry from restored owner state and injected
+refine content-aware Legal slot geometry from restored owner state and injected
 measurement, and record the transient active preset reference/resolved
-definition. It never dispatches the application plan's owner updates or infers
+definition. It does not reapply Title owner geometry; the reconstructed policy
+enables later semantic Title changes to target-refit. It never dispatches the application plan's owner updates or infers
 identity from coordinates. This restores guided geometry plus targeted late OS
 and Legal application while keeping resolved geometry out of the project file.
-Failure preserves owner state and deactivates guidance safely. Aspect-preserving
-contain-fit for replacement visuals remains deferred to #296.
+Persisted feature-owner layout remains preview/export truth, while the
+reconstructed transient contain policy enables later semantic point/Title
+refits without a full preset reapplication. Failure preserves owner state and
+deactivates guidance safely.
 
 Classic applies adapter-safe output directly and does not run the legacy broad
 clamp sequence, so unrelated text rows, technical marks, repeated logos, and
 other untargeted state do not move. `discRolePresets.ts` retains only Classic
 menu metadata while the other two built-in presets continue using their legacy
 plans. Normal Classic application is fully applied; only genuinely impossible
-Legal fitting or another structured placement failure remains partial. Later
-eligible OS changes re-resolve only the active preset's OS target, and later
-Legal semantic changes re-resolve only its Legal target, without reapplying or
-reclamping any unrelated owner. Guided placeholders project the same final
+rectangle contain/text fitting or another structured placement failure remains
+partial. Later semantic changes re-resolve only the active preset's exact point,
+Title-text, OS, or Legal target, without reapplying or reclamping any unrelated
+owner. Guided placeholders project the same final
 resolved regions/statuses and hide unsupported slots.
 
 Guided navigation has two related but distinct contracts. A guided action route
@@ -1264,6 +1363,13 @@ predicates or use runtime DOM queries to decide reachability.
 - Keep nominal preset parsing, template resolution, trusted owner adaptation, and App dispatch as separate dependency layers.
 - Keep Classic compatibility translation in the focused app-domain wrapper; `App.tsx` supplies current owner state and setters but contains no slot, target, or coordinate policy.
 - Do not interpret preset semantic targets as arbitrary object paths or allow serialized definitions to supply executable adapters.
+- Keep owner-specific canonical-bounds providers beside their feature/render
+  truth; the generic contain helper must not branch on Classic IDs or inspect
+  project owners, DOM nodes, React state, or renderer orchestration.
+- A contain fit may uniformly change only the exact target's `x`, `y`, and scale,
+  must preserve the rendered-bounds center, and must not be followed by a broad
+  clamp. Direct layout edits remain manual state until explicit reapply or a
+  bounds-changing semantic owner action.
 - Keep editor-only guides and UI chrome out of clean exports.
 - Preserve disc preview/export parity and fixed layer order.
 - Curved disc text remains SVG/textPath.

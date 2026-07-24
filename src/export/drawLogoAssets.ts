@@ -1,17 +1,14 @@
-import type { LogoAssetLayout, ProjectLogoAssets } from '../project/projectTypes'
-import { LOGO_BASE_WIDTH_RATIO, LOGO_MAX_HEIGHT_RATIO } from '../disc/geometry'
+import type { LogoAssetLayout, ProjectLogoAssets } from '../project/projectTypes.ts'
+import { getLogoAssetBoundsPercent } from '../disc/geometry.ts'
 import {
   createLogoAssetRenderItems,
   getLogoAssetRenderDataUrl,
   getLogoAssetRenderSize,
   type LogoAssetKey,
-} from '../project/projectLogoAssets'
-import {
-  drawImageContent,
-  getCanvasImageContentSize,
-  loadCanvasSafeImage,
-} from './canvasImage'
-import type { BackgroundImageSize } from '../project/projectTypes'
+} from '../project/projectLogoAssets.ts'
+import { loadCanvasSafeImage } from './canvasImage.ts'
+import { drawMarkImage } from './drawMarkImage.ts'
+import type { BackgroundImageSize } from '../project/projectTypes.ts'
 
 async function drawLogoAsset(
   context: CanvasRenderingContext2D,
@@ -21,44 +18,25 @@ async function drawLogoAsset(
   imageSize: BackgroundImageSize | null,
   layout: LogoAssetLayout,
   logoKey: LogoAssetKey,
+  imageLoader: typeof loadCanvasSafeImage,
 ) {
   const renderImageSize = getLogoAssetRenderSize(imageSize)
-  const image = await loadCanvasSafeImage(
-    getLogoAssetRenderDataUrl(logoKey, imageDataUrl),
-    `${logoKey} logo image`,
-  )
-  const contentSize = getCanvasImageContentSize(image, renderImageSize)
 
-  if (!contentSize) {
-    return
-  }
-
-  const aspectRatio = contentSize.width / contentSize.height
-
-  const maxWidth = discContentSize * LOGO_BASE_WIDTH_RATIO * layout.scale
-  const maxHeight = discContentSize * LOGO_MAX_HEIGHT_RATIO * layout.scale
-
-  let drawWidth = maxWidth
-  let drawHeight = drawWidth / aspectRatio
-
-  if (drawHeight > maxHeight) {
-    drawHeight = maxHeight
-    drawWidth = drawHeight * aspectRatio
-  }
-
-  const centerX = discOrigin + discContentSize * (layout.x / 100)
-  const centerY = discOrigin + discContentSize * (layout.y / 100)
-
-  drawImageContent(
+  await drawMarkImage(
     context,
-    image,
-    renderImageSize,
+    discContentSize,
+    discOrigin,
     {
-      x: centerX - drawWidth / 2,
-      y: centerY - drawHeight / 2,
-      width: drawWidth,
-      height: drawHeight,
+      imageDataUrl: getLogoAssetRenderDataUrl(logoKey, imageDataUrl),
+      imageSize: renderImageSize,
+      label: `${logoKey} logo`,
+      layout,
+      scaledBounds: getLogoAssetBoundsPercent(
+        renderImageSize,
+        layout.scale,
+      ),
     },
+    imageLoader,
   )
 }
 
@@ -67,6 +45,7 @@ export async function drawLogoAssets(
   discContentSize: number,
   discOrigin: number,
   logoAssets: ProjectLogoAssets,
+  imageLoader: typeof loadCanvasSafeImage = loadCanvasSafeImage,
 ) {
   for (const logoAsset of createLogoAssetRenderItems(logoAssets)) {
     await drawLogoAsset(
@@ -77,6 +56,7 @@ export async function drawLogoAssets(
       logoAsset.imageSize,
       logoAsset.layout,
       logoAsset.logoKey,
+      imageLoader,
     )
   }
 }

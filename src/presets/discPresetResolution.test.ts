@@ -130,6 +130,38 @@ test('rejects an impossible annulus slot under reject policy', () => {
     warning.reason === 'outside-safe-annulus'))
 })
 
+test('template resolution uses the complete inner no-print diameter', () => {
+  assert.equal(
+    standardTemplate.innerNoPrintDiameterPercent,
+    discTemplates.standardPrintableDisc.innerHoleDiameterMm /
+      discTemplates.standardPrintableDisc.outerDiameterMm * 100,
+  )
+  assert.ok(
+    standardTemplate.innerNoPrintDiameterPercent >
+      standardTemplate.physicalCenterHolePercent,
+  )
+
+  const raw = mutableClassic()
+  const slots = raw.slots as Array<Record<string, unknown>>
+  slots[2]!.contentRegion = {
+    centerXPercent: 58,
+    centerYPercent: 50,
+    widthPercent: 1,
+    heightPercent: 1,
+  }
+  const result = resolveDiscPresetDefinition({
+    definition: parseDefinition(raw),
+    template: standardTemplate,
+  })
+
+  assert.equal(result.status, 'partial')
+  if (result.status === 'rejected') return
+  assert.equal(result.preset.slots[2]?.status, 'unsupported')
+  assert.ok(result.preset.slots[2]?.warnings.some((warning) =>
+    warning.kind === 'slot-unsupported' &&
+    warning.reason === 'outside-safe-annulus'))
+})
+
 test('keeps valid slots when an impossible slot uses resolve policy', () => {
   const raw = mutableClassic()
   const slots = raw.slots as Array<Record<string, unknown>>

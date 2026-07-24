@@ -1,4 +1,5 @@
 import type { ReactNode, Ref, RefCallback } from 'react'
+import { getDiscPresetScaleControlRange } from '../../../editor/discPresetScaleControlRange'
 import { getRatingBadgeLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../../layout/presets'
 import {
@@ -203,6 +204,11 @@ export function RatingBadgeControls({
     },
     selectedDiscTemplate,
   )
+  const ratingBadgeScaleControlRange = getDiscPresetScaleControlRange({
+    currentScale: projectRatingBadge.layout.scale,
+    nominalMin: 0.25,
+    nominalMax: 2,
+  })
 
   const applyRatingBadgePreset = (presetId: string) => {
     const preset = RATING_BADGE_LAYOUT_PRESETS.find((candidate) => candidate.id === presetId)
@@ -287,8 +293,8 @@ export function RatingBadgeControls({
       <EditorStackedRangeField
         id="rating-badge-scale"
         label="Scale"
-        min={0.25}
-        max={2}
+        min={ratingBadgeScaleControlRange.min}
+        max={ratingBadgeScaleControlRange.max}
         step={0.01}
         value={projectRatingBadge.layout.scale}
         onInput={(value) => handleRatingBadgeLayoutChange('scale', value)}

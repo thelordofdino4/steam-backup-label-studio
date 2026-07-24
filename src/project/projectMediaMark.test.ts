@@ -4,6 +4,10 @@ import {
   getMediaMarkPlaceholderImageUrl,
 } from '../assets/assetManifest.ts'
 import {
+  createMediaMarkRenderModel,
+  getMediaMarkCanonicalVisualBounds,
+} from '../render/mediaMarkRenderModel.ts'
+import {
   MEDIA_MARK_OPTIONS,
   MEDIA_MARK_THEME_OPTIONS,
   createDefaultProjectMediaMark,
@@ -12,6 +16,65 @@ import {
   normalizeProjectMediaMark,
   updateMediaMarkTheme,
 } from './projectMediaMark.ts'
+
+test('media mark canonical bounds resolve while disabled and match the render model', () => {
+  const disabledMark = createDefaultProjectMediaMark()
+  const canonicalBounds = getMediaMarkCanonicalVisualBounds(disabledMark)
+  const renderModel = createMediaMarkRenderModel({
+    ...disabledMark,
+    layout: {
+      ...disabledMark.layout,
+      enabled: true,
+    },
+  })
+
+  assert.deepEqual(canonicalBounds, { halfWidth: 4, halfHeight: 4 })
+  assert.deepEqual(renderModel?.unscaledBounds, canonicalBounds)
+})
+
+test('media mark canonical bounds preserve wide, tall, and square custom content', () => {
+  const variants = [
+    {
+      contentBounds: { x: 100, y: 100, width: 800, height: 200 },
+      expected: { halfWidth: 6.5, halfHeight: 1.625 },
+    },
+    {
+      contentBounds: { x: 400, y: 50, width: 200, height: 800 },
+      expected: { halfWidth: 1, halfHeight: 4 },
+    },
+    {
+      contentBounds: { x: 250, y: 250, width: 500, height: 500 },
+      expected: { halfWidth: 4, halfHeight: 4 },
+    },
+  ]
+
+  for (const [index, variant] of variants.entries()) {
+    const mediaMark = {
+      ...createDefaultProjectMediaMark(),
+      source: 'custom' as const,
+      customImageDataUrl: `data:image/png;base64,media-${index}`,
+      customImageSize: {
+        width: 1000,
+        height: 1000,
+        contentBounds: variant.contentBounds,
+      },
+    }
+    const bounds = getMediaMarkCanonicalVisualBounds(mediaMark)
+
+    assert.deepEqual(bounds, variant.expected)
+    assert.equal(
+      bounds && bounds.halfWidth / bounds.halfHeight,
+      variant.contentBounds.width / variant.contentBounds.height,
+    )
+    assert.equal(
+      getMediaMarkCanonicalVisualBounds({
+        ...mediaMark,
+        customImageSize: null,
+      }),
+      null,
+    )
+  }
+})
 
 test('media mark options include a Blu-ray built-in generic mark', () => {
   assert.ok(MEDIA_MARK_OPTIONS.some((option) => option.value === 'bluRay' && option.label === 'Blu-ray'))

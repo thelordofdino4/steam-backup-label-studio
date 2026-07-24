@@ -9,6 +9,9 @@ import {
   applySteamPlatformMarksImport,
 } from '../steam/steamPlatformMarks.ts'
 import type {
+  SteamPlatformMarkImportStatus,
+} from '../steam/steamPlatformMarks.ts'
+import type {
   SteamTitleArtworkImportResult,
 } from '../steam/steamTitleArtworkImport.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
@@ -27,8 +30,15 @@ type ApplySteamTitleArtworkImport = (
 export type SteamDiscVisualDefaultImport = {
   nextDiscTextResolution: DiscTextMetadataResolution
   platformMarks: ProjectPlatformMarks
+  platformMarkImportStatus: SteamPlatformMarkImportStatus
   platformMarkStatusMessage: string
   titleArtworkStatusMessage: string
+}
+
+export function shouldApplySteamPlatformMarksEligibilityChange(
+  status: SteamPlatformMarkImportStatus,
+) {
+  return status !== 'skipped-manual'
 }
 
 export type RunSteamDiscVisualDefaultImportParams = {
@@ -70,6 +80,7 @@ export async function runSteamDiscVisualDefaultImport({
   return {
     nextDiscTextResolution,
     titleArtworkStatusMessage: titleArtworkImport.statusMessage,
+    platformMarkImportStatus: platformMarkImport.status,
     platformMarkStatusMessage: platformMarkImport.statusMessage,
     platformMarks: platformMarkImport.platformMarks,
   }

@@ -29,7 +29,7 @@ export function TitleArtworkLayer({
   return (
     <div className="disc-title-artwork-layer" aria-label="Game title artwork layer">
       <ContentBoundedImage
-        className="disc-title-artwork"
+        className="disc-title-artwork disc-canonical-visual-bounds-image"
         src={renderItem.imageDataUrl}
         alt="Game title artwork"
         imageSize={renderItem.imageSize}
