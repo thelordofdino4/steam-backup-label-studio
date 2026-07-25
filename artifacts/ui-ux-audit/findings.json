@@ -1,0 +1,868 @@
+{
+  "audit": {
+    "date": "2026-07-24",
+    "method": "Seven independent static audits plus a separate evidence-judge synthesis",
+    "evidence_scope": "Repository source, tests, contracts, and GitHub issue history",
+    "native_runtime_used": false,
+    "native_dimensions_tested": [],
+    "required_native_dimensions": [
+      "900×650",
+      "1000×720",
+      "1920×1009"
+    ],
+    "publication_state": "Findings-only documentation; implementation branches and commits are not included.",
+    "source_audit_status": "Evidence-backed source audit completed; native Tauri acceptance of local prototypes has not occurred.",
+    "note": "Runtime-dependent claims remain marked for native verification; no runtime evidence is published."
+  },
+  "baseline_validation_correction": {
+    "issue": "#305",
+    "url": "https://github.com/thelordofdino4/steam-backup-label-studio/issues/305",
+    "classification": "Separate export-helper issue with a local prototype; not a UI finding or UI iteration",
+    "publication_status": "The implementation branch and prototype checks are outside this findings-only publication; no acceptance claim is made.",
+    "native_acceptance": "Not performed"
+  },
+  "external_research": [
+    {
+      "source": "WAI-ARIA Authoring Practices: Button Pattern",
+      "url": "https://www.w3.org/WAI/ARIA/apg/patterns/button/",
+      "principle": "Native and custom buttons support activation with both Space and Enter.",
+      "application": "The viewport Space handler should yield when a button or its descendant owns the event.",
+      "classification": "recommended",
+      "product_fit_rationale": "Both editors contain native buttons and custom menu/tab actions; preserving established activation removes a shortcut collision without changing focus order."
+    },
+    {
+      "source": "WCAG 2.2 Understanding 2.1.3: Keyboard (No Exception)",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/keyboard-no-exception",
+      "principle": "Functionality should remain keyboard operable without requiring specific timings for individual keystrokes.",
+      "application": "The guidance provides context for treating global keyboard interception cautiously; because Enter remained available, it does not by itself prove this product failed the success criterion.",
+      "classification": "contextual",
+      "product_fit_rationale": "The bounded correction improves conventional keyboard operation while preserving Space-based viewport panning."
+    }
+  ],
+  "findings": [
+    {
+      "unique_id": "A11Y-01",
+      "surface": "Shared PreviewViewport in Disc and Case Insert",
+      "workflow": "Activate a focused control with Space or use Space plus primary drag to pan",
+      "current_behavior": "Audit baseline: a window keydown handler prevented Space outside a narrow form-target list and armed pan; native/custom controls and effective contenteditable variants were not fully recognized, armed primary-pointer pan could start from an interactive target, and window blur could leave Space pan armed.",
+      "local_prototype_behavior": "The viewport yields Space to native/custom interactive targets and previously prevented events, rejects interactive armed-primary starts, disarms through one Space-key-up/window-blur callback, and clears the armed ref during listener cleanup without scheduling an unmount state update.",
+      "user_problem": "Space can fail to activate a focused control and can convert a control interaction into viewport panning.",
+      "evidence": [
+        "src/components/preview/PreviewViewport.tsx window keyboard and pointer capture paths",
+        "Both Disc and Case Insert mount the shared viewport",
+        "https://www.w3.org/WAI/ARIA/apg/patterns/button/",
+        "https://www.w3.org/WAI/WCAG22/Understanding/keyboard-no-exception"
+      ],
+      "affected_user_type": [
+        "Keyboard users",
+        "Assistive-technology users",
+        "Power users who pan with Space"
+      ],
+      "frequency": "High",
+      "severity": "MAJOR",
+      "confidence": "high",
+      "proposed_outcome": "Interactive controls retain Space activation while noninteractive preview context retains Space plus primary-drag pan; middle-button pan remains unchanged.",
+      "possible_solution": "Use a viewport-local input policy that respects defaultPrevented/repeat, browser-effective contenteditable, native interactive descendants, roles button/tab/menuitem, interactive pointer targets, and shared key-up/blur disarming with unmount-safe cleanup. This was prototyped locally but is not included or accepted by this publication.",
+      "architectural_owner": "Preview viewport input arbitration",
+      "files": [
+        "src/components/preview/PreviewViewport.tsx",
+        "src/components/preview/previewViewportInputPolicy.ts",
+        "src/components/preview/previewViewportInputPolicy.test.ts"
+      ],
+      "tests": [
+        "Focused input-policy unit tests",
+        "Source-wiring contract for shared key-up/blur disarming and unmount-safe cleanup",
+        "Native control activation and pan smoke in both editors"
+      ],
+      "native_verification": "Required at 900×650, 1000×720, and 1920×1009 for actual platform default activation; no native verification performed in this audit.",
+      "related_issue": [
+        "#298 selected",
+        "#167 adjacent",
+        "#183 closed/adjacent"
+      ],
+      "implement_now": false,
+      "audit_time_decision": "Selected as the first coherent improvement.",
+      "implementation_status": "local prototype exists; not published or accepted; native validation pending",
+      "classification_note": "The external guidance supports expected Space and Enter activation for buttons. Linked anchors are also yielded to so browser/application behavior is not overridden, not because links normally activate with Space. Because Enter remained available, this is classified as a platform-convention/accessibility best-practice break, not automatically a WCAG failure."
+    },
+    {
+      "unique_id": "LIFE-01",
+      "surface": "Home and both editors' project lifecycle actions",
+      "workflow": "New Disc, New Case Insert, Load, and cross-editor replacement",
+      "current_behavior": "Audit baseline: Disc New asked before reset, while Case New and Load did not consistently guard replacement; Disc-to-Case and Main Menu copy promised in-memory retention despite reset behavior and no Resume path.",
+      "local_prototype_behavior": "appProjectTransitions derives one policy from activeWorkspace and intent only. Initial Home New Disc/New Case/Load bypass confirmation. Active Disc/Case Main Menu closes through one truthful warning; same-type New, cross-type New, and valid Load replace through one truthful warning naming the active project. Decline invokes no reset, cleanup, apply, or workspace callback; accepted transitions reuse existing owners. Load prepares a valid restored candidate before the gate and applies it only after acceptance. A stable coordinator acquires admission synchronously at each outer New Disc, New Case Insert, Load, and Main Menu handler. While one is pending, later lifecycle attempts are rejected rather than queued and run no dialog/read/reset/apply/workspace work; normal status announces `Another project action is still in progress. Wait for it to finish, then try again.` and Home mirrors it visibly while active. Admission releases after resolution, decline, or rejection so retry works. Picker cancellation, invalid contents, restore failure, and declined replacement never apply state; decline reports `Load cancelled. Current project was kept.` Existing #300 Home feedback routing remains. No dirty/session marker, Resume promise, disabled control, or progress UI was added.",
+      "user_problem": "Users can lose unsaved work and cannot predict which lifecycle actions are destructive.",
+      "evidence": [
+        "src/app/appProjectTransitions.ts active-workspace/intent prompt policy and synchronous single-flight coordinator",
+        "src/app/App.tsx exactly-once public New/Load/Main Menu admission and existing transition callbacks",
+        "src/app/appProjectLoad.ts candidate → gate → apply boundary",
+        "src/app/appProjectTransitions.test.ts Home/editor matrix, deferred admission/retry/rejection, busy feedback, and App wiring",
+        "src/app/appProjectLoad.test.ts accepted/declined order, early exits, no-setter decline, deferred Load race, and #300 outcomes",
+        "Agreement across five independent audits"
+      ],
+      "affected_user_type": [
+        "All creators",
+        "Novices",
+        "Users switching editor types"
+      ],
+      "frequency": "Medium",
+      "severity": "MAJOR",
+      "confidence": "high",
+      "proposed_outcome": "All destructive replacements share one truthful, cancellation-safe policy.",
+      "possible_solution": "Centralize the active-workspace/intent warning matrix and synchronous single-flight admission, reuse existing reset/cleanup callbacks after acceptance, and use a two-phase Load whose restored candidate reaches the existing apply owner only after acceptance. This was prototyped locally but is not included or accepted by this publication; it adds no dirty/session/Resume system, queue, generation token, cancellation mechanism, disabled control, or progress UI.",
+      "architectural_owner": "App project transition policy, single-flight lifecycle admission, and two-phase load orchestration",
+      "files": [
+        "src/app/appProjectTransitions.ts",
+        "src/app/appProjectTransitions.test.ts",
+        "src/app/App.tsx",
+        "src/app/appProjectLoad.ts",
+        "src/app/appProjectLoad.test.ts",
+        "docs/PRD.md",
+        "docs/SOFTWARE_DESIGN_DOCUMENT.md",
+        "docs/REPO_ARCHITECTURE_INVENTORY.md",
+        "docs/MANUAL_SMOKE_CHECKLISTS.md"
+      ],
+      "tests": [
+        "Home direct paths",
+        "Disc/Case close, same-type New, cross-type New, and Load matrix",
+        "Exact copy/options and accept/decline exactly-once operations",
+        "Stable coordinator and exactly-once entry by all four public handlers",
+        "Deferred first action rejects concurrent work and permits retry after resolution/rejection",
+        "Home busy feedback uses normal and visible Home status",
+        "Deferred Load rejects New/Main Menu/second Load without a second picker, reset, apply, or workspace mutation",
+        "Both Load routes prepare candidate before gate and apply only after acceptance",
+        "Picker/invalid/restore failure never gate",
+        "Declined Load invokes no setter",
+        "#300 Home outcome/status behavior remains intact"
+      ],
+      "native_verification": "Required at 900×650, 1000×720, and 1920×1009 for native dialog order/copy and visibly retained current project; no native run was performed.",
+      "related_issue": [
+        "#303 created/selected",
+        "#127 closed adjacent",
+        "#128 closed adjacent",
+        "#126 adjacent"
+      ],
+      "implement_now": false,
+      "audit_time_decision": "Selected as the iteration-6 improvement after issue/design review.",
+      "implementation_status": "local prototype exists; not published or accepted; native validation pending"
+    },
+    {
+      "unique_id": "FEEDBACK-01",
+      "surface": "Home Load Project feedback",
+      "workflow": "Cancel or fail project loading from Home",
+      "current_behavior": "Audit baseline: load cancellation/failure was announced through an editor status route while Home rendered a separate message value that the audited flow did not set.",
+      "local_prototype_behavior": "runAppProjectLoad returns a typed loaded/cancelled/failed outcome carrying its existing message and relevant route data. App captures Home origin, mirrors non-success feedback only for that origin, clears stale Home feedback after success, and preserves the existing editor announcement path. The existing Home message has role=status.",
+      "user_problem": "A Home load can appear to do nothing, obscuring cancellation versus failure.",
+      "evidence": [
+        "src/app/appProjectLoad.ts typed outcome and pure Home-status decision",
+        "src/app/App.tsx load-origin capture and status routing",
+        "src/components/home/HomeScreen.tsx role=status semantics",
+        "src/app/appProjectLoad.test.ts focused outcome, no-apply, routing, clearing, wiring, and semantics contracts"
+      ],
+      "affected_user_type": [
+        "New users",
+        "Returning users loading saved projects"
+      ],
+      "frequency": "Medium",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Feedback is visible on the surface that initiated Load.",
+      "possible_solution": "Return status and route data from the existing load owner and derive a small origin-aware Home update in App orchestration while preserving restore and editor-announcement effects. This was prototyped locally but is not included or accepted by this publication.",
+      "architectural_owner": "App load outcome and surface-status routing",
+      "files": [
+        "src/app/appProjectLoad.ts",
+        "src/app/appProjectLoad.test.ts",
+        "src/app/App.tsx",
+        "src/components/home/HomeScreen.tsx"
+      ],
+      "tests": [
+        "Typed cancellation, loaded, and failed outcomes",
+        "Cancellation and pre-apply failure do not mutate editor state",
+        "Home-only non-success routing and successful stale-message clearing",
+        "App integration wiring",
+        "Home role=status semantics"
+      ],
+      "native_verification": "Required at 900×650, 1000×720, and 1920×1009 for visible copy and screen-reader/live-region timing; no native run was performed.",
+      "related_issue": [
+        "#300 created/selected"
+      ],
+      "implement_now": false,
+      "audit_time_decision": "Selected as the iteration-3 improvement.",
+      "implementation_status": "local prototype exists; not published or accepted; native validation pending"
+    },
+    {
+      "unique_id": "EXPORT-01",
+      "surface": "Disc and Case Insert PNG export",
+      "workflow": "Export a design with preflight warnings or blockers",
+      "current_behavior": "Audit baseline: the save destination dialog opened before preflight, and tests locked that order.",
+      "local_prototype_behavior": "Both routes build and confirm their existing preflight before Save. Rejection skips Save/render/write with the existing preflight-cancel status; post-approval Save cancellation skips render/write with the existing export-cancel status. Successful paths preserve filename defaults, DPI, preflight content/options, renderer arguments, guides, write commands, and messages. Disc preview measurement remains deferred until rendering after destination selection.",
+      "user_problem": "Users choose a path before learning that export needs review, causing needless native-dialog churn.",
+      "evidence": [
+        "src/app/appPngExport.ts preflight-first orchestration for both routes",
+        "src/app/appPngExport.test.ts rejection, Save-cancellation, successful-order, preserved-input/default, and deferred-measurement contracts"
+      ],
+      "affected_user_type": [
+        "All users exporting incomplete or warning-bearing designs"
+      ],
+      "frequency": "Medium",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Preflight approval precedes destination selection.",
+      "possible_solution": "Reorder only the established orchestration to build preflight → confirm → Save destination → render → write while preserving current route inputs, outputs, and messages. This was prototyped locally but is not included or accepted by this publication.",
+      "architectural_owner": "PNG export orchestration",
+      "files": [
+        "src/app/appPngExport.ts",
+        "src/app/appPngExport.test.ts"
+      ],
+      "tests": [
+        "Both routes reject before Save/render/write",
+        "Both routes stop after a cancelled post-approval Save",
+        "Successful case and disc order is preflight → confirm → Save → render → write",
+        "Case pane/disc defaults and renderer inputs remain stable",
+        "Disc preview measurement occurs only when rendering proceeds"
+      ],
+      "native_verification": "Required at 900×650, 1000×720, and 1920×1009 for native dialog ordering; no native run was performed.",
+      "related_issue": [
+        "#302 created/selected"
+      ],
+      "implement_now": false,
+      "audit_time_decision": "Selected as the iteration-5 improvement.",
+      "implementation_status": "local prototype exists; not published or accepted; native validation pending"
+    },
+    {
+      "unique_id": "NAV-01",
+      "surface": "Case Insert navigation shell",
+      "workflow": "Move among Front, Back, and Spine",
+      "current_behavior": "Cover's sole Front tab is hidden and Tray exposes Back/Spine; crossing panes requires the Template control despite an existing route adapter.",
+      "user_problem": "The primary spatial workflow is undiscoverable and presented as template configuration.",
+      "evidence": [
+        "src/editor/editorNavigationShell.ts",
+        "src/components/editor/EditorNavigationShell.tsx",
+        "src/components/caseInsert/CaseInsertEditorShell.tsx"
+      ],
+      "affected_user_type": [
+        "All Case Insert users",
+        "First-time users"
+      ],
+      "frequency": "High",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Front, Back, and Spine are persistently discoverable destinations where supported.",
+      "possible_solution": "Add an always-visible case surface navigator backed by existing pane/surface normalization.",
+      "architectural_owner": "Case navigation shell and template-surface adapter",
+      "files": [
+        "src/editor/editorNavigationShell.ts",
+        "src/components/editor/EditorNavigationShell.tsx",
+        "src/components/caseInsert/CaseInsertEditorShell.tsx",
+        "src/app/App.tsx"
+      ],
+      "tests": [
+        "Pane/surface normalization",
+        "Keyboard navigation",
+        "Stable active surface"
+      ],
+      "native_verification": "Required at 900×650, 1000×720, and 1920×1009.",
+      "related_issue": [
+        "#306 created from finding",
+        "#168 related",
+        "#126 related",
+        "#271 completed"
+      ],
+      "implement_now": false,
+      "confidence_note": "The navigation path is direct static evidence; visual correction still requires native confirmation."
+    },
+    {
+      "unique_id": "TEMPLATE-02",
+      "surface": "Disc Custom Template controls",
+      "workflow": "Enter an invalid or inconsistent dimension",
+      "current_behavior": "Normalization preserves the old controlled value; the field snaps back without an explanation.",
+      "user_problem": "Users cannot tell why input was rejected or how to correct it.",
+      "evidence": [
+        "src/components/sidebar/TemplatePanel.tsx",
+        "src/hooks/useDiscTemplate.ts",
+        "src/templates/discTemplateStateModel.ts"
+      ],
+      "affected_user_type": [
+        "Users creating custom label stock/templates"
+      ],
+      "frequency": "Low-to-medium overall; high within custom-template use",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Invalid values have specific, accessible, correctable guidance.",
+      "possible_solution": "Return structured domain validation and render associated field errors while committing only valid normalized values.",
+      "architectural_owner": "Disc template domain validation",
+      "files": [
+        "src/templates/discTemplateStateModel.ts",
+        "src/hooks/useDiscTemplate.ts",
+        "src/components/sidebar/TemplatePanel.tsx"
+      ],
+      "tests": [
+        "Boundary/cross-field errors",
+        "Error clearing",
+        "Valid state preservation",
+        "Accessible association"
+      ],
+      "native_verification": "Required for focus, error visibility, and narrow layouts.",
+      "related_issue": [
+        "#307 created from finding"
+      ],
+      "implement_now": false
+    },
+    {
+      "unique_id": "SEARCH-01",
+      "surface": "Game / Steam import panel",
+      "workflow": "Submit overlapping Steam searches and choose a result",
+      "current_behavior": "Audit baseline: searches had no latest-submission ownership, so an older completion could overwrite newer results, announce a stale failure, or clear loading while a newer Enter-submitted search remained pending. Reset and Clear could also be undone by an older completion.",
+      "local_prototype_behavior": "useSteamImport owns one stable monotonically increasing submission coordinator. Every submitted query supersedes older work, and only the newest submission may publish results, announce success/no-results/failure, or clear search loading. A submitted empty query invalidates pending work, clears loading, and retains `Enter a Steam game title or App ID to search.` Existing resetSteamImportState and clearSteamSearchResults also invalidate pending work and clear loading, so stale completions cannot repopulate cleared state. Requests finish normally; no AbortController, debounce, cache, pagination, Enter disabling, Steam-import concurrency change, or result-UI change was added.",
+      "user_problem": "Users can select a result from the wrong query.",
+      "evidence": [
+        "src/hooks/useSteamImport.ts stable coordinator instance and reset/clear integration",
+        "src/hooks/steamSearchSubmission.ts monotonic identity and latest-only publication",
+        "src/hooks/steamSearchSubmission.test.ts deferred ordering, stale failure, pending loading, invalidation, current outcomes, and hook wiring",
+        "src/components/sidebar/GamePanel.tsx preserved overlapping Enter path and result presentation"
+      ],
+      "affected_user_type": [
+        "Steam import users on slow or variable connections"
+      ],
+      "frequency": "Low-to-medium",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Only the newest submitted query may publish results or terminal feedback and clear loading; explicit invalidation prevents stale repopulation.",
+      "possible_solution": "Give the Steam-search hook a stable monotonic submission coordinator, gate every completion effect on latest identity, and invalidate through existing empty/reset/clear owners. This was prototyped locally but is not included or accepted by this publication.",
+      "architectural_owner": "Steam-search submission state adjacent to the existing Steam import hook",
+      "files": [
+        "src/hooks/useSteamImport.ts",
+        "src/hooks/steamSearchSubmission.ts",
+        "src/hooks/steamSearchSubmission.test.ts",
+        "scripts/test-file-list.mjs"
+      ],
+      "tests": [
+        "A/B out-of-order completion keeps B visible",
+        "Stale failure after B success is ignored",
+        "A completion while B is pending publishes nothing and leaves loading true",
+        "Reset and Clear invalidate pending work and clear loading",
+        "Submitted empty query invalidates pending work and retains validation feedback",
+        "Current success, no-results, and failure publish normally",
+        "Stable hook ownership and unchanged Steam-import integration"
+      ],
+      "native_verification": "Race correctness is source-testable; native pending-state clarity remains pending at 900×650, 1000×720, and 1920×1009. No native run was performed.",
+      "related_issue": [
+        "#304 created/selected"
+      ],
+      "implement_now": false,
+      "audit_time_decision": "Selected as the iteration-7 improvement after issue/design review.",
+      "implementation_status": "local prototype exists; not published or accepted; native validation pending"
+    },
+    {
+      "unique_id": "A11Y-03",
+      "surface": "Shared contextual text ribbon",
+      "workflow": "Determine and switch the active ribbon category",
+      "current_behavior": "Audit baseline: active category was represented by an is-active CSS class without equivalent selected/pressed/tab semantics.",
+      "local_prototype_behavior": "Each existing native category button binds aria-pressed directly to activeTab === tab.id; the container is a named group. Labels, order, focus/click behavior, and layout are unchanged.",
+      "user_problem": "Assistive technology cannot reliably identify the current category.",
+      "evidence": [
+        "src/components/preview/inlinePreviewTextEditorRibbon.tsx mapped category-button template",
+        "src/components/preview/contextualTextRibbonTabs.test.ts source contract"
+      ],
+      "affected_user_type": [
+        "Screen-reader users",
+        "Keyboard users editing text"
+      ],
+      "frequency": "Medium",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Assistive technology can identify the active category while existing native-button interaction remains unchanged.",
+      "possible_solution": "Bind aria-pressed on the existing mapped native buttons to authoritative activeTab equality and name their exclusive category group. This was prototyped locally but is not included or accepted by this publication; no tablist or keyboard model was added.",
+      "architectural_owner": "Inline preview text editor ribbon category semantics",
+      "files": [
+        "src/components/preview/inlinePreviewTextEditorRibbon.tsx",
+        "src/components/preview/contextualTextRibbonTabs.test.ts"
+      ],
+      "tests": [
+        "Source contract that the mapped native button template binds aria-pressed to activeTab === tab.id",
+        "No tablist/tab role conversion"
+      ],
+      "native_verification": "Required at 900×650, 1000×720, and 1920×1009 with platform accessibility inspection; no native run was performed.",
+      "related_issue": [
+        "#299 created/selected",
+        "#184 closed/adjacent",
+        "#183 closed/adjacent"
+      ],
+      "implement_now": false,
+      "audit_time_decision": "Selected as the iteration-2 improvement.",
+      "implementation_status": "local prototype exists; not published or accepted; native validation pending"
+    },
+    {
+      "unique_id": "COPY-01",
+      "surface": "Home and Case Insert capability/status copy",
+      "workflow": "Choose Load, New Disc, or New Case Insert at launch",
+      "current_behavior": "Home says only Disc projects load and Case Insert is future work, while Case projects route and the Case editor is active but incomplete.",
+      "user_problem": "Users receive conflicting product capability expectations.",
+      "evidence": [
+        "src/components/home/HomeScreen.tsx",
+        "src/caseInsert/sidebarWorkflow.ts",
+        "README/product contracts",
+        "Project load routing"
+      ],
+      "affected_user_type": [
+        "First-time users",
+        "Returning users"
+      ],
+      "frequency": "Every launch",
+      "severity": "MINOR",
+      "confidence": "high",
+      "proposed_outcome": "One truthful vocabulary distinguishes active, alpha, and incomplete features.",
+      "possible_solution": "Centralize capability labels/status and consume them on Home and editor entry points.",
+      "architectural_owner": "Product capability copy/view model",
+      "files": [
+        "src/components/home/HomeScreen.tsx",
+        "src/caseInsert/sidebarWorkflow.ts"
+      ],
+      "tests": [
+        "Single-source status labels",
+        "Route/capability parity"
+      ],
+      "native_verification": "Not required unless revised copy changes layout.",
+      "related_issue": [
+        "#17",
+        "#126",
+        "#149"
+      ],
+      "implement_now": false
+    },
+    {
+      "unique_id": "SESSION-01",
+      "surface": "App-wide project session",
+      "workflow": "Save repeatedly, return to Main Menu, resume, and understand dirty state",
+      "current_behavior": "Save always behaves as Save As; there is no current path, dirty flag, or resume affordance; transient status also carries file status.",
+      "user_problem": "Users cannot tell whether work is saved or resume the in-memory work promised by transition copy.",
+      "evidence": [
+        "src/app/App.tsx",
+        "src/components/sidebar/ProjectPanel.tsx",
+        "Status hooks",
+        "File save/load helpers"
+      ],
+      "affected_user_type": [
+        "All repeat users",
+        "Long editing sessions"
+      ],
+      "frequency": "High",
+      "severity": "MAJOR",
+      "confidence": "high",
+      "proposed_outcome": "Explicit current project identity, dirty state, Save/Save As, and truthful resume/replacement lifecycle.",
+      "possible_solution": "Design a focused project-session domain before changing UI; route transitions/persistence through it.",
+      "architectural_owner": "Future project-session domain",
+      "files": [
+        "Future focused session module",
+        "src/app/App.tsx",
+        "src/components/sidebar/ProjectPanel.tsx",
+        "Save/load helpers"
+      ],
+      "tests": [
+        "Session state machine",
+        "Path ownership",
+        "Dirty transitions",
+        "Save failure",
+        "Resume",
+        "Serialization parity"
+      ],
+      "native_verification": "Required through end-to-end lifecycle smoke.",
+      "related_issue": [
+        "#308 created from finding",
+        "#127 closed adjacent",
+        "#128 closed adjacent",
+        "#126 adjacent"
+      ],
+      "implement_now": false,
+      "confidence_note": "The gap is directly evidenced; the solution remains broad and requires design."
+    },
+    {
+      "unique_id": "A11Y-02",
+      "surface": "Shared image candidate picker modal",
+      "workflow": "Open, navigate, choose, and dismiss with keyboard/assistive technology",
+      "current_behavior": "The aria-modal dialog does not establish initial focus, contain focus, or restore focus to its trigger.",
+      "user_problem": "Focus can remain behind the modal or become lost after close.",
+      "evidence": [
+        "src/components/sidebar/ImageCandidatePicker.tsx"
+      ],
+      "affected_user_type": [
+        "Keyboard users",
+        "Screen-reader users",
+        "Switch users"
+      ],
+      "frequency": "Low-to-medium",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Focus enters, stays within, and returns from the modal predictably.",
+      "possible_solution": "Add a picker-scoped focus lifecycle keyed to open/close and trigger identity.",
+      "architectural_owner": "Image candidate picker modal lifecycle",
+      "files": [
+        "src/components/sidebar/ImageCandidatePicker.tsx"
+      ],
+      "tests": [
+        "Initial focus",
+        "Tab/Shift+Tab wrap",
+        "Escape",
+        "Close restoration",
+        "Unmounted trigger"
+      ],
+      "native_verification": "Required with real focus traversal.",
+      "related_issue": [
+        "#309 created from finding",
+        "#183 closed/adjacent"
+      ],
+      "implement_now": false,
+      "confidence_note": "Static lifecycle evidence is direct; runtime focus behavior still needs confirmation."
+    },
+    {
+      "unique_id": "IMPORT-01",
+      "surface": "Case Insert back-cover Steam import",
+      "workflow": "Import a Steam game into a fresh/default Case project",
+      "current_behavior": "Import populates back-cover text while visibility stays disabled, then reports success without noting that the content is hidden.",
+      "user_problem": "Users may think import failed or hunt for the enable control.",
+      "evidence": [
+        "src/caseInsert/steamBackCoverImport.ts",
+        "src/caseInsert/steamBackCoverImport.test.ts",
+        "Case text visibility defaults"
+      ],
+      "affected_user_type": [
+        "Case Insert users relying on Steam metadata"
+      ],
+      "frequency": "Medium",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Feedback accurately states hidden imported content, or import deliberately enables it under a documented rule.",
+      "possible_solution": "Prefer explicit follow-up feedback unless product decides import should enable while preserving prior user intent.",
+      "architectural_owner": "Case Steam import transition/feedback contract",
+      "files": [
+        "src/caseInsert/steamBackCoverImport.ts",
+        "Case text controls/status wiring"
+      ],
+      "tests": [
+        "Fresh default",
+        "Previously disabled choice",
+        "Already enabled",
+        "Repeated import"
+      ],
+      "native_verification": "Required for follow-up control discoverability.",
+      "related_issue": [
+        "#310 created from finding",
+        "#149 adjacent",
+        "#181 adjacent"
+      ],
+      "implement_now": false,
+      "confidence_note": "State/result evidence is direct; auto-enable versus explanatory feedback remains a product decision."
+    },
+    {
+      "unique_id": "TEMPLATE-01",
+      "surface": "Disc template transitions and positioned content",
+      "workflow": "Switch templates/geometries and switch back",
+      "current_behavior": "Template changes immediately clamp multiple owners; returning does not restore prior layout and there is no warning/undo.",
+      "user_problem": "Exploratory template comparison can silently damage a carefully positioned design.",
+      "evidence": [
+        "src/hooks/useDiscTemplate.ts",
+        "src/templates/discTemplateStateModel.ts",
+        "Placement owner clamp transitions"
+      ],
+      "affected_user_type": [
+        "Disc users comparing stock/custom geometries"
+      ],
+      "frequency": "Medium during setup",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Template-induced changes are understood and recoverable.",
+      "possible_solution": "Evaluate pre-change warning plus one-step restore or template-keyed snapshots before changing domain state.",
+      "architectural_owner": "Disc template transition domain and placement owners",
+      "files": [
+        "src/hooks/useDiscTemplate.ts",
+        "src/templates/discTemplateStateModel.ts",
+        "Placement owner modules"
+      ],
+      "tests": [
+        "Multi-owner clamping",
+        "Cancellation",
+        "Restore/snapshot round trip",
+        "Save/load/export parity"
+      ],
+      "native_verification": "Required across representative layouts.",
+      "related_issue": [
+        "#311 created from finding",
+        "#168 adjacent",
+        "#281 adjacent"
+      ],
+      "implement_now": false,
+      "confidence_note": "Clamping is directly evidenced; the recovery model still needs design."
+    },
+    {
+      "unique_id": "STORAGE-01",
+      "surface": "Native project-file persistence",
+      "workflow": "Save during interruption, disk-full, or process failure",
+      "current_behavior": "The Rust command directly overwrites the destination via std::fs::write.",
+      "user_problem": "A rare interrupted save can destroy the last usable project copy.",
+      "evidence": [
+        "src-tauri/src/commands/files.rs"
+      ],
+      "affected_user_type": [
+        "Any user saving valuable projects",
+        "Long sessions"
+      ],
+      "frequency": "Low",
+      "severity": "MAJOR",
+      "confidence": "high",
+      "proposed_outcome": "A failed save leaves the prior file intact and reports failure.",
+      "possible_solution": "Write/sync a sibling temporary file and replace atomically with platform-aware cleanup/error handling.",
+      "architectural_owner": "Tauri file command/persistence boundary",
+      "files": [
+        "src-tauri/src/commands/files.rs"
+      ],
+      "tests": [
+        "Successful replacement",
+        "Write/sync/rename failure",
+        "Cleanup",
+        "Existing-file preservation",
+        "Windows semantics"
+      ],
+      "native_verification": "Required for platform filesystem behavior.",
+      "related_issue": [
+        "#312 created from finding"
+      ],
+      "implement_now": false
+    },
+    {
+      "unique_id": "SIDEBAR-01",
+      "surface": "Case Insert Back and Spine role navigation",
+      "workflow": "Open Back Additional Artwork or Spine duplicate Steam Branding",
+      "current_behavior": "Audit baseline: visible roles had no owner and rendered issue-placeholder copy; Spine duplicated a Steam Branding concept already owned by its setup panel.",
+      "local_prototype_behavior": "Back no longer inventories unsupported Additional Artwork, Spine no longer inventories Steam Branding as a role, and the unused steam-backup-branding role ID type member is removed after a repository-wide owner search found no runtime consumer. Dedicated Spine Steam Branding and Front/Spine Additional Artwork controls remain wired. The generic ticket fallback is unchanged, and an invariant proves no current Case role inventory can reach it.",
+      "user_problem": "Production navigation leads to dead ends and exposes internal issue language.",
+      "evidence": [
+        "src/editor/editorNavigationShell.ts corrected Back and Spine inventories and role ID union",
+        "src/editor/editorNavigationShell.test.ts domain inventory contracts",
+        "src/components/editor/editorNavigationShellViewModel.test.ts Back view-model contract",
+        "src/components/caseInsert/CaseInsertEditorShell.test.ts setup-panel, Additional Artwork, and owner-invariant contracts",
+        "src/components/caseInsert/CaseInsertEditorShell.tsx unchanged control routes"
+      ],
+      "affected_user_type": [
+        "Case Insert users"
+      ],
+      "frequency": "High visibility",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Every visible role opens real controls; unavailable roles stay absent.",
+      "possible_solution": "Remove only the two invalid inventory entries, remove the newly unused role ID type member, and enforce that every visible Case role maps to an existing owner while retaining the generic fallback and real setup/role panels. This was prototyped locally but is not included or accepted by this publication.",
+      "architectural_owner": "Editor navigation inventory and Case shell role ownership contract",
+      "files": [
+        "src/editor/editorNavigationShell.ts",
+        "src/editor/editorNavigationShell.test.ts",
+        "src/components/editor/editorNavigationShellViewModel.test.ts",
+        "src/components/caseInsert/CaseInsertEditorShell.test.ts"
+      ],
+      "tests": [
+        "Back omits unsupported Additional Artwork",
+        "Spine omits the Steam Branding role while its dedicated setup panel remains wired",
+        "Front and Spine Additional Artwork remain wired",
+        "All current Case role inventories map to owners and cannot reach the unchanged ticket fallback"
+      ],
+      "native_verification": "Required at 900×650, 1000×720, and 1920×1009 for sidebar continuity; no native run was performed.",
+      "related_issue": [
+        "#301 created/selected",
+        "#126 adjacent",
+        "#149 adjacent",
+        "#274 closed/adjacent"
+      ],
+      "implement_now": false,
+      "audit_time_decision": "Selected as the iteration-4 improvement.",
+      "implementation_status": "local prototype exists; not published or accepted; native validation pending"
+    },
+    {
+      "unique_id": "GUIDANCE-01",
+      "surface": "Disc Layout Presets panel",
+      "workflow": "Choose a preset and understand its effect/active state",
+      "current_behavior": "Definitions contain descriptions and active guided identity, but the panel hides that guidance and can clear visible selection after application.",
+      "user_problem": "Users cannot predict preset impact or confirm what structures the disc.",
+      "evidence": [
+        "src/components/sidebar/DiscLayoutPresetsPanel.tsx",
+        "src/guidedPresets/discGuidedLayouts.ts",
+        "src/guidedPresets/discGuidedWorkflow.ts"
+      ],
+      "affected_user_type": [
+        "Novices",
+        "Preset-first users"
+      ],
+      "frequency": "Medium",
+      "severity": "MODERATE",
+      "confidence": "high",
+      "proposed_outcome": "Preset scope and active/modified guided layout remain legible.",
+      "possible_solution": "Expose definition descriptions and derive active/modified presentation from the existing guided model.",
+      "architectural_owner": "Preset/guided view model",
+      "files": [
+        "src/components/sidebar/DiscLayoutPresetsPanel.tsx",
+        "src/guidedPresets/discGuidedLayouts.ts",
+        "src/guidedPresets/discGuidedWorkflow.ts"
+      ],
+      "tests": [
+        "Description rendering",
+        "Active/modified state",
+        "Manual divergence",
+        "Reapply/reset"
+      ],
+      "native_verification": "Required for density and wrapping.",
+      "related_issue": [
+        "#168",
+        "#281"
+      ],
+      "implement_now": false
+    },
+    {
+      "unique_id": "PICKER-01",
+      "surface": "Shared artwork/logo candidate picker",
+      "workflow": "Choose a candidate whose apply step fails but resolves",
+      "current_behavior": "The picker closes after any fulfilled onSelect, while some callers swallow failures and resolve.",
+      "user_problem": "The picker disappears on failure and loses retry context.",
+      "evidence": [
+        "src/components/sidebar/ImageCandidatePicker.tsx",
+        "Artwork/editor candidate selection callers"
+      ],
+      "affected_user_type": [
+        "Users importing Steam/web/local candidates"
+      ],
+      "frequency": "Low",
+      "severity": "MINOR",
+      "confidence": "high",
+      "proposed_outcome": "The picker closes only after confirmed successful application.",
+      "possible_solution": "Use an explicit success result or require rejected failure, then centralize close/error behavior.",
+      "architectural_owner": "Shared candidate picker selection contract",
+      "files": [
+        "src/components/sidebar/ImageCandidatePicker.tsx",
+        "src/components/sidebar/artwork/*Controls.tsx",
+        "src/components/editor/EditorImageSourceControls.tsx",
+        "src/components/editor/EditorLogoCandidateControls.tsx"
+      ],
+      "tests": [
+        "Success closes",
+        "Failure remains open",
+        "Retry succeeds",
+        "Stale completion ignored"
+      ],
+      "native_verification": "Helpful for focus/error experience.",
+      "related_issue": [
+        "#169 adjacent"
+      ],
+      "implement_now": false
+    },
+    {
+      "unique_id": "RECOVERY-01",
+      "surface": "Repeated artwork/logo/text-list item controls",
+      "workflow": "Accidentally delete a visual item",
+      "current_behavior": "Deletes apply immediately and no shared undo/history model exists.",
+      "user_problem": "Accidental destructive edits can require manual reconstruction.",
+      "evidence": [
+        "Static review of repeated-item cards and domain transitions",
+        "No verified dominant accidental-delete path"
+      ],
+      "affected_user_type": [
+        "Users managing dense multi-item designs"
+      ],
+      "frequency": "Uncertain/medium",
+      "severity": "MAJOR",
+      "confidence": "medium",
+      "proposed_outcome": "Material destructive edits are recoverable.",
+      "possible_solution": "Validate the highest-cost paths first; if justified, design coherent command/history ownership instead of isolated component undo.",
+      "architectural_owner": "Future shared edit-history domain",
+      "files": [
+        "Multiple feature transition modules and shared cards; scope not bounded"
+      ],
+      "tests": [
+        "Command inversion",
+        "History boundaries",
+        "Save/load parity",
+        "Drag coalescing",
+        "Multi-owner restore"
+      ],
+      "native_verification": "Required before selection and after design.",
+      "related_issue": [
+        "None exact"
+      ],
+      "implement_now": false,
+      "rejection_reason": "Disproportionately broad relative to current evidence."
+    },
+    {
+      "unique_id": "LAYOUT-01",
+      "surface": "Disc and Case sidebar at smaller native heights",
+      "workflow": "Scan collapsed panels and reach lower roles",
+      "current_behavior": "Static inventory counts and approximate row sizes suggest substantial scrolling, but no native measurements were collected.",
+      "user_problem": "Lower sections may be hard to discover on smaller windows.",
+      "evidence": [
+        "Static source/CSS count only",
+        "No required 900×650, 1000×720, or 1920×1009 native viewport run"
+      ],
+      "affected_user_type": [
+        "Laptop and smaller-window users"
+      ],
+      "frequency": "Uncertain/medium",
+      "severity": "OBSERVATION",
+      "confidence": "low",
+      "proposed_outcome": "Primary sections remain discoverable without breaking established hierarchy.",
+      "possible_solution": "Measure in native Tauri before choosing density, sticky navigation, or grouping changes.",
+      "architectural_owner": "Editor navigation shell and sidebar CSS",
+      "files": [
+        "src/styles/app-panels.css",
+        "src/editor/editorNavigationShell.ts",
+        "src/components/editor/EditorNavigationShell.tsx"
+      ],
+      "tests": [
+        "Native viewport matrix",
+        "Keyboard scroll/reveal",
+        "No hidden controls",
+        "Role-focus alignment"
+      ],
+      "native_verification": "Required as a prerequisite to implementation.",
+      "related_issue": [
+        "#46",
+        "#168"
+      ],
+      "implement_now": false,
+      "rejection_reason": "Insufficient native visual evidence and no validated correction."
+    }
+  ],
+  "merged_or_already_tracked": [
+    {
+      "observation": "Ribbon category equal sizing",
+      "issue": "#265",
+      "disposition": "Already tracked; not duplicated"
+    },
+    {
+      "observation": "Direct guided-placeholder click",
+      "issue": "#281",
+      "disposition": "Already tracked; not duplicated"
+    },
+    {
+      "observation": "Preview keyboard selection/navigation",
+      "issue": "#172/#174/#175/#176",
+      "disposition": "Already tracked; not duplicated"
+    },
+    {
+      "observation": "Case Insert overlap",
+      "issue": "#149",
+      "disposition": "Already tracked; not duplicated"
+    },
+    {
+      "observation": "Manual smoke checklist describes removed floating text editor",
+      "issue": null,
+      "disposition": "Documentation debt; dedicated docs pass"
+    },
+    {
+      "observation": "Sidebar order conflicts among AGENTS/PRD and source/README/#271",
+      "issue": "#271",
+      "disposition": "Governance/product decision; no inferred reorder"
+    }
+  ],
+  "rejected_observations": [
+    "Preview clipping without native evidence",
+    "General contrast or target-size claims without measurement",
+    "Guided terminology",
+    "Intentional disabled Background guidance",
+    "Cover/Tray naming",
+    "Existing Reset/Clear distinctions"
+  ]
+}
