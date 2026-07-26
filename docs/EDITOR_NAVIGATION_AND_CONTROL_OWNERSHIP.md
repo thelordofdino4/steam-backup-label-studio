@@ -3,7 +3,7 @@
 > Status: Draft target-state normative reference, grounded in the current implementation at `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`.
 > Purpose: Define semantic control classes, ownership boundaries, editor navigation destinations, focus routing, state lifetimes, and migration constraints without prescribing a final menu or panel design.
 > Read when: Changing application/editor navigation, moving or adding controls, routing preview selections to controls, extending Disc or Case surfaces, changing contextual controls, or implementing workflow entry points.
-> Authoritative source: This document is normative for target editor-navigation and control-ownership semantics. Current as-built facts defer to source and the SDD; shared application-command IDs and lifecycle behavior defer to `APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`; focused `export.png` execution semantics defer to `EXPORT_WORKFLOW_CONTRACT.md`; serialized schema defers to `PROJECT_FILE_SPEC.md`; rich-text and source-editing behavior defers to `TEXT_EDITOR_CONTRACT.md`.
+> Authoritative source: This document is normative for target editor-navigation and control-ownership semantics. Current as-built facts defer to source and the SDD; shared application-command IDs and lifecycle behavior defer to `APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`; final application-menu presentation and integration defer to `APPLICATION_MENU_BAR_CONTRACT.md`; focused `export.png` execution semantics defer to `EXPORT_WORKFLOW_CONTRACT.md`; serialized schema defers to `PROJECT_FILE_SPEC.md`; rich-text and source-editing behavior defers to `TEXT_EDITOR_CONTRACT.md`.
 > Last reviewed against commit: `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`.
 
 ## 1. Status, Scope, And Authority
@@ -19,7 +19,7 @@ This document owns:
 - editor-navigation state and dirty-state rules; and
 - the migration constraints and testable invariants for control relocation.
 
-It does not own final menu names, visual hierarchy, panel styling, native command lifecycle, project schema, rich-text behavior, feature-specific renderer behavior, or an issue implementation plan. A “target host category” in this reference is an ownership category, not a promise that a command will live in a menu, toolbar, ribbon, sidebar, dialog, or preview rail.
+It does not own final menu names, visual hierarchy, panel styling, native command lifecycle, project schema, rich-text behavior, feature-specific renderer behavior, or an issue implementation plan. Final application-menu presentation and integration are defined in [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md). A “target host category” in this reference is an ownership category, not a promise that a command will live in a menu, toolbar, ribbon, sidebar, dialog, or preview rail.
 
 Conflict order is:
 
