@@ -2,7 +2,7 @@
 > Status: Implementation design note for issue #267.
 > Purpose: Define the semantic packaging role taxonomy and object-role model for current role panels and future role-based layout presets.
 > Read when: Working on role hierarchy, role-panel semantics, layout preset modeling, or packaging-surface object ownership.
-> Authoritative source: Current source for implemented behavior; `docs/SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts; `docs/PROJECT_FILE_SPEC.md` for saved-project schema.
+> Authoritative source: Current source for implemented behavior; `docs/SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts; `docs/DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for target application-level Disc preset workflow semantics; `docs/PROJECT_FILE_SPEC.md` for saved-project schema.
 > Last reviewed against commit: `4c44a9456d4c74039a2d2a343fd5757c9a3c45a9`.
 
 This document records the semantic role model for GitHub issue #267. It is a
@@ -261,9 +261,12 @@ However, applying a preset will eventually need role-to-object targeting:
 - how blank-project and disabled-state preservation stay intact.
 
 #267 does not implement preset schema or behavior. #168 owns the broader role
-hierarchy and preset direction, #269 owns the role-based preset data model and
-application contract documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md),
-and #270 owns starter disc layout presets.
+hierarchy and preset direction, #269 owns the role-based preset data model
+documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md), and
+#270 owns the implemented starter Disc presets. Target application-level
+selection, immutable planning, atomic apply/reapply/detach, configuration, and
+customization semantics are owned by
+[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
 
 ## 13. Compatibility And Invariants
 

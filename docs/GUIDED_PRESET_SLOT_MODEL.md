@@ -2,7 +2,7 @@
 > Status: Implemented Disc domain, persistence, passive guidance, setup menus, typed navigation, persistent completion, and contain-fit contract for issues #283, #287, #289, #292, #295, and #296.
 > Purpose: Define the Disc guided preset slot identity, lifecycle, binding, and architecture boundaries for parent issue #281.
 > Read when: Working on guided Disc presets, slot resolution, edit-mode placeholders, role-focus navigation, guided persistence, or safe content suggestions.
-> Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `ROLE_BASED_PRESET_MODEL.md` for layout presets; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
+> Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `ROLE_BASED_PRESET_MODEL.md` for preset definition/model vocabulary; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for target application-level preset workflow/configuration; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
 
 ## Implementation Status
 
@@ -36,6 +36,12 @@ slots and suppresses unsupported, omitted, completed, and owner-filled slots by
 explicit precedence. Layout presets continue
 to place real feature-owner state; guided definitions contain no content, DOM,
 renderer, export, persistence, or role-focus request data.
+
+The target application-level preset workflow is separately owned by
+[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
+Guided activation, omission, completion, and placeholders may consume an
+accepted preset result, but they do not select compatibility rules, commit a
+preset privately, or become applied-preset customization state.
 
 The generic definition also carries allowlisted serializable placement intent.
 Issue #293 now provides pure nominal-to-resolved template contracts, structured
@@ -1144,6 +1150,10 @@ Omission changes guidance only: owner enablement, content, geometry, preview,
 render, and export remain independent. Setup-menu state, focus/navigation,
 selection, panel expansion, hover/animation, labels, and geometry are transient
 or definition-owned and are not serialized.
+
+Any future generic applied/customized/detached preset configuration is distinct
+from `editor.guidedLayout` and must follow the preset workflow contract plus an
+explicit project-spec schema/migration decision.
 
 ## 14. Architecture Invariants
 
