@@ -39,6 +39,7 @@ Authority remains divided as follows:
 | Detailed Game search, import, and metadata workflow semantics | [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md) |
 | Detailed Disc template and physical-geometry workflow semantics | [`DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md`](DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md) |
 | Detailed Disc Layout Preset selection/plan/apply/reapply/detach semantics | [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md) |
+| Final native File/Edit/Tools/Window/Help presentation, menu item IDs, platform placement, menu bridge, and workflow-launcher integration | [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md) |
 | Detailed Guided Workflow sequences | [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md) and future focused Guided Start contract |
 
 This contract does not add fields to the project-file schema. A target session
@@ -323,7 +324,9 @@ second time. Arbitrary reentrant dispatch with the same scope is rejected.
 | `application.close-window` | Close Window | The target window is open and no termination handoff is already committed | `lifecycle.transition`, then `application.termination` | After the shared guard, grant one native close and close the target window |
 | `application.quit` | Quit | The application is running and no termination handoff is already committed | `lifecycle.transition`, then `application.termination` | After the shared guard, grant one application termination and request Quit |
 
-These commands define semantics, not a File/Edit/View menu. The focused
+These commands define semantics, not menu presentation. The final target
+File/Edit/Tools/Window/Help hierarchy and native adapter boundary are defined in
+[`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md). The focused
 [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) defines the exact
 `export.png` descriptor and workflow while reusing this section's command and
 result vocabulary. Game, Disc Template/physical-geometry, and Disc Layout
@@ -695,13 +698,17 @@ Dependency-focused implementation order:
 This documentation task does not implement, and this contract does not claim
 current support for:
 
-- a final native application-menu hierarchy or menu rendering;
+- native application-menu rendering; the final target hierarchy and adapter
+  boundary are defined in
+  [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md);
 - recent projects;
 - autosave, crash recovery, or resumable drafts across process restarts;
 - multi-document editing;
 - application Undo/Redo implementation;
 - native window geometry/state persistence;
-- Help/About/version/documentation-link commands;
+- Help/About/version/documentation-link implementation; presentation-neutral
+  targets and menu placement are defined in
+  [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md);
 - detailed Export, Game, Disc Template/physical-geometry, Layout Preset, or
   Guided Workflow behavior;
 - schema reconstruction or new persisted fields beyond the authority boundary
