@@ -244,6 +244,8 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
+The frontend also contains pure, runtime-disconnected lifecycle and application-menu foundations. `src/lifecycle/` defines the current single-session, canonical-baseline, command, busy-scope, and capability primitives. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, and an in-memory test port. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
+
 ### 5.2 Key Files
 
 - `index.html`
@@ -257,6 +259,14 @@ The disc editor is the stable alpha-capable workspace. The case insert editor is
 - `src/app/appSteamImportPlan.ts`
 - `src/app/appSteamDiscVisualImport.ts`
 - `src/app/appCaseInsertPreviewTextHandlers.ts`
+- `src/lifecycle/applicationCommandTypes.ts`
+- `src/lifecycle/applicationCommandRegistry.ts`
+- `src/lifecycle/lifecycleCommandCapabilities.ts`
+- `src/lifecycle/projectSession.ts`
+- `src/applicationMenu/applicationMenuTypes.ts`
+- `src/applicationMenu/applicationMenuRegistry.ts`
+- `src/applicationMenu/applicationMenuProjection.ts`
+- `src/applicationMenu/inMemoryApplicationMenuPort.ts`
 - `src/editor/editorTypes.ts`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/src/main.rs`
@@ -275,6 +285,8 @@ The disc editor is the stable alpha-capable workspace. The case insert editor is
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
+Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not execute targets or reproduce domain authorization. The in-memory port is test-only; it stores immutable newer generations per window label and is not a browser or native menu.
+
 ### 5.4 Render, Edit, And Export Paths
 
 - React entry: `src/main.tsx` renders `<App />`.
@@ -290,6 +302,10 @@ Native Rust commands do not own editor state. They return data or perform filesy
 - Do not add feature-specific layout math, renderer construction, pointer math, import/upload interpretation, project normalization, or export drawing to `App.tsx`.
 - Keep disc editor, case insert editor, and neutral template helpers separate.
 - Use focused hooks/domain modules when behavior grows beyond trivial wiring.
+- Keep `src/applicationMenu/` presentation-neutral: native construction, event
+  transport, command dispatch, workflow-host routing, and UI composition belong
+  to later adapters and must not be smuggled into the descriptor or projection
+  model.
 - Target editor-navigation destinations, control classification, presentation-adapter boundaries, and semantic ownership are defined in [`EDITOR_NAVIGATION_AND_CONTROL_OWNERSHIP.md`](EDITOR_NAVIGATION_AND_CONTROL_OWNERSHIP.md). Final target application-menu presentation and integration are defined separately in [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md). Neither draft target-state document replaces the current implementation summarized here or claims the menu and relocated workflows are implemented.
 - Target application-level PNG export execution, immutable snapshot, preflight/conditional-confirmation/destination order, typed outcomes, busy ownership, and Disc/Case adapter boundaries are defined in [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md). That draft target-state contract does not describe the current workflow as already implemented.
 - Target Game search, stable selection, immutable import planning, separated metadata operations, atomic Disc/Case apply, stale-result handling, and Case imported-text visibility are defined in [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md). That draft target-state contract does not describe the current workflow as already implemented.
