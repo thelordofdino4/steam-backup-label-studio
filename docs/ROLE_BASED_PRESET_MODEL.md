@@ -2,13 +2,20 @@
 > Status: Current architecture and extension contract for GitHub issues #269, #270, #289, #292, #293, and #296.
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
-> Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
+> Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for target application-level Select/Plan/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
 > Last reviewed against commit: `c2bfaeed02915ee2b757cdd4a9a560b5305b6436`.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
 #292, #293, and #296. It does not introduce broader role/preset persistence, change
 renderers or export behavior, or move existing controls.
+
+The draft target application workflow in
+[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
+consumes this definition/role/placement vocabulary. It supersedes this
+document only for future application-level selection, immutable review
+planning, atomic commit, applied/customized/detached configuration, Reapply,
+and Detach semantics; implemented behavior remains described here and in source.
 
 ## 1. Purpose And Scope
 
@@ -514,6 +521,10 @@ This mirrors current optional visual feature behavior and the existing tests
 around disabled-state preservation.
 
 ## 12. Application Contract
+
+The following is the implemented/foundation application model. Future
+application-level workflow semantics defer to
+[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
 
 Preset application should be an explicit command that updates normal project
 state through existing feature owners or focused domain helpers. It should not

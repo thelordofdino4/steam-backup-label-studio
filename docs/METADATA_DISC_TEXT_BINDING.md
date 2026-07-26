@@ -1,8 +1,8 @@
 # Metadata-Bound Disc Text
 > Status: Conditional disc metadata text reference.
 > Purpose: Metadata-bound disc text defaults and fallback semantics.
-> Read when: Disc text metadata/default-source behavior.
-> Authoritative source: This document for disc metadata binding unless superseded by TEXT_EDITOR_CONTRACT.md.
+> Read when: Disc text metadata/default-source behavior or mapping accepted Game workflow metadata into Disc text.
+> Authoritative source: This document for Disc metadata binding; the Game workflow contract owns search/discovery/application semantics; the Disc Layout Preset workflow contract owns whether an accepted bound-content change participates in an attached preset assignment; TEXT_EDITOR_CONTRACT.md owns text editing and fitting.
 > Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
 
 
@@ -11,6 +11,17 @@ Last refreshed: 2026-05-31.
 The disc text system keeps the flexible Text panel controls, but rendered text elements can resolve obvious Game metadata fields before preview/export rendering.
 
 The source of truth is `src/project/metadataDiscText.ts`.
+
+The draft target [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md)
+owns how imported or discovered metadata is reviewed and atomically accepted.
+After acceptance, this reference remains authoritative for how Disc text resolves
+that canonical metadata and preserves manual overrides.
+
+If a bound value changes while a future generic Disc preset configuration is
+present, [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
+decides whether the exact attached, uncustomized assignment may use a declared
+focused refit response or must preserve customized placement pending reviewed
+Reapply. Metadata binding never performs a full preset reapplication.
 
 ## Bound Fields
 

@@ -281,7 +281,7 @@ Native Rust commands do not own editor state. They return data or perform filesy
 - Tauri dev/build entry: `src-tauri/tauri.conf.json` points dev to Vite and packaged frontend output to `dist`.
 - UI routing: `App.tsx` renders `HomeScreen`, disc editor panels plus `DiscPreview`, or `CaseInsertEditorShell`.
 - Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`.
-- Export: `App.tsx` calls preflight helpers, confirms warnings, calls canvas export helpers, then writes PNG bytes through Tauri.
+- Export: `App.tsx` opens the native destination chooser, calls preflight helpers, always requests confirmation (information for clean summaries and warning for summaries with warnings), calls canvas export helpers, then writes PNG bytes through Tauri.
 
 ### 5.5 Invariants And Future-Change Rules
 
@@ -289,6 +289,9 @@ Native Rust commands do not own editor state. They return data or perform filesy
 - Do not add feature-specific layout math, renderer construction, pointer math, import/upload interpretation, project normalization, or export drawing to `App.tsx`.
 - Keep disc editor, case insert editor, and neutral template helpers separate.
 - Use focused hooks/domain modules when behavior grows beyond trivial wiring.
+- Target editor-navigation destinations, control classification, presentation-adapter boundaries, and semantic ownership are defined in [`EDITOR_NAVIGATION_AND_CONTROL_OWNERSHIP.md`](EDITOR_NAVIGATION_AND_CONTROL_OWNERSHIP.md). That draft target-state reference does not replace the current implementation summarized here or prescribe a final menu design.
+- Target application-level PNG export execution, immutable snapshot, preflight/conditional-confirmation/destination order, typed outcomes, busy ownership, and Disc/Case adapter boundaries are defined in [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md). That draft target-state contract does not describe the current workflow as already implemented.
+- Target Game search, stable selection, immutable import planning, separated metadata operations, atomic Disc/Case apply, stale-result handling, and Case imported-text visibility are defined in [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md). That draft target-state contract does not describe the current workflow as already implemented.
 
 ### 5.6 Validation Expectations
 
@@ -1132,6 +1135,23 @@ The disc editor is the first alpha-capable app surface.
 
 The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, or generic preset schema exists. Schema `0.2.0` does persist the focused Disc guided-workflow layout ID/version plus independent canonical omitted/completed slot IDs; it does not persist generic preset identity or geometry.
 
+The proposed target application-level Disc Layout Preset workflow—stable
+catalog references, non-mutating selection, immutable impact planning, review,
+atomic Apply/Reapply/Detach, persistent applied/customized/detached
+configuration, and Game/Guided/output boundaries—is documented in
+[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
+It is not current implementation. The generic preset definition, resolution,
+fitting, and targeted-application modules below remain focused inputs to that
+workflow rather than a second session, schema, geometry, or renderer owner.
+
+The proposed target application workflow for Disc template choice, raw custom
+dimension validation, immutable multi-owner geometry planning, atomic apply, and
+revision-scoped recovery is documented in
+[`DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md`](DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md).
+It is not current implementation. Existing Disc geometry/layout owners remain
+authoritative for calculations and render math; the target workflow coordinates
+their pure plan adapters without moving their decisions into `App.tsx`.
+
 Generic Disc preset definitions are pure JSON-compatible domain data. The
 definition parser reconstructs immutable allowlisted identity, compatibility,
 slot geometry, visual-layer, and placement-intent values from `unknown`; the
@@ -1359,7 +1379,7 @@ predicates or use runtime DOM queries to decide reachability.
 
 ### 12.5 Invariants And Future-Change Rules
 
-- Preserve the current sidebar flow: Project File, Export Options, Game, Template, Artwork, Branding, Text, Guide Legend.
+- Preserve established feature owners when presentation adapters or navigation hosts move; detailed target navigation and control-ownership semantics defer to `EDITOR_NAVIGATION_AND_CONTROL_OWNERSHIP.md`.
 - Keep circular disc geometry out of case insert modules.
 - Keep shared layout helpers limited to neutral numeric range math; disc annulus, center-hole, and safe-zone collision rules remain disc-owned.
 - Keep nominal preset parsing, template resolution, trusted owner adaptation, and App dispatch as separate dependency layers.
@@ -1598,6 +1618,13 @@ remains the overlay lookup and rectangle-measurement facade.
 
 Save/load is orchestrated by `App.tsx`, project snapshot/restore helpers, and Tauri file commands. Save writes JSON. Load reads JSON, validates and normalizes enough to route and restore editor state.
 
+The draft target-state application-command, single-project session, path,
+baseline, dirty-state, replacement-guard, and native close/Quit semantics are
+defined in [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md).
+That contract is normative for future lifecycle work but does not describe the
+current implementation summarized here. Serialized fields and migrations remain
+owned by [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
+
 ### 15.2 Key Files
 
 - `src/app/App.tsx`
@@ -1672,10 +1699,16 @@ Export reads current runtime project state and template geometry. Layer order po
 ### 16.4 Render/Edit/Export Paths
 
 - Export starts in `App.tsx`.
-- Preflight summary is built.
-- User confirmation is requested if warnings exist.
+- The native destination chooser opens first.
+- After a destination is selected, a preflight summary is built.
+- User confirmation is always requested; clean summaries use an information dialog and warning summaries use a warning dialog.
 - Canvas export builds PNG bytes.
-- Tauri writes binary PNG bytes.
+- Tauri writes binary PNG bytes directly to the selected path.
+
+The draft target workflow intentionally differs: [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md)
+requires one immutable request, preflight before dialogs, confirmation only for
+aggregated actionable warnings, then destination selection, render/encode, and
+safe write/commit.
 
 ### 16.5 Invariants And Future-Change Rules
 
@@ -1730,13 +1763,13 @@ The app displays editor guides, guide legends, design check warnings, and export
 ### 17.4 Render/Edit/Export Paths
 
 - Guide overlays render in preview.
-- Guide legends render in preview/sidebar UI according to current UI ownership.
+- Guide legends currently render as preview-local app-shell overlays.
 - Export draws selected guides after normal content.
 - Preflight/design checks produce summaries and warnings.
 
 ### 17.5 Invariants And Future-Change Rules
 
-- Guide Legend remains in the current sidebar flow unless issue-scoped work moves it.
+- Guide Legend remains preview-local app-shell information and must not become exported or dirty project content.
 - Export guide behavior must be explicit and user-controlled.
 - Design Check notification badges should be reserved for concrete design-rule failures, not lower-risk print advisories.
 

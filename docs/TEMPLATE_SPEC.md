@@ -1,12 +1,12 @@
 # Template Specification
 > Status: Conditional template reference.
-> Purpose: Physical template concepts and template-specific notes.
+> Purpose: Physical template vocabulary, exact template data concepts, and template-specific notes.
 > Read when: Template geometry, dimensions, or physical output definitions.
-> Authoritative source: Current source plus SDD for implementation contracts.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Authoritative source: This specification plus current template types/data for template vocabulary; the SDD for implemented architecture; `DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md` for proposed target Disc selection, draft/validation, apply, and recovery semantics; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for target preset workflow semantics that consume valid committed geometry.
+> Last reviewed against commit: `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`.
 
 
-Last refreshed: 2026-06-03.
+Last refreshed: 2026-07-26.
 
 ## Purpose
 
@@ -46,7 +46,9 @@ The top-level project/editor type remains separate from the concrete template or
 
 ## Shared Template Model
 
-The shared template model is owned by `src/types/template.ts`.
+The shared template model is owned by `src/types/template.ts`. This document
+names its persisted vocabulary and physical meaning; source remains exact when
+the TypeScript shape is more detailed than this prose.
 
 The model now distinguishes:
 
@@ -74,14 +76,31 @@ A disc template currently defines:
 - `id`
 - `name`
 - `type: 'disc'`
+- `units`
 - `outerDiameterMm`
 - `physicalCenterHoleDiameterMm`
 - `innerHoleDiameterMm`
 - `printableDiameterMm`
 - `safeDiameterMm`
+- optional `bleedDiameterMm`
+- `defaultZones`
+- optional `guides`
+- optional `masks`
 - optional `geometryNote`
 
 The app supports built-in disc templates and a custom dimensions option.
+
+A physical Disc template is not a Disc Layout Preset. Layout Presets consume
+one valid committed template geometry through the focused target workflow in
+[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md);
+they do not select, repair, or persist a second copy of physical geometry.
+
+The draft target workflow for choosing those options, retaining raw invalid
+custom input without changing the active design, planning geometry-dependent
+owner changes, applying them atomically, and recovering the prior layout is
+defined by
+[`DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md`](DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md).
+That workflow does not expand the persisted template vocabulary by itself.
 
 ## Rectangular Case Template Model
 

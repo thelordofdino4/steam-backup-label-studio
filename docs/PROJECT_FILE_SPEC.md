@@ -18,6 +18,41 @@ A project file should store enough state to restore the current editor state
 without depending on the original local files after reload when assets have been
 embedded.
 
+Application-session metadata is outside this schema. A native current path,
+in-memory session ID, clean baseline, revision, derived dirty state, lifecycle
+busy state, feedback, focus, and dialog state must not become serialized merely
+to implement the draft target lifecycle in
+[`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md).
+That contract owns target command/session semantics; this specification remains
+authoritative for every persisted field and migration, including current
+case-editor metadata.
+
+Game search queries, result sets, candidates, request generations, busy state,
+and immutable import plans are also session-only or ephemeral and are not added
+to this schema by the draft target
+[`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md).
+Only accepted atomic Game workflow changes flow into the existing persisted
+project fields owned by this specification; any future new persisted field still
+requires an explicit schema and migration decision here.
+
+Raw custom-dimension drafts, field diagnostics, immutable geometry plans,
+last-valid session drafts, review state, recovery tokens, and transient
+template-resolved preset geometry are likewise session-only or ephemeral under
+the draft target
+[`DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md`](DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT.md).
+Only a successful atomic geometry apply changes the existing persisted selected
+template/custom-dimension and feature-owner layout fields. Any future attempt to
+persist draft or recovery state requires an explicit schema and migration
+decision in this specification.
+
+The draft target
+[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
+defines which applied/customized/detached Disc preset configuration semantics
+would affect later editing. This specification still owns any eventual JSON
+shape, schema version, validation, normalization, and migration. No such
+generic preset configuration is present in schema `0.2.0`, and a migration must
+never infer it from owner coordinates or Guided progress.
+
 ## Current Format
 
 The current implementation saves plain JSON project files. User-facing filenames are commonly named `.sbls.json`.
@@ -294,7 +329,7 @@ See `docs/PROJECT_PACKAGE_FORMAT_DECISION.md` for the #56 decision record.
 
 ## Future Schema Work
 
-- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), and the role-based preset model is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). Schema `0.2.0` adds only the focused Disc guided-workflow identity plus omission/completion metadata described above; broader role, preset, or role-layout persistence still requires explicit schema and migration work in this spec.
+- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), the role-based preset definition/model vocabulary is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md), and target application-level configuration semantics are documented in [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md). Schema `0.2.0` adds only the focused Disc guided-workflow identity plus omission/completion metadata described above; broader role, preset, or role-layout persistence still requires explicit schema and migration work in this spec.
 - Register focused project schema migrations in `src/project/projectSchema.ts`
   before changing saved-project semantics.
 - Keep migrations one version step at a time and make each migration produce the
