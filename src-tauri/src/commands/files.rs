@@ -1,6 +1,6 @@
 #[tauri::command]
 pub(crate) fn write_project_file(path: String, contents: String) -> Result<(), String> {
-    std::fs::write(path, contents).map_err(|error| error.to_string())
+    crate::project_file::write(&path, contents.as_bytes()).map_err(|error| error.to_string())
 }
 
 #[tauri::command]

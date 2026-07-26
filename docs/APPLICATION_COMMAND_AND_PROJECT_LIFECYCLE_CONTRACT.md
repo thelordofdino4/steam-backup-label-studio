@@ -97,7 +97,7 @@ recovery, or application-history implementation was found.
 | Open reads, routes, validates/migrates/normalizes a candidate before applying it, but restoration then calls a long sequence of independent setters. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, their focused tests | Candidate staging exists, but aggregate load commit is not atomic. |
 | Save/Open helpers report through string callbacks and catch failures locally; cancellation, decline, and failure do not share a typed result taxonomy. | `src/app/appProjectSave.ts`, `src/app/appProjectLoad.ts` | Callers cannot apply one exhaustive command-result policy. |
 | Status toasts are rendered by editor previews. Home has a separate status message, but Home-triggered Open cancellation/failure only calls the preview-oriented announcer. | `src/hooks/useStatusToasts.ts`, `src/components/preview/PreviewToastStack.tsx`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx` | Home can miss meaningful Open feedback; #300 remains applicable. |
-| Rust project writes call `std::fs::write` directly. | `src-tauri/src/commands/files.rs` | Atomic replacement and recoverability are not implemented; #312 owns the focused persistence work. |
+| Rust project writes preserve the existing Tauri signature while delegating opaque JSON bytes to a focused same-directory temporary-write-and-replace owner. | `src-tauri/src/commands/files.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | The #312 native persistence prerequisite is implemented in this checkpoint; the broader #308 session, Save/Save As, baseline, dirty-state, and guard work remains unimplemented. |
 | No application command registry/dispatcher, shared command capabilities, lifecycle busy owner, native close/Quit interception, recent-project system, autosave/recovery owner, or application Undo/Redo owner exists. | `src`, `src-tauri`, and focused test searches | These are target or future responsibilities, not current features. |
 | Text controls have browser/native editing behavior, but no application-level project history owner exists. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
 | PNG export asks for a destination, then builds preflight, then always opens a confirmation dialog, including when no warning exists. | `src/app/appPngExport.ts`, `src/app/appPngExport.test.ts` | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) owns the stricter target order, with #302 as focused implementation work; this lifecycle contract supplies shared vocabulary only. |
@@ -490,12 +490,15 @@ The user-visible persistence invariant is:
 - a failed write changes neither current path nor clean baseline;
 - the write consumes one immutable normalized snapshot, not live mutable state.
 
-This contract owns those invariants. Issue #312 owns selection and verification
-of the exact Rust/platform mechanism. The implementation must explicitly test
-Windows replace-existing behavior and document its chosen durability level.
-This contract does not promise directory `fsync`, power-loss durability,
-antivirus behavior, or a particular Windows API until #312 implements and
-tests that mechanism.
+This contract owns those invariants. The focused #312 implementation selects an
+adjacent exclusive temporary file followed by one platform namespace commit:
+Windows uses `MoveFileExW` with replace-existing and write-through flags but no
+copy fallback, while Linux/macOS use same-filesystem rename. The temporary file
+is written, flushed, synchronized, and closed first. Focused tests cover actual
+Windows replace-existing and sharing-lock failure behavior. No fallible
+parent-directory sync follows commit, so this contract still does not promise
+power-loss durability for the directory entry, antivirus behavior, or stronger
+filesystem guarantees than the documented host primitive provides.
 
 ### 12.2 Open As A Two-Phase Transition
 
@@ -667,7 +670,7 @@ issue was found that supersedes the following ownership:
 | Issue | Relationship to this contract |
 | --- | --- |
 | [#308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308) | Principal implementation parent for session identity, current path, clean baseline, derived dirty state, Save/Save As, replacement guards, and Home Resume. |
-| [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | Atomic project-write implementation dependency, including Windows replacement and recovery semantics. |
+| [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | Atomic project-write implementation owner, including Windows replacement and recovery semantics. The focused native implementation is present in this checkpoint; the issue remains open pending normal review/merge workflow. |
 | [#300](https://github.com/thelordofdino4/steam-backup-label-studio/issues/300) | Focused Home Open cancellation/failure feedback gap; should consume the global result/feedback boundary rather than invent a local taxonomy. |
 | [#303](https://github.com/thelordofdino4/steam-backup-label-studio/issues/303) | Temporary conservative always-prompt proposal. Its final architectural direction is superseded by this dirty-aware guard; useful wording/tests may still inform implementation. |
 | [#298](https://github.com/thelordofdino4/steam-backup-label-studio/issues/298) | Focused Space activation/focus prerequisite for shortcut arbitration. It does not by itself implement an app-wide shortcut system. |
@@ -685,7 +688,7 @@ Dependency-focused implementation order:
 1. Project-session aggregate and deterministic canonical baseline comparison.
 2. Typed command results, registry/dispatcher, centralized predicates, and
    lifecycle busy ownership.
-3. Atomic persistence primitive under #312.
+3. Consume the atomic persistence primitive implemented under #312.
 4. Two-phase Open and atomic aggregate load/apply transition.
 5. Save/Save As and the dirty-aware replacement guard under #308.
 6. Home Resume and global feedback, including #300.
@@ -715,24 +718,22 @@ current support for:
   stated here;
 - any application source, test, Rust, configuration, or runtime change.
 
-The following questions are intentionally left for focused implementation or
-product decisions without weakening the invariants above:
+The #312 primitive and durability question is now resolved by section 12.1. The
+following questions remain for focused implementation or product decisions
+without weakening the invariants above:
 
-1. Which Rust/Windows primitive implements replace-existing atomic save, and
-   what exact data/directory durability level is supported and tested under
-   #312?
-2. How native path identity handles Windows case, UNC paths, symlinks, and
+1. How native path identity handles Windows case, UNC paths, symlinks, and
    path-display normalization while keeping the user-selected destination
    truthful.
-3. Whether the current serialized coarse Case Cover/Tray pane should remain for
+2. Whether the current serialized coarse Case Cover/Tray pane should remain for
    compatibility, be removed in a future schema version, or expand through a
    separately approved navigation-persistence decision. This contract still
    treats the full Front/Back/Spine route as session-only.
-4. Whether non-conflicting editing is enabled during each platform's native
+3. Whether non-conflicting editing is enabled during each platform's native
    dialog and long file operation. If enabled, the snapshot/revision rules in
    this contract are mandatory.
-5. Exact feedback retention, notification presentation, and diagnostic storage
+4. Exact feedback retention, notification presentation, and diagnostic storage
    policy, provided Home/editor accessibility and non-duplication remain true.
-6. Multi-window semantics if the product ever grows beyond the current
+5. Multi-window semantics if the product ever grows beyond the current
    single-session model; such a change requires a replacement lifecycle
    contract rather than weakening “at most one session” implicitly.

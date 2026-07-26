@@ -221,6 +221,7 @@ Key files:
 - `src/project/projectCaseInsert.ts`
 - `src/diagnostics/projectParityHarness.ts`
 - `src-tauri/src/commands/files.rs`
+- `src-tauri/src/project_file.rs`
 - `docs/PROJECT_FILE_SPEC.md`
 
 Source-of-truth state:
@@ -245,7 +246,11 @@ Save/load path:
 - Disc save uses `createProjectSnapshot`.
 - Disc load uses `parseSavedProjectContents`, `resolveSavedProjectRouteFromContents`, and `restoreProjectStateFromContents`.
 - Case-insert save/load uses `createCaseInsertProjectSnapshot` and `restoreCaseInsertProjectStateFromContents`.
-- Tauri `write_project_file` and `read_project_file` perform filesystem I/O.
+- Tauri `write_project_file` preserves the existing command contract and routes
+  opaque JSON bytes to `src-tauri/src/project_file.rs`, which owns exclusive
+  adjacent-temp creation, write/flush/sync/close ordering, platform replacement,
+  and safe owned-temp cleanup. `read_project_file` remains the JSON text read
+  boundary. `write_binary_file` remains a separate direct binary writer.
 
 Serialization:
 
@@ -270,6 +275,9 @@ Tests:
 - `src/project/projectCaseInsertBrandingPersistence.test.ts`
 - `src/project/projectCaseInsertPreviewTextEditing.test.ts`
 - `src/project/projectCaseInsertPreviewTextControls.test.ts`
+- Rust unit and real-filesystem coverage is colocated in
+  `src-tauri/src/project_file.rs`, including Windows replace-existing and
+  replacement-failure tests.
 - `src/project/projectCaseInsertTextPersistence.test.ts`
 - `src/project/projectCaseInsertTextNormalization.test.ts`
 - `src/diagnostics/projectParityHarness.test.ts`
