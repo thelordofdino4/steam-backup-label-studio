@@ -144,6 +144,15 @@ Key files:
 - `src/app/appSteamImportPlan.ts`
 - `src/app/appSteamDiscVisualImport.ts`
 - `src/app/appCaseInsertPreviewTextHandlers.ts`
+- `src/lifecycle/applicationCommandTypes.ts`
+- `src/lifecycle/applicationCommandRegistry.ts`
+- `src/lifecycle/commandBusyScopes.ts`
+- `src/lifecycle/lifecycleCommandCapabilities.ts`
+- `src/lifecycle/projectSession.ts`
+- `src/applicationMenu/applicationMenuTypes.ts`
+- `src/applicationMenu/applicationMenuRegistry.ts`
+- `src/applicationMenu/applicationMenuProjection.ts`
+- `src/applicationMenu/inMemoryApplicationMenuPort.ts`
 - `src/editor/editorTypes.ts`
 - `src/hooks/useStatusToasts.ts`
 - `src/hooks/useDiscTemplateState.ts`
@@ -168,6 +177,14 @@ Source-of-truth state:
   import planning, disc visual import defaults, and case-insert preview text
   handler construction.
 - Focused hooks own feature-specific state slices for disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badge, media mark, platform marks, technical marks, case insert template editing, spine editing, and case insert branding sync.
+- `src/lifecycle/` now provides the pure single-session/canonical-baseline,
+  application-command registry, busy-scope, result, and capability foundation.
+  Current Home and editor controls are not yet composed through that foundation.
+- `src/applicationMenu/` now owns the immutable first-release presentation-ID
+  catalog, semantic-target mapping, Windows/Linux/macOS descriptor projection,
+  injected capability projection, and an in-memory generation-ordered test
+  port. It is intentionally disconnected from React, Tauri, native events,
+  command execution, workflow hosts, and sidebar migration.
 
 Render path:
 
@@ -197,6 +214,11 @@ Tests:
 
 - App-owned orchestration helpers have focused tests under `src/app/*.test.ts`.
   Full `App.tsx` integration coverage remains limited.
+- Pure lifecycle tests cover command registration, busy scopes, dispatch
+  outcomes, and lifecycle capabilities. Pure application-menu tests cover the
+  exact hierarchy, semantic mapping, platform placement/accelerators,
+  H0/H1/Disc/Case capability projection, dynamic labels, and per-window stale
+  generation rejection.
 
 Risks:
 
@@ -1330,6 +1352,9 @@ Current `npm run test` covers these broad areas:
   safe-annulus/inner-hole geometry, semantic targeted refits, centered OS
   fixed-gap common-scale grouping, and template-aware Title/Legal text fitting.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
+- Application lifecycle commands/capabilities and the runtime-disconnected
+  application-menu descriptor, semantic-target, platform/capability projection,
+  and in-memory port boundary.
 - Shared project parity harness diagnostics for representative disc and case
   insert runtime/saved/restored/export inputs, including split disc and case
   insert parity suites.
