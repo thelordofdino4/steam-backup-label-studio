@@ -262,6 +262,7 @@ The disc editor is the stable alpha-capable workspace. The case insert editor is
 - `src-tauri/src/main.rs`
 - `src-tauri/src/lib.rs`
 - `src-tauri/src/commands/files.rs`
+- `src-tauri/src/project_file.rs`
 - `src-tauri/src/commands/steam.rs`
 - `src-tauri/src/commands/local_steam.rs`
 - `src-tauri/src/commands/local_images.rs`
@@ -1616,7 +1617,11 @@ remains the overlay lookup and rectangle-measurement facade.
 
 ### 15.1 Current Implementation Summary
 
-Save/load is orchestrated by `App.tsx`, project snapshot/restore helpers, and Tauri file commands. Save writes JSON. Load reads JSON, validates and normalizes enough to route and restore editor state.
+Save/load is orchestrated by `App.tsx`, project snapshot/restore helpers, and
+Tauri file commands. Save writes JSON through a same-directory temporary file
+that is fully written, flushed, synchronized, closed, and atomically replaced
+at the native boundary. Load reads JSON, validates and normalizes enough to
+route and restore editor state.
 
 The draft target-state application-command, single-project session, path,
 baseline, dirty-state, replacement-guard, and native close/Quit semantics are
@@ -1636,6 +1641,7 @@ owned by [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - `src/project/savedProjectNormalization.ts`
 - `src/tauri/fileSystem.ts`
 - `src-tauri/src/commands/files.rs`
+- `src-tauri/src/project_file.rs`
 
 ### 15.3 Source-Of-Truth State
 
@@ -1647,6 +1653,9 @@ Runtime state is source of truth while editing. Saved JSON snapshots are source 
 - Disc load uses `restoreProjectStateFromContents`.
 - Case insert save/load uses `createCaseInsertProjectSnapshot` and `restoreCaseInsertProjectStateFromContents`.
 - `resolveSavedProjectRouteFromContents` routes loaded projects to the correct workspace.
+- `write_project_file` preserves its frontend signature and delegates opaque
+  JSON bytes to `src-tauri/src/project_file.rs`; the binary export writer is not
+  routed through this project persistence boundary.
 - Export uses runtime state after any load/restore.
 
 ### 15.5 Invariants And Future-Change Rules
@@ -1655,15 +1664,27 @@ Runtime state is source of truth while editing. Saved JSON snapshots are source 
 - Load normalization may tolerate sparse legacy data but must not erase valid user data.
 - Case insert projects must not restore through the disc path.
 - Future package support must continue to load current `.sbls.json` files.
+- Native project writes must exclusively create adjacent temporary files,
+  synchronize and close them before one platform replacement, avoid copy or
+  delete-then-rename fallbacks, preserve the prior destination on every returned
+  precommit/replacement failure, and report cleanup failures without hiding the
+  primary phase error.
 
 ### 15.6 Validation Expectations
 
 - Project schema/routing/restore tests should be updated for schema changes.
+- `src-tauri/src/project_file.rs` tests must cover real create/replace behavior,
+  deterministic phase failures, collision ownership, operation ordering, exact
+  Disc/Case bytes, and the actual Windows replace-existing failure path.
 - Manual validation should save, reload, and export both disc and case insert projects when affected.
 
 ### 15.7 Known Risks
 
 - Shallow schema validation can miss nested invalid states.
+- The native writer synchronizes the temporary file before replacement but does
+  not perform a fallible parent-directory sync after commit; it does not claim
+  stronger power-loss durability for the namespace entry than the host
+  filesystem provides.
 - Real dirty source changes may affect exact save/load behavior until committed or reverted by the user; status-only/no-diff files are not treated as meaningful source changes.
 
 ## 16. Export Design

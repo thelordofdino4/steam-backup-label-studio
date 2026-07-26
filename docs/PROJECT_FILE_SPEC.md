@@ -76,6 +76,51 @@ The future `.sbls` package/container format is not implemented yet. Documentatio
 
 The future package format should not block disc-editor alpha unless a specific save/load limitation appears.
 
+## Current Native Write Commit Boundary
+
+The Tauri `write_project_file(path: String, contents: String)` command preserves
+its existing frontend interface and treats `contents.as_bytes()` as opaque
+UTF-8 bytes. It does not parse, normalize, migrate, or otherwise change Disc or
+Case Insert JSON. Schema and load compatibility therefore remain owned by the
+TypeScript project adapters described above.
+
+Native text-project writes now route through `src-tauri/src/project_file.rs`.
+The writer validates the destination filename, creates a uniquely named file in
+the destination directory with exclusive create semantics and bounded collision
+retries, then performs `write_all`, `flush`, and `sync_all`. It closes the
+temporary handle before one namespace commit. Every handled creation, partial
+write, flush, sync, close, or replacement failure leaves an existing destination
+unchanged (or an absent destination absent) and attempts to remove only the
+temporary file created by that operation. A cleanup failure is appended to the
+primary phase error instead of replacing it. Colliding files are neither opened
+for overwrite nor removed.
+
+On Windows, the commit uses the documented Unicode
+[`MoveFileExW`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw)
+primitive with `MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH`. The
+temporary file is adjacent, so the move remains on the same volume, and
+`MOVEFILE_COPY_ALLOWED` is deliberately not used. Windows tests exercise
+existing and absent destinations, Unicode paths, and a real sharing-lock
+replacement failure that preserves the previous bytes. Linux and macOS use
+their same-filesystem rename primitive through `std::fs::rename`; unsupported
+non-Windows/non-Unix targets fail explicitly rather than falling back to a
+non-atomic copy or direct overwrite.
+
+The durability boundary is intentionally narrow: all temporary-file content and
+metadata supported by `File::sync_all` are synchronized before the namespace
+commit, and Windows requests write-through for the move. The implementation does
+not perform a fallible parent-directory synchronization after commit and does
+not claim power-loss durability for the directory entry beyond the operating
+system and filesystem guarantees. A successful replacement is the last fallible
+operation. Handled failures clean their owned temporary file when the filesystem
+allows it; process termination and a filesystem that rejects cleanup can still
+leave an identifiable adjacent temporary artifact.
+
+This boundary applies only to JSON project writes. `write_binary_file` and PNG
+export behavior are unchanged. It adds no schema fields, session state, current
+path, dirty baseline, Save/Save As distinction, or lifecycle command behavior;
+those remain under the application lifecycle work tracked by #308.
+
 ## Current Saved State
 
 Current disc project files use schema version `0.2.0` and include:
