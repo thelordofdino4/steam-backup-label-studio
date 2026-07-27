@@ -123,6 +123,59 @@ export function createEmptyApplicationLifecycleState(): ApplicationLifecycleStat
   })
 }
 
+/**
+ * Captures session state at an application-owned boundary. Session metadata is
+ * copied while both project snapshots are revalidated and deeply frozen.
+ */
+export function captureApplicationLifecycleState(
+  state: ApplicationLifecycleState,
+): ApplicationLifecycleState {
+  const session = state.activeSession
+  if (!session) {
+    if (state.visibleWorkspace !== 'home') {
+      throw new Error('An editor workspace requires an active project session.')
+    }
+    return createEmptyApplicationLifecycleState()
+  }
+
+  const project = captureNormalizedProjectSnapshot(session.project as SavedProject)
+  assertSameProjectKind(session.kind, project)
+  const baselineSnapshot = session.cleanBaseline
+    ? captureNormalizedProjectSnapshot(
+        session.cleanBaseline.exactSnapshot as SavedProject,
+      )
+    : null
+  if (baselineSnapshot) assertSameProjectKind(session.kind, baselineSnapshot)
+  if (
+    state.visibleWorkspace !== 'home' &&
+    state.visibleWorkspace !== session.kind
+  ) {
+    throw new Error(
+      `Workspace ${state.visibleWorkspace} does not match project kind ` +
+      `${session.kind}.`,
+    )
+  }
+
+  return Object.freeze({
+    activeSession: Object.freeze({
+      id: session.id,
+      kind: session.kind,
+      currentPath: session.currentPath,
+      displayName: session.displayName,
+      project,
+      cleanBaseline: baselineSnapshot
+        ? createBaseline(baselineSnapshot)
+        : null,
+      revision: session.revision,
+      lastEditorRoute: captureEditorRoute(
+        session.kind,
+        session.lastEditorRoute,
+      ),
+    }),
+    visibleWorkspace: state.visibleWorkspace,
+  })
+}
+
 export function createNewProjectSession(
   input: NewProjectSessionInput,
 ): ApplicationLifecycleState {

@@ -8,6 +8,14 @@
 
 Last refreshed: 2026-07-25.
 
+Implementation checkpoint, 2026-07-26: the framework-neutral lifecycle state,
+canonical-baseline, command registry/dispatcher, busy coordinator, typed
+operation-port, composition-root, and implementation-aware capability
+foundations are now present under `src/lifecycle/`. They remain disconnected
+from `App.tsx`; no production lifecycle operation port is installed, so this
+checkpoint does not implement New, Open, Save, Save As, guards, Home Resume,
+Close Project, native Close Window/Quit, or the application menu.
+
 ## 1. Status, Authority, And Document Relationships
 
 This is a **draft target-state normative contract**. Its `must` and `must not`
@@ -85,20 +93,20 @@ already satisfies them.
 
 ## 3. Evidence-Backed Current-State Baseline
 
-The Phase 2 findings were re-verified against the evidence baseline. No newer
-session, command, dirty-state, close, feedback, recent-project, autosave,
-recovery, or application-history implementation was found.
+The Phase 2 findings were re-verified against the evidence baseline. The table
+retains those historical runtime findings while the implementation-checkpoint
+rows distinguish the later pure, runtime-disconnected foundation.
 
-| Current fact at `f750a5c4...` | Evidence | Architectural consequence |
+| Current fact / later checkpoint correction | Evidence | Architectural consequence |
 | --- | --- | --- |
 | “Save Project” always opens a save dialog, creates a snapshot, writes it, and discards the selected path after the call. It is Save As behavior, not ordinary Save. | `src/components/sidebar/ProjectPanel.tsx`, `src/app/appProjectSave.ts`, `src/app/appProjectSave.test.ts` | A path-owning session and distinct Save/Save As commands are still missing. |
-| No authoritative current project path, stable project-session identity, clean baseline, project dirty state, or ordinary Save owner exists. | `src/app/App.tsx`, `src/project/projectTypes.ts`, repository-wide searches | Issue #308 remains the principal lifecycle implementation owner. |
+| The current React runtime still has no authoritative current project path, stable project-session identity, clean baseline, project dirty state, or ordinary Save owner. A pure session aggregate and lifecycle store now model those values outside the runtime. | `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleStateStore.ts` | Issue #308 remains the principal runtime-integration and lifecycle-operation owner. |
 | New Disc inside the Disc editor always asks for confirmation; Home New Disc/New Case reset immediately; Return Home asks separately while retaining current hook/App state. | `src/app/App.tsx`, `src/components/home/HomeScreen.tsx` | New/Open/Home do not consume one shared dirty-aware guard. |
 | Open reads, routes, validates/migrates/normalizes a candidate before applying it, but restoration then calls a long sequence of independent setters. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, their focused tests | Candidate staging exists, but aggregate load commit is not atomic. |
 | Save/Open helpers report through string callbacks and catch failures locally; cancellation, decline, and failure do not share a typed result taxonomy. | `src/app/appProjectSave.ts`, `src/app/appProjectLoad.ts` | Callers cannot apply one exhaustive command-result policy. |
 | Status toasts are rendered by editor previews. Home has a separate status message, but Home-triggered Open cancellation/failure only calls the preview-oriented announcer. | `src/hooks/useStatusToasts.ts`, `src/components/preview/PreviewToastStack.tsx`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx` | Home can miss meaningful Open feedback; #300 remains applicable. |
 | Rust project writes preserve the existing Tauri signature while delegating opaque JSON bytes to a focused same-directory temporary-write-and-replace owner. | `src-tauri/src/commands/files.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | The #312 native persistence prerequisite is implemented in this checkpoint; the broader #308 session, Save/Save As, baseline, dirty-state, and guard work remains unimplemented. |
-| No application command registry/dispatcher, shared command capabilities, lifecycle busy owner, native close/Quit interception, recent-project system, autosave/recovery owner, or application Undo/Redo owner exists. | `src`, `src-tauri`, and focused test searches | These are target or future responsibilities, not current features. |
+| One runtime-disconnected composition root now owns one lifecycle store, registry/dispatcher, busy coordinator, exhaustive typed operation-port set, and state/busy/termination/owner-aware capability projection. All absent production ports are disabled; `App.tsx` and native Tauri do not consume the root. | `src/lifecycle/applicationLifecycleCompositionRoot.ts`, `src/lifecycle/applicationLifecycleCommandDefinitions.ts`, `src/lifecycle/applicationLifecycleCommandPorts.ts`, focused tests | The foundation is implemented without claiming that any lifecycle command effect, guard, native close/Quit handoff, recent-project system, autosave/recovery owner, or application Undo/Redo owner exists. |
 | Text controls have browser/native editing behavior, but no application-level project history owner exists. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
 | PNG export asks for a destination, then builds preflight, then always opens a confirmation dialog, including when no warning exists. | `src/app/appPngExport.ts`, `src/app/appPngExport.test.ts` | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) owns the stricter target order, with #302 as focused implementation work; this lifecycle contract supplies shared vocabulary only. |
 | The runtime case navigation identity is Front/Back/Spine, while saved project data stores only the coarser Cover/Tray pane. Back versus Spine is not restorable. | `src/editor/editorNavigationShell.ts`, `src/app/App.tsx`, `src/project/caseInsertProjectAdapters.ts`, `src/project/projectTypes.ts` | Full navigation identity is session/UI state. The existing coarse persisted pane remains a schema compatibility fact until separately changed. |
@@ -685,9 +693,11 @@ application-history owner.
 
 Dependency-focused implementation order:
 
-1. Project-session aggregate and deterministic canonical baseline comparison.
-2. Typed command results, registry/dispatcher, centralized predicates, and
-   lifecycle busy ownership.
+1. Project-session aggregate, deterministic canonical baseline comparison, and
+   the runtime-disconnected lifecycle state store/composition root are present.
+2. Typed command results, registry/dispatcher, centralized state and
+   implementation-aware predicates, and lifecycle busy ownership are present;
+   production operation ports and runtime integration remain absent.
 3. Consume the atomic persistence primitive implemented under #312.
 4. Two-phase Open and atomic aggregate load/apply transition.
 5. Save/Save As and the dirty-aware replacement guard under #308.

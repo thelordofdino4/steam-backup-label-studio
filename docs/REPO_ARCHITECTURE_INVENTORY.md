@@ -147,11 +147,16 @@ Key files:
 - `src/lifecycle/applicationCommandTypes.ts`
 - `src/lifecycle/applicationCommandRegistry.ts`
 - `src/lifecycle/commandBusyScopes.ts`
+- `src/lifecycle/applicationLifecycleStateStore.ts`
+- `src/lifecycle/applicationLifecycleCommandPorts.ts`
+- `src/lifecycle/applicationLifecycleCommandDefinitions.ts`
+- `src/lifecycle/applicationLifecycleCompositionRoot.ts`
 - `src/lifecycle/lifecycleCommandCapabilities.ts`
 - `src/lifecycle/projectSession.ts`
 - `src/applicationMenu/applicationMenuTypes.ts`
 - `src/applicationMenu/applicationMenuRegistry.ts`
 - `src/applicationMenu/applicationMenuProjection.ts`
+- `src/applicationMenu/applicationMenuLifecycleCapabilities.ts`
 - `src/applicationMenu/inMemoryApplicationMenuPort.ts`
 - `src/editor/editorTypes.ts`
 - `src/hooks/useStatusToasts.ts`
@@ -177,14 +182,19 @@ Source-of-truth state:
   import planning, disc visual import defaults, and case-insert preview text
   handler construction.
 - Focused hooks own feature-specific state slices for disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badge, media mark, platform marks, technical marks, case insert template editing, spine editing, and case insert branding sync.
-- `src/lifecycle/` now provides the pure single-session/canonical-baseline,
-  application-command registry, busy-scope, result, and capability foundation.
-  Current Home and editor controls are not yet composed through that foundation.
+- `src/lifecycle/` now provides the pure single-session/canonical-baseline
+  foundation and one application lifecycle composition root. The root owns one
+  immutable state store, registry/dispatcher, busy coordinator, exhaustive
+  typed command-port boundary, operation/session ID boundary, and centralized
+  state/busy/termination/owner-aware capability projection. Missing production
+  ports remain explicitly disabled. Current Home and editor controls are not
+  yet composed through that root.
 - `src/applicationMenu/` now owns the immutable first-release presentation-ID
   catalog, semantic-target mapping, Windows/Linux/macOS descriptor projection,
-  injected capability projection, and an in-memory generation-ordered test
-  port. It is intentionally disconnected from React, Tauri, native events,
-  command execution, workflow hosts, and sidebar migration.
+  injected capability projection, a lifecycle-root capability consumption
+  helper, and an in-memory generation-ordered test port. It is intentionally
+  disconnected from React, Tauri, native events, command execution, workflow
+  hosts, and sidebar migration.
 
 Render path:
 
@@ -1352,9 +1362,11 @@ Current `npm run test` covers these broad areas:
   safe-annulus/inner-hole geometry, semantic targeted refits, centered OS
   fixed-gap common-scale grouping, and template-aware Title/Legal text fitting.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
-- Application lifecycle commands/capabilities and the runtime-disconnected
-  application-menu descriptor, semantic-target, platform/capability projection,
-  and in-memory port boundary.
+- The runtime-disconnected application lifecycle composition root, state store,
+  command registry/dispatcher, busy coordinator, typed command ports, and
+  implementation-aware capabilities; plus the runtime-disconnected application
+  menu descriptor, semantic-target, platform/capability projection, and
+  in-memory port boundary.
 - Shared project parity harness diagnostics for representative disc and case
   insert runtime/saved/restored/export inputs, including split disc and case
   insert parity suites.

@@ -24,6 +24,8 @@ export type CommandBusyState = Readonly<{
   occupiedScopes: readonly CommandBusyScope[]
 }>
 
+export type CommandBusyStateSubscriber = (state: CommandBusyState) => void
+
 export type BusyScopeAcquisition =
   | Readonly<{
       acquired: false
@@ -94,11 +96,21 @@ export function hasBusyScopeConflict(
 export class CommandBusyScopeCoordinator {
   private readonly owners = new Map<CommandBusyScope, string>()
   private readonly operations = new Map<string, OperationRecord>()
+  private readonly subscribers = new Set<CommandBusyStateSubscriber>()
 
   getState(): CommandBusyState {
     return Object.freeze({
       occupiedScopes: orderScopes([...this.owners.keys()]),
     })
+  }
+
+  subscribe(subscriber: CommandBusyStateSubscriber): () => void {
+    this.subscribers.add(subscriber)
+    return () => this.subscribers.delete(subscriber)
+  }
+
+  disposeSubscriptions(): void {
+    this.subscribers.clear()
   }
 
   beginOperation(input: Readonly<{
@@ -197,6 +209,7 @@ export class CommandBusyScopeCoordinator {
       this.owners.set(scope, operationId)
       record.ownedScopes.add(scope)
     }
+    if (acquiredScopes.length > 0) this.notifySubscribers()
 
     let released = false
     return Object.freeze({
@@ -208,6 +221,7 @@ export class CommandBusyScopeCoordinator {
           if (this.owners.get(scope) === operationId) this.owners.delete(scope)
           record.ownedScopes.delete(scope)
         }
+        if (acquiredScopes.length > 0) this.notifySubscribers()
       },
     })
   }
@@ -220,8 +234,21 @@ export class CommandBusyScopeCoordinator {
     for (const scope of record.ownedScopes) {
       if (this.owners.get(scope) === operationId) this.owners.delete(scope)
     }
+    const hadOwnedScopes = record.ownedScopes.size > 0
     record.ownedScopes.clear()
     this.operations.delete(operationId)
+    if (hadOwnedScopes) this.notifySubscribers()
+  }
+
+  private notifySubscribers() {
+    const state = this.getState()
+    for (const subscriber of [...this.subscribers]) {
+      try {
+        subscriber(state)
+      } catch {
+        // Busy state is already committed; one observer cannot block another.
+      }
+    }
   }
 }
 
