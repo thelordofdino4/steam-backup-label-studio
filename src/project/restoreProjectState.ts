@@ -132,6 +132,7 @@ export type RestoreProjectStateOptions = {
   resolveBackgroundImageSize?: (
     imageDataUrl: string,
   ) => Promise<BackgroundImageSize | null>
+  rejectBackgroundImageSizeFailure?: boolean
 }
 
 function isSavedDiscProject(project: SavedProject): project is SavedDiscProject {
@@ -172,6 +173,7 @@ function restoreTemplateState(project: SavedDiscProject): RestoredProjectTemplat
 async function restoreBackgroundImageSize(
   project: SavedDiscProject,
   resolveBackgroundImageSize?: RestoreProjectStateOptions['resolveBackgroundImageSize'],
+  rejectFailure = false,
 ): Promise<BackgroundImageSize | null> {
   const savedImageSize = normalizeImageSize(project.background.imageSize)
   const savedImageDataUrl = normalizeNullableString(project.background.imageDataUrl)
@@ -182,7 +184,8 @@ async function restoreBackgroundImageSize(
 
   try {
     return await resolveBackgroundImageSize(savedImageDataUrl)
-  } catch {
+  } catch (error) {
+    if (rejectFailure) throw error
     return null
   }
 }
@@ -449,6 +452,7 @@ export async function restoreSavedProjectState(
     backgroundImageSize: await restoreBackgroundImageSize(
       project,
       options.resolveBackgroundImageSize,
+      options.rejectBackgroundImageSizeFailure,
     ),
     isBackgroundArtworkEnabled: project.background.enabled ?? true,
   }

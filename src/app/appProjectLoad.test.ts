@@ -1,97 +1,21 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import {
-  createBlankJewelCaseSavedProject,
-  type RestoredCaseInsertProjectState,
-} from '../project/projectCaseInsert.ts'
-import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
-import type { RestoredProjectState } from '../project/restoreProjectState.ts'
+  createBrandingSources,
+} from '../caseInsert/brandingMarkTargetSourcesFixtures.ts'
 import {
-  runAppProjectLoad,
-  type RunAppProjectLoadParams,
+  createBlankJewelCaseSavedProject,
+} from '../project/caseInsertProjectAdapters.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
+import {
+  stageAppProjectOpen,
+  type StageAppProjectOpenParams,
 } from './appProjectLoad.ts'
 
-type CallRecord = {
-  name: string
-  value?: unknown
-}
-
-type CaseInsertRestoreCallbacks =
-  RunAppProjectLoadParams['caseInsertRestore']
-type DiscRestoreCallbacks = RunAppProjectLoadParams['discRestore']
-
-function recordValueCall(calls: CallRecord[], name: string) {
-  return (value: unknown) => calls.push({ name, value })
-}
-
-function recordVoidCall(calls: CallRecord[], name: string) {
-  return () => calls.push({ name })
-}
-
-function createStatusRecorder(statuses: string[]) {
-  return (message: string) => statuses.push(message)
-}
-
-function createCaseInsertRestoreCallbacks(
-  calls: CallRecord[],
-): CaseInsertRestoreCallbacks {
-  return {
-    setManualGameTitle: recordValueCall(calls, 'setManualGameTitle'),
-    setProjectMetadata: recordValueCall(calls, 'setProjectMetadata'),
-    setSelectedSteamGame: recordValueCall(calls, 'setSelectedSteamGame'),
-    setProjectJewelCase: recordValueCall(calls, 'setProjectJewelCase'),
-    setActiveCaseInsertTemplatePane:
-      recordValueCall(calls, 'setActiveCaseInsertTemplatePane'),
-    setActiveWorkspace: recordValueCall(calls, 'setActiveWorkspace'),
-    setHomeStatusMessage: recordValueCall(calls, 'setHomeStatusMessage'),
-    scheduleCaseInsertBrandingMarkSlotSync:
-      recordValueCall(calls, 'scheduleCaseInsertBrandingMarkSlotSync'),
-  }
-}
-
-function createDiscRestoreCallbacks(calls: CallRecord[]): DiscRestoreCallbacks {
-  return {
-    restoreDiscGuidedWorkflow:
-      recordValueCall(calls, 'restoreDiscGuidedWorkflow'),
-    setManualGameTitle: recordValueCall(calls, 'setManualGameTitle'),
-    setProjectMetadata: recordValueCall(calls, 'setProjectMetadata'),
-    setProjectLogoAssets: recordValueCall(calls, 'setProjectLogoAssets'),
-    setProjectTitleArtwork: recordValueCall(calls, 'setProjectTitleArtwork'),
-    setProjectAdditionalArtwork:
-      recordValueCall(calls, 'setProjectAdditionalArtwork'),
-    setProjectRatingBadge: recordValueCall(calls, 'setProjectRatingBadge'),
-    setProjectMediaMark: recordValueCall(calls, 'setProjectMediaMark'),
-    setProjectPlatformMarks: recordValueCall(calls, 'setProjectPlatformMarks'),
-    setProjectTechnicalMarks: recordValueCall(calls, 'setProjectTechnicalMarks'),
-    setSelectedSteamGame: recordValueCall(calls, 'setSelectedSteamGame'),
-    clearSelectedArtwork: recordVoidCall(calls, 'clearSelectedArtwork'),
-    clearLocalSteamScreenshotResults:
-      recordVoidCall(calls, 'clearLocalSteamScreenshotResults'),
-    restoreDiscTemplateState: recordValueCall(calls, 'restoreDiscTemplateState'),
-    setSteamLogoPlacement: recordValueCall(calls, 'setSteamLogoPlacement'),
-    setSteamBannerColors: recordValueCall(calls, 'setSteamBannerColors'),
-    setSteamBannerLockupImageUrl:
-      recordValueCall(calls, 'setSteamBannerLockupImageUrl'),
-    setSteamBannerLockupImageSource:
-      recordValueCall(calls, 'setSteamBannerLockupImageSource'),
-    setSteamBannerLockupImageSize:
-      recordValueCall(calls, 'setSteamBannerLockupImageSize'),
-    setSteamBannerLockupLayout:
-      recordValueCall(calls, 'setSteamBannerLockupLayout'),
-    setSteamBannerUseTextFallback:
-      recordValueCall(calls, 'setSteamBannerUseTextFallback'),
-    setSteamBannerFallbackText:
-      recordValueCall(calls, 'setSteamBannerFallbackText'),
-    restoreExportGuides: recordValueCall(calls, 'restoreExportGuides'),
-    restoreDiscTextState: recordValueCall(calls, 'restoreDiscTextState'),
-    restoreBackgroundImageState:
-      recordValueCall(calls, 'restoreBackgroundImageState'),
-    setActiveWorkspace: recordValueCall(calls, 'setActiveWorkspace'),
-    setHomeStatusMessage: recordValueCall(calls, 'setHomeStatusMessage'),
-  }
-}
-
-function createDiscProjectContents() {
+function createDiscProjectContents(
+  imageDataUrl: string | null = null,
+): string {
   return JSON.stringify({
     schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'disc',
@@ -106,195 +30,158 @@ function createDiscProjectContents() {
       variant: 'standardPrintableDisc',
       customDimensions: null,
     },
-    steamBackupLogo: {
-      placement: 'top',
-    },
+    steamBackupLogo: { placement: 'top' },
     background: {
       scale: 1,
       offset: { x: 0, y: 0 },
-      imageDataUrl: null,
-      note: 'schema parse fixture',
+      imageDataUrl,
+      note: 'two-phase Open fixture',
     },
   })
 }
 
-function createRestoredCaseInsertProject(): RestoredCaseInsertProjectState {
+function paramsFor(
+  contents: string,
+  overrides: Partial<StageAppProjectOpenParams> = {},
+): StageAppProjectOpenParams {
   return {
-    manualGameTitle: 'Loaded Case',
-    projectMetadata: { title: 'Loaded Case' },
-    selectedSteamGame: null,
-    caseInsert: { templateType: 'jewelCase' },
-    activeCaseInsertTemplatePane: 'tray',
-  } as unknown as RestoredCaseInsertProjectState
+    openDialog: async () => 'C:\\projects\\candidate.sbls.json',
+    readProjectFileCommand: async () => contents,
+    defaultSteamBannerLockupImageUrl: 'default-lockup.png',
+    resolveBackgroundImageSize: async () => ({ width: 320, height: 200 }),
+    caseInsertBrandingSources: createBrandingSources(),
+    ...overrides,
+  }
 }
 
-function createRestoredDiscProject(
-  backgroundImageUrl: string | null = null,
-): RestoredProjectState {
-  return {
-    discGuidedWorkflow: {
-      activeLayout: null,
-      omittedSlotIds: [],
-    },
-    manualGameTitle: 'Loaded Disc',
-    projectMetadata: { title: 'Loaded Disc' },
-    projectLogoAssets: { kind: 'logos' },
-    projectTitleArtwork: { kind: 'titleArtwork' },
-    projectAdditionalArtwork: { kind: 'additionalArtwork' },
-    projectRatingBadge: { kind: 'ratingBadge' },
-    projectMediaMark: { kind: 'mediaMark' },
-    projectPlatformMarks: { kind: 'platformMarks' },
-    projectTechnicalMarks: { kind: 'technicalMarks' },
-    selectedSteamGame: null,
-    template: { selectedDiscTemplateId: 'standardPrintableDisc' },
-    steamLogoPlacement: 'top',
-    steamBannerColors: { gradientStart: '#111', gradientEnd: '#222', accent: '#333' },
-    steamBannerLockupImageUrl: 'lockup',
-    steamBannerLockupImageSource: { source: 'built-in' },
-    steamBannerLockupImageSize: { width: 1, height: 2 },
-    steamBannerLockupLayout: { scale: 1, offsetX: 2, offsetY: 3 },
-    steamBannerUseTextFallback: false,
-    steamBannerFallbackText: 'Steam Backup',
-    exportGuides: { mode: 'none' },
-    projectDiscNumberArtwork: { mode: 'text' },
-    discTextSettings: { title: { enabled: true } },
-    discTextValues: { title: 'Loaded Disc' },
-    discTextValueSources: { title: 'metadata' },
-    discTextTitleValue: 'Loaded Disc',
-    discTextHtmlSources: {},
-    discTextLayout: { title: { x: 1, y: 2 } },
-    discTextStyles: { title: { color: '#fff' } },
-    backgroundScale: 1,
-    backgroundOffset: { x: 0, y: 0 },
-    backgroundImageUrl,
-    backgroundImageSource: null,
-    backgroundImageSize: null,
-    isBackgroundArtworkEnabled: true,
-  } as unknown as RestoredProjectState
-}
-
-test('project load reports cancellation before reading a file', async () => {
-  const calls: CallRecord[] = []
-  const statuses: string[] = []
-
-  await runAppProjectLoad({
-    announceStatus: createStatusRecorder(statuses),
-    caseInsertRestore: createCaseInsertRestoreCallbacks(calls),
-    discRestore: createDiscRestoreCallbacks(calls),
+test('Open staging cancellation performs no read or live mutation', async () => {
+  let readCount = 0
+  const result = await stageAppProjectOpen(paramsFor('', {
     openDialog: async (options) => {
-      calls.push({
-        name: 'openDialog',
-        value: `${options.multiple}:${options.filters?.[0]?.extensions.join(',')}`,
-      })
+      assert.equal(options.multiple, false)
+      assert.deepEqual(options.filters?.[0]?.extensions, ['json'])
       return null
     },
     readProjectFileCommand: async () => {
-      calls.push({ name: 'readProjectFileCommand' })
+      readCount += 1
       return ''
     },
-    restoreCaseInsertProjectState: () => createRestoredCaseInsertProject(),
-    restoreDiscProjectState: async () => createRestoredDiscProject(),
-  })
+  }))
 
-  assert.deepEqual(calls, [
-    { name: 'openDialog', value: 'false:json' },
-  ])
-  assert.deepEqual(statuses, ['Load cancelled.'])
+  assert.deepEqual(result, {
+    status: 'cancelled',
+    reason: 'file-dialog-dismissed',
+  })
+  assert.equal(readCount, 0)
 })
 
-test('project load routes case insert projects through case insert restore', async () => {
-  const calls: CallRecord[] = []
-  const statuses: string[] = []
-  const contents = JSON.stringify(createBlankJewelCaseSavedProject('Case Load'))
+test('Open staging rejects an invalid array dialog response deterministically', async () => {
+  const result = await stageAppProjectOpen(paramsFor('', {
+    openDialog: async () => ['one.json', 'two.json'],
+  }))
 
-  await runAppProjectLoad({
-    announceStatus: createStatusRecorder(statuses),
-    caseInsertRestore: createCaseInsertRestoreCallbacks(calls),
-    discRestore: createDiscRestoreCallbacks(calls),
-    openDialog: async () => 'case.sbls.json',
-    readProjectFileCommand: async (path) => {
-      calls.push({ name: 'readProjectFileCommand', value: path })
-      return contents
-    },
-    restoreCaseInsertProjectState: (nextContents) => {
-      calls.push({ name: 'restoreCaseInsertProjectState', value: nextContents })
-      return createRestoredCaseInsertProject()
-    },
-    restoreDiscProjectState: async () => {
-      calls.push({ name: 'restoreDiscProjectState' })
-      return createRestoredDiscProject()
-    },
-  })
-
-  assert.equal(calls[0].name, 'readProjectFileCommand')
-  assert.equal(calls[1].name, 'restoreCaseInsertProjectState')
-  assert.equal(
-    calls.some((call) => call.name === 'restoreDiscProjectState'),
-    false,
-  )
-  assert.equal(
-    calls.find((call) => call.name === 'setActiveWorkspace')?.value,
-    'caseInsert',
-  )
-  assert.deepEqual(statuses, [
-    'Loaded case insert project template, metadata, and preview geometry.',
-  ])
+  assert.equal(result.status, 'failure')
+  if (result.status === 'failure') {
+    assert.equal(result.error.code, 'dialog.project-file-invalid-selection')
+  }
 })
 
-test('project load routes disc projects through disc restore', async () => {
-  const calls: CallRecord[] = []
-  const statuses: string[] = []
+test('Disc Open staging returns one complete immutable candidate from the accepted project', async () => {
+  const selectedPath = 'D:\\labels\\disc-project.sbls.json'
+  const result = await stageAppProjectOpen(paramsFor(
+    createDiscProjectContents('data:image/png;base64,abc'),
+    { openDialog: async () => selectedPath },
+  ))
 
-  await runAppProjectLoad({
-    announceStatus: createStatusRecorder(statuses),
-    caseInsertRestore: createCaseInsertRestoreCallbacks(calls),
-    discRestore: createDiscRestoreCallbacks(calls),
-    openDialog: async () => 'disc.sbls.json',
-    readProjectFileCommand: async (path) => {
-      calls.push({ name: 'readProjectFileCommand', value: path })
-      return createDiscProjectContents()
-    },
-    restoreCaseInsertProjectState: () => {
-      calls.push({ name: 'restoreCaseInsertProjectState' })
-      return createRestoredCaseInsertProject()
-    },
-    restoreDiscProjectState: async (contents) => {
-      calls.push({ name: 'restoreDiscProjectState', value: contents })
-      return createRestoredDiscProject('data:image/png;base64,abc')
-    },
+  assert.equal(result.status, 'success')
+  if (result.status !== 'success') return
+  const candidate = result.value
+  assert.equal(candidate.projectType, 'disc')
+  assert.equal(candidate.selectedPath, selectedPath)
+  assert.equal(candidate.editorRoute.workspace, 'disc')
+  assert.equal(candidate.normalizedProject.title, 'Saved Disc')
+  assert.equal(candidate.restoredProject.manualGameTitle, 'Saved Disc')
+  assert.deepEqual(candidate.restoredProject.backgroundImageSize, {
+    width: 320,
+    height: 200,
   })
-
-  assert.equal(
-    calls.some((call) => call.name === 'restoreCaseInsertProjectState'),
-    false,
-  )
-  assert.equal(calls[1].name, 'restoreDiscProjectState')
-  assert.equal(
-    calls.find((call) => call.name === 'setActiveWorkspace')?.value,
-    'disc',
-  )
-  assert.deepEqual(statuses, [
-    'Loaded project layout, game metadata, embedded background image, and template geometry.',
-  ])
+  assert.equal(Object.isFrozen(candidate), true)
+  assert.equal(Object.isFrozen(candidate.normalizedProject), true)
+  assert.equal(Object.isFrozen(candidate.restoredProject), true)
+  assert.equal(Object.isFrozen(candidate.restoredProject.backgroundOffset), true)
 })
 
-test('project load reports route and restore failures', async () => {
-  const calls: CallRecord[] = []
-  const statuses: string[] = []
+test('Case Insert Open staging derives normalized lifecycle and editor state together', async () => {
+  const savedProject = createBlankJewelCaseSavedProject('Case Candidate')
+  savedProject.editor = { activeCaseInsertTemplatePane: 'tray' }
+  const result = await stageAppProjectOpen(paramsFor(JSON.stringify(savedProject)))
 
-  await runAppProjectLoad({
-    announceStatus: createStatusRecorder(statuses),
-    caseInsertRestore: createCaseInsertRestoreCallbacks(calls),
-    discRestore: createDiscRestoreCallbacks(calls),
-    openDialog: async () => 'bad.sbls.json',
-    readProjectFileCommand: async () => '{not-json',
-    restoreCaseInsertProjectState: () => createRestoredCaseInsertProject(),
-    restoreDiscProjectState: async () => createRestoredDiscProject(),
-  })
-
-  assert.equal(
-    calls.some((call) => call.name.startsWith('set')),
-    false,
+  assert.equal(result.status, 'success')
+  if (result.status !== 'success') return
+  const candidate = result.value
+  assert.equal(candidate.projectType, 'caseInsert')
+  assert.equal(candidate.editorRoute.surface, 'back')
+  assert.equal(candidate.restoredProject.activeCaseInsertTemplatePane, 'tray')
+  assert.deepEqual(
+    candidate.normalizedProject.caseInsert,
+    candidate.restoredProject.caseInsert,
   )
-  assert.match(statuses[0], /^Load failed: ProjectSchemaError:/)
+  assert.equal(Object.isFrozen(candidate), true)
+  assert.equal(Object.isFrozen(candidate.normalizedProject), true)
+  assert.equal(Object.isFrozen(candidate.restoredProject), true)
+})
+
+test('Open staging preserves typed read, parse, validation, migration, and image failures', async () => {
+  const throwingBrandingSources = createBrandingSources()
+  Object.defineProperty(throwingBrandingSources, 'projectLogoAssets', {
+    enumerable: true,
+    get() {
+      throw new Error('private Case restore detail')
+    },
+  })
+  const cases: readonly [StageAppProjectOpenParams, string][] = [
+    [paramsFor('', {
+      readProjectFileCommand: async () => { throw new Error('private read detail') },
+    }), 'project.read-failed'],
+    [paramsFor('{not-json'), 'project.parse-failed'],
+    [paramsFor(JSON.stringify({ schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION })),
+      'project.validation-failed'],
+    [paramsFor(JSON.stringify({ schemaVersion: '9.9.9' })),
+      'project.migration-failed'],
+    [paramsFor(JSON.stringify(createBlankJewelCaseSavedProject('Bad Case')), {
+      caseInsertBrandingSources: throwingBrandingSources,
+    }), 'project.case-restore-failed'],
+    [paramsFor(createDiscProjectContents('data:image/png;base64,bad'), {
+      resolveBackgroundImageSize: async () => {
+        throw new Error('private decoder detail')
+      },
+    }), 'project.background-image-resolution-failed'],
+  ]
+
+  for (const [params, code] of cases) {
+    const result = await stageAppProjectOpen(params)
+    assert.equal(result.status, 'failure')
+    if (result.status === 'failure') {
+      assert.equal(result.error.code, code)
+      assert.equal(result.error.userMessage.includes('private'), false)
+    }
+  }
+})
+
+test('checked-in current and migrated Disc fixtures remain stageable', async () => {
+  for (const fixturePath of [
+    'fixtures/projects/full-branding.sbls.json',
+    'fixtures/projects/legacy-minimal-0.1.0.sbls.json',
+  ]) {
+    const contents = await readFile(fixturePath, 'utf8')
+    const result = await stageAppProjectOpen(paramsFor(contents))
+    assert.equal(result.status, 'success', fixturePath)
+    if (result.status === 'success') {
+      assert.equal(result.value.projectType, 'disc')
+      assert.equal(
+        result.value.normalizedProject.schemaVersion,
+        CURRENT_PROJECT_SCHEMA_VERSION,
+      )
+    }
+  }
 })

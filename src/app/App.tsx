@@ -1,5 +1,6 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { useCallback, useRef, useState } from 'react'
+import { unstable_batchedUpdates } from 'react-dom'
 import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
 import {
   normalizeCaseInsertNavigationSurfaceForPane,
@@ -127,12 +128,10 @@ import {
   preserveDiscPointOwnerPlacement,
   type DiscBackgroundPresetOwnerState,
 } from '../presets/discPresetOwnerPlacement'
-import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   createDefaultProjectJewelCaseState,
-  restoreCaseInsertProjectStateFromContents,
   setProjectJewelCaseExportGuideIds,
 } from '../project/projectCaseInsert'
 import {
@@ -208,14 +207,20 @@ import {
   runAppProjectSave,
 } from './appProjectSave'
 import {
-  runAppProjectLoad,
+  stageAppProjectOpen,
 } from './appProjectLoad'
+import {
+  createApplicationEditorAggregateApplier,
+} from './appProjectRestore'
+import {
+  getProjectOpenCompatibilityFeedback,
+} from './appProjectOpenFeedback'
+import {
+  useApplicationLifecycleRoot,
+} from './useApplicationLifecycleRoot'
 import {
   applyDiscRolePresetToOwners,
 } from './appDiscRolePresetApplication'
-import {
-  reconstructActiveDiscPresetState,
-} from './appRegisteredDiscPresetApplication'
 
 type SteamMetadataApplyOptions = {
   announce?: boolean
@@ -1681,107 +1686,80 @@ function App() {
     })
   }
 
-  async function handleLoadProject() {
-    const setLoadedActiveWorkspace = (workspace: 'disc' | 'caseInsert') => {
-      activeDiscPreset.clearActivePreset()
-      setActiveWorkspace(workspace)
-    }
-
-    await runAppProjectLoad({
-      openDialog: open,
+  const applicationLifecycleRoot = useApplicationLifecycleRoot({
+    stageCandidate: () => stageAppProjectOpen({
+      openDialog: async (options) => open({
+        multiple: options.multiple,
+        filters: options.filters?.map((filter) => ({
+          name: filter.name,
+          extensions: [...filter.extensions],
+        })),
+      }),
       readProjectFileCommand: readProjectFile,
-      restoreCaseInsertProjectState: restoreCaseInsertProjectStateFromContents,
-      restoreDiscProjectState: (contents) =>
-        restoreProjectStateFromContents(contents, {
-          defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
-          resolveBackgroundImageSize: async (imageDataUrl) =>
-            createImageSizeWithDetectedContentBounds(await loadImage(imageDataUrl)),
-        }),
-      caseInsertRestore: {
+      defaultSteamBannerLockupImageUrl:
+        DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
+      resolveBackgroundImageSize: async (imageDataUrl) =>
+        createImageSizeWithDetectedContentBounds(await loadImage(imageDataUrl)),
+      caseInsertBrandingSources,
+    }),
+    prepareEditorAggregateApply: (candidate) =>
+      createApplicationEditorAggregateApplier({
+        batchReactUpdates: (apply) => unstable_batchedUpdates(apply),
+        shell: {
+          setActiveWorkspace,
+          setHomeStatusMessage,
+          restoreCaseInsertRoute: (pane, surface) => {
+            setActiveCaseInsertTemplatePane(pane)
+            setActiveCaseInsertNavigationSurface(surface)
+          },
+        },
+        commonProject: {
           setManualGameTitle,
           setProjectMetadata,
           setSelectedSteamGame,
-          setProjectJewelCase,
-          setActiveCaseInsertTemplatePane:
-            handleActiveCaseInsertTemplatePaneChange,
-          setActiveWorkspace: setLoadedActiveWorkspace,
-          setHomeStatusMessage,
-          scheduleCaseInsertBrandingMarkSlotSync:
-            caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync,
-      },
-      discRestore: {
-        restoreDiscGuidedWorkflow: setDiscGuidedWorkflow,
-        setManualGameTitle,
-        setProjectMetadata,
-        setProjectLogoAssets,
-        setProjectTitleArtwork,
-        setProjectAdditionalArtwork,
-        setProjectRatingBadge,
-        setProjectMediaMark,
-        setProjectPlatformMarks,
-        setProjectTechnicalMarks,
-        setSelectedSteamGame,
-        clearSelectedArtwork,
-        clearLocalSteamScreenshotResults,
-        restoreDiscTemplateState,
-        setSteamLogoPlacement,
-        setSteamBannerColors,
-        setSteamBannerLockupImageUrl,
-        setSteamBannerLockupImageSource,
-        setSteamBannerLockupImageSize,
-        setSteamBannerLockupLayout,
-        setSteamBannerUseTextFallback,
-        setSteamBannerFallbackText,
-        restoreExportGuides,
-        restoreDiscTextState,
-        restoreBackgroundImageState,
-        setActiveWorkspace: setLoadedActiveWorkspace,
-        setHomeStatusMessage,
-        afterDiscProjectRestore: (restoredProject) => {
-          const reconstructedPreset = reconstructActiveDiscPresetState({
-            workflow: restoredProject.discGuidedWorkflow,
-            currentState: {
-              background: {
-                enabled: restoredProject.isBackgroundArtworkEnabled,
-                scale: restoredProject.backgroundScale,
-                offset: restoredProject.backgroundOffset,
-                imageDataUrl: restoredProject.backgroundImageUrl,
-                imageSource: restoredProject.backgroundImageSource,
-                imageSize: restoredProject.backgroundImageSize,
-              },
-              titleArtwork: restoredProject.projectTitleArtwork,
-              discTextSettings: restoredProject.discTextSettings,
-              discTextValues: restoredProject.discTextValues,
-              discTextValueSources: restoredProject.discTextValueSources,
-              discTextTitleValue: restoredProject.discTextTitleValue,
-              discTextHtmlSources: restoredProject.discTextHtmlSources,
-              discTextLayout: restoredProject.discTextLayout,
-              discTextStyles: restoredProject.discTextStyles,
-              logoAssets: restoredProject.projectLogoAssets,
-              ratingBadge: restoredProject.projectRatingBadge,
-              mediaMark: restoredProject.projectMediaMark,
-              platformMarks: restoredProject.projectPlatformMarks,
-              metadata: restoredProject.projectMetadata,
-            },
-            selectedDiscTemplate: restoredProject.template.selectedDiscTemplate,
-          })
-
-          activeDiscPreset.recordPresetApplication(
-            reconstructedPreset?.ref ?? null,
-            reconstructedPreset?.resolvedDefinition ?? null,
-            true,
-          )
-
-          if (
-            restoredProject.discGuidedWorkflow.activeLayout &&
-            !reconstructedPreset
-          ) {
-            setDiscGuidedWorkflow(INITIAL_DISC_GUIDED_WORKFLOW_STATE)
-          }
         },
-      },
-      announceStatus,
-    })
+        discProject: {
+          restoreDiscGuidedWorkflow: setDiscGuidedWorkflow,
+          setProjectLogoAssets,
+          setProjectTitleArtwork,
+          setProjectAdditionalArtwork,
+          setProjectRatingBadge,
+          setProjectMediaMark,
+          setProjectPlatformMarks,
+          setProjectTechnicalMarks,
+          restoreDiscTemplateState,
+          setSteamLogoPlacement,
+          setSteamBannerColors,
+          setSteamBannerLockupImageUrl,
+          setSteamBannerLockupImageSource,
+          setSteamBannerLockupImageSize,
+          setSteamBannerLockupLayout,
+          setSteamBannerUseTextFallback,
+          setSteamBannerFallbackText,
+          restoreExportGuides,
+          restoreDiscTextState,
+          restoreBackgroundImageState,
+        },
+        caseInsertProject: {
+          setProjectJewelCase,
+        },
+        transientEditor: {
+          clearPreviewSelections: () => {
+            setSelectedCaseInsertTextTarget(null)
+            setSelectedDiscTextKey(null)
+          },
+          clearDiscArtworkSelection: clearSelectedArtwork,
+          clearDiscLocalScreenshotResults: clearLocalSteamScreenshotResults,
+          restoreActiveDiscPresetState:
+            activeDiscPreset.restoreActivePresetState,
+        },
+      }).prepare(candidate),
+  })
+
+  async function handleLoadProject() {
+    const result = await applicationLifecycleRoot.dispatch('project.open')
+    const feedbackMessage = getProjectOpenCompatibilityFeedback(result)
+    if (feedbackMessage) announceStatus(feedbackMessage)
   }
 
   async function handleExportPng() {

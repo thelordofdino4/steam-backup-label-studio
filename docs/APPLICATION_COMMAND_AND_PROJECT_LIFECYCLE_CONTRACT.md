@@ -8,13 +8,15 @@
 
 Last refreshed: 2026-07-25.
 
-Implementation checkpoint, 2026-07-26: the framework-neutral lifecycle state,
-canonical-baseline, command registry/dispatcher, busy coordinator, typed
-operation-port, composition-root, and implementation-aware capability
-foundations are now present under `src/lifecycle/`. They remain disconnected
-from `App.tsx`; no production lifecycle operation port is installed, so this
-checkpoint does not implement New, Open, Save, Save As, guards, Home Resume,
-Close Project, native Close Window/Quit, or the application menu.
+Implementation checkpoint, 2026-07-27: one production lifecycle composition
+root is now mounted at the React application boundary, and `project.open` is
+the first runtime-connected lifecycle command. Open stages one immutable Disc
+or Case Insert candidate without live mutation, then commits its path-bearing
+clean session and complete editor aggregate in one synchronous React batch.
+All other lifecycle operation ports remain explicitly unimplemented. The
+dirty-aware replacement guard, Save/Save As migration, Home Resume, Close
+Project, native Close Window/Quit, global feedback, and application menu remain
+absent.
 
 ## 1. Status, Authority, And Document Relationships
 
@@ -95,18 +97,19 @@ already satisfies them.
 
 The Phase 2 findings were re-verified against the evidence baseline. The table
 retains those historical runtime findings while the implementation-checkpoint
-rows distinguish the later pure, runtime-disconnected foundation.
+rows distinguish the later pure foundation and first runtime-connected Open
+slice.
 
 | Current fact / later checkpoint correction | Evidence | Architectural consequence |
 | --- | --- | --- |
 | “Save Project” always opens a save dialog, creates a snapshot, writes it, and discards the selected path after the call. It is Save As behavior, not ordinary Save. | `src/components/sidebar/ProjectPanel.tsx`, `src/app/appProjectSave.ts`, `src/app/appProjectSave.test.ts` | A path-owning session and distinct Save/Save As commands are still missing. |
-| The current React runtime still has no authoritative current project path, stable project-session identity, clean baseline, project dirty state, or ordinary Save owner. A pure session aggregate and lifecycle store now model those values outside the runtime. | `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleStateStore.ts` | Issue #308 remains the principal runtime-integration and lifecycle-operation owner. |
+| A project successfully accepted through `project.open` now receives an authoritative session ID, selected path, exact normalized project and clean baseline, revision zero, and editor route. Legacy New and Save paths do not yet synchronize their editor mutations with that session authority, and ordinary Save is still absent. | `src/app/appProjectOpenCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for the remaining lifecycle integration. |
 | New Disc inside the Disc editor always asks for confirmation; Home New Disc/New Case reset immediately; Return Home asks separately while retaining current hook/App state. | `src/app/App.tsx`, `src/components/home/HomeScreen.tsx` | New/Open/Home do not consume one shared dirty-aware guard. |
-| Open reads, routes, validates/migrates/normalizes a candidate before applying it, but restoration then calls a long sequence of independent setters. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, their focused tests | Candidate staging exists, but aggregate load commit is not atomic. |
-| Save/Open helpers report through string callbacks and catch failures locally; cancellation, decline, and failure do not share a typed result taxonomy. | `src/app/appProjectSave.ts`, `src/app/appProjectLoad.ts` | Callers cannot apply one exhaustive command-result policy. |
+| Open now completes dialog, read, parse, validation/migration, route resolution, Disc image inspection, restoration, preset reconstruction, and Case branding projection before returning one immutable discriminated candidate. Its lifecycle CAS and complete editor aggregate are then scheduled inside one React batch; stale CAS applies no editor state. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, `src/app/appProjectOpenCommand.ts`, focused tests | The two-phase Open and atomic application seam is runtime-connected for current Home, Disc, and Case Load controls. |
+| `project.open` now returns the shared typed result taxonomy through the dispatcher. A narrow compatibility adapter forwards at most one message to the existing status owner; legacy Save still uses its prior string callback. | `src/app/appProjectOpenFeedback.ts`, `src/app/appProjectSave.ts`, `src/app/App.tsx` | #300 remains applicable because the shared global feedback owner is not implemented. |
 | Status toasts are rendered by editor previews. Home has a separate status message, but Home-triggered Open cancellation/failure only calls the preview-oriented announcer. | `src/hooks/useStatusToasts.ts`, `src/components/preview/PreviewToastStack.tsx`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx` | Home can miss meaningful Open feedback; #300 remains applicable. |
 | Rust project writes preserve the existing Tauri signature while delegating opaque JSON bytes to a focused same-directory temporary-write-and-replace owner. | `src-tauri/src/commands/files.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | The #312 native persistence prerequisite is implemented in this checkpoint; the broader #308 session, Save/Save As, baseline, dirty-state, and guard work remains unimplemented. |
-| One runtime-disconnected composition root now owns one lifecycle store, registry/dispatcher, busy coordinator, exhaustive typed operation-port set, and state/busy/termination/owner-aware capability projection. All absent production ports are disabled; `App.tsx` and native Tauri do not consume the root. | `src/lifecycle/applicationLifecycleCompositionRoot.ts`, `src/lifecycle/applicationLifecycleCommandDefinitions.ts`, `src/lifecycle/applicationLifecycleCommandPorts.ts`, focused tests | The foundation is implemented without claiming that any lifecycle command effect, guard, native close/Quit handoff, recent-project system, autosave/recovery owner, or application Undo/Redo owner exists. |
+| `src/main.tsx` constructs one application-scoped lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed Open adapters without recreating the root. Only the Open production port is implemented; every other lifecycle port remains disabled, and native Tauri/application-menu adapters do not consume the root. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, focused tests | The first runtime slice is implemented without claiming complete lifecycle, native menu, termination, recovery, or history ownership. |
 | Text controls have browser/native editing behavior, but no application-level project history owner exists. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
 | PNG export asks for a destination, then builds preflight, then always opens a confirmation dialog, including when no warning exists. | `src/app/appPngExport.ts`, `src/app/appPngExport.test.ts` | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) owns the stricter target order, with #302 as focused implementation work; this lifecycle contract supplies shared vocabulary only. |
 | The runtime case navigation identity is Front/Back/Spine, while saved project data stores only the coarser Cover/Tray pane. Back versus Spine is not restorable. | `src/editor/editorNavigationShell.ts`, `src/app/App.tsx`, `src/project/caseInsertProjectAdapters.ts`, `src/project/projectTypes.ts` | Full navigation identity is session/UI state. The existing coarse persisted pane remains a schema compatibility fact until separately changed. |
@@ -114,7 +117,9 @@ rows distinguish the later pure, runtime-disconnected foundation.
 | Preview Space handling is window-level and excludes form-editing targets, but interactive control activation remains the focused gap in #298. | `src/components/preview/PreviewViewport.tsx` | A future shortcut router needs explicit focus precedence. |
 | Tauri registration contains file/network/platform commands but no window-close lifecycle adapter. | `src-tauri/src/lib.rs` | Native close and Quit integration remain target behavior. |
 
-No runtime testing was needed or performed for this documentation-only audit.
+This implementation checkpoint was validated through focused and repository
+tests plus static build/lint/cycle checks; no browser or native Tauri runtime
+verification was performed.
 
 ## 4. Target Lifecycle State Model
 
@@ -694,12 +699,14 @@ application-history owner.
 Dependency-focused implementation order:
 
 1. Project-session aggregate, deterministic canonical baseline comparison, and
-   the runtime-disconnected lifecycle state store/composition root are present.
+   the lifecycle state store/composition root are present; one production root
+   is mounted at the React application boundary.
 2. Typed command results, registry/dispatcher, centralized state and
    implementation-aware predicates, and lifecycle busy ownership are present;
-   production operation ports and runtime integration remain absent.
-3. Consume the atomic persistence primitive implemented under #312.
-4. Two-phase Open and atomic aggregate load/apply transition.
+   `project.open` is the sole production operation port.
+3. The atomic persistence primitive implemented under #312 is present but not
+   yet consumed by the legacy Save path.
+4. Two-phase Open and atomic aggregate load/apply transition are present.
 5. Save/Save As and the dirty-aware replacement guard under #308.
 6. Home Resume and global feedback, including #300.
 7. Native Close Window/Quit adapter with one-use termination authorization.
@@ -708,7 +715,7 @@ Dependency-focused implementation order:
 
 ## 18. Exclusions And Explicitly Unresolved Questions
 
-This documentation task does not implement, and this contract does not claim
+Beyond the implementation checkpoint above, this contract does not claim
 current support for:
 
 - native application-menu rendering; the final target hierarchy and adapter
@@ -725,8 +732,7 @@ current support for:
 - detailed Export, Game, Disc Template/physical-geometry, Layout Preset, or
   Guided Workflow behavior;
 - schema reconstruction or new persisted fields beyond the authority boundary
-  stated here;
-- any application source, test, Rust, configuration, or runtime change.
+  stated here.
 
 The #312 primitive and durability question is now resolved by section 12.1. The
 following questions remain for focused implementation or product decisions

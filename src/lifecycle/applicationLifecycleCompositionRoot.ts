@@ -137,9 +137,10 @@ export function createApplicationLifecycleCompositionRoot(
     })
   }
 
-  function getSnapshot(): ApplicationLifecycleCompositionSnapshot {
-    const stateSnapshot = stateStore.getSnapshot()
-    const busy = busyCoordinator.getState()
+  function captureSnapshot(
+    stateSnapshot: ApplicationLifecycleStateSnapshot,
+    busy: CommandBusyState,
+  ): ApplicationLifecycleCompositionSnapshot {
     return Object.freeze({
       generation,
       stateGeneration: stateSnapshot.generation,
@@ -149,6 +150,11 @@ export function createApplicationLifecycleCompositionRoot(
     })
   }
 
+  let cachedSnapshot = captureSnapshot(
+    stateStore.getSnapshot(),
+    busyCoordinator.getState(),
+  )
+
   function reportSubscriberError(error: unknown) {
     try {
       options.onSubscriberError?.(error)
@@ -157,20 +163,27 @@ export function createApplicationLifecycleCompositionRoot(
     }
   }
 
-  function notifySubscribers() {
+  function notifySubscribers(
+    stateSnapshot = stateStore.getSnapshot(),
+    busy = busyCoordinator.getState(),
+  ) {
     generation += 1
-    const snapshot = getSnapshot()
+    cachedSnapshot = captureSnapshot(stateSnapshot, busy)
     for (const subscriber of [...subscribers]) {
       try {
-        subscriber(snapshot)
+        subscriber(cachedSnapshot)
       } catch (error) {
         reportSubscriberError(error)
       }
     }
   }
 
-  const unsubscribeState = stateStore.subscribe(notifySubscribers)
-  const unsubscribeBusy = busyCoordinator.subscribe(notifySubscribers)
+  const unsubscribeState = stateStore.subscribe((stateSnapshot) => {
+    notifySubscribers(stateSnapshot, busyCoordinator.getState())
+  })
+  const unsubscribeBusy = busyCoordinator.subscribe((busy) => {
+    notifySubscribers(stateStore.getSnapshot(), busy)
+  })
 
   for (const definition of createApplicationLifecycleCommandDefinitions(ports)) {
     registry.register(definition)
@@ -204,7 +217,7 @@ export function createApplicationLifecycleCompositionRoot(
       const stateSnapshot = stateStore.getSnapshot()
       return capabilitiesFor(stateSnapshot, busyCoordinator.getState())
     },
-    getSnapshot,
+    getSnapshot: () => cachedSnapshot,
     async dispatch(commandId: string) {
       if (disposed) {
         throw new Error('The application lifecycle composition root is disposed.')

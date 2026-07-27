@@ -585,6 +585,39 @@ test('compare-and-swap rejects a stale second transition after one commit', asyn
   assert.equal(root.getStateSnapshot().generation, 1)
 })
 
+test('composition snapshots are referentially stable until a real notification', async () => {
+  const root = createApplicationLifecycleCompositionRoot({
+    ports: {
+      newDisc: {
+        availability: 'implemented',
+        executeNewDisc: (context) => {
+          const current = context.getCurrentStateSnapshot()
+          const commit = context.commitState(current.generation, () =>
+            createNewProjectSession({
+              sessionId: context.createSessionId(),
+              project: createDiscProject('Stable Snapshot Disc'),
+            }))
+          assert.equal(commit.status, 'committed')
+          return commandSucceeded(undefined)
+        },
+      },
+    },
+  })
+
+  const initial = root.getSnapshot()
+  assert.equal(root.getSnapshot(), initial)
+  let notifications = 0
+  root.subscribe(() => notifications += 1)
+
+  await root.dispatch('project.new-disc')
+
+  const after = root.getSnapshot()
+  assert.notEqual(after, initial)
+  assert.equal(root.getSnapshot(), after)
+  assert.ok(notifications > 0)
+  assert.equal(after.stateGeneration, 1)
+})
+
 test('root disposal removes owned subscriptions and rejects later dispatch', async () => {
   const root = createApplicationLifecycleCompositionRoot({
     ports: implementedNoOpPorts(),

@@ -105,6 +105,13 @@ export function useActiveDiscPreset() {
     setActivePresetState(null)
   }, [])
 
+  const restoreActivePresetState = useCallback((
+    restoredState: ActiveDiscPresetState | null,
+  ) => {
+    activePresetStateRef.current = restoredState
+    setActivePresetState(restoredState)
+  }, [])
+
   const getActivePresetRef = useCallback(
     () => activePresetStateRef.current?.ref ?? null,
     [],
@@ -123,5 +130,6 @@ export function useActiveDiscPreset() {
     recordPresetApplication,
     recordTargetedPresetApplication,
     clearActivePreset,
+    restoreActivePresetState,
   }
 }
