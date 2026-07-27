@@ -100,6 +100,12 @@ Key files:
 - `index.html`
 - `src/main.tsx`
 - `src/app/App.tsx`
+- `src/app/ApplicationLifecycleBoundary.tsx`
+- `src/app/applicationLifecycleRuntime.ts`
+- `src/app/applicationLifecycleRuntimeContext.ts`
+- `src/app/useApplicationLifecycleRoot.ts`
+- `src/app/appProjectOpenCommand.ts`
+- `src/app/appProjectOpenFeedback.ts`
 - `vite.config.ts`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/Cargo.toml`
@@ -182,13 +188,16 @@ Source-of-truth state:
   import planning, disc visual import defaults, and case-insert preview text
   handler construction.
 - Focused hooks own feature-specific state slices for disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badge, media mark, platform marks, technical marks, case insert template editing, spine editing, and case insert branding sync.
-- `src/lifecycle/` now provides the pure single-session/canonical-baseline
-  foundation and one application lifecycle composition root. The root owns one
+- `src/lifecycle/` provides the single-session/canonical-baseline foundation
+  and one application lifecycle composition root. `src/main.tsx` constructs one
+  application runtime outside React Strict Mode, and the application boundary
+  owns disposal. The root owns one
   immutable state store, registry/dispatcher, busy coordinator, exhaustive
   typed command-port boundary, operation/session ID boundary, and centralized
-  state/busy/termination/owner-aware capability projection. Missing production
-  ports remain explicitly disabled. Current Home and editor controls are not
-  yet composed through that root.
+  state/busy/termination/owner-aware capability projection. A committed-render
+  dependency ref keeps the root stable while Open adapters change. Only
+  `project.open` has a production command owner; all other lifecycle ports
+  remain explicitly disabled.
 - `src/applicationMenu/` now owns the immutable first-release presentation-ID
   catalog, semantic-target mapping, Windows/Linux/macOS descriptor projection,
   injected capability projection, a lifecycle-root capability consumption
@@ -209,10 +218,15 @@ Edit/interaction path:
 - Steam import callbacks in `App.tsx` call Steam/native helpers and app-owned
   planning/import helpers, then update disc or case-insert state slices.
 
-Save/load path:
+Save/Open path:
 
-- `App.tsx` calls app project load/save helpers, which wrap disc and case
-  insert project snapshot/restore helpers plus Tauri file commands.
+- Legacy Save still calls the existing app save helper and does not yet own a
+  lifecycle path/baseline transition.
+- Every Home, Disc, and Case Load control dispatches `project.open` through the
+  sole root. `appProjectLoad.ts` stages one immutable candidate with no live
+  setters; `appProjectOpenCommand.ts` performs lifecycle CAS; and
+  `appProjectRestore.ts` commits lifecycle notifications and the complete
+  editor/route/transient aggregate inside one synchronous React batch.
 
 Export path:
 
@@ -251,6 +265,9 @@ Key files:
 - `src/project/projectRouting.ts`
 - `src/project/savedProjectNormalization.ts`
 - `src/project/projectCaseInsert.ts`
+- `src/app/appProjectLoad.ts`
+- `src/app/appProjectRestore.ts`
+- `src/app/appProjectOpenCommand.ts`
 - `src/diagnostics/projectParityHarness.ts`
 - `src-tauri/src/commands/files.rs`
 - `src-tauri/src/project_file.rs`
@@ -276,8 +293,17 @@ Edit/interaction path:
 Save/load path:
 
 - Disc save uses `createProjectSnapshot`.
-- Disc load uses `parseSavedProjectContents`, `resolveSavedProjectRouteFromContents`, and `restoreProjectStateFromContents`.
-- Case-insert save/load uses `createCaseInsertProjectSnapshot` and `restoreCaseInsertProjectStateFromContents`.
+- Disc Open staging uses `parseSavedProjectContents`, project routing, and
+  `restoreSavedProjectState`, completing background-image inspection and preset
+  reconstruction before acceptance.
+- Case-insert save uses `createCaseInsertProjectSnapshot`; Open staging uses the
+  existing Case normalizer/restore owner and resolves branding slot state before
+  acceptance.
+- Successful Open establishes one session ID, exact selected path, matching
+  normalized project/clean baseline, revision zero, and target editor route,
+  then applies the complete staged Disc or Case editor aggregate in the same
+  synchronous batch. Failed, cancelled, precondition-rejected, or stale Open
+  applies no editor candidate.
 - Tauri `write_project_file` preserves the existing command contract and routes
   opaque JSON bytes to `src-tauri/src/project_file.rs`, which owns exclusive
   adjacent-temp creation, write/flush/sync/close ordering, platform replacement,
@@ -539,7 +565,8 @@ Edit/interaction path:
 Save/load path:
 
 - Save: `createProjectSnapshot`.
-- Load: `restoreProjectStateFromContents`.
+- Open staging: `parseSavedProjectContents`, project routing, and
+  `restoreSavedProjectState`.
 
 Export path:
 
@@ -665,7 +692,8 @@ Edit/interaction path:
 Save/load path:
 
 - Save: `createCaseInsertProjectSnapshot`.
-- Load: `restoreCaseInsertProjectStateFromContents`.
+- Open staging: `normalizeSavedCaseInsertProject` and
+  `restoreCaseInsertProjectState`.
 - Normalization fills sparse or legacy-shaped case insert state.
 
 Export path:
@@ -1362,9 +1390,10 @@ Current `npm run test` covers these broad areas:
   safe-annulus/inner-hole geometry, semantic targeted refits, centered OS
   fixed-gap common-scale grouping, and template-aware Title/Legal text fitting.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
-- The runtime-disconnected application lifecycle composition root, state store,
-  command registry/dispatcher, busy coordinator, typed command ports, and
-  implementation-aware capabilities; plus the runtime-disconnected application
+- The runtime-connected application lifecycle composition root, state store,
+  command registry/dispatcher, busy coordinator, typed command ports,
+  implementation-aware capabilities, two-phase Open staging, CAS, atomic editor
+  application, dependency freshness, and current Load-control routing; plus the runtime-disconnected application
   menu descriptor, semantic-target, platform/capability projection, and
   in-memory port boundary.
 - Shared project parity harness diagnostics for representative disc and case

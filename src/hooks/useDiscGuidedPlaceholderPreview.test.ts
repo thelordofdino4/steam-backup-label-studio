@@ -180,8 +180,16 @@ test('failed or rejected application preserves guided and generic activation', (
   }), CLASSIC_PRESET_REF)
 })
 
-test('App clears transient activation on resets and reconstructs after Disc restore', () => {
+test('App clears transient activation on resets and restores staged Disc activation atomically', () => {
   const source = readFileSync(new URL('../app/App.tsx', import.meta.url), 'utf8')
+  const stagingSource = readFileSync(
+    new URL('../app/appProjectLoad.ts', import.meta.url),
+    'utf8',
+  )
+  const aggregateSource = readFileSync(
+    new URL('../app/appProjectRestore.ts', import.meta.url),
+    'utf8',
+  )
 
   assert.match(source, /function resetDiscProjectState\(\)[\s\S]*?clearActivePreset\(\)/)
   assert.match(source, /function resetCaseInsertProjectState\(\)[\s\S]*?clearActivePreset\(\)/)
@@ -191,16 +199,17 @@ test('App clears transient activation on resets and reconstructs after Disc rest
   )
   assert.match(
     source,
-    /const setLoadedActiveWorkspace[\s\S]*?clearActivePreset\(\)[\s\S]*?setActiveWorkspace\(workspace\)/,
+    /restoreActiveDiscPresetState:\s*activeDiscPreset\.restoreActivePresetState/,
   )
   assert.match(
-    source,
-    /afterDiscProjectRestore:[\s\S]*?reconstructActiveDiscPresetState\([\s\S]*?recordPresetApplication\(/,
+    stagingSource,
+    /activeDiscPresetState = reconstructActiveDiscPresetState\(/,
   )
-  assert.equal(
-    (source.match(/setActiveWorkspace: setLoadedActiveWorkspace/g) ?? []).length,
-    2,
+  assert.match(
+    aggregateSource,
+    /restoreActiveDiscPresetState\([\s\S]*?candidate\.activeDiscPresetState[\s\S]*?setActiveWorkspace\('disc'\)/,
   )
+  assert.doesNotMatch(stagingSource, /setActiveWorkspace|setHomeStatusMessage/)
 })
 
 test('focused hooks compose persisted workflow with transient resolved geometry', () => {

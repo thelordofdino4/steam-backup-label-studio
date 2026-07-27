@@ -244,13 +244,19 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
-The frontend also contains pure, runtime-disconnected lifecycle and application-menu foundations. `src/lifecycle/` defines the current single-session and canonical-baseline primitives plus one framework-neutral composition root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. No production operation ports or React adapters consume that root yet. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, an in-memory test port, and a narrow lifecycle-capability consumption helper. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
+The frontend contains a runtime-connected lifecycle foundation and a still-disconnected application-menu foundation. `src/main.tsx` constructs one application lifecycle runtime outside React Strict Mode; `ApplicationLifecycleBoundary` owns its one disposal, while a dependency-ref hook updates committed React adapters without recreating the root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.open` is the only production-implemented lifecycle port. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, an in-memory test port, and a narrow lifecycle-capability consumption helper. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
 
 ### 5.2 Key Files
 
 - `index.html`
 - `src/main.tsx`
 - `src/app/App.tsx`
+- `src/app/ApplicationLifecycleBoundary.tsx`
+- `src/app/applicationLifecycleRuntime.ts`
+- `src/app/applicationLifecycleRuntimeContext.ts`
+- `src/app/useApplicationLifecycleRoot.ts`
+- `src/app/appProjectOpenCommand.ts`
+- `src/app/appProjectOpenFeedback.ts`
 - `src/app/appProjectLoad.ts`
 - `src/app/appProjectSave.ts`
 - `src/app/appProjectRestore.ts`
@@ -286,7 +292,7 @@ The frontend also contains pure, runtime-disconnected lifecycle and application-
 
 ### 5.3 Source-Of-Truth State
 
-`src/app/App.tsx` owns workspace routing and cross-feature orchestration. Focused app-owned helpers now own cohesive orchestration clusters for project save/load/restore, PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
+`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production lifecycle root. Its Open owner stages one immutable accepted project candidate, establishes a path-bearing clean lifecycle session through compare-and-swap, and applies all restored editor owners plus route/workspace/transient state in the same synchronous React batch. Focused app-owned helpers own the remaining project save behavior, PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
@@ -294,11 +300,15 @@ Application-menu presentation IDs are separate from semantic command and owner I
 
 ### 5.4 Render, Edit, And Export Paths
 
-- React entry: `src/main.tsx` renders `<App />`.
+- React entry: `src/main.tsx` creates one lifecycle runtime, mounts its owning boundary, and renders `<App />` inside Strict Mode.
 - Vite entry: `index.html` provides the root element and loads `/src/main.tsx`.
 - Tauri dev/build entry: `src-tauri/tauri.conf.json` points dev to Vite and packaged frontend output to `dist`.
 - UI routing: `App.tsx` renders `HomeScreen`, disc editor panels plus `DiscPreview`, or `CaseInsertEditorShell`.
 - Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`.
+- Open: every current Home, Disc, and Case Load control dispatches
+  `project.open`; the owner stages dialog/read/schema/restore work before one
+  batched lifecycle-and-editor commit. Cancellation, failure, apply
+  precondition failure, and stale CAS do not apply editor state.
 - Export: `App.tsx` opens the native destination chooser, calls preflight helpers, always requests confirmation (information for clean summaries and warning for summaries with warnings), calls canvas export helpers, then writes PNG bytes through Tauri.
 
 ### 5.5 Invariants And Future-Change Rules
@@ -1638,22 +1648,29 @@ remains the overlay lookup and rectangle-measurement facade.
 
 ### 15.1 Current Implementation Summary
 
-Save/load is orchestrated by `App.tsx`, project snapshot/restore helpers, and
-Tauri file commands. Save writes JSON through a same-directory temporary file
+Save remains orchestrated by `App.tsx`, project snapshot helpers, and Tauri
+file commands. It writes JSON through a same-directory temporary file
 that is fully written, flushed, synchronized, closed, and atomically replaced
-at the native boundary. Load reads JSON, validates and normalizes enough to
-route and restore editor state.
+at the native boundary. Open now dispatches through the sole lifecycle root.
+Its staging phase reads, parses, validates/migrates, routes, restores, resolves
+Disc background image geometry, reconstructs Disc preset state, and projects
+Case branding before any live mutation. Its commit phase establishes the exact
+accepted normalized snapshot as a path-bearing revision-zero clean session and
+applies the complete editor aggregate synchronously in the same React batch.
 
 The draft target-state application-command, single-project session, path,
 baseline, dirty-state, replacement-guard, and native close/Quit semantics are
 defined in [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md).
-That contract is normative for future lifecycle work but does not describe the
-current implementation summarized here. Serialized fields and migrations remain
-owned by [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
+That contract records the implemented Open checkpoint while remaining normative
+for unfinished lifecycle work. Serialized fields and migrations remain owned by
+[`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 
 ### 15.2 Key Files
 
 - `src/app/App.tsx`
+- `src/app/appProjectLoad.ts`
+- `src/app/appProjectRestore.ts`
+- `src/app/appProjectOpenCommand.ts`
 - `src/project/createProjectSnapshot.ts`
 - `src/project/restoreProjectState.ts`
 - `src/project/caseInsertProjectAdapters.ts`
@@ -1666,14 +1683,23 @@ owned by [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 
 ### 15.3 Source-Of-Truth State
 
-Runtime state is source of truth while editing. Saved JSON snapshots are source of truth after save. Restore helpers normalize saved JSON into runtime state.
+Runtime feature-owner state remains source of truth while editing. For projects
+accepted through Open, the lifecycle session additionally owns the session ID,
+selected path, exact normalized clean baseline, revision, and last editor route.
+Editor mutations outside Open are not yet projected back into lifecycle state,
+so lifecycle dirty authority is not yet complete. Saved JSON snapshots remain
+the source accepted by staging and the output produced by legacy Save.
 
 ### 15.4 Render/Edit/Export Paths
 
 - Disc save uses `createProjectSnapshot`.
-- Disc load uses `restoreProjectStateFromContents`.
-- Case insert save/load uses `createCaseInsertProjectSnapshot` and `restoreCaseInsertProjectStateFromContents`.
-- `resolveSavedProjectRouteFromContents` routes loaded projects to the correct workspace.
+- Disc Open staging uses the existing schema parser/routing owners and
+  `restoreSavedProjectState`, including asynchronous background image geometry.
+- Case insert save uses `createCaseInsertProjectSnapshot`; Case Open staging
+  uses the existing normalizer/restore owners and precomputes branding slots.
+- The staged discriminated union carries the exact normalized project, selected
+  path, project kind, target route, complete restored owner state, and transient
+  preset state needed for the non-fallible aggregate application seam.
 - `write_project_file` preserves its frontend signature and delegates opaque
   JSON bytes to `src-tauri/src/project_file.rs`; the binary export writer is not
   routed through this project persistence boundary.
