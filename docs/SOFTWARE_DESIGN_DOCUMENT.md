@@ -4,6 +4,7 @@
 > Read when: Architecture-sensitive work, renderer/editor/export changes, schema work, drag/selection, or parity-sensitive changes.
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
+> Package/save-load authority cross-references and current persistence facts reviewed against commit: `a104825583a1cc03e145a9e460e9abccf4483bf7` on 2026-07-27.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -43,7 +44,8 @@ Related current issue context:
 
 - `#44` remaining editor state extraction.
 - `#46` CSS organization.
-- `#48` project schema validation and migration support.
+- `#48` closed project schema validation and migration baseline; future schema
+  changes remain owned by `PROJECT_FILE_SPEC.md`.
 - `#125` historical technology mark catalog expansion.
 - `#126` jewel case editor alpha finish line.
 - `#149` structured tray/spine layouts for case inserts.
@@ -406,7 +408,10 @@ Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
 
 Projects are saved as plain JSON files, commonly named `.sbls.json`. The current saved-project type is a union of disc and case insert project shapes under schema version `0.2.0`.
 
-The future ZIP-compatible `.sbls` package format is documented but not implemented.
+The target ZIP-compatible `.sbls` package format is defined in
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) but is
+not implemented. The original format-choice rationale remains in
+[`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 
 ### 7.2 Key Files
 
@@ -423,6 +428,7 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 - `src/diagnostics/projectParityHarnessDisc.test.ts`
 - `src/diagnostics/projectParityHarnessCaseInsert.test.ts`
 - `docs/PROJECT_FILE_SPEC.md`
+- `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md`
 - `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`
 
 ### 7.3 Source-Of-Truth State
@@ -456,7 +462,11 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 - Keep `home` as a workspace only, not a project type.
 - Do not collapse disc and case insert schema owners.
 - Add migrations before changing saved-project semantics.
-- Keep package-format behavior clearly labeled future until implemented and validated.
+- Keep package-format behavior clearly labeled target/unimplemented until the
+  codec, lifecycle integration, binary persistence, compatibility, and native
+  validation required by
+  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
+  exist.
 
 ### 7.7 Validation Expectations
 
@@ -474,7 +484,8 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 - Top-level schema validation is intentionally shallow.
 - Migration coverage is intentionally limited to the registered `0.1.0` to
   `0.2.0` compatibility step.
-- Open issue `#48` tracks validation/migration depth.
+- Issue `#48` is closed; future validation/migration changes remain governed by
+  [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 
 ## 8. Rendering Model
 
@@ -1663,7 +1674,10 @@ baseline, dirty-state, replacement-guard, and native close/Quit semantics are
 defined in [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md).
 That contract records the implemented Open checkpoint while remaining normative
 for unfinished lifecycle work. Serialized fields and migrations remain owned by
-[`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
+[`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md). Exact target `.sbls` codec,
+security, legacy-conversion, and atomic binary persistence behavior is defined
+by [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
+and remains unimplemented.
 
 ### 15.2 Key Files
 
@@ -1710,7 +1724,9 @@ the source accepted by staging and the output produced by legacy Save.
 - Saving and loading must preserve current visual state, disabled state, uploaded assets, source choices, placement, scale, custom images, and export guide settings.
 - Load normalization may tolerate sparse legacy data but must not erase valid user data.
 - Case insert projects must not restore through the disc path.
-- Future package support must continue to load current `.sbls.json` files.
+- Target package support must continue to load current `.json` and `.sbls.json`
+  files and must follow
+  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 - Native project writes must exclusively create adjacent temporary files,
   synchronize and close them before one platform replacement, avoid copy or
   delete-then-rename fallbacks, preserve the prior destination on every returned
@@ -1940,9 +1956,12 @@ Current tests cover broad helper and contract areas:
 - Structured tray/spine layouts remain open under `#149`.
 - Jewel case alpha remains open under `#126`.
 - Historical mark families remain open under `#125`.
-- Schema validation and migrations remain open under `#48`.
+- Issue `#48` is closed; current schema validation and the `0.1.0` to `0.2.0`
+  migration are implemented, while any future schema change remains separate
+  work under [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - Preview selection, snapping, keyboard nudging, inspector, and context-menu workflows remain open under related preview issues.
-- Future `.sbls` package read/write is not implemented.
+- Target [`.sbls` package read/write](PROJECT_PACKAGE_FORMAT_CONTRACT.md) is not
+  implemented.
 - DVD/Amaray and Blu-ray editors are future planned surfaces, not current working editors.
 
 ### 19.3 Areas For User Review
@@ -1998,13 +2017,19 @@ Decision:
 - Current projects are plain `.sbls.json` JSON files using schema version `0.2.0`.
 - Schema `0.1.0` projects migrate explicitly to `0.2.0` without inferred guidance or owner changes.
 - Images needed for reload are embedded as data URLs where supported.
-- Future `.sbls` packages are documented but not implemented.
+- Target `.sbls` packages are defined by
+  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md),
+  remain unimplemented, and preserve the choice recorded in
+  [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 
 Consequences:
 
-- Current save/load work must preserve JSON compatibility.
-- Package behavior must not be implied in UI/docs until implemented.
-- Future package work must continue loading existing JSON projects.
+- Current save/load work must preserve JSON compatibility under
+  [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
+- Package behavior must not be implied in UI/docs until the target
+  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) is
+  implemented and validated.
+- Target package work must continue loading existing JSON projects.
 
 ### ADR-004: Fixed Layer Order Policy
 
@@ -2175,7 +2200,7 @@ Consequences:
 The following are documented future plans or active gaps, not current implemented guarantees:
 
 - Guided Start and opening-screen workflow.
-- Full `.sbls` package read/write.
+- Full [`.sbls` package read/write](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 - DVD/Amaray and Blu-ray case editors.
 - Direct printer integration.
 - Full arbitrary layer management.

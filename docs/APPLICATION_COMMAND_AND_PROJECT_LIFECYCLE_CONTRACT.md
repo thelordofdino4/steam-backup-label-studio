@@ -3,10 +3,10 @@
 > Status: Draft target-state normative contract.
 > Purpose: Define application-command semantics, the single-project session lifecycle, dirty/baseline rules, lifecycle guards, and shared result/feedback boundaries for future implementation.
 > Read when: Application commands, Home/editor navigation, project New/Open/Save/Save As/Close behavior, native close/Quit handling, global shortcuts, or lifecycle feedback are being designed or changed.
-> Authoritative source: This document for the target application-command and project-session contract; `PROJECT_FILE_SPEC.md` remains authoritative for serialized project schema, and the SDD remains authoritative for broader architecture and current as-built boundaries.
-> Evidence baseline: `main` at `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`.
+> Authoritative source: This document for the target application-command and project-session contract; `PROJECT_FILE_SPEC.md` remains authoritative for hydrated serialized project schema, `PROJECT_PACKAGE_FORMAT_CONTRACT.md` owns target package/container behavior, and the SDD remains authoritative for broader architecture and current as-built boundaries.
+> Evidence baseline: `main` at `a104825583a1cc03e145a9e460e9abccf4483bf7`.
 
-Last refreshed: 2026-07-25.
+Last refreshed: 2026-07-27.
 
 Implementation checkpoint, 2026-07-27: one production lifecycle composition
 root is now mounted at the React application boundary, and `project.open` is
@@ -40,7 +40,8 @@ Authority remains divided as follows:
 
 | Concern | Authority |
 | --- | --- |
-| Serialized `.sbls.json` fields, validation, migrations, and compatibility | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md) |
+| Hydrated `SavedProject` fields, validation, migrations, and current/legacy JSON compatibility | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md) |
+| Target `.sbls` identity/layout, manifest, projection/bindings/hydration, asset rules, recognition, legacy conversion, and atomic binary package boundary | [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) |
 | Broader as-built architecture, renderer ownership, and preview/edit/export parity | [`SOFTWARE_DESIGN_DOCUMENT.md`](SOFTWARE_DESIGN_DOCUMENT.md) |
 | Product scope and feature boundaries | [`PRD.md`](PRD.md) |
 | Text input, source editing, and contextual text-control behavior | [`TEXT_EDITOR_CONTRACT.md`](TEXT_EDITOR_CONTRACT.md) |
@@ -61,8 +62,9 @@ migration decision.
 When documents appear to conflict, first classify the claim. Current source
 and tests outrank a dated current-state statement. This contract governs target
 command/lifecycle behavior, while the SDD governs current as-built architecture
-until implementation satisfies this contract. Schema questions always defer to
-`PROJECT_FILE_SPEC.md`.
+until implementation satisfies this contract. Hydrated schema questions always
+defer to `PROJECT_FILE_SPEC.md`; package transport questions defer to
+`PROJECT_PACKAGE_FORMAT_CONTRACT.md`.
 
 ## 2. Terminology And Claim Classifications
 
@@ -71,7 +73,7 @@ until implementation satisfies this contract. Schema questions always defer to
 | Project content | The normalized design and editor data that the project schema defines as persistable. |
 | Project session | One in-memory aggregate containing project content plus session-only identity, path, baseline, revision, and navigation metadata. |
 | Active session | The sole project session currently retained by the application, whether an editor or Home is visible. |
-| Canonical persistable snapshot | A complete normalized project-file value suitable for one save or load commit. |
+| Canonical persistable snapshot | A complete normalized hydrated project value suitable for one save or load commit. Package projection, manifest, ZIP bytes, and codec buffers are not canonical project content. |
 | Clean baseline | The exact normalized snapshot last accepted from a successful load or successful write, plus its deterministic comparison value. |
 | Revision | A monotonic in-memory change identity for canonical project-content mutations in one session. |
 | Dirty | A derived condition: no clean baseline exists, or current canonical project content differs from the baseline comparison value. |
@@ -130,6 +132,7 @@ type ProjectSession = {
   id: ProjectSessionId
   kind: 'disc' | 'caseInsert'
   currentPath: NativeProjectPath | null
+  persistenceFormat: 'legacy-json' | 'sbls-package-v1' | null
   displayName: string
   project: NormalizedPersistableProject
   cleanBaseline: {
@@ -155,8 +158,10 @@ Target invariants:
    edits, Save, Save As, Return Home, and Resume.
 3. Replacing or closing a session retires its ID. A later project receives a
    new ID even if it loads the same native path.
-4. `currentPath` is optional session metadata. It is never inferred from the
-   saved JSON payload.
+4. `currentPath` and `persistenceFormat` are session metadata. Open derives the
+   non-null format from accepted bytes, never from the suffix. A pathless New
+   session has both values `null`; a successful package Save As adopts both.
+   Neither value is inferred from or serialized into hydrated project content.
 5. `visibleWorkspace` is navigation state, not proof that a session was
    abandoned. Home may be visible while `activeSession` remains present.
 6. `lastEditorRoute` allows Resume to return to the retained Disc or Case
@@ -170,7 +175,7 @@ Target invariants:
 | State category | Examples | Serialized? | Affects dirty? |
 | --- | --- | --- | --- |
 | Project content | Fields owned by `SavedDiscProject` or `SavedCaseInsertProject`, including assets, geometry, text, metadata, and explicit export settings | Only as defined by `PROJECT_FILE_SPEC.md` | Yes, through canonical comparison |
-| Session-only | Session ID, native path, display name derived from path/session, clean baseline, revision, retained Home/Resume route, full Front/Back/Spine navigation surface | No | No |
+| Session-only | Session ID, native path, persistence format, display name derived from path/session, clean baseline, revision, retained Home/Resume route, full Front/Back/Spine navigation surface | No | No |
 | Ephemeral application state | Busy scopes, pending command, dialog state, guard authorization, feedback queue, logging context | No | No |
 | Ephemeral UI state | Focus, hover, selection, open popovers, toast timers, modal focus return target, viewport interaction state | No, unless a separate schema contract explicitly says otherwise | No |
 | Future process-persistent state | Recent projects, autosave/recovery records, resumable drafts, window geometry | Not defined here | Requires separate contracts |
@@ -203,12 +208,17 @@ Canonical comparison must:
   domain boundaries used for persistence;
 - be deterministic for semantically identical project content;
 - define stable ordering or a stable hash over the normalized value;
-- exclude session-only and ephemeral state, including native path, session ID,
-  display name, baseline, revision, busy state, feedback, focus, dialogs, and
-  Home/editor navigation;
+- exclude session-only and ephemeral state, including native path, persistence
+  format, session ID, display name, baseline, revision, busy state, feedback,
+  focus, dialogs, and Home/editor navigation;
 - exclude or stabilize volatile persistence-envelope metadata generated by the
   act of saving, such as `savedAt`, so regenerating a timestamp cannot make an
   otherwise unchanged project dirty;
+- when package support is implemented, apply the same canonical data-URL
+  normalization required by
+  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) to
+  current content and the written baseline, so equivalent lexical spelling
+  cannot make a successful Save immediately dirty;
 - retain every schema-owned design/content field whose serialized value affects
   a future reload, preview, or export; explicitly session-only compatibility
   fields such as the current coarse Case Insert pane are excluded from dirty
@@ -219,14 +229,14 @@ comparison, or hashing. It must prove that the comparison value comes from the
 normalized semantic project content and that collisions or omissions cannot
 silently mark changed content clean.
 
-| Event | Path after success | Clean baseline after success | Derived dirty |
+| Event | Path/format after success | Clean baseline after success | Derived dirty |
 | --- | --- | --- | --- |
-| New Disc/New Case | `null` | `null` | `true`, including untouched blank defaults |
-| Committed Open | selected path | exact normalized candidate accepted into the session | `false` |
+| New Disc/New Case | `null` / `null` | `null` | `true`, including untouched blank defaults |
+| Committed Open | selected path / format recognized from bytes | exact normalized hydrated candidate accepted into the session | `false` |
 | Edit canonical project content | unchanged | unchanged | Recomputed; normally `true` |
 | Change only session/UI state | as applicable | unchanged | Unchanged |
-| Successful Save | current path | exact snapshot actually written | Compare current content with written snapshot |
-| Successful Save As | selected path | exact snapshot actually written | Compare current content with written snapshot |
+| Successful eligible package Save | current `.sbls` path / `sbls-package-v1` | exact normalized snapshot actually written | Compare current content with written snapshot |
+| Successful Save As | selected `.sbls` path / `sbls-package-v1` | exact normalized snapshot actually written | Compare current content with written snapshot |
 | Cancelled/failed save | unchanged | unchanged | Unchanged |
 | Return Home/Resume | unchanged | unchanged | Unchanged |
 | Close/replacement commit | old session retired | belongs to new session or none | Recomputed for new state |
@@ -329,8 +339,8 @@ second time. Arbitrary reentrant dispatch with the same scope is rejected.
 | `project.new-disc` | New Disc Project | Application can enter a lifecycle transition | `lifecycle.transition` | After the shared guard, replace with a new pathless, baseline-less Disc session and show its editor |
 | `project.new-case` | New Case Project | Application can enter a lifecycle transition | `lifecycle.transition` | After the shared guard, replace with a new pathless, baseline-less Case Insert session and show its editor |
 | `project.open` | Open Project | Application can enter a lifecycle transition | `lifecycle.transition`, then `dialog.project-file` and `persistence.read` as used | Stage a complete candidate, guard replacement, atomically commit a new clean session, and show its editor |
-| `project.save` | Save | An active session exists | `lifecycle.transition`, `persistence.write`; add `dialog.project-file` when no current path exists | Write one snapshot to the current path, or delegate to the Save As destination flow when pathless; update baseline only on successful commit |
-| `project.save-as` | Save As | An active session exists | `lifecycle.transition`, `dialog.project-file`, `persistence.write` | Ask for a destination, write one snapshot, then adopt path and baseline on success |
+| `project.save` | Save | An active session exists | `lifecycle.transition`, `persistence.write`; add `dialog.project-file` unless the session format is `sbls-package-v1` and its current path has an eligible `.sbls` suffix | Write one snapshot to the eligible package path, or delegate pathless/legacy/wrong-suffix state to Save As; update format/baseline only on successful commit |
+| `project.save-as` | Save As | An active session exists | `lifecycle.transition`, `dialog.project-file`, `persistence.write` | Ask for an eligible `.sbls` destination that the package contract can prove distinct from an active legacy source, atomically write one package snapshot, then adopt path, `sbls-package-v1`, and baseline on success |
 | `workspace.return-home` | Return Home | An active session exists and an editor is visible | `workspace.navigation` | Show Home while retaining the complete session, path, baseline, dirty state, revision, and resume route |
 | `project.resume` | Resume Project | An active session exists and Home is visible | `workspace.navigation` | Return to the retained editor route without load, normalization, replacement, or baseline change |
 | `project.close` | Close Project | An active session exists | `lifecycle.transition` | After the shared guard, retire the active session and show Home |
@@ -433,8 +443,8 @@ activation consistently without opening overlapping dialogs.
 | --- | --- | --- | --- | --- |
 | New Disc/New Case | New unsaved, dirty session replaces the authorized old session | Any dismissed guard leaves session/navigation unchanged | Guard Cancel leaves session/navigation unchanged | Session construction/commit failure leaves old session intact |
 | Open | Complete staged candidate atomically replaces the authorized old session; selected path and clean baseline are established | File-dialog dismissal leaves old session intact | Dirty replacement not authorized; candidate is discarded and old session remains | Read/parse/migration/validation/commit failure leaves old session intact |
-| Save | Snapshot commits to current path, or pathless Save completes the Save As flow; baseline becomes written snapshot | Destination dismissal changes nothing | Not normally applicable | Snapshot/write/commit failure changes no path or baseline |
-| Save As | Snapshot commits, then destination becomes current path and baseline becomes written snapshot | Destination dismissal changes nothing | Not normally applicable | Snapshot/write/commit failure changes no path or baseline |
+| Save | Snapshot commits to the eligible package path, or pathless/legacy/wrong-suffix Save completes the Save As flow; baseline becomes written snapshot | Destination dismissal changes nothing | Not normally applicable | Snapshot/encode/write/commit failure changes no path, format, or baseline |
+| Save As | Package snapshot commits, then destination, `sbls-package-v1`, and baseline are adopted | Destination dismissal changes nothing | Not normally applicable | Snapshot/encode/write/commit failure changes no path, format, or baseline |
 | Return Home | Home becomes visible; session is retained exactly | Not normally applicable | Not normally applicable | Navigation failure leaves editor/session unchanged |
 | Resume | Retained editor route becomes visible without reload | Not normally applicable | Not normally applicable | Navigation failure leaves Home/session unchanged |
 | Close Project | Authorized session is retired and Home is shown | A dismissed guard leaves session/navigation unchanged | Guard Cancel keeps session/navigation unchanged | Close commit failure keeps session/navigation unchanged |
@@ -443,10 +453,10 @@ activation consistently without opening overlapping dialogs.
 
 ### 10.2 Path, Baseline, And History Effects
 
-| Transition | Session identity | Project content | Path/baseline | Future application history |
+| Transition | Session identity | Project content | Path/format/baseline | Future application history |
 | --- | --- | --- | --- | --- |
-| New/Open committed | New ID | Replaced as one aggregate | New establishes none; Open establishes selected path and clean baseline | Reset |
-| Save/Save As committed | Preserved | Unchanged by the save command | Updated to written snapshot; Save As also adopts path | No content-history entry |
+| New/Open committed | New ID | Replaced as one aggregate | New establishes no path/format/baseline; Open establishes selected path, recognized format, and clean baseline | Reset |
+| Save/Save As committed | Preserved | Unchanged by the save command | Updated to written snapshot; Save As also adopts eligible `.sbls` path and `sbls-package-v1` | No content-history entry |
 | Return Home/Resume | Preserved | Preserved | Preserved | Preserved |
 | Close Project committed | Retired | Removed with session | Removed with session | Removed with session |
 | Close Window/Quit committed | Retired by process/window lifecycle | No further in-process mutation required | No synthetic save | Ends with process/window lifecycle |
@@ -499,8 +509,17 @@ The user-visible persistence invariant is:
   replacement requires it;
 - partial temporary files are cleaned up after handled failure when cleanup is
   safe and does not endanger the prior valid file;
-- Save As does not adopt its selected path until write/commit succeeds;
-- a failed write changes neither current path nor clean baseline;
+- ordinary Save writes without a dialog only when the session format is
+  `sbls-package-v1` and its current path has an eligible case-insensitive
+  `.sbls` suffix; pathless, legacy-JSON, and wrong-suffix sessions use Save As;
+- conversion Save As must reject a destination that equals, aliases, or cannot
+  be proven distinct from the active legacy source, including a native
+  same-file recheck at commit; exact identity and failure rules belong to the
+  package contract;
+- Save As does not adopt its selected path, `sbls-package-v1` format, or clean
+  baseline until write/commit succeeds;
+- a failed encode/write changes neither current path, persistence format, nor
+  clean baseline;
 - the write consumes one immutable normalized snapshot, not live mutable state.
 
 This contract owns those invariants. The focused #312 implementation selects an
@@ -513,19 +532,32 @@ parent-directory sync follows commit, so this contract still does not promise
 power-loss durability for the directory entry, antivirus behavior, or stronger
 filesystem guarantees than the documented host primitive provides.
 
+The target `.sbls` encoder, destination rules, and bounded binary project IPC
+are defined by
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
+The package projection, manifest, archive bytes, and buffers are write-plan
+artifacts; the exact normalized hydrated snapshot remains the baseline. The
+current `write_project_file(String)` path is UTF-8 JSON-only even though the
+underlying #312 writer accepts arbitrary bytes, and the direct PNG binary writer
+must not be used for package Save.
+
 ### 12.2 Open As A Two-Phase Transition
 
 Open must execute in this order:
 
 1. Ask for a candidate path.
-2. Read, parse, validate, migrate, and normalize a complete candidate without
-   mutating the active session.
-3. If an active session would be replaced, run the shared replacement guard
+2. Read bounded raw bytes, recognize package versus legacy content, and for a
+   package validate/decode/hydrate it under
+   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
+3. Parse, validate, migrate, and normalize the resulting complete hydrated or
+   legacy candidate without mutating the active session.
+4. If an active session would be replaced, run the shared replacement guard
    against the latest session state.
-4. Commit the complete candidate through one atomic project/session transition.
-5. Only after commit succeeds, establish the selected path, a new session ID,
-   the clean baseline corresponding to the exact accepted normalized
-   candidate, the editor route, and success feedback.
+5. Commit the complete candidate through one atomic project/session transition.
+6. Only after commit succeeds, establish the selected path, recognized
+   persistence format, a new session ID, the clean baseline corresponding to
+   the exact accepted normalized candidate, the editor route, and success
+   feedback.
 
 File-dialog cancellation, invalid input, read failure, migration failure,
 validation failure, declined replacement, or commit failure must leave the
@@ -634,8 +666,10 @@ invariants:
 3. Loaded projects receive the selected path and start clean.
 4. Dirty is derived from canonical project comparison; UI-only changes do not
    affect it.
-5. Save with a path opens no destination dialog; pathless Save uses Save As.
-6. Save As adopts no path before successful write commit.
+5. Save opens no destination dialog only for `sbls-package-v1` with an eligible
+   `.sbls` current path; pathless, legacy-JSON, and wrong-suffix Save use Save As.
+6. Save As adopts no path before successful write commit and never replaces the
+   active legacy source with package bytes.
 7. Save failure preserves the old path, old baseline, current content, and
    previous valid destination.
 8. A save of revision `R` cannot mark revision `R+1` clean unless canonical
@@ -666,8 +700,8 @@ Future validation layers:
 | Pure unit tests | Canonical comparison, dirty derivation, guard decisions, command capabilities, result mapping, scope conflicts, and revision authorization |
 | Session/reducer tests | Aggregate New/Open/Close commits, Home/Resume retention, Save baseline transitions, history-reset boundaries |
 | Command integration tests | Dialog/read/write ordering, cancellation/decline/failure preservation, repeated dispatch, global feedback, nested guard Save |
-| Project compatibility tests | Current schema parsing/migration and canonical comparison across Disc/Case fixtures without adding session metadata to JSON |
-| Rust persistence tests | Same-directory temporary writes, replacement failure recovery, cleanup, Windows replace-existing behavior, declared durability level |
+| Project compatibility tests | Current/legacy JSON plus package hydration before schema parsing/migration; canonical Disc/Case comparison without path, format, manifest, binding, or archive metadata in project content |
+| Rust persistence tests | Bounded binary reads; same-directory exact-byte temporary writes; replacement failure recovery; cleanup; Windows replace-existing behavior; declared durability level |
 | UI accessibility tests | Capability presentation, modal focus lifecycle, global feedback on Home/editor, initiating-focus restoration |
 | Native/manual tests | Tauri file dialogs, native Close Window/Quit interception, no reentrant close loop, platform-specific persistence behavior |
 
@@ -683,7 +717,7 @@ issue was found that supersedes the following ownership:
 | Issue | Relationship to this contract |
 | --- | --- |
 | [#308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308) | Principal implementation parent for session identity, current path, clean baseline, derived dirty state, Save/Save As, replacement guards, and Home Resume. |
-| [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | Atomic project-write implementation owner, including Windows replacement and recovery semantics. The focused native implementation is present in this checkpoint; the issue remains open pending normal review/merge workflow. |
+| [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | Atomic project-write implementation owner, including Windows replacement and recovery semantics. The focused native implementation was merged by PR #317 and is consumed by the current text Save chain; the issue remains open. Target package work generalizes only the binary project boundary. |
 | [#300](https://github.com/thelordofdino4/steam-backup-label-studio/issues/300) | Focused Home Open cancellation/failure feedback gap; should consume the global result/feedback boundary rather than invent a local taxonomy. |
 | [#303](https://github.com/thelordofdino4/steam-backup-label-studio/issues/303) | Temporary conservative always-prompt proposal. Its final architectural direction is superseded by this dirty-aware guard; useful wording/tests may still inform implementation. |
 | [#298](https://github.com/thelordofdino4/steam-backup-label-studio/issues/298) | Focused Space activation/focus prerequisite for shortcut arbitration. It does not by itself implement an app-wide shortcut system. |
@@ -704,8 +738,9 @@ Dependency-focused implementation order:
 2. Typed command results, registry/dispatcher, centralized state and
    implementation-aware predicates, and lifecycle busy ownership are present;
    `project.open` is the sole production operation port.
-3. The atomic persistence primitive implemented under #312 is present but not
-   yet consumed by the legacy Save path.
+3. The atomic persistence primitive implemented under #312 is present and
+   consumed by the legacy text Save path. Bounded binary project read/write
+   adapters required by the package contract are not implemented.
 4. Two-phase Open and atomic aggregate load/apply transition are present.
 5. Save/Save As and the dirty-aware replacement guard under #308.
 6. Home Resume and global feedback, including #300.

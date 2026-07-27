@@ -1,14 +1,14 @@
 # Project Package Format Decision
-> Status: Conditional ADR.
-> Purpose: Decision record for future .sbls package/container format.
+> Status: Accepted historical decision rationale; issue #56 is closed/completed.
+> Purpose: Preserve why the target chose a ZIP-compatible single-file `.sbls` package.
 > Read when: Project packaging or future container work.
-> Authoritative source: PROJECT_FILE_SPEC.md for current JSON format.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Authoritative source: `PROJECT_FILE_SPEC.md` for current/hydrated JSON schema; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for exact target package behavior.
+> Last reviewed against commit: `a104825583a1cc03e145a9e460e9abccf4483bf7`.
 
 
-Last refreshed: 2026-06-12.
+Last refreshed: 2026-07-27.
 
-Issue: #56.
+Issue: #56 (closed/completed).
 
 ## Decision
 
@@ -18,12 +18,15 @@ the original local files.
 
 The future `.sbls` format should be a ZIP-compatible single-file package, not a
 loose folder bundle and not a custom binary format. The package should contain a
-small manifest, the saved project JSON, and asset files referenced from that
-JSON by stable package asset IDs.
+small manifest, a project JSON projection, and content-addressed asset files
+associated through manifest bindings under the exact target contract.
 
 No `.sbls` package read/write behavior is implemented by this decision. The
-current JSON format stays the compatibility baseline until package support is
-explicitly implemented and validated.
+current JSON format stays the implemented compatibility baseline until package
+support is explicitly implemented and validated. The draft target
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
+supersedes this ADR's conceptual layout and optional metadata with exact
+normative v1 rules.
 
 ## Rationale
 
@@ -32,9 +35,10 @@ explicitly implemented and validated.
 - ZIP-compatible structure keeps the format inspectable and recoverable without
   inventing a custom container.
 - Moving large artwork out of JSON can reduce oversized project files while
-  preserving the current schema as `project.json`.
-- Current `.sbls.json` files already work and should not be migrated until there
-  is a concrete save/load limitation or release need.
+  preserving hydrated current-schema semantics through the target
+  `project.json` projection and pre-schema hydration boundary.
+- At the time of the decision, current `.sbls.json` files already worked; the
+  ADR therefore did not authorize background or automatic migration.
 - A folder bundle would be easier to corrupt by moving or deleting sibling asset
   files, which conflicts with the app's portability goal.
 
@@ -50,54 +54,39 @@ For the current JSON format:
 - Keep built-in generic assets routed through `src/assets/assetManifest.ts`
   instead of copying those built-ins into every project file.
 
-## Future Package Layout
+## Superseded Conceptual Package Detail
 
-A future package should use this conceptual layout:
+This ADR originally sketched numbered asset filenames, optional integrity
+hashes, and project fields that might be replaced or supplemented with package
+references. Those details were intentionally exploratory and are no longer a
+parallel target authority.
 
-```text
-project.sbls
-  manifest.json
-  project.json
-  assets/
-    asset-0001.png
-    asset-0002.jpg
-    asset-0003.webp
-```
-
-`manifest.json` should identify the package format version, project schema
-version, creating app version when available, and the packaged asset index.
-
-`project.json` should keep the same project model as the current saved-project
-schema, with image data URL fields replaced or supplemented by package asset
-references only after migration behavior exists.
-
-Packaged asset records should include, at minimum:
-
-- stable package asset ID
-- relative path inside `assets/`
-- MIME type
-- byte length
-- optional SHA-256 or equivalent integrity hash
-- optional image dimensions
-- current provenance/status metadata
+The exact v1 contract instead requires content-addressed
+`assets/sha256/<hash>.<extension>` paths, mandatory SHA-256 and dimensions,
+transport-only null projection leaves plus manifest bindings, and complete
+hydration before the saved-project schema parser runs. Feature provenance stays
+with its hydrated owner rather than being duplicated as manifest authority. See
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 
 ## Compatibility And Migration
 
-Future package support should:
+Target package support must:
 
-- Continue loading existing `.sbls.json` projects.
-- Treat JSON/data-URL projects as the canonical backward-compatible import path.
+- Continue loading existing `.json` and `.sbls.json` projects.
+- Treat JSON/data-URL projects as a backward-compatible read/import path.
 - Sniff content safely instead of trusting only the file extension.
-- Add package loading before package saving if necessary, so recovery and
-  backward compatibility can be validated early.
-- Avoid rewriting an existing JSON project as `.sbls` unless the user explicitly
-  saves or exports to the package format.
-- Keep project schema migration work coordinated with #48.
+- Hydrate a package projection before existing schema migration and
+  normalization.
+- Route Save from a legacy session through Save As to a new `.sbls` destination.
+- Never overwrite JSON with ZIP bytes, silently change the legacy source path,
+  or write new transitional JSON.
+- Keep any future schema change under
+  [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md). Issue #48 is closed; its current
+  parser and `0.1.0` to `0.2.0` migration are implemented inputs to hydration.
 
-## Non-Goals
+## Historical ADR Scope Exclusions
 
-- Implementing `.sbls` package read/write in the current batch.
-- Changing the current save/load UI.
-- Removing embedded data URL support.
-- Bundling official third-party game artwork or trademarked logo packs.
-- Making package support a blocker for the disc-label alpha path.
+This ADR did not implement `.sbls` package read/write, change the save/load UI,
+remove embedded data-URL compatibility, or create an official third-party
+artwork/logo catalog. Current implementation scope, sequencing, non-goals, and
+future extensions now defer to the exact package contract and live issue state.
