@@ -25,6 +25,21 @@ export type LifecycleCommandCapabilityContext = Readonly<{
   termination: ApplicationTerminationCapabilities
 }>
 
+export type ApplicationCommandOwnerAvailabilityState =
+  | 'implemented'
+  | 'unavailable'
+  | 'unimplemented'
+
+export type ApplicationCommandOwnerAvailability = Readonly<Record<
+  ApplicationCommandId,
+  ApplicationCommandOwnerAvailabilityState
+>>
+
+export type ExecutableLifecycleCommandCapabilityContext =
+  LifecycleCommandCapabilityContext & Readonly<{
+    owners: ApplicationCommandOwnerAvailability
+  }>
+
 const LIFECYCLE_SCOPE = Object.freeze([
   'lifecycle.transition',
 ] as const satisfies readonly CommandBusyScope[])
@@ -139,5 +154,74 @@ export function projectLifecycleCommandCapabilities(
       'application.close-window',
     ),
     'application.quit': getLifecycleCommandCapability(context, 'application.quit'),
+  })
+}
+
+function ownerCapability(
+  availability: ApplicationCommandOwnerAvailabilityState,
+): ApplicationCommandCapability {
+  switch (availability) {
+    case 'implemented':
+      return enabled()
+    case 'unavailable':
+      return disabled('application.command-owner-unavailable')
+    case 'unimplemented':
+      return disabled('application.command-owner-unimplemented')
+  }
+}
+
+export function getExecutableLifecycleCommandCapability(
+  context: ExecutableLifecycleCommandCapabilityContext,
+  commandId: ApplicationCommandId,
+): ApplicationCommandCapability {
+  const lifecycleCapability = getLifecycleCommandCapability(context, commandId)
+  if (!lifecycleCapability.canExecute) return lifecycleCapability
+  return ownerCapability(context.owners[commandId])
+}
+
+export function executableProjectLifecycleCommandCapabilities(
+  context: ExecutableLifecycleCommandCapabilityContext,
+): Readonly<Record<ApplicationCommandId, ApplicationCommandCapability>> {
+  return Object.freeze({
+    'project.new-disc': getExecutableLifecycleCommandCapability(
+      context,
+      'project.new-disc',
+    ),
+    'project.new-case': getExecutableLifecycleCommandCapability(
+      context,
+      'project.new-case',
+    ),
+    'project.open': getExecutableLifecycleCommandCapability(
+      context,
+      'project.open',
+    ),
+    'project.save': getExecutableLifecycleCommandCapability(
+      context,
+      'project.save',
+    ),
+    'project.save-as': getExecutableLifecycleCommandCapability(
+      context,
+      'project.save-as',
+    ),
+    'workspace.return-home': getExecutableLifecycleCommandCapability(
+      context,
+      'workspace.return-home',
+    ),
+    'project.resume': getExecutableLifecycleCommandCapability(
+      context,
+      'project.resume',
+    ),
+    'project.close': getExecutableLifecycleCommandCapability(
+      context,
+      'project.close',
+    ),
+    'application.close-window': getExecutableLifecycleCommandCapability(
+      context,
+      'application.close-window',
+    ),
+    'application.quit': getExecutableLifecycleCommandCapability(
+      context,
+      'application.quit',
+    ),
   })
 }

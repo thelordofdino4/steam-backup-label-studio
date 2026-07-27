@@ -244,7 +244,7 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
-The frontend also contains pure, runtime-disconnected lifecycle and application-menu foundations. `src/lifecycle/` defines the current single-session, canonical-baseline, command, busy-scope, and capability primitives. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, and an in-memory test port. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
+The frontend also contains pure, runtime-disconnected lifecycle and application-menu foundations. `src/lifecycle/` defines the current single-session and canonical-baseline primitives plus one framework-neutral composition root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. No production operation ports or React adapters consume that root yet. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, an in-memory test port, and a narrow lifecycle-capability consumption helper. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
 
 ### 5.2 Key Files
 
@@ -261,11 +261,16 @@ The frontend also contains pure, runtime-disconnected lifecycle and application-
 - `src/app/appCaseInsertPreviewTextHandlers.ts`
 - `src/lifecycle/applicationCommandTypes.ts`
 - `src/lifecycle/applicationCommandRegistry.ts`
+- `src/lifecycle/applicationLifecycleStateStore.ts`
+- `src/lifecycle/applicationLifecycleCommandPorts.ts`
+- `src/lifecycle/applicationLifecycleCommandDefinitions.ts`
+- `src/lifecycle/applicationLifecycleCompositionRoot.ts`
 - `src/lifecycle/lifecycleCommandCapabilities.ts`
 - `src/lifecycle/projectSession.ts`
 - `src/applicationMenu/applicationMenuTypes.ts`
 - `src/applicationMenu/applicationMenuRegistry.ts`
 - `src/applicationMenu/applicationMenuProjection.ts`
+- `src/applicationMenu/applicationMenuLifecycleCapabilities.ts`
 - `src/applicationMenu/inMemoryApplicationMenuPort.ts`
 - `src/editor/editorTypes.ts`
 - `src-tauri/tauri.conf.json`
@@ -285,7 +290,7 @@ The frontend also contains pure, runtime-disconnected lifecycle and application-
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
-Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not execute targets or reproduce domain authorization. The in-memory port is test-only; it stores immutable newer generations per window label and is not a browser or native menu.
+Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not execute targets or reproduce domain authorization. A one-way helper can read lifecycle capabilities from the composition root without giving the menu a dispatch path or importing menu concepts into lifecycle. The in-memory port is test-only; it stores immutable newer generations per window label and is not a browser or native menu.
 
 ### 5.4 Render, Edit, And Export Paths
 
