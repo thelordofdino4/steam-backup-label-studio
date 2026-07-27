@@ -30,7 +30,7 @@ The **disc-label editor** is now past the indev finish line and is the first alp
 
 The broader product is still early because the jewel case editor is active but not alpha-complete, and DVD/Amaray and Blu-ray case editors are not implemented yet. The next major milestone remains the **jewel case editor** finish line tracked by #126.
 
-Issue #69 is closed as the disc-editor alpha finish-line tracker. The large-file refactor tracker (#266) is also closed after merge commit `6feb262bed2abd36b1371e5c0674013018132d16`. Ongoing polish and future expansion remain tracked separately, including Guide Legend relocation (#124), historical mark catalog expansion (#125), schema/migration work (#48), project packaging decisions (#56), and architecture cleanup (#44, #46, #47).
+Issue #69 is closed as the disc-editor alpha finish-line tracker. The large-file refactor tracker (#266) is also closed after merge commit `6feb262bed2abd36b1371e5c0674013018132d16`. Ongoing polish and future expansion remain tracked separately, including Guide Legend relocation (#124), historical mark catalog expansion (#125), the closed schema/migration baseline (#48), the closed project-packaging decision (#56) now specified by `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md`, and architecture cleanup (#44, #46, #47).
 
 Do not treat historical "recent validation" notes in older docs as proof that native/Tauri manual smoke has happened for the current checkout. For this docs pass, no `npm run tauri dev` verification is claimed.
 
@@ -140,8 +140,8 @@ The project should not bundle official trademarked assets unless licensing is cl
 - Keep built-in asset routing centralized, keep official replacements in domain folders under `src/assets/`, and keep true placeholder-named fallbacks under `src/assets/placeholders/`.
 - Keep #124 separate: move Guide Legend into the live preview only when that issue is explicitly worked.
 - Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, export preflight, and future case layouts so manual preview/export checks match the current feature set.
-- Continue architecture cleanup tracked by open issues such as #44, #46, #47, and #48 only where it supports alpha work.
-- Keep project asset packaging decisions in #56; the future `.sbls` package/container format is not implemented and should not block disc-editor alpha unless a concrete save/load limitation appears.
+- Continue architecture cleanup tracked by open issues such as #44, #46, and #47 only where it supports alpha work; #48 is the closed schema-validation/migration baseline, and future schema work follows `docs/PROJECT_FILE_SPEC.md`.
+- Use `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md` as the draft target authority for future `.sbls` package implementation; closed issue #56 remains the historical ZIP-container decision record, and package support is not currently implemented.
 - Defer Guided Start (#17), DVD/Amaray and Blu-ray case editors, direct printer support, official asset packs, automatic rating lookup, full arbitrary layer management, and broad refactors unless they become necessary for a focused alpha blocker.
 
 ## Planned Platforms

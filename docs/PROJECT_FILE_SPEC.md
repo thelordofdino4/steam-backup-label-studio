@@ -1,12 +1,12 @@
 # Project File Specification
 > Status: Authoritative save/load schema reference.
-> Purpose: Project JSON format, compatibility behavior, and future package notes.
+> Purpose: Hydrated `SavedProject` schema, current/legacy JSON compatibility, validation, normalization, and migrations.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
-> Authoritative source: This document for saved-project schema; SDD for architecture boundaries.
-> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
+> Authoritative source: This document for hydrated saved-project fields and migrations; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for target package/container behavior; SDD for architecture boundaries.
+> Last reviewed against commit: `a104825583a1cc03e145a9e460e9abccf4483bf7`.
 
 
-Last refreshed: 2026-07-11.
+Last refreshed: 2026-07-27.
 
 ## Purpose
 
@@ -26,6 +26,17 @@ to implement the draft target lifecycle in
 That contract owns target command/session semantics; this specification remains
 authoritative for every persisted field and migration, including current
 case-editor metadata.
+
+The draft target
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
+owns the package manifest, projection, bindings, hydration, and container
+rules. Those are transport-only codec artifacts. Only a fully hydrated,
+schema-accepted, normalized `SavedProject` is editor content and the lifecycle
+project/baseline authority. Package v1 does not change schema `0.2.0`.
+The package contract's target canonical data-URL spelling is a package-snapshot
+normalization rule shared with canonical dirty comparison, not a new field or a
+claim about current plain-JSON normalization. Implementing it must preserve
+legacy reads and cannot mutate live editor content merely because Save ran.
 
 Game search queries, result sets, candidates, request generations, busy state,
 and immutable import plans are also session-only or ephemeral and are not added
@@ -72,9 +83,12 @@ through `src/project/projectCaseInsert.ts`, while case-owned defaults,
 normalization, state transitions, source helpers, and focused action modules
 live under `src/caseInsert/`.
 
-The future `.sbls` package/container format is not implemented yet. Documentation and UI should not imply that zipped/package `.sbls` support exists today. The package-format direction is recorded in `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`.
-
-The future package format should not block disc-editor alpha unless a specific save/load limitation appears.
+The target `.sbls` package/container format is not implemented yet.
+Documentation and UI must not imply that zipped/package `.sbls` support exists
+today. Exact target behavior is defined by
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md); the
+closed #56 rationale is preserved in
+[`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 
 ## Current Native Write Commit Boundary
 
@@ -116,10 +130,14 @@ operation. Handled failures clean their owned temporary file when the filesystem
 allows it; process termination and a filesystem that rejects cleanup can still
 leave an identifiable adjacent temporary artifact.
 
-This boundary applies only to JSON project writes. `write_binary_file` and PNG
-export behavior are unchanged. It adds no schema fields, session state, current
-path, dirty baseline, Save/Save As distinction, or lifecycle command behavior;
-those remain under the application lifecycle work tracked by #308.
+This implemented command boundary applies only to UTF-8 JSON project writes.
+`write_binary_file` and PNG export behavior are unchanged, and the direct binary
+writer is not an atomic project-package writer. Target bounded binary project
+read and atomic binary project write behavior belongs to
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md). The
+current native change adds no schema fields, session state, current path, dirty
+baseline, Save/Save As distinction, or lifecycle command behavior; those remain
+under the application lifecycle work tracked by #308.
 
 ## Current Saved State
 
@@ -356,21 +374,19 @@ Legacy `0.1.0` JSON remains accepted through this migration; new snapshots use
 
 ## Future Package Direction
 
-A future version should use a ZIP-compatible packaged project format that bundles JSON plus local assets:
+The target ZIP-compatible single-file package is specified by
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
+That contract owns the exact layout, content-addressed asset paths, mandatory
+digests, manifest bindings, hydration, security limits, legacy conversion, and
+binary persistence boundary. The decision rationale remains in
+[`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 
-```text
-project.sbls
-  manifest.json
-  project.json
-  assets/
-    asset-0001.png
-    asset-0002.jpg
-    asset-0003.webp
-```
-
-This keeps projects portable as one file, avoids a custom binary container, and may reduce large JSON files. Existing `.sbls.json` data-URL projects remain the compatibility baseline. Package read/write behavior is future work tracked separately from the current disc-editor alpha unless a concrete limitation appears.
-
-See `docs/PROJECT_PACKAGE_FORMAT_DECISION.md` for the #56 decision record.
+Existing `.json` and `.sbls.json` data-URL projects remain readable legacy
+imports. A package projection with null asset leaves is not a new saved-project
+schema: package loading must hydrate those leaves before this specification's
+parser and migrations run. Any future typed package reference that reaches a
+hydrated `SavedProject` would require a new schema version and migration here;
+package v1 authorizes no such union.
 
 ## Future Schema Work
 

@@ -5,6 +5,7 @@
 > Read when: Designing or implementing the application menu, native menu events, menu capabilities, application shortcuts, rich workflow launchers, Help/About, Window actions, or removal of application-level sidebar controls.
 > Authoritative source: This document for target application-menu presentation and integration; focused lifecycle, navigation, Export, Game, Disc geometry, Disc Layout Preset, project-file, and SDD authorities retain their semantic domains.
 > Evidence baseline: `main` at `32e94b0a343d02bb7dfb74adb6d05d325cd73769`, reviewed 2026-07-26.
+> Focused package/save-load facts reviewed against `main` at `a104825583a1cc03e145a9e460e9abccf4483bf7` on 2026-07-27; this does not re-baseline unrelated menu evidence.
 
 ## 1. Status, scope, and authority
 
@@ -32,6 +33,7 @@ Help surface is implemented at the evidence baseline.
 | --- | --- | --- |
 | TARGET REQUIREMENT | Application menu hierarchy, item IDs, labels, placement, native bridge, and menu migration | This contract |
 | TARGET REQUIREMENT | Application command IDs, session/path/baseline/dirty state, Save/Save As, replacement and close guards, busy scopes, results, feedback, and future history boundary | [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md) |
+| TARGET REQUIREMENT | `.sbls` package eligibility, legacy-format conversion, and package binary persistence | [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) |
 | TARGET REQUIREMENT | Typed editor destinations, presentation-adapter rules, control ownership, workflow reveal/focus, ribbon, and preview-local boundaries | [`EDITOR_NAVIGATION_AND_CONTROL_OWNERSHIP.md`](EDITOR_NAVIGATION_AND_CONTROL_OWNERSHIP.md) |
 | TARGET REQUIREMENT | `export.png`, target resolution, immutable request, preflight, warning review, destination, rendering, writing, results, and Export busy scope | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) |
 | TARGET REQUIREMENT | Game search, selection, plan/review/apply, metadata operations, stale results, and Disc/Case effects | [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md) |
@@ -122,7 +124,7 @@ verification performed against the evidence baseline.
 | CURRENT FACT / TARGET REQUIREMENT | Home | `HomeScreen.tsx` exposes Load Project, New Disc, and New Case Insert. It has a status surface but no Resume control. | Home controls dispatch the same commands as File items; Resume is added only with the lifecycle/session implementation. |
 | CURRENT FACT / TARGET REQUIREMENT | Disc Project File | `ProjectPanel.tsx` exposes Main Menu, New Disc, Save Project, Load Project, Export PNG, and New Case Insert. | Those application-level actions move to File; the panel remains until replacement parity is proven. |
 | CURRENT FACT / TARGET REQUIREMENT | Case Project File | `CaseInsertEditorShell.tsx` duplicates Main Menu, New Case Insert, New Disc, Save, Load, and Export PNG. | The same File adapters serve Disc and Case; no Case-only command copies remain. |
-| CURRENT FACT / TARGET REQUIREMENT | Save | `runAppProjectSave` always uses the destination chooser; no current path/baseline/dirty session exists. | `project.save` writes the current path or delegates to Save As only when pathless; `project.save-as` always chooses a destination. |
+| CURRENT FACT / TARGET REQUIREMENT | Save | `runAppProjectSave` always uses the destination chooser; no current format-aware Save behavior exists. | `project.save` writes without a chooser only for an adopted package-v1 session at an eligible `.sbls` path; pathless, legacy-format, or wrong-suffix state delegates to Save As. `project.save-as` always chooses an eligible package destination. |
 | CURRENT FACT / TARGET REQUIREMENT | Return Home | The current handler warns that work remains in memory, clears active Disc preset identity, and shows Home; Home cannot Resume. | Return Home retains the complete session and Resume route; Close Project separately retires it. |
 | CURRENT FACT / TARGET REQUIREMENT | Export | Disc and Case Project File buttons call a shared callback that branches on active workspace; destination currently precedes preflight. | File `Export PNG…` dispatches `export.png`; Tools `Export Options…` only reveals owner-backed configuration. |
 | CURRENT FACT / TARGET REQUIREMENT | Game | `GamePanel.tsx` combines query, Search, immediate result-import activation, metadata fields, candidate discovery/application, and feedback. | Tools `Game…` opens the rich Game host; explicit selection, immutable planning, review, and owner apply replace immediate target behavior. |
@@ -434,8 +436,8 @@ additional presentations while they dispatch the same command IDs.
 | --- | --- | --- | --- |
 | TARGET REQUIREMENT | New Disc Project / New Case Project | Dispatch the exact replacement-aware lifecycle command and create a pathless, baseline-less session only after authorization. | They do not navigate to or reset the other current editor through copied callbacks. |
 | TARGET REQUIREMENT | Open Project… | Stage, validate, guard, and atomically commit through `project.open`. | It is not “Load” presentation logic and must not partially restore before acceptance. |
-| TARGET REQUIREMENT | Save | Write to the current project path; if pathless, delegate internally to the Save As destination flow. | It keeps the conventional no-ellipsis label even though pathless Save may open a chooser; the semantic command remains Save. |
-| TARGET REQUIREMENT | Save As… | Always ask for a destination and adopt path/baseline only after successful write commit. | It is independently exposed and never inferred from menu placement. |
+| TARGET REQUIREMENT | Save | Write to the current path only for package-v1 with an eligible `.sbls` suffix; if pathless, legacy-format, or wrong-suffix, delegate internally to the Save As destination flow. | It keeps the conventional no-ellipsis label even though Save may open a chooser; the semantic command remains Save. |
+| TARGET REQUIREMENT | Save As… | Always ask for an eligible `.sbls` destination, require a conversion destination to be provably distinct from the active legacy source, and adopt path/package format/baseline only after successful write commit. | It is independently exposed and never inferred from menu placement. |
 | TARGET REQUIREMENT | Export PNG… | Execute `export.png`, including owner preflight/review/destination/render/write. | It does not open Export Options and does not copy guide setters. |
 | TARGET REQUIREMENT | Return Home | Show Home while retaining the complete active session and resume route. | It is not Close Project and opens no replacement guard. |
 | TARGET REQUIREMENT | Resume Project | From Home, restore the retained editor destination without read/normalize/replacement/baseline change. | It is Home-only and not ordinary editor navigation. |
@@ -454,8 +456,8 @@ conventional label explained above.
 | Claim | Condition | Save | Save As… | New/Open/Close Project | Return Home / Resume | Export PNG… | Close Window / Quit |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | TARGET REQUIREMENT | No active session on Home | Disabled | Disabled | New/Open enabled; Close Project disabled | Both disabled | Disabled | Enabled, no project guard |
-| TARGET REQUIREMENT | Pathless active session | Enabled; delegates to Save As flow | Enabled | Owner guard uses dirty state | Route capability only | Enabled when target resolves | Guard uses session dirty state |
-| TARGET REQUIREMENT | Session with path | Enabled; no destination chooser | Enabled; chooses replacement path | Owner guard uses dirty state | Route capability only | Enabled when target resolves | Guard uses session dirty state |
+| TARGET REQUIREMENT | Pathless, legacy-format, or wrong-suffix active session | Enabled; delegates to Save As flow | Enabled; legacy conversion rejects the active source and aliases as destinations | Owner guard uses dirty state | Route capability only | Enabled when target resolves | Guard uses session dirty state |
+| TARGET REQUIREMENT | Package-v1 session with eligible `.sbls` path | Enabled; no destination chooser | Enabled; chooses replacement path | Owner guard uses dirty state | Route capability only | Enabled when target resolves | Guard uses session dirty state |
 | TARGET REQUIREMENT | Clean active session | Enabled by lifecycle's active-session capability | Enabled | Replacement/close proceeds without Save/Discard prompt | No content effect | Enabled when target resolves | Termination proceeds without dirty prompt |
 | TARGET REQUIREMENT | Dirty active session | Enabled | Enabled | Shared Save/Discard/Cancel guard; no menu-private confirmation | No guard for Return Home/Resume | Export does not clear dirty state | Shared Save/Discard/Cancel guard |
 | TARGET REQUIREMENT | Home with retained session | Enabled | Enabled | New/Open/Close act on retained session | Return Home disabled; Resume enabled | Enabled only when retained target resolves truthfully | Guard retained session on close/Quit |
@@ -828,9 +830,11 @@ criteria.
    changes; dispatch always rechecks.
 5. Home/no-session, Home/retained-session, Disc, Case, incompatible-kind,
    pathless, clean, dirty, busy, and modal differences match the matrices.
-6. Save writes the current path, pathless Save delegates to Save As, Save As
-   always chooses a destination, and failed/cancelled writes preserve path and
-   baseline.
+6. Save writes without a chooser only for package-v1 at an eligible `.sbls`
+   path; pathless/legacy/wrong-suffix Save delegates to Save As, Save As always
+   chooses an eligible package destination, legacy conversion cannot target the
+   active source or an alias, and failed/cancelled writes preserve path, format,
+   and baseline.
 7. Return Home retains the session, Resume restores it, Close Project retires
    it, Close Window closes one window, and Quit terminates the application only
    through shared guarded commands.
@@ -885,7 +889,9 @@ later step must not bypass an incomplete earlier semantic owner.
 1. Implement #308's session aggregate, canonical baseline, command
    registry/dispatcher, centralized capabilities, busy scopes, and exact
    Save/Save As semantics.
-2. Implement #312's atomic project writing and verified failure preservation.
+2. Add bounded binary project read and structured atomic binary project-write
+   adapters that reuse #312's merged byte writer and preserve its verified
+   failure behavior.
 3. Implement shared results, global feedback, the dirty-aware replacement
    guard, Home Resume, and #300; use #303 only as temporary wording/test input,
    not as a competing permanent guard.
@@ -930,7 +936,7 @@ separate preview context-menu proposal and is not an application-menu owner.
 | Claim | Issue/authority | State at review | Relationship |
 | --- | --- | --- | --- |
 | CURRENT FACT / TARGET REQUIREMENT | [#308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308) | Open | Principal lifecycle/session/Save/Resume and command foundation; this menu consumes it and does not widen it. |
-| CURRENT FACT / TARGET REQUIREMENT | [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | Open | Atomic project-write dependency before target Save is relied on. |
+| CURRENT FACT / TARGET REQUIREMENT | [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | Open; atomic byte primitive merged in PR #317 | Current JSON Save already consumes the atomic primitive. Package/menu Save still depends on bounded binary project read and structured atomic binary write adapters, not a second atomic algorithm. |
 | CURRENT FACT / TARGET REQUIREMENT | [#302](https://github.com/thelordofdino4/steam-backup-label-studio/issues/302) | Open | Export sequence implementation required before File Export is conformant. |
 | CURRENT FACT / TARGET REQUIREMENT | [#300](https://github.com/thelordofdino4/steam-backup-label-studio/issues/300) | Open | Home-originated Open cancellation/failure feedback must use shared results. |
 | CURRENT FACT / TARGET REQUIREMENT | [#303](https://github.com/thelordofdino4/steam-backup-label-studio/issues/303) | Open | Temporary conservative replacement direction; lifecycle contract supersedes it as final dirty-aware architecture. |
@@ -988,7 +994,7 @@ current functionality.
 | CURRENT FACT | Home New/Load, Disc/Case Project buttons, Export Options, Game, Disc Template, Disc presets | Implemented compatibility presentations | Preserve until replacement adapters pass parity gates. |
 | CURRENT FACT | Contextual ribbon, preview viewport, Design Check, Guide Legend | Implemented separate systems | Do not relocate or redefine. |
 | TARGET REQUIREMENT | Session aggregate, dispatcher, capabilities, dirty/baseline, Save/Save As, Resume, close/Quit | Required dependency | Implement under #308 before relying on File menu behavior. |
-| TARGET REQUIREMENT | Atomic project writes | Required dependency | Implement #312 before target Save is accepted. |
+| CURRENT FACT / TARGET REQUIREMENT | Atomic byte writer plus package-safe binary project adapters | Primitive implemented; adapters required | Reuse the merged #312 writer and add bounded binary read/structured atomic binary write before package-aware target Save is accepted. |
 | TARGET REQUIREMENT | Shared result/feedback/focus and modal/shortcut prerequisites | Required dependency | Implement #300/#309/#298-related boundaries before broad menu activation. |
 | TARGET REQUIREMENT | Export, Game, geometry, preset target workflows | Required dependency for full migration | Menu launchers consume them; they do not make them exist. |
 | TARGET REQUIREMENT | Native descriptor/bridge/projection/workflow host | Menu implementation work | Not present at evidence baseline. |
@@ -1009,9 +1015,9 @@ replacement is verified.
 
 - change source, tests, Rust, configuration, dependencies, generated artifacts,
   schema, or runtime behavior;
-- implement the native menu, shared dispatcher, lifecycle aggregate, atomic
-  writing, global feedback, workflow host, or capability projection;
-- implement #308, #312, #302, #300, #303, #298, or #309;
+- implement the native menu, shared dispatcher, lifecycle aggregate, binary
+  project adapters, global feedback, workflow host, or capability projection;
+- implement #308, remaining #312 integration work, #302, #300, #303, #298, or #309;
 - implement application Undo/Redo, Game, Disc Template, Disc Layout Preset,
   Export, Guided Start, Help resources, About UI, or Report an Issue;
 - remove or reorder sidebar panels or current Home controls;
