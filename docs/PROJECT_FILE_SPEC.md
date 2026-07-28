@@ -84,14 +84,17 @@ normalization, state transitions, source helpers, and focused action modules
 live under `src/caseInsert/`.
 
 The bounded package-domain codec exists as a runtime-disconnected Rust workspace
-member, but production `.sbls` Open, Save, Save As, and legacy conversion are
-not implemented. Documentation and UI must not imply that application-connected
-package support exists today. Exact target behavior is defined by
+member. Dedicated bounded binary project-read and structured atomic binary
+project-write commands and dormant TypeScript ports also exist, but neither
+side calls the other. Production `.sbls` Open, Save, Save As, dialog filters,
+lifecycle format adoption, and legacy conversion are not implemented.
+Documentation and UI must not imply that application-connected package support
+exists today. Exact target behavior is defined by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md); the
 closed #56 rationale is preserved in
 [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 
-## Current Native Write Commit Boundary
+## Current Native Project Persistence Boundaries
 
 The Tauri `write_project_file(path: String, contents: String)` command preserves
 its existing frontend interface and treats `contents.as_bytes()` as opaque
@@ -131,14 +134,35 @@ operation. Handled failures clean their owned temporary file when the filesystem
 allows it; process termination and a filesystem that rejects cleanup can still
 leave an identifiable adjacent temporary artifact.
 
-This implemented command boundary applies only to UTF-8 JSON project writes.
-`write_binary_file` and PNG export behavior are unchanged, and the direct binary
-writer is not an atomic project-package writer. Target bounded binary project
-read and atomic binary project write behavior belongs to
-[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md). The
-current native change adds no schema fields, session state, current path, dirty
-baseline, Save/Save As distinction, or lifecycle command behavior; those remain
-under the application lifecycle work tracked by #308.
+The dedicated `read_binary_project_file` and `write_binary_project_file`
+commands form a separate dormant project-byte boundary. They carry one
+canonical percent-encoded UTF-8 path in the bounded
+`x-sbls-project-path-v1` request header. Read accepts only an empty raw request
+body and returns Tauri's raw octet-stream response; write accepts only a raw
+body and returns a small structured success object. Both native and frontend
+adapters enforce the exact 268,435,456-byte raw-project cap. The reader uses
+metadata only as an early rejection hint, reads through a fixed-size scratch
+buffer with fallible checked `Vec` growth, and probes through cap + 1 so stale or
+lying metadata cannot bypass the observed limit. The writer rejects over-limit
+input before path processing or temporary-file creation and then delegates the
+borrowed exact bytes to the same `project_file::write` primitive described
+above.
+
+Command failures are structured safe objects. They preserve
+`project.file-too-large`, `project.read-failed`, `project.write-failed`, and
+each exact `project.atomic-write.*` phase code without parsing display text.
+Optional causes contain only stable categories, operations, numeric platform
+codes, and safe secondary cleanup categories; paths, payloads, and raw OS error
+strings are excluded.
+
+The legacy UTF-8 JSON read/write commands remain production Open/Save owners.
+The new TypeScript byte ports are not imported by application, lifecycle,
+dialog, menu, or export code, and the package codec does not consume them.
+`write_binary_file` and PNG export behavior are unchanged; that direct writer
+is not an atomic project-package writer. These infrastructure boundaries add no
+schema fields, session state, current path, dirty baseline, Save/Save As
+distinction, or lifecycle command behavior; those remain under #308 and
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 
 ## Current Saved State
 

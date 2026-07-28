@@ -282,6 +282,7 @@ export const testFiles = [
   'src/render/technicalMarkRenderModel.test.ts',
   'src/templates/caseInsertTemplates.test.ts',
   'src/templates/templateModel.test.ts',
+  'src/tauri/binaryProjectFile.test.ts',
 ]
 
 export const testCommands = [
