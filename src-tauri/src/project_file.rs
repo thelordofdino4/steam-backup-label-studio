@@ -11,7 +11,7 @@ const TEMP_FILE_MARKER: &str = ".sbls-project-write-";
 static TEMP_FILE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum WritePhase {
+pub(crate) enum AtomicProjectWritePhase {
     ValidateDestination,
     CreateTemporary,
     CollisionExhausted,
@@ -22,8 +22,8 @@ enum WritePhase {
     ReplaceDestination,
 }
 
-impl WritePhase {
-    fn operation_id(self) -> &'static str {
+impl AtomicProjectWritePhase {
+    pub(crate) fn operation_id(self) -> &'static str {
         match self {
             Self::ValidateDestination => "project.atomic-write.validate-destination",
             Self::CreateTemporary => "project.atomic-write.create-temporary",
@@ -52,19 +52,20 @@ impl WritePhase {
 
 #[derive(Debug)]
 struct SecondaryFailure {
+    operation: &'static str,
     description: &'static str,
     error: io::Error,
 }
 
 #[derive(Debug)]
 pub(crate) struct AtomicProjectWriteError {
-    phase: WritePhase,
+    phase: AtomicProjectWritePhase,
     source: io::Error,
     secondary_failures: Vec<SecondaryFailure>,
 }
 
 impl AtomicProjectWriteError {
-    fn new(phase: WritePhase, source: io::Error) -> Self {
+    pub(crate) fn new(phase: AtomicProjectWritePhase, source: io::Error) -> Self {
         Self {
             phase,
             source,
@@ -72,10 +73,32 @@ impl AtomicProjectWriteError {
         }
     }
 
-    fn with_secondary(mut self, description: &'static str, error: io::Error) -> Self {
-        self.secondary_failures
-            .push(SecondaryFailure { description, error });
+    pub(crate) fn with_secondary(
+        mut self,
+        operation: &'static str,
+        description: &'static str,
+        error: io::Error,
+    ) -> Self {
+        self.secondary_failures.push(SecondaryFailure {
+            operation,
+            description,
+            error,
+        });
         self
+    }
+
+    pub(crate) const fn phase(&self) -> AtomicProjectWritePhase {
+        self.phase
+    }
+
+    pub(crate) const fn io_error(&self) -> &io::Error {
+        &self.source
+    }
+
+    pub(crate) fn secondary_failures(&self) -> impl Iterator<Item = (&'static str, &io::Error)> {
+        self.secondary_failures
+            .iter()
+            .map(|failure| (failure.operation, &failure.error))
     }
 }
 
@@ -232,7 +255,7 @@ where
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
             Err(error) => {
                 return Err(AtomicProjectWriteError::new(
-                    WritePhase::CreateTemporary,
+                    AtomicProjectWritePhase::CreateTemporary,
                     error,
                 ));
             }
@@ -241,7 +264,7 @@ where
 
     let Some((temporary, mut handle)) = owned_temporary else {
         return Err(AtomicProjectWriteError::new(
-            WritePhase::CollisionExhausted,
+            AtomicProjectWritePhase::CollisionExhausted,
             io::Error::new(
                 io::ErrorKind::AlreadyExists,
                 format!("all {max_attempts} exclusive temporary-file candidates already existed"),
@@ -254,7 +277,7 @@ where
             file_system,
             temporary.as_path(),
             Some(handle),
-            WritePhase::WriteTemporary,
+            AtomicProjectWritePhase::WriteTemporary,
             error,
         ));
     }
@@ -264,7 +287,7 @@ where
             file_system,
             temporary.as_path(),
             Some(handle),
-            WritePhase::FlushTemporary,
+            AtomicProjectWritePhase::FlushTemporary,
             error,
         ));
     }
@@ -274,7 +297,7 @@ where
             file_system,
             temporary.as_path(),
             Some(handle),
-            WritePhase::SyncTemporary,
+            AtomicProjectWritePhase::SyncTemporary,
             error,
         ));
     }
@@ -284,7 +307,7 @@ where
             file_system,
             temporary.as_path(),
             None,
-            WritePhase::CloseTemporary,
+            AtomicProjectWritePhase::CloseTemporary,
             error,
         ));
     }
@@ -294,7 +317,7 @@ where
             file_system,
             temporary.as_path(),
             None,
-            WritePhase::ReplaceDestination,
+            AtomicProjectWritePhase::ReplaceDestination,
             error,
         ));
     }
@@ -305,7 +328,7 @@ where
 fn destination_parts(destination: &Path) -> Result<(&Path, &OsStr), AtomicProjectWriteError> {
     let Some(file_name) = destination.file_name().filter(|name| !name.is_empty()) else {
         return Err(AtomicProjectWriteError::new(
-            WritePhase::ValidateDestination,
+            AtomicProjectWritePhase::ValidateDestination,
             io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "the project path must end with a file name",
@@ -333,7 +356,7 @@ fn validate_temporary_candidate(
 
     if candidate == destination || candidate_parent != parent || candidate.file_name().is_none() {
         return Err(AtomicProjectWriteError::new(
-            WritePhase::CreateTemporary,
+            AtomicProjectWritePhase::CreateTemporary,
             io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "temporary-file candidate must be a distinct file in the destination directory",
@@ -348,7 +371,7 @@ fn fail_with_owned_temporary<F>(
     file_system: &mut F,
     temporary: &Path,
     handle: Option<F::Handle>,
-    phase: WritePhase,
+    phase: AtomicProjectWritePhase,
     source: io::Error,
 ) -> AtomicProjectWriteError
 where
@@ -358,12 +381,20 @@ where
 
     if let Some(handle) = handle {
         if let Err(error) = file_system.close(handle) {
-            failure = failure.with_secondary("temporary-file close", error);
+            failure = failure.with_secondary(
+                "project.atomic-write.cleanup-close-temporary",
+                "temporary-file close",
+                error,
+            );
         }
     }
 
     if let Err(error) = file_system.remove_temporary(temporary) {
-        failure = failure.with_secondary("temporary-file cleanup", error);
+        failure = failure.with_secondary(
+            "project.atomic-write.cleanup-remove-temporary",
+            "temporary-file cleanup",
+            error,
+        );
     }
 
     failure
@@ -486,13 +517,13 @@ mod tests {
 
     struct InjectedAtomicFileSystem {
         real: RealAtomicFileSystem,
-        fail_phase: Option<WritePhase>,
+        fail_phase: Option<AtomicProjectWritePhase>,
         fail_cleanup: bool,
         events: Vec<&'static str>,
     }
 
     impl InjectedAtomicFileSystem {
-        fn new(fail_phase: Option<WritePhase>) -> Self {
+        fn new(fail_phase: Option<AtomicProjectWritePhase>) -> Self {
             Self {
                 real: RealAtomicFileSystem,
                 fail_phase,
@@ -501,7 +532,7 @@ mod tests {
             }
         }
 
-        fn injected_error(phase: WritePhase) -> io::Error {
+        fn injected_error(phase: AtomicProjectWritePhase) -> io::Error {
             io::Error::new(
                 io::ErrorKind::PermissionDenied,
                 format!("injected {phase:?} failure"),
@@ -514,33 +545,39 @@ mod tests {
 
         fn create_new(&mut self, path: &Path) -> io::Result<Self::Handle> {
             self.events.push("create");
-            if self.fail_phase == Some(WritePhase::CreateTemporary) {
-                return Err(Self::injected_error(WritePhase::CreateTemporary));
+            if self.fail_phase == Some(AtomicProjectWritePhase::CreateTemporary) {
+                return Err(Self::injected_error(
+                    AtomicProjectWritePhase::CreateTemporary,
+                ));
             }
             self.real.create_new(path)
         }
 
         fn write_all(&mut self, handle: &mut Self::Handle, contents: &[u8]) -> io::Result<()> {
             self.events.push("write_all");
-            if self.fail_phase == Some(WritePhase::WriteTemporary) {
+            if self.fail_phase == Some(AtomicProjectWritePhase::WriteTemporary) {
                 handle.write_all(&contents[..contents.len().min(3)])?;
-                return Err(Self::injected_error(WritePhase::WriteTemporary));
+                return Err(Self::injected_error(
+                    AtomicProjectWritePhase::WriteTemporary,
+                ));
             }
             self.real.write_all(handle, contents)
         }
 
         fn flush(&mut self, handle: &mut Self::Handle) -> io::Result<()> {
             self.events.push("flush");
-            if self.fail_phase == Some(WritePhase::FlushTemporary) {
-                return Err(Self::injected_error(WritePhase::FlushTemporary));
+            if self.fail_phase == Some(AtomicProjectWritePhase::FlushTemporary) {
+                return Err(Self::injected_error(
+                    AtomicProjectWritePhase::FlushTemporary,
+                ));
             }
             self.real.flush(handle)
         }
 
         fn sync_all(&mut self, handle: &mut Self::Handle) -> io::Result<()> {
             self.events.push("sync_all");
-            if self.fail_phase == Some(WritePhase::SyncTemporary) {
-                return Err(Self::injected_error(WritePhase::SyncTemporary));
+            if self.fail_phase == Some(AtomicProjectWritePhase::SyncTemporary) {
+                return Err(Self::injected_error(AtomicProjectWritePhase::SyncTemporary));
             }
             self.real.sync_all(handle)
         }
@@ -548,16 +585,20 @@ mod tests {
         fn close(&mut self, handle: Self::Handle) -> io::Result<()> {
             self.events.push("close");
             self.real.close(handle)?;
-            if self.fail_phase == Some(WritePhase::CloseTemporary) {
-                return Err(Self::injected_error(WritePhase::CloseTemporary));
+            if self.fail_phase == Some(AtomicProjectWritePhase::CloseTemporary) {
+                return Err(Self::injected_error(
+                    AtomicProjectWritePhase::CloseTemporary,
+                ));
             }
             Ok(())
         }
 
         fn replace(&mut self, temporary: &Path, destination: &Path) -> io::Result<()> {
             self.events.push("replace");
-            if self.fail_phase == Some(WritePhase::ReplaceDestination) {
-                return Err(Self::injected_error(WritePhase::ReplaceDestination));
+            if self.fail_phase == Some(AtomicProjectWritePhase::ReplaceDestination) {
+                return Err(Self::injected_error(
+                    AtomicProjectWritePhase::ReplaceDestination,
+                ));
             }
             self.real.replace(temporary, destination)
         }
@@ -698,12 +739,12 @@ mod tests {
     #[test]
     fn failure_in_each_precommit_phase_preserves_existing_destination_and_cleans_temp() {
         for phase in [
-            WritePhase::CreateTemporary,
-            WritePhase::WriteTemporary,
-            WritePhase::FlushTemporary,
-            WritePhase::SyncTemporary,
-            WritePhase::CloseTemporary,
-            WritePhase::ReplaceDestination,
+            AtomicProjectWritePhase::CreateTemporary,
+            AtomicProjectWritePhase::WriteTemporary,
+            AtomicProjectWritePhase::FlushTemporary,
+            AtomicProjectWritePhase::SyncTemporary,
+            AtomicProjectWritePhase::CloseTemporary,
+            AtomicProjectWritePhase::ReplaceDestination,
         ] {
             let directory = TestDirectory::new(phase.operation_id());
             let destination = directory.join("project.sbls.json");
@@ -730,12 +771,12 @@ mod tests {
     #[test]
     fn failure_before_commit_keeps_an_absent_destination_absent() {
         for phase in [
-            WritePhase::CreateTemporary,
-            WritePhase::WriteTemporary,
-            WritePhase::FlushTemporary,
-            WritePhase::SyncTemporary,
-            WritePhase::CloseTemporary,
-            WritePhase::ReplaceDestination,
+            AtomicProjectWritePhase::CreateTemporary,
+            AtomicProjectWritePhase::WriteTemporary,
+            AtomicProjectWritePhase::FlushTemporary,
+            AtomicProjectWritePhase::SyncTemporary,
+            AtomicProjectWritePhase::CloseTemporary,
+            AtomicProjectWritePhase::ReplaceDestination,
         ] {
             let directory = TestDirectory::new("absent-failure");
             let destination = directory.join("not-created.sbls.json");
@@ -761,7 +802,8 @@ mod tests {
         let destination = directory.join("project.sbls.json");
         let temporary = directory.join("injected.tmp");
         fs::write(&destination, b"known good bytes").unwrap();
-        let mut file_system = InjectedAtomicFileSystem::new(Some(WritePhase::WriteTemporary));
+        let mut file_system =
+            InjectedAtomicFileSystem::new(Some(AtomicProjectWritePhase::WriteTemporary));
         file_system.fail_cleanup = true;
 
         let error = write_with_injection(
@@ -773,7 +815,7 @@ mod tests {
         .unwrap_err();
         let message = error.to_string();
 
-        assert_eq!(error.phase, WritePhase::WriteTemporary);
+        assert_eq!(error.phase, AtomicProjectWritePhase::WriteTemporary);
         assert!(message.contains("injected WriteTemporary failure"));
         assert!(message.contains("temporary-file cleanup failed"));
         assert!(message.contains("injected cleanup failure"));
@@ -831,7 +873,7 @@ mod tests {
         )
         .unwrap_err();
 
-        assert_eq!(error.phase, WritePhase::CollisionExhausted);
+        assert_eq!(error.phase, AtomicProjectWritePhase::CollisionExhausted);
         assert_eq!(fs::read(&destination).unwrap(), b"old project");
         assert_eq!(fs::read(&first).unwrap(), b"first owner");
         assert_eq!(fs::read(&second).unwrap(), b"second owner");
@@ -867,7 +909,8 @@ mod tests {
         let destination = directory.join("project.sbls.json");
         let temporary = directory.join("injected.tmp");
         fs::write(&destination, b"old project").unwrap();
-        let mut file_system = InjectedAtomicFileSystem::new(Some(WritePhase::ReplaceDestination));
+        let mut file_system =
+            InjectedAtomicFileSystem::new(Some(AtomicProjectWritePhase::ReplaceDestination));
 
         write_with_injection(&destination, &temporary, b"new project", &mut file_system)
             .unwrap_err();
@@ -897,7 +940,7 @@ mod tests {
         let error =
             write_with(Path::new("."), b"bytes", &mut file_system, &mut paths, 1).unwrap_err();
 
-        assert_eq!(error.phase, WritePhase::ValidateDestination);
+        assert_eq!(error.phase, AtomicProjectWritePhase::ValidateDestination);
         assert!(file_system.events.is_empty());
     }
 
@@ -954,7 +997,7 @@ mod tests {
 
         let error = write(&destination, b"replacement must not land").unwrap_err();
 
-        assert_eq!(error.phase, WritePhase::ReplaceDestination);
+        assert_eq!(error.phase, AtomicProjectWritePhase::ReplaceDestination);
         drop(lock);
         assert_eq!(fs::read(&destination).unwrap(), b"known good Windows bytes");
         assert_no_operation_temporaries(&directory);

@@ -4,7 +4,7 @@
 > Read when: Before refactors, ownership changes, or architecture-sensitive edits.
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
-> Package-codec ownership refresh: synchronized parent `ba89635bc4075b013361feb6af33147f1a4e14e3` plus the focused unstaged `agent/sbls-pure-package-codec` checkpoint on 2026-07-27.
+> Package/save-load ownership refresh: synchronized parent `a040e72a6972d07c2cd72198fd8bcc835d9ea113` plus the focused unstaged `agent/sbls-bounded-binary-project-io` checkpoint on 2026-07-27.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -27,6 +27,9 @@ This inventory records how Steam Backup Label Studio is implemented in the repos
   runtime-disconnected working-tree implementation. It does not broadly
   re-baseline unrelated editor file/line inventories or claim production
   package integration.
+- Bounded binary project-I/O ownership was refreshed from the later dormant
+  raw Tauri transport checkpoint. Those commands and the TypeScript port are
+  not connected to the codec, dialogs, lifecycle, or production project flows.
 - No browser diagnostic or Tauri runtime verification was performed during this
   documentation refresh. Manual app testing before the refactor merge was
   reported with no regressions spotted.
@@ -47,6 +50,8 @@ Open GitHub issues were reviewed during this task. Related open issues include:
 - `#178`, `#181`, `#184` Text-system improvements around fonts, copy fitting, and add-only preview editing.
 - `#266` Large-file refactor tracking issue; closed as completed after merge
   commit `6feb262bed2abd36b1371e5c0674013018132d16`.
+- `#308` Application command and project lifecycle implementation parent.
+- `#312` Atomic project writing and durability semantics.
 
 ## Package Scripts and Validation
 
@@ -138,16 +143,25 @@ Render path:
 Native command path:
 
 - `src-tauri/src/main.rs` calls `app_lib::run()`.
-- `src-tauri/src/lib.rs` registers file, Steam, local Steam, local image, folder opening, and official-site logo discovery commands.
+- `src-tauri/src/lib.rs` registers file, dormant bounded binary project-file,
+  Steam, local Steam, local image, folder opening, and official-site logo
+  discovery commands.
 - Command owners are split into `commands/files.rs`, `commands/steam.rs`, `commands/local_steam.rs`, `commands/local_images.rs`, `commands/official_site.rs`, and `platform/open_folder.rs`.
 - `src-tauri/Cargo.toml` is also the workspace root. It lists
   `crates/sbls-package-codec` as a member while retaining the Tauri application
   as the default member. The Tauri application crate does not depend on the
-  codec member and registers no package-codec command.
+  codec member and registers no package-codec command. The separately
+  registered binary project-file commands do not call the codec.
 
 Risks:
 
 - Tauri command behavior was not runtime-verified here.
+- The app manifest declares Rust `1.77.2`, but the pre-existing locked
+  `serde_spanned 1.1.1` manifest requires Cargo edition-2024 support and blocks
+  a whole-workspace check with installed Cargo 1.77.2 before app compilation.
+  Current-toolchain strict Clippy separately flags two untouched
+  `official_site.rs` APIs stabilized in Rust 1.84. The focused binary-I/O slice
+  changes neither dependency/source owner and makes no whole-app 1.77.2 claim.
 - `src-tauri/tauri.conf.json` runs Vite before dev and build, so stale frontend build/runtime state must be checked separately during user-visible fixes.
 
 ## App-Level State Ownership
@@ -269,7 +283,7 @@ Risks:
 
 Purpose: persist production editor projects as JSON, restore them into current
 editor state, and identify the separate runtime-disconnected `.sbls` package
-codec owner.
+codec plus dormant bounded binary project-I/O owners.
 
 Key files:
 
@@ -286,7 +300,11 @@ Key files:
 - `src/app/appProjectRestore.ts`
 - `src/app/appProjectOpenCommand.ts`
 - `src/diagnostics/projectParityHarness.ts`
+- `src/tauri/binaryProjectFile.ts`
+- `src/tauri/binaryProjectFile.test.ts`
 - `src-tauri/src/commands/files.rs`
+- `src-tauri/src/commands/project_files.rs`
+- `src-tauri/src/project_binary_io.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/crates/sbls-package-codec/Cargo.toml`
 - `src-tauri/crates/sbls-package-codec/src/lib.rs`
@@ -331,6 +349,11 @@ Source-of-truth state:
   validation, budgets, and stable package failures. It does not own hydrated
   schema semantics, migrations, editor state, lifecycle state, filesystem
   paths, or commands.
+- `project_binary_io.rs` owns bounded native binary reading and the binary
+  preflight/delegation seam into `project_file.rs`; `commands/project_files.rs`
+  owns the raw Tauri request/response adapter, stable command failures, and
+  canonical path-header decoding. `src/tauri/binaryProjectFile.ts` owns the
+  matching dormant TypeScript port. None owns lifecycle or package semantics.
 
 Render path:
 
@@ -359,6 +382,11 @@ Save/load path:
   adjacent-temp creation, write/flush/sync/close ordering, platform replacement,
   and safe owned-temp cleanup. `read_project_file` remains the JSON text read
   boundary. `write_binary_file` remains a separate direct binary writer.
+- Dormant `read_binary_project_file` accepts an empty top-level raw body and
+  returns raw bytes; dormant `write_binary_project_file` borrows the top-level
+  raw request bytes and delegates them to the atomic writer. Both carry the
+  path in a canonical percent-encoded UTF-8 header capped at 4 KiB, reject
+  non-raw transport shapes, and enforce an exact 256 MiB file-byte ceiling.
 
 Serialization:
 
@@ -367,6 +395,8 @@ Serialization:
 - Durable local source file paths are avoided through asset provenance helpers.
 - The package-domain crate can encode/decode bounded `.sbls` v1 bytes in memory,
   but no production project path calls it.
+- The dormant binary project-I/O port can move bounded opaque bytes to and from
+  a path but does not call the package codec or any production project owner.
 
 Package-domain codec boundary:
 
@@ -392,8 +422,9 @@ Package-domain codec boundary:
   outstanding receipts roll back at the operation boundary. Hydration/output,
   raster/native work, caller archive bytes, and allocator-private metadata are
   outside that phase ledger. This is a lifetime/counter map, not a measured
-  whole-process-memory claim; RSS and IPC/webview copy evidence belong to later
-  runtime/platform integration.
+  whole-process-memory claim. Source-level raw-transport copy analysis is
+  recorded in the package contract; measured RSS and platform WebView copy
+  behavior remain later native-runtime evidence.
 - `raster.rs` structurally validates PNG, JPEG, WebP, GIF, and BMP, preserves
   exact accepted encoded bytes, and enforces dimension, animation, pixel,
   sample, metadata, record, and decoder-work budgets. JPEG and BMP use the
@@ -453,6 +484,12 @@ Tests:
 - Rust unit and real-filesystem coverage is colocated in
   `src-tauri/src/project_file.rs`, including Windows replace-existing and
   replacement-failure tests.
+- Focused Rust tests cover bounded reader limits and allocation failure,
+  partial/interrupted reads, operation isolation, binary writer delegation,
+  raw command contracts, canonical path decoding, exact failure mapping, and
+  command registration (`12/12`, `12/12`, and `1/1`). The registered dormant
+  TypeScript port test covers raw request/response identity, bounds, structured
+  errors, canonical Unicode paths, and negative production wiring (`12/12`).
 - Pure package-codec unit, security, independent-fixture, public-facade
   round-trip, and native allocation fault-injection tests are colocated under
   `src-tauri/crates/sbls-package-codec/src/` and run through the registered
@@ -477,10 +514,10 @@ Risks:
   compatibility step.
 - Closed issue `#48` established the current schema-validation/migration
   baseline; future schema changes remain owned by `PROJECT_FILE_SPEC.md`.
-- Production `.sbls` binary IPC, Open/Save/Save As activation, legacy
-  conversion, session format adoption, and dirty/replacement integration remain
-  absent. The package-domain codec must not be mistaken for those later application
-  slices.
+- Production `.sbls` codec/I/O composition, Open/Save/Save As activation,
+  legacy conversion, session format adoption, and dirty/replacement integration
+  remain absent. The package-domain codec and dormant bounded binary I/O must
+  not be mistaken for those later application slices.
 
 ## Templates and Workspace Types
 
@@ -1528,6 +1565,9 @@ Current `npm run test` covers these broad areas:
   application, dependency freshness, and current Load-control routing; plus the runtime-disconnected application
   menu descriptor, semantic-target, platform/capability projection, and
   in-memory port boundary.
+- The dormant binary project-file TypeScript port's raw-byte transport,
+  canonical path header, exact byte cap, structured error preservation, and
+  negative production-wiring boundary.
 - Shared project parity harness diagnostics for representative disc and case
   insert runtime/saved/restored/export inputs, including split disc and case
   insert parity suites.
@@ -1565,8 +1605,10 @@ should still run the normal validation set when practical:
 - `npm run test`
 - `npm run build`
 
-Package-codec changes additionally use the workspace-aware Rust checks:
+Package-codec and native project-file changes additionally use the
+workspace-aware Rust checks:
 
 - `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
-- `cargo test --manifest-path src-tauri/Cargo.toml --package sbls-package-codec --locked --jobs 1`
-- `cargo clippy --manifest-path src-tauri/Cargo.toml --package sbls-package-codec --all-targets --locked -- -D warnings`
+- `cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets --locked`
+- `cargo test --manifest-path src-tauri/Cargo.toml --workspace --locked --jobs 1`
+- `cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --locked -- -D warnings`

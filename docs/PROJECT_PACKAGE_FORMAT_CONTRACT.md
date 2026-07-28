@@ -75,9 +75,9 @@ ID, and package asset ID are distinct concepts.
 | CURRENT FACT | Projects use schema `0.2.0`; schema `0.1.0` has an explicit migration to `0.2.0`. | [`projectSchema.ts`](../src/project/projectSchema.ts) |
 | CURRENT FACT | Save and Open expose JSON filters and current Save As defaults use `.sbls.json`; Open reads text and parses JSON. | [`appProjectSave.ts`](../src/app/appProjectSave.ts), [`appProjectLoad.ts`](../src/app/appProjectLoad.ts), [`fileSystem.ts`](../src/tauri/fileSystem.ts) |
 | CURRENT FACT | Two-phase Open stages file selection, read, parse, migrate, normalize, route, and restore before the lifecycle compare-and-swap/apply step. | [`appProjectLoad.ts`](../src/app/appProjectLoad.ts), [`applicationLifecycleStateStore.ts`](../src/lifecycle/applicationLifecycleStateStore.ts) |
-| CURRENT FACT | The native `write_project_file` command accepts a UTF-8 `String`; `read_project_file` uses text decoding. The current boundary cannot carry arbitrary ZIP bytes. | [`files.rs`](../src-tauri/src/commands/files.rs) |
+| CURRENT FACT | The legacy `write_project_file` command accepts a UTF-8 `String` and `read_project_file` uses text decoding. Separate dormant `read_binary_project_file` and `write_binary_project_file` commands now carry arbitrary bounded bytes without changing either legacy command. | [`files.rs`](../src-tauri/src/commands/files.rs), [`project_files.rs`](../src-tauri/src/commands/project_files.rs), [`project_binary_io.rs`](../src-tauri/src/project_binary_io.rs) |
 | CURRENT FACT | The internal Rust `project_file::write` accepts arbitrary byte slices and atomically commits them through an adjacent exclusive temporary file. The current legacy Save path already reaches this atomic writer through the text command. | [`project_file.rs`](../src-tauri/src/project_file.rs), [`files.rs`](../src-tauri/src/commands/files.rs), [`appProjectSave.ts`](../src/app/appProjectSave.ts) |
-| CURRENT FACT | `write_binary_file` is a separate direct `std::fs::write` adapter used for PNG output. It is not the atomic project writer, and no native binary project reader exists. | [`files.rs`](../src-tauri/src/commands/files.rs), [`appPngExport.ts`](../src/app/appPngExport.ts) |
+| CURRENT FACT | `write_binary_file` remains a separate direct `std::fs::write` adapter used only by PNG output. It is not the atomic project writer; the dedicated project-byte commands use their own bounded reader and the existing atomic project writer. | [`files.rs`](../src-tauri/src/commands/files.rs), [`project_files.rs`](../src-tauri/src/commands/project_files.rs), [`appPngExport.ts`](../src/app/appPngExport.ts) |
 | CURRENT FACT | Saved visual payload fields are nullable strings, normally data URLs; no current field carries a package asset ID, package path, byte length, digest, or independently validated MIME. | [`projectTypes.ts`](../src/project/projectTypes.ts), [`savedProjectNormalization.ts`](../src/project/savedProjectNormalization.ts) |
 | CURRENT FACT | Current local image import recognizes JPEG, PNG, WebP, GIF, and BMP. Browser and remote import paths primarily trust `image/*` declarations and browser decoding; there is no package-grade signature/MIME validator. | [`local_images.rs`](../src-tauri/src/commands/local_images.rs), [`importedImageAsset.ts`](../src/utils/importedImageAsset.ts), [`steam.rs`](../src-tauri/src/commands/steam.rs) |
 | CURRENT FACT | The runtime-disconnected Rust workspace member `sbls-package-codec` owns strict ZIP32 Store writing and Store/Deflate reading, SHA-256 identity, RFC 8785 canonical JSON, duplicate-key-rejecting bounded JSON, typed registry/projection/hydration, raster validation, and package budgets. The Tauri application crate does not depend on it. | [`Cargo.toml`](../src-tauri/crates/sbls-package-codec/Cargo.toml), [`lib.rs`](../src-tauri/crates/sbls-package-codec/src/lib.rs), [`src-tauri/Cargo.toml`](../src-tauri/Cargo.toml) |
@@ -90,11 +90,11 @@ ID, and package asset ID are distinct concepts.
 | --- | --- | --- | --- |
 | container | CURRENT FACT / TARGET REQUIREMENT | Plain UTF-8 JSON | Strict ZIP-compatible `.sbls` v1 |
 | package-domain codec | CURRENT FACT | Implemented as a protocol-bounded in-memory Rust API with borrowed package input and owned output, and no runtime adapters | Remains the package-domain owner consumed by later integration |
-| production package connection | CURRENT FACT / TARGET REQUIREMENT | No package-aware Open, Save, Save As, binary project IPC, dialog filter, or lifecycle format adoption | Activate Open and lifecycle-owned Save/Save As together only after the later integration dependencies |
+| production package connection | CURRENT FACT / TARGET REQUIREMENT | Dormant bounded binary project IPC exists, but there is no package-aware Open, Save, Save As, dialog filter, lifecycle format adoption, or codec call | Activate Open and lifecycle-owned Save/Save As together only after the later integration dependencies |
 | asset storage | CURRENT FACT / TARGET REQUIREMENT | Data URLs in JSON; selected built-ins app-routed | Content-addressed package bytes plus reversible bindings; qualified built-ins remain app-routed |
 | recognition | CURRENT FACT / TARGET REQUIREMENT | File dialog plus text/JSON parse | Bounded raw bytes, content sniffing, then package or legacy decoder |
-| native read | CURRENT FACT / TARGET REQUIREMENT | UTF-8 string | Bounded binary project read |
-| native write | CURRENT FACT / TARGET REQUIREMENT | Atomic bytes reached through a string command | Atomic binary project command reusing the existing byte writer |
+| native read | CURRENT FACT | Legacy UTF-8 string command plus a separate dormant 256 MiB-capped raw reader | Keep the raw reader as the package integration port without changing legacy JSON reads |
+| native write | CURRENT FACT | Legacy string command and a separate dormant raw command both reuse the same atomic byte writer | Keep the raw command as the package integration port without changing legacy JSON writes |
 | lifecycle format | CURRENT FACT / TARGET REQUIREMENT | Not represented | Session-only `legacy-json` or `sbls-package-v1` identity |
 | new saves | CURRENT FACT / TARGET REQUIREMENT | `.sbls.json` | `.sbls` only |
 | compatibility | CURRENT FACT / TARGET REQUIREMENT | JSON `0.1.0` and `0.2.0` read support | Preserve those reads; hydrate supported packages before schema migration |
@@ -899,13 +899,13 @@ after destination bytes commit is nonconforming.
 
 | Concern | Claim | Current | Target requirement |
 | --- | --- | --- | --- |
-| project read IPC | CURRENT FACT / TARGET REQUIREMENT | `read_project_file` returns UTF-8 text | Dedicated bounded raw-byte project read; binary bytes never pass through `read_to_string` |
-| project write IPC | CURRENT FACT / TARGET REQUIREMENT | `write_project_file` accepts `String` and delegates UTF-8 bytes to the atomic writer | Dedicated atomic binary project write carrying exact pre-encoded bytes and structured typed errors |
-| native atomic primitive | CURRENT FACT / TARGET REQUIREMENT | `project_file::write(&[u8])` already performs adjacent-temp atomic replacement | Reuse/generalize it without weakening any create/write/flush/sync/close/replace/cleanup invariant |
-| direct binary command | CURRENT FACT / TARGET REQUIREMENT | `write_binary_file` directly writes and serves PNG export | Package Save must not call it; PNG behavior stays unchanged |
+| project read IPC | CURRENT FACT | `read_binary_project_file` accepts a bounded path header plus an empty raw request body and returns exact bytes through `tauri::ipc::Response`; legacy `read_project_file` remains UTF-8 text | Later package staging may consume only the dedicated raw port; binary bytes never pass through `read_to_string` |
+| project write IPC | CURRENT FACT | `write_binary_project_file` accepts a bounded path header plus exact raw bytes, returns structured success/failure, and is dormant; legacy `write_project_file` is unchanged | Later package Save may consume only the dedicated raw port after complete encoding and lifecycle authorization |
+| native atomic primitive | CURRENT FACT | Both project-write commands delegate byte slices to `project_file::write`, preserving adjacent-temp atomic replacement and exposing typed phase accessors | Continue reusing it without weakening any create/write/flush/sync/close/replace/cleanup invariant |
+| direct binary command | CURRENT FACT / TARGET REQUIREMENT | `write_binary_file` still directly writes and serves PNG export | Package Save must not call it; PNG behavior stays unchanged |
 | package semantics | TARGET REQUIREMENT | none | Application/package-domain codec owns manifest, registry, projection/hydration, budgets, compatibility, and typed package results; native filesystem code does not own editor or lifecycle decisions |
 
-**TARGET REQUIREMENT.** The binary project writer retains the #312 invariants:
+**CURRENT FACT / TARGET REQUIREMENT.** The binary project writer retains the #312 invariants:
 exclusive adjacent temporary creation with bounded collisions, exact byte write,
 flush, file synchronization, close, one same-volume namespace replacement,
 Windows `MoveFileExW` replace-existing plus write-through flags, Unix
@@ -922,10 +922,12 @@ IPC must preserve stable
 `project.atomic-write.*` codes and safe causes; frontend code must not parse a
 display string.
 
-**TARGET REQUIREMENT.** Byte transport must enforce the section 9 budgets without
+**CURRENT FACT / TARGET REQUIREMENT.** Byte transport enforces the section 9 raw
+archive cap and must preserve the other section 9 budgets when package
+integration is added. It does so without
 avoidable duplicate full-archive copies. Base64 transport or JSON arrays of byte
-numbers are prohibited unless a documented implementation analysis proves peak
-memory and copies remain within those budgets on every supported platform.
+numbers are prohibited. A non-raw Tauri fallback body is rejected rather than
+accepted as an array of numbers.
 
 **CURRENT FACT.** The first package-domain slice is Rust-owned and uses a direct
 strict ZIP32 parser/writer rather than delegating policy to a generic ZIP
@@ -934,10 +936,92 @@ runtime-disconnected. Later application adapters consume this package-domain
 port without moving any
 semantic/security invariant into TypeScript, Tauri, or filesystem code.
 
-**OPEN QUESTION.** The exact Tauri binary IPC representation may be a bounded
-typed-byte payload, resource/stream handle, or native-owned codec call after
-measurement. It may not expose arbitrary paths to the codec or move lifecycle,
-schema, asset-ownership, or Save decisions into Rust.
+### Selected Tauri 2.11 binary transport
+
+**CURRENT FACT.** The selected desktop transport is evidenced by the exact
+locked `tauri 2.11.2` Rust source and installed `@tauri-apps/api 2.11.0`
+JavaScript source. JavaScript `invoke` accepts top-level `Uint8Array` or
+`ArrayBuffer` payloads and `InvokeOptions.headers`; Tauri classifies those
+top-level views as `application/octet-stream`. Rust exposes the already-owned
+request bytes as borrowed `InvokeBody::Raw(Vec<u8>)` through `ipc::Request`.
+`ipc::Response::new(Vec<u8>)` moves a successful read buffer into a raw response,
+whose custom-protocol response is `application/octet-stream`; the JavaScript
+bridge resolves it through `response.arrayBuffer()`. A command returning
+`Result<Response, ProjectFileCommandFailure>` therefore has a raw success path
+and a separately JSON-serialized structured rejection path.
+
+**CURRENT FACT.** The exactly-one path value is transported in
+`x-sbls-project-path-v1`. The frontend encodes UTF-8 bytes canonically: ASCII
+letters, digits, `-`, `.`, `_`, and `~` remain literal and every other byte is
+uppercase percent-encoded. Both decoded UTF-8 and encoded header limits are
+4,096 bytes; the encoded limit is the effective bound for non-ASCII-heavy
+paths. Empty paths, NUL, unpaired JavaScript surrogates, malformed or lowercase
+escapes, encoded unreserved bytes, non-UTF-8, oversized values, missing values,
+and duplicate native headers are rejected deterministically. Spaces, Unicode,
+punctuation, forward slashes, drive separators, and Windows backslashes round
+trip. JavaScript paths are Unicode strings, so non-Unicode native paths are not
+representable through this frontend boundary. Platform-invalid decoded paths
+remain ordinary structured filesystem failures rather than being normalized or
+rewritten by the adapter.
+
+**CURRENT FACT.** Read validates an empty raw body, opens without text decoding,
+uses metadata only for early over-limit rejection, fallibly reserves checked
+capacity, reads through a 64 KiB stack scratch buffer, retries `Interrupted`,
+and observes cap + 1. Exact 268,435,456-byte input and empty input are admitted;
+the first observed byte above the cap returns `project.file-too-large`, and no
+partial buffer escapes any error. Write validates the already-materialized raw
+body at the frontend and native adapter, rejects cap + 1 before decoding the
+path or creating a temporary file, and borrows the request slice into the #312
+writer. Returned buffers and paths are operation-owned; no global byte buffer,
+token registry, or shared mutable path state exists.
+
+**CURRENT FACT.** Successful write returns `{ "status": "success" }`. Rejection
+uses `{ status: "failure", code, recoverable, message, cause? }`. Safe causes
+contain a stable category and operation, optional numeric platform code, and
+optional safe secondary cleanup causes. The registry contains
+`project.file-too-large`, `project.read-failed`, `project.write-failed`, and all
+eight exact `project.atomic-write.*` phase codes. No path, payload, raw OS error
+text, or parsed display string crosses the command boundary. The TypeScript
+guard verifies the closed code/message/recoverability combinations and
+preserves known structured objects without `String(error)` parsing.
+
+### Ownership and copy analysis
+
+| Stage | Claim | Source-level ownership/copy result |
+| --- | --- | --- |
+| write caller to wrapper | CURRENT FACT | The wrapper passes the caller's `Uint8Array` object directly; it does not call `Array.from`, spread it, base64-encode it, text-decode it, or JSON-stringify it. A subview remains a subview. |
+| JavaScript/Tauri request preparation | CURRENT FACT | Pinned Tauri passes a top-level typed view as the fetch/custom-protocol body. The WebView/framework may copy while materializing the request; that copy is framework-controlled and occurs before the Rust handler can reject an oversized hostile renderer request. Frontend preflight prevents this for cooperative calls. |
+| Rust request and writer | CURRENT FACT | Tauri owns one request `Vec<u8>` before dispatch; `Request` borrows it and the command passes its slice to the atomic writer without an application-owned full-payload copy. Atomic filesystem APIs may copy from user space to kernel/filesystem buffers. |
+| native read | CURRENT FACT | The bounded reader owns one fallibly grown result `Vec<u8>` plus a fixed 64 KiB stack scratch buffer. The scratch chunk is copied once into the result. No complete oversized file is retained. |
+| Rust response | CURRENT FACT | `Response::new` moves the result `Vec<u8>` into Tauri's raw response type. Tauri and the platform WebView may copy it while constructing/delivering the octet-stream response. |
+| wrapper read result | CURRENT FACT | The custom-protocol bridge creates an `ArrayBuffer`; the wrapper creates a fresh `Uint8Array` view over that buffer, not another full byte copy. No native mutable buffer is retained or aliased after response delivery. |
+| measurement boundary | CURRENT FACT | The ownership and move claims above are source-proven and focused-test-proven. No real WebView IPC benchmark, cross-process copy count, or RSS measurement was run in this dormant slice. Raw IPC is not described as zero-copy, and neither codec 512 MiB phase ledger is described as a whole-process cap. |
+
+**CURRENT FACT / FUTURE EXTENSION.** A bounded resource/handle protocol was not
+selected: one request is simpler, has deterministic request lifetime, and avoids
+cleanup, token, concurrency, and unbounded-registry risks without eliminating
+Tauri's initial request materialization. When the Rust codec is connected, a
+native-owned read-decode or encode-write operation may be materially safer and
+lower-copy than returning a full archive through the WebView. Such a later
+adapter still may not expose arbitrary paths to the codec or move lifecycle,
+schema, asset-ownership, format-recognition, or Save decisions into Rust.
+
+**CURRENT FACT.** Pinned Tauri documents raw `InvokeBody` as unsupported on
+Android but supports the selected custom-protocol route on the desktop targets
+used here: Windows WebView2, macOS WKWebView, and Linux WebKitGTK. Its
+postMessage fallback would JSON-serialize a nested typed array, so both commands
+reject the resulting non-raw body instead of degrading to a forbidden byte
+array. Windows x64 compilation and focused native tests are executed. macOS and
+Linux compatibility is source-reviewed against the same Tauri API but not
+runtime-executed in this checkpoint. The application manifest retains its
+declared Rust `1.77.2` minimum, and this slice changes no dependency or lockfile.
+The adapter and workspace pass on the active Rust `1.95.0` toolchain. A
+supplemental locked workspace check with installed Rust/Cargo `1.77.2` stops
+before app compilation because the pre-existing locked `serde_spanned 1.1.1`
+manifest requires Cargo's edition-2024 support; strict current-toolchain Clippy
+also identifies two untouched `official_site.rs` APIs stabilized in Rust 1.84.
+The package-only `241/241` suite still passes under Rust `1.77.2`. Therefore
+this checkpoint makes no new whole-application 1.77.2 compatibility claim.
 
 ## 15. Versioning, compatibility, and migration order
 
@@ -1129,7 +1213,7 @@ path, format, or baseline.
 | compatibility | TARGET REQUIREMENT | `.json`/`.sbls.json` current fixtures; `0.1.0` migration; package v1/current schema; package v1/supported older schema hydrates then migrates; package/schema/version/field-validation failures remain distinct; conversion cancellation/failure preserves the legacy file and complete session; no new JSON writes. |
 | lifecycle/Open integration | TARGET REQUIREMENT | All package work before mutation; normalized project and restore candidate share one source; no external path/URL/network lookup is needed; cancellation/failure/decline/stale CAS preserves aggregate; success installs exact path/format/root identity/revision `0`/route/baseline/complete Disc or Case state; production package Open remains unexposed until package Save/Save As activates in the same release slice. |
 | lifecycle/Save integration | TARGET REQUIREMENT | One snapshot supplies projection/assets/bindings/baseline; eligible Save has no dialog; pathless/legacy/wrong-suffix uses Save As; conversion rejects same-source/alias destinations at preflight and commit; cancellation/failure preserves the legacy file/session; write failure leaves live content/revision and Save-owned path/format/baseline unchanged; adoption only after commit; `R+1` remains dirty; encoding failure never invokes writer. |
-| Rust/native adapter | TARGET REQUIREMENT | Non-UTF-8/NUL/large bounded binary reads; exact binary writes; injected create/write/flush/sync/close/replace failures; existing/absent destinations; Unicode paths; collisions; cleanup; Windows replace/sharing-lock behavior; package path never uses direct writer; PNG export unchanged. |
+| Rust/native adapter | CURRENT FACT / TARGET REQUIREMENT | Focused tests cover empty/NUL/non-UTF-8 exact reads/writes, compact exact-limit/cap-plus-one boundaries, stale/lying metadata, partial and interrupted reads, injected allocation denial, independent concurrent buffers, path metadata validation, raw request/response shapes, safe errors, all atomic phase mappings, cleanup diagnostics, legacy JSON behavior, direct PNG behavior, and command registration. Later native Tauri acceptance still covers real WebView transfer and platform dialogs. |
 | application integration | TARGET REQUIREMENT | Typed results/feedback once; capability/busy/modal gating; retry/cancel; guard-nested Save; Home/editor path and format truth; restored provenance/candidate URLs remain network-inert until explicit owner action; no package transport state in project/history. |
 | parity fixtures | CURRENT FACT / TARGET REQUIREMENT | The current `full-branding.sbls.json` remains a required legacy-Open fixture, but its percent-encoded SVG payloads are outside package v1 and conversion must reject them without mutation. A raster-v1-eligible fixture with the same full Disc feature coverage, plus a full Case fixture, must retain every v1-accepted asset and equivalent preview/export input state after package and legacy restore; current owner-specific hidden-state gaps are resolved or explicitly blocked before parity claim. |
 | native Tauri manual acceptance | TARGET REQUIREMENT | Real native Open/Save/Save As dialogs, `.sbls` filters, wrong-suffix retry, legacy conversion, replacement preservation, and Windows/Linux filesystem behavior under `AGENTS.md`; browser-only evidence is insufficient. macOS joins this matrix only if it becomes a supported platform. |
@@ -1154,6 +1238,14 @@ boundary/rollback tests, native old-plus-replacement reallocation fault
 injection, single-validator rejection, and cleanup/reuse checks exercise the
 pure boundary only; they do not constitute production Open/Save or native Tauri
 acceptance.
+
+**CURRENT FACT.** The dormant binary transport adds `12/12` focused bounded
+reader/writer tests, `12/12` structured command/DTO/raw-adapter tests, one
+application-handler registration guard, and `12/12` TypeScript port tests at
+this checkpoint. Compact injected limits exercise exact-boundary behavior
+without committing 256 MiB fixtures; separate assertions pin the production
+constant to exactly 268,435,456. These tests are source/native adapter evidence,
+not real WebView IPC or production package-workflow acceptance.
 
 **CURRENT FACT.** At this checkpoint, the complete crate suite passes `241/241`
 under Rust `1.77.2`; the focused raster module passes `23/23` and the focused
@@ -1185,13 +1277,13 @@ does not depend on the codec member.
 | allocation | CURRENT FACT / TARGET REQUIREMENT | Production allocations derived from caller/package data preflight checked bounds and use fallible reservation/copy/growth paths, including creator/captured-byte constructors, pointers, manifest writing, archive buffers, data URLs, and canonical output. Decoder JSON parsing additionally uses a distinct 536,870,912-byte live phase ledger for owned Store/Deflate entry buffers plus retained manifest/project graphs; it charges actual capacities, transient old-plus-replacement collection growth, and rolls outstanding receipts back after every success or failure. Native decoder allocation/free uses its separate 536,870,912-byte ledger, including payload, header overhead, external working bytes, and transient old-plus-replacement reallocation. | Infallible input-driven allocation, post-allocation accounting, codec-private untracked heaps, backing files, and environment-derived `JPEGMEM` limits are prohibited. Rust unwind containment is a last fallback, not an allocation strategy. The JSON and native ledgers bound their named phases; hydration/output and whole-process RSS remain separately analyzed rather than being silently charged to either ledger. |
 | concurrency | CURRENT FACT / TARGET REQUIREMENT | A Rust nonblocking gate plus native process-wide lease/TLS owner permits one active native JPEG/WebP validator process-wide; `RasterBudget` separately admits one active raster validation per package operation. Busy/nested validation returns the stage-appropriate resource-limit failure and later operations recover after cleanup. | Parallel native validation was rejected because it would multiply peak working memory and weaken one-operation accounting. This deliberately trades decoder throughput for a provable ceiling. |
 | Rust/native failure containment | CURRENT FACT / TARGET REQUIREMENT | Known typed failures pass through unchanged. Unexpected Rust encode unwind maps to `project.package.encode-failed` at encoding; unexpected decode unwind maps to `project.package.archive-invalid` at raw input. JPEG fatal jumps remain within one C frame; native abort/process termination is excluded. | Raw panics, uncaught `longjmp`, process termination, generic decoder errors, or allocator text crossing the public boundary are prohibited. Catching an unexpected Rust unwind is a last fallback, not normal control flow. |
-| browser and later Tauri IPC | CURRENT FACT / OPEN QUESTION | The current codec has no browser, Tauri, command, dialog, filesystem, or lifecycle adapter. Its public byte boundary is in memory and enforces a 268,435,456-byte raw archive cap. | The later IPC representation remains measurement-dependent: bounded typed bytes, a stream/resource handle, or a native-owned call may be selected. Base64 transport or JSON byte arrays remain prohibited unless peak-copy analysis proves every package budget. |
-| whole-operation memory envelope | CURRENT FACT / TARGET REQUIREMENT | The caller archive remains borrowed and ZIP inventory records borrow its names and compressed spans. Manifest entry bytes are released after parsing; the separate hostile-JSON ledger carries retained manifest/project graph receipts through their live phases; native/raster working memory is admitted one asset at a time; retained validated encoded asset buffers are released after hydration; the manifest transport graph is consumed before canonical output allocation; and the hydrated projection drops after serialization. The hydration peak still includes the borrowed archive, ZIP inventory, manifest graph, projection with accumulated data URLs, retained encoded assets, and one current data-URL construction; the earlier asset-validation phase instead includes one native working allocation. The codec makes no measured whole-process peak claim. | These phase/lifetime proofs plus deterministic boundary tests satisfy the runtime-disconnected pure-codec allocation obligation. Neither 512 MiB phase ledger is a process-wide cap. Worst-case Windows x64 RSS, other-platform process evidence, and IPC/webview copy measurements belong to the later runtime/platform-integration gate after the actual adapter and linkage exist; they are not an unfinished pure-codec prerequisite. |
+| browser and Tauri IPC | CURRENT FACT / TARGET REQUIREMENT | A separate dormant adapter uses a 4 KiB canonical path header, raw typed-array request, raw `ipc::Response`, structured errors, and the exact 268,435,456-byte cap. The codec still has no Tauri dependency or caller, and no production workflow imports the TypeScript ports. | Later codec connection may compose a native-owned read-decode/encode-write operation if measured copies justify it; base64, JSON byte arrays, unbounded handles, and silent postMessage degradation remain prohibited. |
+| whole-operation memory envelope | CURRENT FACT / TARGET REQUIREMENT | The caller archive remains borrowed and ZIP inventory records borrow its names and compressed spans. Manifest entry bytes are released after parsing; the separate hostile-JSON ledger carries retained manifest/project graph receipts through their live phases; native/raster working memory is admitted one asset at a time; retained validated encoded asset buffers are released after hydration; the manifest transport graph is consumed before canonical output allocation; and the hydrated projection drops after serialization. The hydration peak still includes the borrowed archive, ZIP inventory, manifest graph, projection with accumulated data URLs, retained encoded assets, and one current data-URL construction; the earlier asset-validation phase instead includes one native working allocation. The codec makes no measured whole-process peak claim. | These phase/lifetime proofs plus deterministic boundary tests satisfy the runtime-disconnected pure-codec allocation obligation. Neither 512 MiB phase ledger is a process-wide cap. The dormant adapter now supplies source-level copy ownership, but worst-case Windows x64 RSS, other-platform process evidence, and real IPC/WebView copy measurements remain part of the later codec-linkage/runtime-integration gate. |
 | package and source footprint | CURRENT FACT / TARGET REQUIREMENT | V1 caps both raw archive and total uncompressed bytes at 268,435,456. Checked-in source archives are exactly 2,528,617 bytes for libjpeg-turbo and 4,296,070 bytes for libwebp, 6,824,687 bytes total; they are verified build inputs, never runtime-loaded codecs. | The disconnected crate is not linked into the current Tauri application. A future integrated executable-size delta is unmeasured and must be recorded before activation; reducing size by substituting a system codec is not allowed. |
 | direct and transitive dependencies | CURRENT FACT | Direct runtime/build pins are listed below. The exercised Windows x64 normal-dependency tree adds `cfg-if 1.0.4`, `adler2 2.0.1`, `cpufeatures 0.2.17`, `digest 0.10.7`, `block-buffer 0.10.4`, `generic-array 0.14.7`, `typenum 1.20.0`, and `crypto-common 0.1.7`; `generic-array` build adds `version_check 0.9.5`. The build-dependency tree additionally adds `find-msvc-tools 0.1.9`, `shlex 1.3.0`, `simd-adler32 0.3.9`, and `filetime 0.2.29`. | Unlocked ranges, runtime archive extractors, and a larger generic codec/ZIP graph were rejected. Other targets may activate target-specific locked packages, so this executed tree is not presented as a cross-target closure. |
 | maintenance and provenance | CURRENT FACT / TARGET REQUIREMENT | Exact releases, archive/source/overlay/patch/notice digests, reproduction commands, build exclusions, and vendor-local line-ending rules are checked in. Updating either native codec requires an explicit pin, digest, patch, license, profile, and fault-test review. | Floating releases, dynamic discovery, and claims that these pins are the latest or currently maintained upstream versions are not made. The tradeoff is deliberate manual review for any upgrade. |
 | license and attribution | CURRENT FACT / TARGET REQUIREMENT | The root `LICENSE` contains MIT text, while `README.md` says a license has not been chosen and the application manifest leaves `license` empty; this slice does not resolve that repository-level conflict. The unpublished codec manifest currently declares `MIT AND BSD-3-Clause AND IJG`, and direct Rust dependency licenses are recorded below. Vendored libjpeg-turbo IJG/Modified BSD notices and required attribution, plus the libwebp Modified BSD notice and patent grant, are checked in and digest-verified; excluded SIMD licensing is identified. | Repository-level first-party licensing requires a separate authoritative decision. System-library license substitution and silent notice omission are prohibited. Packaging user-accepted artwork does not grant redistribution rights and remains governed by section 16. |
-| platform and security evidence | CURRENT FACT / TARGET REQUIREMENT | Windows x64 compilation and native tests are executed. Closed archive/JSON/raster profiles, path rejection, budgets, one-validator accounting, stable failures, no package extraction to a caller path, and no dynamic codec lookup form the security boundary. | Windows ARM/ARM64/ARM64EC and macOS/Linux are source/configuration-reviewed but not compiled here. Cross-target builds and later native Tauri acceptance remain required before platform-runtime claims. |
+| platform and security evidence | CURRENT FACT / TARGET REQUIREMENT | Windows x64 compilation and native tests are executed. Tauri 2.11.2 desktop raw IPC and installed JS 2.11.0 typed-array/header behavior are source-reviewed; path/header limits, non-raw rejection, bounded reads, stable failures, closed codec profiles, and no dynamic codec lookup form the current boundary. | Windows ARM/ARM64/ARM64EC and macOS/Linux remain source/configuration-reviewed but not compiled here. Real Windows WebView2, macOS WKWebView, Linux WebKitGTK transfer measurement, cross-target builds, and later native workflow acceptance remain required before platform-runtime claims. |
 
 **CURRENT FACT.** The vendored byte counts above are the exact repository file
 lengths at this checkpoint. The transitive list is the locked Windows x64 result
@@ -1227,16 +1319,21 @@ controls in section 9, not system or dynamically selected runtime dependencies.
 | [#48](https://github.com/thelordofdino4/steam-backup-label-studio/issues/48) | CURRENT FACT | Closed schema-validation/migration work that established the current `0.2.0` parser and `0.1.0` migration consumed after hydration. |
 | [#308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308) | CURRENT FACT / TARGET REQUIREMENT | Open lifecycle parent for session/path/baseline/dirty, target Save/Save As, replacement guards, and Resume. Package work must consume that owner. |
 | [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | CURRENT FACT / TARGET REQUIREMENT | Issue remains open, but its atomic byte writer was merged by PR #317 and is consumed by the current text Save chain. Package work generalizes only the binary IPC/read boundary and reuses the primitive. |
+| [PR #317](https://github.com/thelordofdino4/steam-backup-label-studio/pull/317) | CURRENT FACT | Merged #312 atomic byte writer reused by both legacy text-project and dormant binary-project writes. |
 | [PR #320](https://github.com/thelordofdino4/steam-backup-label-studio/pull/320) | CURRENT FACT | Merged two-phase Open integration at the evidence baseline; package decoding extends its staging phase. |
+| [PR #321](https://github.com/thelordofdino4/steam-backup-label-studio/pull/321) | CURRENT FACT | Merged package-format, lifecycle, and related contract baseline. |
+| [PR #322](https://github.com/thelordofdino4/steam-backup-label-studio/pull/322) | CURRENT FACT | Merged runtime-disconnected pure package codec at merge commit `a040e72a6972d07c2cd72198fd8bcc835d9ea113`. |
 
 **CURRENT FACT.** Searches of open and closed issues and current pull requests on
-2026-07-27 found no separate open implementation owner for the `.sbls` codec.
-This contract records relationships only and does not mutate issue state.
+2026-07-27 found no newer exact open or closed issue/PR owner for bounded binary
+project IPC. Closed #56 remains the format decision, open #312 remains atomic
+persistence context, and open #308 remains later lifecycle integration. This
+contract records relationships only and does not mutate issue state.
 
 ### Bounded implementation sequence
 
 1. **CURRENT FACT:** The runtime-disconnected `sbls-package-codec` checkpoint implements the manifest, typed asset registry, budgets, strict JSON/JCS, ZIP32 Store/Deflate, data-URL handling, raster validation, projection/hydration, SHA-256/exact-byte deduplication, deterministic encoder/decoder ports, stable failures, and focused/adversarial tests without UI or lifecycle mutation.
-2. **TARGET REQUIREMENT:** Add bounded binary project read and structured atomic binary project write by generalizing the #312 command boundary; retain the existing atomic primitive and Rust/platform test matrix; leave PNG export unchanged.
+2. **CURRENT FACT:** Dormant bounded binary project read and structured atomic binary project write are registered through raw Tauri IPC, reuse the #312 primitive, retain legacy JSON and PNG routes unchanged, and have no codec or production caller.
 3. **TARGET REQUIREMENT:** Integrate package decode behind the mutation-free staging seam while retaining legacy JSON, but keep production `.sbls` filters, sniff dispatch, and package-session adoption unexposed until step 4; the isolated decoder and dormant integration tests may land independently.
 4. **TARGET REQUIREMENT:** Integrate the encoder/write plan with lifecycle Save and Save As, revision/baseline rules, `.sbls` destination eligibility, same-source legacy-conversion protection, and explicit legacy conversion; activate production package Open and package Save/Save As together in this releasable slice.
 5. **TARGET REQUIREMENT:** Implement the dirty-aware replacement guard only after working package Save/Save As can satisfy its Save branch.
@@ -1252,15 +1349,16 @@ reads.
 
 ## 20. Non-goals, future extensions, and narrowly unresolved implementation questions
 
-### Non-goals of the package-domain codec implementation slice
+### Non-goals of the completed infrastructure checkpoints
 
-**TARGET REQUIREMENT.** The implemented package-domain checkpoint does not
-change `SavedProject` or its schema version, add binary commands, change
-dialogs, wire production Open/Save/Save As, adopt paths/formats/baselines, add
-replacement guards or menus, remove legacy/data-URL compatibility, alter
-preview/export pixels, or mutate runtime state. Native JPEG/WebP code is linked
-only into the runtime-disconnected codec member; it is not a Tauri command or
-filesystem adapter.
+**CURRENT FACT / TARGET REQUIREMENT.** The package-domain checkpoint and dormant
+binary-I/O checkpoint do not change `SavedProject` or its schema version,
+change dialogs, wire production Open/Save/Save As, adopt session
+paths/formats/baselines, add replacement guards or menus, remove
+legacy/data-URL compatibility, alter preview/export pixels, or mutate runtime
+state. Native JPEG/WebP code remains linked only into the runtime-disconnected
+codec member. The binary commands are filesystem/IPC adapters only and do not
+call that codec.
 
 ### Explicitly unimplemented future extensions
 
@@ -1287,8 +1385,8 @@ filesystem adapter.
 ### Resolved and remaining narrow implementation questions
 
 1. **CURRENT FACT:** The first slice uses one Rust-owned package-domain crate, a package-owned strict ZIP32 reader/writer, exact-pinned standard helpers, package-owned strict JSON/JCS policy, Rust PNG/GIF/BMP structure validation, and crate-private pinned native JPEG/WebP shims. The public codec is wholly in memory and never performs archive extraction to a caller path.
-2. **OPEN QUESTION:** Which later Tauri byte-transport mechanism minimizes peak copies while preserving structured errors and the raw/archive limits?
-3. **OPEN QUESTION:** Whether later application integration can retain wholly in-memory staging on every supported platform or needs an application-owned temporary area; either choice must prevent path-directed extraction and guarantee cleanup. This does not reopen the package-domain codec's current borrowed-input/owned-output in-memory API.
+2. **CURRENT FACT:** The dormant desktop transport uses a bounded canonical path header, top-level raw typed-array request, raw response, and structured rejection. The source-level copy analysis is fixed in section 14; actual WebView copy/RSS measurement remains unperformed.
+3. **TARGET REQUIREMENT:** The next dormant package-decode adapter should prefer native-owned read/decode composition if it avoids a needless raw archive round trip while preserving the existing mutation-free staging boundary. It must not introduce an application-owned temporary area or stateful resource registry without a separately evidenced need and deterministic cleanup design.
 
 **TARGET REQUIREMENT.** These questions cannot change the identifier, version,
 layout, manifest, pointer registry, MIME allowlist, budgets, portability,
@@ -1310,7 +1408,7 @@ invariants. No speculative manifest field is reserved for a future consumer.
 | CURRENT FACT | Built-in asset routing: [`assetManifest.ts`](../src/assets/assetManifest.ts) |
 | CURRENT FACT | Current data-URL/import behavior: [`projectAssetStatus.ts`](../src/project/projectAssetStatus.ts), [`importedImageAsset.ts`](../src/utils/importedImageAsset.ts), [`local_images.rs`](../src-tauri/src/commands/local_images.rs), [`steam.rs`](../src-tauri/src/commands/steam.rs) |
 | CURRENT FACT | Current Save and two-phase Open adapters: [`appProjectSave.ts`](../src/app/appProjectSave.ts), [`appProjectLoad.ts`](../src/app/appProjectLoad.ts) |
-| CURRENT FACT | Current native IPC and atomic byte writer: [`fileSystem.ts`](../src/tauri/fileSystem.ts), [`files.rs`](../src-tauri/src/commands/files.rs), [`project_file.rs`](../src-tauri/src/project_file.rs) |
+| CURRENT FACT | Legacy native IPC, dormant raw binary project ports, bounded reader, structured adapter, and atomic byte writer: [`fileSystem.ts`](../src/tauri/fileSystem.ts), [`binaryProjectFile.ts`](../src/tauri/binaryProjectFile.ts), [`binaryProjectFile.test.ts`](../src/tauri/binaryProjectFile.test.ts), [`files.rs`](../src-tauri/src/commands/files.rs), [`project_files.rs`](../src-tauri/src/commands/project_files.rs), [`project_binary_io.rs`](../src-tauri/src/project_binary_io.rs), [`project_file.rs`](../src-tauri/src/project_file.rs) |
 | CURRENT FACT | Current dependency declarations and lock: [`package.json`](../package.json), [`Cargo.toml`](../src-tauri/Cargo.toml), [`Cargo.lock`](../src-tauri/Cargo.lock), [`sbls-package-codec/Cargo.toml`](../src-tauri/crates/sbls-package-codec/Cargo.toml) |
 | CURRENT FACT | Pure package codec public API, conformance suite, and owned modules: [`lib.rs`](../src-tauri/crates/sbls-package-codec/src/lib.rs), [`conformance_tests.rs`](../src-tauri/crates/sbls-package-codec/src/conformance_tests.rs), [`model.rs`](../src-tauri/crates/sbls-package-codec/src/model.rs), [`encode.rs`](../src-tauri/crates/sbls-package-codec/src/encode.rs), [`decode.rs`](../src-tauri/crates/sbls-package-codec/src/decode.rs) |
 | CURRENT FACT | Strict package primitives and policies: [`archive.rs`](../src-tauri/crates/sbls-package-codec/src/archive.rs), [`json.rs`](../src-tauri/crates/sbls-package-codec/src/json.rs), [`manifest.rs`](../src-tauri/crates/sbls-package-codec/src/manifest.rs), [`registry.rs`](../src-tauri/crates/sbls-package-codec/src/registry.rs), [`assets.rs`](../src-tauri/crates/sbls-package-codec/src/assets.rs), [`raster.rs`](../src-tauri/crates/sbls-package-codec/src/raster.rs), [`limits.rs`](../src-tauri/crates/sbls-package-codec/src/limits.rs), [`error.rs`](../src-tauri/crates/sbls-package-codec/src/error.rs) |
