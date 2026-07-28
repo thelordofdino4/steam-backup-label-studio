@@ -83,9 +83,10 @@ through `src/project/projectCaseInsert.ts`, while case-owned defaults,
 normalization, state transitions, source helpers, and focused action modules
 live under `src/caseInsert/`.
 
-The target `.sbls` package/container format is not implemented yet.
-Documentation and UI must not imply that zipped/package `.sbls` support exists
-today. Exact target behavior is defined by
+The bounded package-domain codec exists as a runtime-disconnected Rust workspace
+member, but production `.sbls` Open, Save, Save As, and legacy conversion are
+not implemented. Documentation and UI must not imply that application-connected
+package support exists today. Exact target behavior is defined by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md); the
 closed #56 rationale is preserved in
 [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).

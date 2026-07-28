@@ -1,0 +1,49 @@
+From: Steam Backup Label Studio package codec
+Subject: [PATCH] Route libwebp decoder memory through the active operation
+
+This is the review diff represented by
+vendor/overlays/libwebp/src/utils/utils.c.  The compiled overlay intentionally
+retains only allocator, public free, plane-copy, and fallback log-table symbols
+needed by the explicit decoder source whitelist.
+
+--- a/src/utils/utils.c
++++ b/src/utils/utils.c
+@@
+ #include "src/webp/types.h"
++#include "sbls_allocation_ledger.h"
+@@
+ void* WebPSafeMalloc(uint64_t nmemb, size_t size) {
+-  void* ptr;
+-  Increment(&num_malloc_calls);
+-  if (!CheckSizeArgumentsOverflow(nmemb, size)) return NULL;
+-  assert(nmemb * size > 0);
+-  ptr = malloc((size_t)(nmemb * size));
+-  AddMem(ptr, (size_t)(nmemb * size));
+-  return ptr;
++  return sbls_operation_alloc_array(nmemb, size);
+ }
+@@
+ void* WebPSafeCalloc(uint64_t nmemb, size_t size) {
+-  void* ptr;
+-  Increment(&num_calloc_calls);
+-  if (!CheckSizeArgumentsOverflow(nmemb, size)) return NULL;
+-  assert(nmemb * size > 0);
+-  ptr = calloc((size_t)nmemb, size);
+-  AddMem(ptr, (size_t)(nmemb * size));
+-  return ptr;
++  return sbls_operation_calloc(nmemb, size);
+ }
+@@
+ void WebPSafeFree(void* const ptr) {
+-  if (ptr != NULL) {
+-    Increment(&num_free_calls);
+-    SubMem(ptr);
+-  }
+-  free(ptr);
++  sbls_operation_free(ptr);
+ }
+@@
+ void* WebPMalloc(size_t size) {
+-  return WebPSafeMalloc(1, size);
++  return sbls_operation_alloc(size);
+ }

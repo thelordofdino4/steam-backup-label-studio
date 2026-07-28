@@ -4,16 +4,17 @@
 > Purpose: Define the implementation-ready version 1 `.sbls` package, its portability and security invariants, and its integration with the existing project schema and application lifecycle.
 > Read when: Implementing or reviewing project package encoding, decoding, asset collection, binary persistence, legacy conversion, Open, Save, or Save As.
 > Authoritative source: This contract for target package/container behavior; [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md) for hydrated saved-project fields and migrations; [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md) for session, command, path, baseline, revision, dirty, and commit semantics.
-> Current implementation: Plain JSON project files remain the only implemented project representation. No `.sbls` package codec, package reader, package writer, or binary project IPC exists at the evidence baseline.
-> Evidence baseline: `a104825583a1cc03e145a9e460e9abccf4483bf7` on 2026-07-27.
+> Current implementation: The Rust-owned `sbls-package-codec` workspace member implements the protocol-bounded in-memory v1 encoder/decoder, including crate-private vendored native JPEG/WebP validation shims, and remains deliberately disconnected from Tauri commands, filesystem paths, dialogs, lifecycle state, and production Open/Save/Save As. Plain JSON remains the only application-connected project representation.
+> Evidence baseline: synchronized parent commit `ba89635bc4075b013361feb6af33147f1a4e14e3` plus the focused unstaged codec implementation checkpoint on `agent/sbls-pure-package-codec`, reviewed on 2026-07-27.
 
 ## 1. Status, purpose, authority, and document relationships
 
-**TARGET REQUIREMENT.** This document is the normative target contract for the
-version 1 `.sbls` container. It specifies the package identity, archive layout,
+**TARGET REQUIREMENT.** This document is the normative contract for the version
+1 `.sbls` container. It specifies the package identity, archive layout,
 manifest, asset projection and hydration, resource budgets, compatibility,
-failure taxonomy, and package-specific persistence boundary. It does not make
-the target format implemented.
+failure taxonomy, and package-specific persistence boundary. Current-fact
+annotations identify the implemented package-domain codec checkpoint without claiming
+that package persistence or application integration exists.
 
 | Claim | Authority | Boundary |
 | --- | --- | --- |
@@ -37,7 +38,8 @@ defers to source, and agent behavior defers to `AGENTS.md`.
 **TARGET REQUIREMENT.** Scope includes Disc and Case projects, enabled content,
 disabled remembered content, legacy JSON import, package Save/Save As, and the
 native binary persistence boundary. It excludes editor feature redesign,
-project-schema changes, package implementation, and removal of legacy reads.
+project-schema changes, production runtime integration in the package-domain codec slice,
+and removal of legacy reads.
 
 ## 2. Terminology and claim classifications
 
@@ -78,7 +80,8 @@ ID, and package asset ID are distinct concepts.
 | CURRENT FACT | `write_binary_file` is a separate direct `std::fs::write` adapter used for PNG output. It is not the atomic project writer, and no native binary project reader exists. | [`files.rs`](../src-tauri/src/commands/files.rs), [`appPngExport.ts`](../src/app/appPngExport.ts) |
 | CURRENT FACT | Saved visual payload fields are nullable strings, normally data URLs; no current field carries a package asset ID, package path, byte length, digest, or independently validated MIME. | [`projectTypes.ts`](../src/project/projectTypes.ts), [`savedProjectNormalization.ts`](../src/project/savedProjectNormalization.ts) |
 | CURRENT FACT | Current local image import recognizes JPEG, PNG, WebP, GIF, and BMP. Browser and remote import paths primarily trust `image/*` declarations and browser decoding; there is no package-grade signature/MIME validator. | [`local_images.rs`](../src-tauri/src/commands/local_images.rs), [`importedImageAsset.ts`](../src/utils/importedImageAsset.ts), [`steam.rs`](../src-tauri/src/commands/steam.rs) |
-| CURRENT FACT | No direct application dependency currently owns ZIP encoding/decoding, SHA-256 package identity, archive-path validation, or package resource budgets. | [`package.json`](../package.json), [`Cargo.toml`](../src-tauri/Cargo.toml) |
+| CURRENT FACT | The runtime-disconnected Rust workspace member `sbls-package-codec` owns strict ZIP32 Store writing and Store/Deflate reading, SHA-256 identity, RFC 8785 canonical JSON, duplicate-key-rejecting bounded JSON, typed registry/projection/hydration, raster validation, and package budgets. The Tauri application crate does not depend on it. | [`Cargo.toml`](../src-tauri/crates/sbls-package-codec/Cargo.toml), [`lib.rs`](../src-tauri/crates/sbls-package-codec/src/lib.rs), [`src-tauri/Cargo.toml`](../src-tauri/Cargo.toml) |
+| CURRENT FACT | Package-grade JPEG and WebP decoding is contained behind a narrow Rust-consumed native boundary built from pinned source archives. Operation-scoped allocation accounting, one-active-validator leasing, checked allocation arithmetic, deterministic cleanup, and contained JPEG fatal-error jumps prevent native decoder failures from crossing the Rust boundary. | [`sbls_codec_shim.h`](../src-tauri/crates/sbls-package-codec/native/include/sbls_codec_shim.h), [`PROVENANCE.md`](../src-tauri/crates/sbls-package-codec/vendor/PROVENANCE.md), [`PATCHES.md`](../src-tauri/crates/sbls-package-codec/vendor/patches/PATCHES.md) |
 | CURRENT FACT | Application session state has no persistence-format discriminator. Open exists through the command dispatcher, while target Save/Save As and dirty-aware replacement work under issue #308 remain incomplete. | [`projectSession.ts`](../src/lifecycle/projectSession.ts), [`applicationCommandRegistry.ts`](../src/lifecycle/applicationCommandRegistry.ts) |
 
 ### Current-versus-target behavior matrix
@@ -86,6 +89,8 @@ ID, and package asset ID are distinct concepts.
 | Concern | Claim | Current | Target |
 | --- | --- | --- | --- |
 | container | CURRENT FACT / TARGET REQUIREMENT | Plain UTF-8 JSON | Strict ZIP-compatible `.sbls` v1 |
+| package-domain codec | CURRENT FACT | Implemented as a protocol-bounded in-memory Rust API with borrowed package input and owned output, and no runtime adapters | Remains the package-domain owner consumed by later integration |
+| production package connection | CURRENT FACT / TARGET REQUIREMENT | No package-aware Open, Save, Save As, binary project IPC, dialog filter, or lifecycle format adoption | Activate Open and lifecycle-owned Save/Save As together only after the later integration dependencies |
 | asset storage | CURRENT FACT / TARGET REQUIREMENT | Data URLs in JSON; selected built-ins app-routed | Content-addressed package bytes plus reversible bindings; qualified built-ins remain app-routed |
 | recognition | CURRENT FACT / TARGET REQUIREMENT | File dialog plus text/JSON parse | Bounded raw bytes, content sniffing, then package or legacy decoder |
 | native read | CURRENT FACT / TARGET REQUIREMENT | UTF-8 string | Bounded binary project read |
@@ -472,10 +477,10 @@ agree.
 | Canonical MIME | Canonical extension | Required signature/decoder class | Animation rule |
 | --- | --- | --- | --- |
 | `image/png` | `.png` | PNG signature and complete PNG structural decode | APNG frames count toward frame/pixel budgets. |
-| `image/jpeg` | `.jpg` | JPEG SOI plus complete JPEG structural decode | Static only by format. |
-| `image/webp` | `.webp` | RIFF/WEBP signature and complete WebP decode | Animated WebP is allowed only within all frame/pixel budgets. |
+| `image/jpeg` | `.jpg` | JPEG SOI, strict marker/scan validation, and complete decode through the pinned bounded libjpeg-turbo shim | Static only by format. |
+| `image/webp` | `.webp` | RIFF/WEBP structure validation and complete decode through the pinned bounded libwebp shim | Animated WebP is allowed only within all frame/pixel budgets. |
 | `image/gif` | `.gif` | GIF87a/GIF89a signature and complete GIF decode | Animation is allowed only within all frame/pixel budgets. |
-| `image/bmp` | `.bmp` | BMP signature and complete BMP decode | Static only by format. |
+| `image/bmp` | `.bmp` | BMP signature and the exact Windows BMP v1 structural subprofile below | Static only by format. |
 
 **TARGET REQUIREMENT.** `image/jpg` normalizes to `image/jpeg`; no other MIME
 alias is emitted. The validator rejects MIME/signature polyglots, structurally
@@ -502,6 +507,121 @@ base64, invalid padding, and decoded mismatch. Legacy parsing may accept older
 spellings only when the shared normalization can deterministically produce this
 canonical value before the package snapshot/baseline boundary.
 
+#### Finalized JPEG v1 subprofile
+
+**TARGET REQUIREMENT.** Package v1 accepts only 8-bit, Huffman-coded baseline
+sequential DCT (`SOF0`) and progressive DCT (`SOF2`) JPEG. It accepts one
+grayscale component with component ID `1`, `1x1` sampling, and quantization
+table `0`; or three components with IDs `1`, `2`, and `3`, chroma sampling
+`1x1`, luma sampling `1x1`, `2x1`, or `2x2`, and an absent Adobe transform or
+transform `1`. One positive bounded frame, valid and complete tables/scans,
+exact EOI termination, and no trailing payload are required.
+
+**TARGET REQUIREMENT.** Arithmetic coding, lossless, differential,
+hierarchical, 12-bit precision, four-component CMYK/YCCK, unsupported component
+IDs or sampling layouts, malformed marker graphs, incomplete tables/scans, and
+any image whose allocation cannot be bounded before decode are rejected. A
+structurally well-formed JPEG that is outside only this closed subprofile is
+`project.package.asset-jpeg-profile-unsupported`; malformed JPEG-family data is
+`project.package.asset-type-invalid`. Digest, MIME/signature, dimensions, and
+resource-limit failures keep their more-specific codes and precedence.
+
+#### Finalized BMP v1 subprofile
+
+**TARGET REQUIREMENT.** Package v1 accepts only Windows BMP with the exact
+40-byte `BITMAPINFOHEADER`, one positive bottom-up image, `planes == 1`, 24-bit
+BGR pixels, and uncompressed `BI_RGB`. The file header is canonical: both
+reserved fields are zero, pixel data begins at byte `54`, `bfSize` equals the
+exact input length, `biSizeImage` equals the checked padded-row-stride times
+height, both pixels-per-meter fields and both color-count fields are zero, the
+complete pixel span ends at EOF, and no region overlaps or trails another.
+
+**TARGET REQUIREMENT.** Palettes/indexed color, RLE, bitfields, embedded
+JPEG/PNG, top-down images, OS/2 or extended DIB variants, 16-bit or 32-bit
+pixels, color profiles, malformed offsets, overlapping/truncated regions, and
+unchecked size arithmetic are rejected. A structurally well-formed BMP that is
+outside only this closed subprofile is
+`project.package.asset-bmp-profile-unsupported`; malformed BMP-family data is
+`project.package.asset-type-invalid`. Digest, MIME/signature, dimensions, and
+resource-limit failures keep their more-specific codes and precedence.
+
+**TARGET REQUIREMENT.** These two closed subprofiles deliberately trade broader
+JPEG/BMP interoperability for enforceable memory accounting, deterministic
+validation, and typed failure behavior in package version 1. A capability in
+an underlying codec is not permission to accept it. Broadening either profile
+requires a separately reviewed package-contract/version compatibility decision.
+
+#### Implemented bounded native decoder boundary
+
+**CURRENT FACT.** The package-domain codec pins libjpeg-turbo `3.1.4.1` at source-archive
+SHA-256
+`ecae8008e2cc9ade2f2c1bb9d5e6d4fb73e7c433866a056bd82980741571a022`
+and libwebp `1.6.0` at source-archive SHA-256
+`e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564`.
+The build verifies those archives, upstream patched-unit digests, overlay
+digests, patch digests, and license notices; extracts only under Cargo
+`OUT_DIR`; compiles explicit decoder-only translation-unit lists; and never
+discovers, links, or substitutes a system codec. The libjpeg-turbo distribution
+records IJG and Modified BSD licensing; its zlib-licensed SIMD source is not
+compiled, and the required IJG attribution is preserved. libwebp is Modified
+BSD with its upstream patent grant.
+Exact provenance and notices live in [`vendor/PROVENANCE.md`](../src-tauri/crates/sbls-package-codec/vendor/PROVENANCE.md)
+and [`vendor/LICENSES/`](../src-tauri/crates/sbls-package-codec/vendor/LICENSES/).
+The vendor-local [`.gitattributes`](../src-tauri/crates/sbls-package-codec/vendor/.gitattributes)
+keeps hashed text inputs LF-normalized and pinned archives binary so checkout
+line-ending conversion cannot change a verified digest.
+
+**CURRENT FACT.** The Rust-consumed production surface of the package-private
+native boundary is byte-oriented JPEG/WebP validation only. It receives
+immutable encoded bytes and bounded options, returns
+dimensions/frame/allocation accounting plus a closed status, retains no decoded
+buffer, performs no transcoding, and has no path, Tauri, dialog, lifecycle, or
+network surface. The Rust owner converts every native result into the package
+taxonomy. The private static archive also retains selected upstream,
+ledger/allocator, and deterministic test-probe link symbols; Unix hidden
+visibility and the MSVC static build prevent dynamic exports but do not rename
+or localize that internal static-link namespace.
+
+**CURRENT FACT.** The audited native shims and overlays route decoder
+allocations and frees through one operation-owned ledger; the ledger also
+implements and tests checked calloc and reallocation. Payload, ledger-header
+overhead, and caller-declared live working bytes use checked arithmetic. Before
+`realloc`, the ledger conservatively charges the still-live old allocation plus
+the complete replacement allocation, including both headers, because a system
+allocator may hold both blocks transiently; it releases the old receipt only
+after replacement succeeds. Allocation/reallocation is rejected before that
+transient or steady-state total would exceed 536,870,912 bytes. A process-wide
+atomic lease and thread-local operation owner permit only one active validator
+and reject nesting. Success and every failure path run codec destructors, drain
+residual operation-owned allocations, clear the lease, and report zero live
+allocation before another operation can start. Fault-injection probes cover
+exact boundary allocation/reallocation, one-byte-over denial, nesting, and
+cleanup/reuse without changing the production ceiling.
+
+**CURRENT FACT.** libjpeg fatal errors and warnings jump only to a `setjmp`
+target in the same C wrapper frame; no `longjmp` crosses Rust. Decoder builds
+define `NDEBUG`, exclude process-aborting tools and unsupported precision paths,
+and map libjpeg backing-store demand, CRT allocation failure, libwebp
+out-of-memory status, ledger denial, and concurrent-validator denial to
+`project.package.resource-limit-exceeded`. Native abort, process termination,
+uncaught `longjmp`, and infallible native allocation are not accepted failure
+paths. The reviewable overlays and exclusions are documented in
+[`vendor/patches/PATCHES.md`](../src-tauri/crates/sbls-package-codec/vendor/patches/PATCHES.md).
+
+**CURRENT FACT.** The libjpeg configuration defines `NO_GETENV`, so its memory
+manager cannot consult `JPEGMEM` or other environment values. The verified
+libwebp `src/dsp/cpu.h` overlay, selected under
+`SBLS_WEBP_GENERIC_ONLY=1`, gates compiler- and target-driven SSE, AVX, NEON,
+MIPS, and MSA enablement, including MSVC ARM/ARM64/ARM64EC definitions that
+would otherwise be added after command-line undefines. The review overlay is
+[`0003-libwebp-generic-c-only.patch`](../src-tauri/crates/sbls-package-codec/vendor/patches/0003-libwebp-generic-c-only.patch);
+its exact pristine, overlay, and patch digests are recorded in
+[`PROVENANCE.md`](../src-tauri/crates/sbls-package-codec/vendor/PROVENANCE.md).
+Windows x64 compilation is directly exercised at this checkpoint. Windows ARM,
+macOS, and Linux portability is supported by the reviewed source/configuration
+path but still requires an executed cross-target build matrix before it may be
+reported as compiled on those targets.
+
 ### V1 resource-limit registry
 
 | Resource | Exact maximum | Claim | Rationale / enforcement |
@@ -523,6 +643,7 @@ canonical value before the package snapshot/baseline boundary.
 | expanded ancillary image metadata | 8,388,608 (8 MiB) per asset; 33,554,432 (32 MiB) aggregate | TARGET REQUIREMENT | Includes decompressed text, EXIF/XMP, ICC profiles, comments, thumbnails, and equivalent chunks/segments. Enforce during expansion, not after allocation. |
 | image structural records | 16,384 per asset; 65,536 aggregate | TARGET REQUIREMENT | Count PNG/WebP chunks, JPEG marker segments, GIF blocks/sub-blocks, BMP profile/header records, and equivalent decoder-visible structures with checked addition before retaining metadata. |
 | image-decoder owned working allocation and concurrency | 536,870,912 (512 MiB) aggregate per package operation; at most one active asset decode at a time | TARGET REQUIREMENT | Includes decoded samples, expanded ancillary metadata, codec tables, and scratch space, excluding the one immutable encoded input already bounded above. The next asset decode cannot start until the prior decoder releases its working allocation. A decoder that cannot enforce or demonstrate the aggregate ceiling and single-decode rule is not a conforming adapter. |
+| hostile-JSON parse/retained-graph phase allocation | 536,870,912 (512 MiB) live within one decoder operation | CURRENT FACT / TARGET REQUIREMENT | A separate Rust ledger charges the currently owned Store/Deflate entry buffer that feeds parsing plus every retained manifest/project JSON root, array/object capacity, decoded string, object key, and number-token allocation. Collection growth precharges the complete replacement while the old capacity remains live. Rejected charges and every operation exit roll back to the entry receipt. Hydration-created data URLs, canonical output, raster/native working memory, caller-owned archive bytes, and allocator-private metadata are outside this phase ledger and retain their separate limits. This is not a whole-process 512 MiB claim. |
 | animation frames per asset | 256 | TARGET REQUIREMENT | Additional bound for GIF/APNG/WebP metadata and timing tables. |
 | Deflate expansion ratio | 200:1 per entry and aggregate | TARGET REQUIREMENT | Ratio is `uncompressed / max(compressed, 1)` using checked integers; reject when declared or observed values exceed the cap. Store entries have ratio 1 for nonempty v1 entries. |
 | entry path | 83 ASCII bytes | TARGET REQUIREMENT | The longest valid v1 name is a `.webp` content-addressed asset path; any longer name is outside the closed grammar. |
@@ -543,12 +664,18 @@ may use lower transient allocation thresholds only if they do not reject a
 contract-valid package on a supported platform.
 
 **TARGET REQUIREMENT.** All limits are conjunctive; their maxima need not be
-simultaneously achievable. Implementations must enforce budgets at compressed,
-uncompressed, decoded-image, canonical-base64, hydrated-JSON, and IPC
-representations and verify measured peak memory with worst-case conforming
-fixtures. A frontend/full-buffer design is nonconforming if duplicate archive,
-asset, base64, and hydrated-project copies can exceed the supported platform's
-measured memory envelope; it must stream or use an owned bounded staging area.
+simultaneously achievable. The pure codec must enforce budgets at compressed,
+uncompressed, decoded-image, canonical-base64, and hydrated-JSON
+representations and prove its owned phase lifetimes, checked counters,
+allocation-boundary rejection, rollback, and reuse with deterministic fixtures.
+Whole-process RSS also depends on the later caller, IPC representation,
+webview/runtime copies, executable linkage, and platform allocator. Therefore
+worst-case process-memory measurement belongs to the application/runtime and
+platform-integration gate, where the final IPC design must be exercised with
+representative conforming fixtures before a whole-process envelope is claimed.
+A frontend/full-buffer design is nonconforming if duplicate archive, asset,
+base64, and hydrated-project copies can exceed that supported platform's
+measured envelope; it must stream or use an owned bounded staging area.
 
 ### Archive validation order
 
@@ -800,9 +927,12 @@ avoidable duplicate full-archive copies. Base64 transport or JSON arrays of byte
 numbers are prohibited unless a documented implementation analysis proves peak
 memory and copies remain within those budgets on every supported platform.
 
-**OPEN QUESTION.** The exact ZIP library and whether the replaceable archive
-adapter executes in TypeScript or Rust remain bounded implementation choices.
-The package-domain port and every semantic/security invariant above remain fixed.
+**CURRENT FACT.** The first package-domain slice is Rust-owned and uses a direct
+strict ZIP32 parser/writer rather than delegating policy to a generic ZIP
+library. Its borrowed-input/owned-output in-memory archive boundary is
+runtime-disconnected. Later application adapters consume this package-domain
+port without moving any
+semantic/security invariant into TypeScript, Tauri, or filesystem code.
 
 **OPEN QUESTION.** The exact Tauri binary IPC representation may be a bounded
 typed-byte payload, resource/stream handle, or native-owned codec call after
@@ -927,6 +1057,8 @@ may be retained only as the safe structured `cause` of the application code.
 | `project.package.asset-hash-collision` | failure | `false` | asset identity | Two captured byte sequences share a SHA-256 value but differ in length or exact bytes. Abort deterministically; never merge or write them. |
 | `project.package.asset-type-invalid` | failure | `true` | asset validation | MIME, extension, signature, or decoded structure disagrees. Preserve session. |
 | `project.package.asset-type-unsupported` | failure | `true` | capture/decode | Required payload is a type outside the v1 raster allowlist. Save/Open does not transcode it; replace it with an accepted raster. |
+| `project.package.asset-jpeg-profile-unsupported` | failure | `true` | JPEG profile validation | Structurally well-formed JPEG uses a coding mode, precision, component model, or sampling layout outside the closed JPEG v1 subprofile. Preserve session/destination and exact bytes; replace the asset or re-encode it externally to the accepted profile. |
+| `project.package.asset-bmp-profile-unsupported` | failure | `true` | BMP profile validation | Structurally well-formed BMP uses a DIB/header, orientation, pixel encoding, or canonical-file form outside the closed BMP v1 subprofile. Preserve session/destination and exact bytes; replace the asset or re-encode it externally to the accepted profile. |
 | `project.package.asset-dimensions-invalid` | failure | `true` | asset validation | Width/height/frame/pixel metadata is invalid or disagrees with decoded bytes. Preserve session. |
 | `project.package.binding-invalid` | failure | `true` | binding | Pointer syntax/path/placeholder/asset reference is invalid or outside registry. Preserve session. |
 | `project.package.binding-conflict` | failure | `true` | binding | Multiple bindings target one pointer or otherwise disagree. Preserve session. |
@@ -966,10 +1098,16 @@ the limit is observed.
 | ZIP safe inventory and entry content | `project.package.resource-limit-exceeded` for entry-count/name-length or observed stream budgets; then `project.package.entry-path-invalid` for raw/normalized name, duplicate-name, or forbidden entry-type faults. After safe inventory, a manifest-entry CRC/stream fault is `project.package.archive-invalid`; project-entry CRC is `project.package.project-digest-mismatch`; asset-entry CRC is `project.package.asset-digest-mismatch`. |
 | manifest identity and shape | bounded-JSON excess is `project.package.resource-limit-exceeded`; then `project.format.unsupported`; then `project.package.version-unsupported`; then `project.package.manifest-invalid` for closed-object shape, required/unknown fields, duplicate keys, and ordering. A manifest asset `byteLength` or dimension over budget is `project.package.resource-limit-exceeded`; a well-formed but unsupported MIME is `project.package.asset-type-unsupported`; malformed or disagreeing MIME/extension is `project.package.asset-type-invalid`; a noninteger, zero, or internally disagreeing dimension is `project.package.asset-dimensions-invalid`; inconsistent ID/SHA/path digest is `project.package.asset-digest-mismatch`. These specialized conditions are never collapsed into `project.package.manifest-invalid`. |
 | project entry and schema gate | `project.package.project-missing`; then `project.package.resource-limit-exceeded`; then `project.package.project-digest-mismatch` for length, project-entry CRC, or SHA; then `project.package.hydrated-json-invalid` for bounded projection JSON syntax/shape; then manifest/projection version disagreement is `project.package.manifest-invalid`; then an agreed unsupported schema is `project.schema.unsupported` before any schema-specific binding traversal. |
-| asset records and bytes | `project.package.resource-limit-exceeded`; then `project.package.asset-missing` for absent referenced entry/record or any unreferenced asset; then `project.package.asset-digest-mismatch` for length, asset-entry CRC, ID/path digest, or SHA; then `project.package.asset-type-unsupported`; then `project.package.asset-type-invalid`; then `project.package.asset-dimensions-invalid`. Encoder-only unequal-byte digest collision is `project.package.asset-hash-collision` before deduplication. |
+| asset records and bytes | `project.package.resource-limit-exceeded`; then `project.package.asset-missing` for absent referenced entry/record or any unreferenced asset; then `project.package.asset-digest-mismatch` for length, asset-entry CRC, ID/path digest, or SHA; then `project.package.asset-type-unsupported` for a non-allowlisted family; then `project.package.asset-type-invalid` for MIME/signature/extension disagreement or malformed accepted-family structure; then `project.package.asset-dimensions-invalid` for invalid or disagreeing dimensions; then the JPEG/BMP profile-specific code for a structurally valid accepted-family image outside only its finalized v1 subprofile. Encoder-only unequal-byte digest collision is `project.package.asset-hash-collision` before deduplication. Native allocation denial, working-memory exhaustion, or validator-concurrency rejection remains the stage-appropriate resource-limit code and never becomes a generic decoder error. |
 | bindings and hydration | missing referenced asset remains `project.package.asset-missing`; then duplicate-pointer or multi-binding disagreement is `project.package.binding-conflict`; then syntax, forbidden/out-of-registry path, non-null placeholder, or invalid reference is `project.package.binding-invalid`; then missing Open-time built-in registry identity is `project.package.built-in-unavailable`; then any residual placeholder/reference is `project.package.binding-unresolved`; then hydrated aggregate-budget/shape failure is resource-limit or `project.package.hydrated-json-invalid`, respectively. Save-time missing built-in capture identity is `project.package.built-in-capture-required`. |
 | shared schema and restore | `project.schema.unsupported`; then `project.migration-failed` for a declared supported older-schema migration; then `project.validation-failed` for current-schema field validation; then `project.route-failed`; then `project.restored-metadata-unsafe` before any URL-capable owner adapter runs; then `project.background-image-resolution-failed` for the current legacy Disc inspection path; then the project-kind-specific restore code; then `project.staging-capture-failed`. |
 | lifecycle and persistence | the most specific package or atomic code wins; otherwise use the shared snapshot/read/write/commit pass-through code above. Stale Open CAS is `project.open-stale-state`; thrown and non-applied Open commits remain distinct. `application.unexpected` is last-resort only. |
+
+**TARGET REQUIREMENT.** Record-local manifest asset validation in the manifest
+row completes before later graph reachability checks. Once all records are
+locally valid, binding-graph precedence is `project.package.asset-missing`, then
+`project.package.binding-conflict`, then `project.package.binding-invalid`; a
+later graph fault never masks an earlier condition in that order.
 
 **TARGET REQUIREMENT.** A dismissed legacy-conversion Save As returns the shared
 command result `{ status: 'cancelled', reason: 'file-dialog-dismissed' }`; it is
@@ -983,7 +1121,7 @@ path, format, or baseline.
 
 | Test layer | Claim | Required coverage |
 | --- | --- | --- |
-| pure codec/unit | TARGET REQUIREMENT | Disc and Case canonical round trips; exact hashes; identical-byte deduplication; unequal-byte separation; canonical paths/order/JSON; manifest rules; no unresolved placeholder at schema boundary; package metadata excluded from dirty comparison. |
+| package-domain codec/unit | TARGET REQUIREMENT | Disc and Case canonical round trips; exact hashes; identical-byte deduplication; unequal-byte separation; canonical paths/order/JSON; manifest rules; no unresolved placeholder at schema boundary; package metadata excluded from dirty comparison. |
 | traversal registry | TARGET REQUIREMENT | Every Disc pointer; Case cover/tray/left/right pointers; deterministic arrays/maps; hidden/disabled/default assets included; every present-null or absent registered location receives an owner classification; only owner-confirmed absence, registry-qualified built-ins, and unaccepted candidates are omitted; test fails when a new asset field lacks an explicit registry decision. |
 | MIME/image security | TARGET REQUIREMENT | Every allowed signature; aliases; exact bytes; malformed/polyglot/HTML/packaged-SVG rejection; passive legacy-SVG allowlist and active/external rejection; width/height/frame/pixel/sample/metadata/decoder-work bounds; at most one active asset decoder and aggregate working-allocation enforcement; decoder failure before lifecycle commit. |
 | archive and allocation security | TARGET REQUIREMENT | Traversal, absolute/drive/UNC/backslash/control paths; normalized/case duplicates; symlinks/devices/directories; exact host/attribute/time metadata; encryption; multi-disk; ZIP64; unsupported compression; descriptors/extras/comments; extra/duplicate roots; malformed offsets/CRC/JSON; every byte/count/ratio/depth/string/array/object and hydrated fan-out budget. |
@@ -999,15 +1137,92 @@ path, format, or baseline.
 **TARGET REQUIREMENT.** UI snapshots are not the principal codec strategy. Tests
 compare normalized hydrated project state, exact asset bytes, package invariants,
 lifecycle transitions, and preview/export inputs. Native/manual verification is
-required only during implementation, not for this documentation task.
+required when later application integration changes native Open/Save behavior;
+it is not evidence for or a requirement of this runtime-disconnected package-domain codec
+slice.
+
+**CURRENT FACT.** Focused Rust tests are colocated with the package modules and
+the repository test runner invokes the package crate after its existing Node
+test batches. The codec checkpoint includes independent ZIP mutation/build
+fixtures, strict JSON/JCS fixtures, typed registry expansion, deterministic
+exact public-facade round trips for a full current-schema Disc project and a
+full all-four-surface Case project across all five raster families,
+older-schema hydration without codec-owned migration, mutation isolation, and
+an independently built valid Store package that matches the public writer and
+passes the public reader. Raster-family fixtures, shared hostile-JSON ledger
+boundary/rollback tests, native old-plus-replacement reallocation fault
+injection, single-validator rejection, and cleanup/reuse checks exercise the
+pure boundary only; they do not constitute production Open/Save or native Tauri
+acceptance.
+
+**CURRENT FACT.** At this checkpoint, the complete crate suite passes `241/241`
+under Rust `1.77.2`; the focused raster module passes `23/23` and the focused
+native boundary passes `7/7`. These counts describe the runtime-disconnected
+codec checkout and are not browser, Tauri, or user-visible package-support
+evidence.
 
 ## 19. Issue/dependency mapping and bounded implementation sequence
+
+### Implemented dependency decision
+
+**CURRENT FACT.** The coherent package-domain implementation is Rust 2021 with
+minimum Rust `1.77.2`. Dependencies are exact-pinned in the crate manifest and
+locked in the existing Tauri workspace lockfile; the application/Tauri package
+does not depend on the codec member.
+
+#### Evidence-based implementation decision matrix
+
+| Decision axis | Claim | Selected v1 approach and evidence | Rejected/deferred alternative and tradeoff |
+| --- | --- | --- | --- |
+| package-domain owner | CURRENT FACT / TARGET REQUIREMENT | One Rust-owned package-domain crate owns the borrowed-input/owned-output byte API, archive policy, manifest, registry, raster gate, budgets, and failures. The frontend and Tauri application do not depend on or call it. | A TypeScript/browser implementation or split TypeScript/Rust policy would duplicate security rules across runtimes and was not selected. Later application code consumes this owner through one bounded adapter. |
+| Rust/native boundary | CURRENT FACT / TARGET REQUIREMENT | Package, archive, JSON, hashing, registry, PNG/GIF/BMP, and orchestration logic are Rust. Exact-pinned libjpeg-turbo/libwebp C is the narrow Rust-consumed validation exception for JPEG/WebP. | An all-Rust JPEG/WebP route was not accepted because the audited candidates did not establish the required closed profiles, pre-allocation 512 MiB accounting, fatal containment, and deterministic cleanup without a materially broader decoder decision. Browser and system-codec substitution remain prohibited. |
+| ZIP | CURRENT FACT / TARGET REQUIREMENT | Package-owned code writes deterministic Store-only ZIP32 and reads only the closed Store/Deflate ZIP32 profile while directly validating local/central records, spans, order, names, flags, methods, and forbidden structures. | A generic ZIP library was rejected as the policy owner because it would hide or normalize security-significant records. The tradeoff is maintaining a focused ZIP32 parser/writer and mutation suite. |
+| SHA-256 | CURRENT FACT / TARGET REQUIREMENT | Exact-pinned `sha2 0.10.9` hashes project bytes, exact uncompressed asset bytes, and vendored build inputs. | Web Crypto, browser hashing, platform APIs, or non-cryptographic identity were rejected because the package owner must behave identically while runtime-disconnected. SHA-256 remains an identity/integrity check, not authenticity. |
+| canonical JSON | CURRENT FACT / TARGET REQUIREMENT | A package-owned RFC 8785 writer plus exact-pinned `ryu-js 1.0.2` emits deterministic ECMAScript-compatible numbers and key ordering. | `JSON.stringify`, serde defaults, locale-sensitive formatting, and source-object insertion order are not package identity authorities. The tradeoff is a focused writer and independent canonical fixtures. |
+| strict JSON | CURRENT FACT / TARGET REQUIREMENT | A package-owned bounded parser rejects duplicate keys, invalid UTF-8/escapes/numbers, excessive depth, excessive collections, and over-budget strings before manifest/projection use. | Browser `JSON.parse` and permissive/general-purpose parsing were rejected at the package security boundary because duplicate-key and resource policy must be observable and stable. |
+| raster validation | CURRENT FACT / TARGET REQUIREMENT | Rust owns PNG/GIF/BMP structure checks and the JPEG/WebP pre-scan; pinned native shims complete JPEG/WebP decode validation. Accepted encoded bytes remain exact and are never transcoded. | Browser image decode, system codecs, MIME trust, and broader library profiles were rejected. Vendoring increases source/license/patch review cost but provides enforceable allocation and failure behavior. |
+| Deflate | CURRENT FACT | `miniz_oxide 0.8.9` core APIs, without default features, decode raw ZIP Deflate and bounded PNG zlib streams into fallibly reserved package-owned output. `flate2 1.1.9` is build-only for verified source tarballs. | A runtime generic ZIP/Deflate stack and unbounded convenience decode were rejected. The selected route exposes exact consumption, termination, and output limits at the cost of lower-level adapter code. |
+| allocation | CURRENT FACT / TARGET REQUIREMENT | Production allocations derived from caller/package data preflight checked bounds and use fallible reservation/copy/growth paths, including creator/captured-byte constructors, pointers, manifest writing, archive buffers, data URLs, and canonical output. Decoder JSON parsing additionally uses a distinct 536,870,912-byte live phase ledger for owned Store/Deflate entry buffers plus retained manifest/project graphs; it charges actual capacities, transient old-plus-replacement collection growth, and rolls outstanding receipts back after every success or failure. Native decoder allocation/free uses its separate 536,870,912-byte ledger, including payload, header overhead, external working bytes, and transient old-plus-replacement reallocation. | Infallible input-driven allocation, post-allocation accounting, codec-private untracked heaps, backing files, and environment-derived `JPEGMEM` limits are prohibited. Rust unwind containment is a last fallback, not an allocation strategy. The JSON and native ledgers bound their named phases; hydration/output and whole-process RSS remain separately analyzed rather than being silently charged to either ledger. |
+| concurrency | CURRENT FACT / TARGET REQUIREMENT | A Rust nonblocking gate plus native process-wide lease/TLS owner permits one active native JPEG/WebP validator process-wide; `RasterBudget` separately admits one active raster validation per package operation. Busy/nested validation returns the stage-appropriate resource-limit failure and later operations recover after cleanup. | Parallel native validation was rejected because it would multiply peak working memory and weaken one-operation accounting. This deliberately trades decoder throughput for a provable ceiling. |
+| Rust/native failure containment | CURRENT FACT / TARGET REQUIREMENT | Known typed failures pass through unchanged. Unexpected Rust encode unwind maps to `project.package.encode-failed` at encoding; unexpected decode unwind maps to `project.package.archive-invalid` at raw input. JPEG fatal jumps remain within one C frame; native abort/process termination is excluded. | Raw panics, uncaught `longjmp`, process termination, generic decoder errors, or allocator text crossing the public boundary are prohibited. Catching an unexpected Rust unwind is a last fallback, not normal control flow. |
+| browser and later Tauri IPC | CURRENT FACT / OPEN QUESTION | The current codec has no browser, Tauri, command, dialog, filesystem, or lifecycle adapter. Its public byte boundary is in memory and enforces a 268,435,456-byte raw archive cap. | The later IPC representation remains measurement-dependent: bounded typed bytes, a stream/resource handle, or a native-owned call may be selected. Base64 transport or JSON byte arrays remain prohibited unless peak-copy analysis proves every package budget. |
+| whole-operation memory envelope | CURRENT FACT / TARGET REQUIREMENT | The caller archive remains borrowed and ZIP inventory records borrow its names and compressed spans. Manifest entry bytes are released after parsing; the separate hostile-JSON ledger carries retained manifest/project graph receipts through their live phases; native/raster working memory is admitted one asset at a time; retained validated encoded asset buffers are released after hydration; the manifest transport graph is consumed before canonical output allocation; and the hydrated projection drops after serialization. The hydration peak still includes the borrowed archive, ZIP inventory, manifest graph, projection with accumulated data URLs, retained encoded assets, and one current data-URL construction; the earlier asset-validation phase instead includes one native working allocation. The codec makes no measured whole-process peak claim. | These phase/lifetime proofs plus deterministic boundary tests satisfy the runtime-disconnected pure-codec allocation obligation. Neither 512 MiB phase ledger is a process-wide cap. Worst-case Windows x64 RSS, other-platform process evidence, and IPC/webview copy measurements belong to the later runtime/platform-integration gate after the actual adapter and linkage exist; they are not an unfinished pure-codec prerequisite. |
+| package and source footprint | CURRENT FACT / TARGET REQUIREMENT | V1 caps both raw archive and total uncompressed bytes at 268,435,456. Checked-in source archives are exactly 2,528,617 bytes for libjpeg-turbo and 4,296,070 bytes for libwebp, 6,824,687 bytes total; they are verified build inputs, never runtime-loaded codecs. | The disconnected crate is not linked into the current Tauri application. A future integrated executable-size delta is unmeasured and must be recorded before activation; reducing size by substituting a system codec is not allowed. |
+| direct and transitive dependencies | CURRENT FACT | Direct runtime/build pins are listed below. The exercised Windows x64 normal-dependency tree adds `cfg-if 1.0.4`, `adler2 2.0.1`, `cpufeatures 0.2.17`, `digest 0.10.7`, `block-buffer 0.10.4`, `generic-array 0.14.7`, `typenum 1.20.0`, and `crypto-common 0.1.7`; `generic-array` build adds `version_check 0.9.5`. The build-dependency tree additionally adds `find-msvc-tools 0.1.9`, `shlex 1.3.0`, `simd-adler32 0.3.9`, and `filetime 0.2.29`. | Unlocked ranges, runtime archive extractors, and a larger generic codec/ZIP graph were rejected. Other targets may activate target-specific locked packages, so this executed tree is not presented as a cross-target closure. |
+| maintenance and provenance | CURRENT FACT / TARGET REQUIREMENT | Exact releases, archive/source/overlay/patch/notice digests, reproduction commands, build exclusions, and vendor-local line-ending rules are checked in. Updating either native codec requires an explicit pin, digest, patch, license, profile, and fault-test review. | Floating releases, dynamic discovery, and claims that these pins are the latest or currently maintained upstream versions are not made. The tradeoff is deliberate manual review for any upgrade. |
+| license and attribution | CURRENT FACT / TARGET REQUIREMENT | The root `LICENSE` contains MIT text, while `README.md` says a license has not been chosen and the application manifest leaves `license` empty; this slice does not resolve that repository-level conflict. The unpublished codec manifest currently declares `MIT AND BSD-3-Clause AND IJG`, and direct Rust dependency licenses are recorded below. Vendored libjpeg-turbo IJG/Modified BSD notices and required attribution, plus the libwebp Modified BSD notice and patent grant, are checked in and digest-verified; excluded SIMD licensing is identified. | Repository-level first-party licensing requires a separate authoritative decision. System-library license substitution and silent notice omission are prohibited. Packaging user-accepted artwork does not grant redistribution rights and remains governed by section 16. |
+| platform and security evidence | CURRENT FACT / TARGET REQUIREMENT | Windows x64 compilation and native tests are executed. Closed archive/JSON/raster profiles, path rejection, budgets, one-validator accounting, stable failures, no package extraction to a caller path, and no dynamic codec lookup form the security boundary. | Windows ARM/ARM64/ARM64EC and macOS/Linux are source/configuration-reviewed but not compiled here. Cross-target builds and later native Tauri acceptance remain required before platform-runtime claims. |
+
+**CURRENT FACT.** The vendored byte counts above are the exact repository file
+lengths at this checkpoint. The transitive list is the locked Windows x64 result
+of `cargo tree` for package `sbls-package-codec` with `--locked` and
+`--edges normal,build`; [`Cargo.lock`](../src-tauri/Cargo.lock) remains the
+checked-in resolution authority.
+
+| Dependency | Scope | Exact version | Purpose | Upstream license |
+| --- | --- | --- | --- | --- |
+| `base64` | runtime | `0.22.1` | Canonical padded RFC 4648 data-URL decode/encode | MIT OR Apache-2.0 |
+| `crc32fast` | runtime | `1.5.0` | ZIP entry and PNG chunk CRC-32 | MIT OR Apache-2.0 |
+| `miniz_oxide` without default features | runtime | `0.8.9` | Allocation-free core raw-Deflate entry decode and bounded PNG zlib validation into package-owned, fallibly reserved output | MIT OR Zlib OR Apache-2.0 |
+| `ryu-js` | runtime | `1.0.2` | ECMAScript-compatible number rendering for RFC 8785 canonical JSON | Apache-2.0 OR BSL-1.0 |
+| `sha2` | runtime and build | `0.10.9` | Asset/project SHA-256 and build-time source/overlay/notice verification | MIT OR Apache-2.0 |
+| `cc` | build | `1.2.62` | Compile the explicit decoder-only native translation-unit lists and crate shims | MIT OR Apache-2.0 |
+| `flate2` with `rust_backend` | build | `1.1.9` | Gzip decode of already-digest-verified pinned source archives into Cargo `OUT_DIR` | MIT OR Apache-2.0 |
+| `tar` | build | `0.4.44` | Extract already-digest-verified upstream source archives into Cargo `OUT_DIR` | MIT OR Apache-2.0 |
+
+**CURRENT FACT.** No generic ZIP library owns the format policy: the crate
+parses/writes the closed ZIP32 profile directly so raw local/central metadata,
+spans, order, duplicates, and forbidden records remain visible. The strict JSON
+parser and RFC 8785 writer are package-owned; SHA-256, ZIP/PNG CRC-32, base64,
+bounded Deflate, and PNG zlib validation use the exact dependencies above.
+Pinned libjpeg-turbo and libwebp are build inputs with the provenance/license
+controls in section 9, not system or dynamically selected runtime dependencies.
 
 ### Issue and authority matrix
 
 | Issue/PR | Claim | Relationship |
 | --- | --- | --- |
-| [#56](https://github.com/thelordofdino4/steam-backup-label-studio/issues/56) | CURRENT FACT | Closed decision owner that selected a ZIP-compatible package; this contract supplies the unimplemented normative details. |
+| [#56](https://github.com/thelordofdino4/steam-backup-label-studio/issues/56) | CURRENT FACT | Closed decision owner that selected a ZIP-compatible package; this contract supplies the normative details and the runtime-disconnected codec implements the first bounded package-domain slice. |
 | [#58](https://github.com/thelordofdino4/steam-backup-label-studio/issues/58) | CURRENT FACT | Closed duplicate of #56; not a second format owner. |
 | [#48](https://github.com/thelordofdino4/steam-backup-label-studio/issues/48) | CURRENT FACT | Closed schema-validation/migration work that established the current `0.2.0` parser and `0.1.0` migration consumed after hydration. |
 | [#308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308) | CURRENT FACT / TARGET REQUIREMENT | Open lifecycle parent for session/path/baseline/dirty, target Save/Save As, replacement guards, and Resume. Package work must consume that owner. |
@@ -1020,30 +1235,32 @@ This contract records relationships only and does not mutate issue state.
 
 ### Bounded implementation sequence
 
-1. **TARGET REQUIREMENT:** Implement a pure package-domain manifest, typed asset registry, budgets, validation, data-URL decode, projection/hydration, hashing, deterministic encoder/decoder ports, and focused tests without UI or lifecycle mutation.
+1. **CURRENT FACT:** The runtime-disconnected `sbls-package-codec` checkpoint implements the manifest, typed asset registry, budgets, strict JSON/JCS, ZIP32 Store/Deflate, data-URL handling, raster validation, projection/hydration, SHA-256/exact-byte deduplication, deterministic encoder/decoder ports, stable failures, and focused/adversarial tests without UI or lifecycle mutation.
 2. **TARGET REQUIREMENT:** Add bounded binary project read and structured atomic binary project write by generalizing the #312 command boundary; retain the existing atomic primitive and Rust/platform test matrix; leave PNG export unchanged.
-3. **TARGET REQUIREMENT:** Integrate package decode behind the mutation-free staging seam while retaining legacy JSON, but keep production `.sbls` filters, sniff dispatch, and package-session adoption unexposed until step 4; pure decoder and dormant integration tests may land independently.
+3. **TARGET REQUIREMENT:** Integrate package decode behind the mutation-free staging seam while retaining legacy JSON, but keep production `.sbls` filters, sniff dispatch, and package-session adoption unexposed until step 4; the isolated decoder and dormant integration tests may land independently.
 4. **TARGET REQUIREMENT:** Integrate the encoder/write plan with lifecycle Save and Save As, revision/baseline rules, `.sbls` destination eligibility, same-source legacy-conversion protection, and explicit legacy conversion; activate production package Open and package Save/Save As together in this releasable slice.
 5. **TARGET REQUIREMENT:** Implement the dirty-aware replacement guard only after working package Save/Save As can satisfy its Save branch.
 6. **TARGET REQUIREMENT:** Complete Home Resume/global feedback, then add native menu or shortcut presentation adapters through the lifecycle root.
 7. **TARGET REQUIREMENT:** Consider retiring alpha JSON reads only at a separately approved beta boundary after real compatibility evidence; no retirement is authorized here.
 
-**TARGET REQUIREMENT.** Contract precedes codec; reader precedes a portable Open
-claim; atomic binary commit precedes safe package Save; working Save/Save As
-precedes the dirty guard; lifecycle semantic owners precede menu presentation.
-Each slice must be independently reviewable and preserve Disc/Case schema,
-preview/export parity, and legacy reads.
+**TARGET REQUIREMENT.** The contract and runtime-disconnected codec now precede
+any portable Open claim; atomic binary commit precedes safe package Save;
+working Save/Save As precedes the dirty guard; lifecycle semantic owners
+precede menu presentation. Each remaining slice must be independently
+reviewable and preserve Disc/Case schema, preview/export parity, and legacy
+reads.
 
 ## 20. Non-goals, future extensions, and narrowly unresolved implementation questions
 
-### Non-goals of this contract task
+### Non-goals of the package-domain codec implementation slice
 
-**TARGET REQUIREMENT.** This documentation checkpoint does not implement ZIP,
-change TypeScript/TSX/Rust/tests/fixtures/configuration/dependencies/lockfiles,
-change `SavedProject` or its schema version, add binary commands, change dialogs,
-wire Open/Save/guards/menus, remove legacy/data-URL compatibility, alter pixels,
-or mutate GitHub, commits, staging, pushes, pull requests, releases, runtime, or
-generated output.
+**TARGET REQUIREMENT.** The implemented package-domain checkpoint does not
+change `SavedProject` or its schema version, add binary commands, change
+dialogs, wire production Open/Save/Save As, adopt paths/formats/baselines, add
+replacement guards or menus, remove legacy/data-URL compatibility, alter
+preview/export pixels, or mutate runtime state. Native JPEG/WebP code is linked
+only into the runtime-disconnected codec member; it is not a Tauri command or
+filesystem adapter.
 
 ### Explicitly unimplemented future extensions
 
@@ -1067,11 +1284,11 @@ generated output.
 | delta or incremental Save | FUTURE EXTENSION | V1 writes one complete atomic archive snapshot. |
 | multi-document packages | FUTURE EXTENSION | V1 contains exactly one project. |
 
-### Narrow implementation questions
+### Resolved and remaining narrow implementation questions
 
-1. **OPEN QUESTION:** Which maintained ZIP/SHA/image-validation libraries satisfy the exact profile and budgets without moving package policy out of the package-domain port?
-2. **OPEN QUESTION:** Which Tauri byte-transport mechanism minimizes peak copies while preserving structured errors and the raw/archive limits?
-3. **OPEN QUESTION:** Whether bounded decode staging is wholly in memory or uses an application-owned temporary area; either choice must prevent path-directed extraction and guarantee cleanup.
+1. **CURRENT FACT:** The first slice uses one Rust-owned package-domain crate, a package-owned strict ZIP32 reader/writer, exact-pinned standard helpers, package-owned strict JSON/JCS policy, Rust PNG/GIF/BMP structure validation, and crate-private pinned native JPEG/WebP shims. The public codec is wholly in memory and never performs archive extraction to a caller path.
+2. **OPEN QUESTION:** Which later Tauri byte-transport mechanism minimizes peak copies while preserving structured errors and the raw/archive limits?
+3. **OPEN QUESTION:** Whether later application integration can retain wholly in-memory staging on every supported platform or needs an application-owned temporary area; either choice must prevent path-directed extraction and guarantee cleanup. This does not reopen the package-domain codec's current borrowed-input/owned-output in-memory API.
 
 **TARGET REQUIREMENT.** These questions cannot change the identifier, version,
 layout, manifest, pointer registry, MIME allowlist, budgets, portability,
@@ -1094,7 +1311,11 @@ invariants. No speculative manifest field is reserved for a future consumer.
 | CURRENT FACT | Current data-URL/import behavior: [`projectAssetStatus.ts`](../src/project/projectAssetStatus.ts), [`importedImageAsset.ts`](../src/utils/importedImageAsset.ts), [`local_images.rs`](../src-tauri/src/commands/local_images.rs), [`steam.rs`](../src-tauri/src/commands/steam.rs) |
 | CURRENT FACT | Current Save and two-phase Open adapters: [`appProjectSave.ts`](../src/app/appProjectSave.ts), [`appProjectLoad.ts`](../src/app/appProjectLoad.ts) |
 | CURRENT FACT | Current native IPC and atomic byte writer: [`fileSystem.ts`](../src/tauri/fileSystem.ts), [`files.rs`](../src-tauri/src/commands/files.rs), [`project_file.rs`](../src-tauri/src/project_file.rs) |
-| CURRENT FACT | Current dependency declarations: [`package.json`](../package.json), [`Cargo.toml`](../src-tauri/Cargo.toml) |
+| CURRENT FACT | Current dependency declarations and lock: [`package.json`](../package.json), [`Cargo.toml`](../src-tauri/Cargo.toml), [`Cargo.lock`](../src-tauri/Cargo.lock), [`sbls-package-codec/Cargo.toml`](../src-tauri/crates/sbls-package-codec/Cargo.toml) |
+| CURRENT FACT | Pure package codec public API, conformance suite, and owned modules: [`lib.rs`](../src-tauri/crates/sbls-package-codec/src/lib.rs), [`conformance_tests.rs`](../src-tauri/crates/sbls-package-codec/src/conformance_tests.rs), [`model.rs`](../src-tauri/crates/sbls-package-codec/src/model.rs), [`encode.rs`](../src-tauri/crates/sbls-package-codec/src/encode.rs), [`decode.rs`](../src-tauri/crates/sbls-package-codec/src/decode.rs) |
+| CURRENT FACT | Strict package primitives and policies: [`archive.rs`](../src-tauri/crates/sbls-package-codec/src/archive.rs), [`json.rs`](../src-tauri/crates/sbls-package-codec/src/json.rs), [`manifest.rs`](../src-tauri/crates/sbls-package-codec/src/manifest.rs), [`registry.rs`](../src-tauri/crates/sbls-package-codec/src/registry.rs), [`assets.rs`](../src-tauri/crates/sbls-package-codec/src/assets.rs), [`raster.rs`](../src-tauri/crates/sbls-package-codec/src/raster.rs), [`limits.rs`](../src-tauri/crates/sbls-package-codec/src/limits.rs), [`error.rs`](../src-tauri/crates/sbls-package-codec/src/error.rs) |
+| CURRENT FACT | Pinned native decoder build, ABI, provenance, licenses, and audited overlays: [`build.rs`](../src-tauri/crates/sbls-package-codec/build.rs), [`sbls_codec_shim.h`](../src-tauri/crates/sbls-package-codec/native/include/sbls_codec_shim.h), [`PROVENANCE.md`](../src-tauri/crates/sbls-package-codec/vendor/PROVENANCE.md), [`PATCHES.md`](../src-tauri/crates/sbls-package-codec/vendor/patches/PATCHES.md) |
+| CURRENT FACT | Repository test-runner registration for the focused Rust crate: [`run-tests.mjs`](../scripts/run-tests.mjs), [`test-file-list.mjs`](../scripts/test-file-list.mjs) |
 
 ### Document and issue evidence
 
@@ -1102,7 +1323,7 @@ invariants. No speculative manifest field is reserved for a future consumer.
 | --- | --- |
 | CURRENT FACT | Current schema authority: [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md) |
 | TARGET REQUIREMENT | Lifecycle/session/atomic command invariants: [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md) |
-| CURRENT FACT / TARGET REQUIREMENT | As-built boundaries and documented future package status: [`SOFTWARE_DESIGN_DOCUMENT.md`](SOFTWARE_DESIGN_DOCUMENT.md) |
+| CURRENT FACT / TARGET REQUIREMENT | As-built package ownership, runtime-disconnected codec status, and future integration boundary: [`SOFTWARE_DESIGN_DOCUMENT.md`](SOFTWARE_DESIGN_DOCUMENT.md) |
 | CURRENT FACT | Historical package choice and rationale: [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md), [issue #56](https://github.com/thelordofdino4/steam-backup-label-studio/issues/56) |
 | CURRENT FACT | Schema work: [issue #48](https://github.com/thelordofdino4/steam-backup-label-studio/issues/48) |
 | CURRENT FACT / TARGET REQUIREMENT | Lifecycle implementation parent: [issue #308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308) |
@@ -1112,6 +1333,9 @@ invariants. No speculative manifest field is reserved for a future consumer.
 | TARGET REQUIREMENT | Binding pointer syntax: [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901) |
 | TARGET REQUIREMENT | Canonical writer JSON: [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) |
 
-**CURRENT FACT.** Evidence review was static and documentation-focused. No build,
-lint, application tests, browser automation, screenshot, or native Tauri runtime
-verification was performed or is claimed by this contract task.
+**CURRENT FACT.** This implementation checkpoint was reviewed against its Rust
+and package-owned C source, focused/adversarial tests, dependency lock, and
+vendored-source controls. Validation results belong to the implementation
+handoff rather than the package format itself. No browser automation,
+screenshot, production package Open/Save, or native Tauri runtime verification
+is performed or claimed by this runtime-disconnected slice.

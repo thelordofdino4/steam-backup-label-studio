@@ -340,7 +340,11 @@ The current app saves plain JSON project files, commonly named `.sbls.json`.
 
 Current saved projects embed image data URLs for the visual assets they need to reload, and they store provenance/status metadata where supported. Local path details should not be required after reload for embedded assets.
 
-The future `.sbls` package/container format is not implemented yet. It remains future work for portability, asset bundling, and migration behavior, and it should not block disc-editor alpha unless a specific save/load limitation appears.
+A bounded, runtime-disconnected `.sbls` package-domain codec now exists, but the
+application does not yet expose package Open, Save, or Save As. Production
+integration, legacy conversion, and the complete portable package workflow
+remain future work and should not block disc-editor alpha unless a specific
+save/load limitation appears.
 
 ## Case-Specific Fields
 
@@ -382,7 +386,7 @@ The current MVP focuses on one complete path:
 - Blu-ray case support.
 - Multi-disc wizard.
 - Guided Start / setup wizard.
-- Full `.sbls` package/container format.
+- Full application-connected `.sbls` package/container workflow.
 - Official asset/logo packs.
 - IGDB or automatic rating lookup.
 - Direct printer integration.
