@@ -3,7 +3,8 @@
 > Purpose: File ownership and implementation map for finding existing owners.
 > Read when: Before refactors, ownership changes, or architecture-sensitive edits.
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
-> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
+> Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
+> Package-codec ownership refresh: synchronized parent `ba89635bc4075b013361feb6af33147f1a4e14e3` plus the focused unstaged `agent/sbls-pure-package-codec` checkpoint on 2026-07-27.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -22,6 +23,10 @@ This inventory records how Steam Backup Label Studio is implemented in the repos
 - Working tree status was clean before this documentation refresh.
 - This file is based on repository files, tests, documentation, and the merged
   refactor diff. Unknowns are marked as unknown.
+- Package-codec ownership below was refreshed separately from the later
+  runtime-disconnected working-tree implementation. It does not broadly
+  re-baseline unrelated editor file/line inventories or claim production
+  package integration.
 - No browser diagnostic or Tauri runtime verification was performed during this
   documentation refresh. Manual app testing before the refactor merge was
   reported with no regressions spotted.
@@ -32,7 +37,8 @@ Open GitHub issues were reviewed during this task. Related open issues include:
 
 - `#44` Extract remaining editor state into focused hooks.
 - `#46` Organize CSS after component extraction.
-- `#48` Add project schema validation and migration support.
+- `#48` is closed after establishing the current schema validation and
+  `0.1.0 -> 0.2.0` migration baseline.
 - `#125` Disc marks: add historical technology mark catalog and missing mark families.
 - `#126` Jewel case editor: define case-front, case-back, and spine alpha finish line.
 - `#149` Case inserts: replace auto-stacked imported content with structured tray and spine layouts.
@@ -67,14 +73,17 @@ Implemented scripts:
 - `npm run smoke:text-editor`: runs `node scripts/native-tauri-smoke-required.mjs`, which documents the required native `npm run tauri dev` + Any App smoke route and exits nonzero so browser diagnostics cannot satisfy runtime acceptance.
 - `npm run test`: runs `scripts/run-tests.mjs`, which batches Node's built-in
   test runner with `--experimental-strip-types` over the explicit file list in
-  `scripts/test-file-list.mjs`.
+  `scripts/test-file-list.mjs`, then runs the registered
+  `sbls-package-codec` Rust tests with `--locked --jobs 1`; Node and Rust
+  failures are accumulated so the codec suite still runs after a Node failure.
 - `npm run preview`: starts `vite preview`.
 - `npm run tauri`: invokes the Tauri CLI.
 
 Validation model:
 
-- Tests are explicit file entries in `scripts/test-file-list.mjs`; newly added
-  tests must be added there to run under `npm run test`.
+- Node tests and follow-on focused test commands are explicit entries in
+  `scripts/test-file-list.mjs`; newly added tests must be registered there to
+  run under `npm run test`.
 - `scripts/check-cycles.mjs` scans relative imports in `src/**/*.ts(x)` and fails on import cycles.
 - No docs-only validation command is defined.
 - User-visible runtime smoke is not repository-owned automation. It is performed
@@ -112,6 +121,8 @@ Key files:
 - `src-tauri/src/main.rs`
 - `src-tauri/src/lib.rs`
 - `src-tauri/src/commands/*.rs`
+- `src-tauri/crates/sbls-package-codec/Cargo.toml`
+- `src-tauri/Cargo.lock`
 
 Source-of-truth state:
 
@@ -129,6 +140,10 @@ Native command path:
 - `src-tauri/src/main.rs` calls `app_lib::run()`.
 - `src-tauri/src/lib.rs` registers file, Steam, local Steam, local image, folder opening, and official-site logo discovery commands.
 - Command owners are split into `commands/files.rs`, `commands/steam.rs`, `commands/local_steam.rs`, `commands/local_images.rs`, `commands/official_site.rs`, and `platform/open_folder.rs`.
+- `src-tauri/Cargo.toml` is also the workspace root. It lists
+  `crates/sbls-package-codec` as a member while retaining the Tauri application
+  as the default member. The Tauri application crate does not depend on the
+  codec member and registers no package-codec command.
 
 Risks:
 
@@ -252,7 +267,9 @@ Risks:
 
 ## Project Save/Load Model
 
-Purpose: persist editor projects as JSON and restore them into current editor state.
+Purpose: persist production editor projects as JSON, restore them into current
+editor state, and identify the separate runtime-disconnected `.sbls` package
+codec owner.
 
 Key files:
 
@@ -271,7 +288,35 @@ Key files:
 - `src/diagnostics/projectParityHarness.ts`
 - `src-tauri/src/commands/files.rs`
 - `src-tauri/src/project_file.rs`
+- `src-tauri/crates/sbls-package-codec/Cargo.toml`
+- `src-tauri/crates/sbls-package-codec/src/lib.rs`
+- `src-tauri/crates/sbls-package-codec/src/conformance_tests.rs`
+- `src-tauri/crates/sbls-package-codec/src/encode.rs`
+- `src-tauri/crates/sbls-package-codec/src/decode.rs`
+- `src-tauri/crates/sbls-package-codec/src/archive.rs`
+- `src-tauri/crates/sbls-package-codec/src/assets.rs`
+- `src-tauri/crates/sbls-package-codec/src/json.rs`
+- `src-tauri/crates/sbls-package-codec/src/limits.rs`
+- `src-tauri/crates/sbls-package-codec/src/manifest.rs`
+- `src-tauri/crates/sbls-package-codec/src/model.rs`
+- `src-tauri/crates/sbls-package-codec/src/native.rs`
+- `src-tauri/crates/sbls-package-codec/src/raster.rs`
+- `src-tauri/crates/sbls-package-codec/src/registry.rs`
+- `src-tauri/crates/sbls-package-codec/build.rs`
+- `src-tauri/crates/sbls-package-codec/native/include/sbls_codec_shim.h`
+- `src-tauri/crates/sbls-package-codec/native/include/sbls_allocation_ledger.h`
+- `src-tauri/crates/sbls-package-codec/native/config/libjpeg-turbo/jconfig.h`
+- `src-tauri/crates/sbls-package-codec/native/src/allocation_ledger.c`
+- `src-tauri/crates/sbls-package-codec/native/src/jpeg_validator.c`
+- `src-tauri/crates/sbls-package-codec/native/src/jpeg_rejected_precision_guards.c`
+- `src-tauri/crates/sbls-package-codec/native/src/webp_validator.c`
+- `src-tauri/crates/sbls-package-codec/native/src/webp_single_thread_worker.c`
+- `src-tauri/crates/sbls-package-codec/vendor/.gitattributes`
+- `src-tauri/crates/sbls-package-codec/vendor/overlays/libwebp/src/dsp/cpu.h`
+- `src-tauri/crates/sbls-package-codec/vendor/PROVENANCE.md`
+- `src-tauri/crates/sbls-package-codec/vendor/patches/PATCHES.md`
 - `docs/PROJECT_FILE_SPEC.md`
+- `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md`
 
 Source-of-truth state:
 
@@ -281,6 +326,11 @@ Source-of-truth state:
 - `projectGuidedWorkflow.ts` owns the compact Disc workflow snapshot adapter
   for active layout identity plus independent omission/completion arrays and
   tolerant restoration through the pure guided normalizer.
+- `sbls-package-codec` owns only package transport: exact v1 ZIP/manifest,
+  projection/bindings/hydration, the closed Disc/Case asset registry, raster
+  validation, budgets, and stable package failures. It does not own hydrated
+  schema semantics, migrations, editor state, lifecycle state, filesystem
+  paths, or commands.
 
 Render path:
 
@@ -312,10 +362,77 @@ Save/load path:
 
 Serialization:
 
-- Current files are plain `.sbls.json` JSON projects.
+- Current application-connected files are plain `.sbls.json` JSON projects.
 - Imported image data is stored as data URLs where supported.
 - Durable local source file paths are avoided through asset provenance helpers.
-- Future package-style `.sbls` behavior is not implemented in the current files reviewed.
+- The package-domain crate can encode/decode bounded `.sbls` v1 bytes in memory,
+  but no production project path calls it.
+
+Package-domain codec boundary:
+
+- `lib.rs` exposes `encode_project_package` and `decode_project_package` plus
+  owned public model, raster MIME, typed owner, and stable failure types.
+- Encoding accepts one immutable normalized JSON byte snapshot, diagnostic
+  creator metadata, and a complete typed in-memory capture plan. Decoding
+  accepts only bytes and returns isolated hydrated JSON with package metadata
+  held outside that JSON.
+- `archive.rs` owns the direct strict ZIP32 Store writer and Store/Deflate
+  reader; `json.rs` owns duplicate-key-rejecting bounded parsing and RFC 8785
+  output; `manifest.rs`, `registry.rs`, `assets.rs`, `encode.rs`, and
+  `decode.rs` own the exact package graph; `limits.rs` and `error.rs` own
+  checked budgets and closed failures.
+- Decoder inventory borrows archive names and compressed spans. Manifest entry
+  bytes drop after parsing, native validation is sequential, retained encoded
+  assets drop after hydration, the manifest transport graph drops before
+  canonical output allocation, and the hydrated tree drops after
+  serialization. A distinct 512 MiB Rust ledger charges the owned Store/Deflate
+  entry buffer currently feeding hostile JSON parsing plus retained
+  manifest/project roots, collection capacities, strings, keys, and number
+  tokens; replacement growth is charged while old capacity remains live, and
+  outstanding receipts roll back at the operation boundary. Hydration/output,
+  raster/native work, caller archive bytes, and allocator-private metadata are
+  outside that phase ledger. This is a lifetime/counter map, not a measured
+  whole-process-memory claim; RSS and IPC/webview copy evidence belong to later
+  runtime/platform integration.
+- `raster.rs` structurally validates PNG, JPEG, WebP, GIF, and BMP, preserves
+  exact accepted encoded bytes, and enforces dimension, animation, pixel,
+  sample, metadata, record, and decoder-work budgets. JPEG and BMP use the
+  finalized conservative v1 profiles; well-formed out-of-profile files use
+  `project.package.asset-jpeg-profile-unsupported` or
+  `project.package.asset-bmp-profile-unsupported`.
+- `native.rs` is crate-private. Its Rust-consumed production surface validates
+  JPEG and WebP bytes only and exposes no path, decoded output buffer, Tauri
+  command, or lifecycle hook. The private static archive retains broader
+  upstream, ledger/allocator, and test-probe link symbols; it is not described
+  as a validation-only static-link namespace.
+  Pinned libjpeg-turbo `3.1.4.1`
+  (`ecae8008e2cc9ade2f2c1bb9d5e6d4fb73e7c433866a056bd82980741571a022`)
+  and libwebp `1.6.0`
+  (`e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564`)
+  archives, license/patent notices, source provenance, allocator overlays, and
+  patch rationale are checked in under `vendor/`. The root `LICENSE` contains
+  MIT text, while `README.md` says a license has not been chosen and the
+  application manifest leaves `license` empty; this slice does not resolve that
+  repository-level conflict. The child manifest currently declares
+  `MIT AND BSD-3-Clause AND IJG`; checked-in upstream notices remain
+  authoritative for the vendored sources.
+- The package libjpeg configuration disables `JPEGMEM`/environment reads with
+  `NO_GETENV`. A verified libwebp `cpu.h` overlay under
+  `SBLS_WEBP_GENERIC_ONLY=1` forces the audited generic C path across compiler-
+  and target-driven SIMD detection, including MSVC ARM families and MIPS.
+  Windows x64 compilation is exercised; other Windows architectures and
+  macOS/Linux remain source/configuration-reviewed pending an executed
+  cross-target build matrix.
+- The native allocation ledger rejects checked allocation/reallocation before
+  exceeding 512 MiB, including a conservative still-live-old plus complete-new
+  transient charge for `realloc`. It admits one active validator, contains JPEG
+  fatal jumps in C, deterministically releases operation-owned allocations
+  after success or failure, and returns closed statuses that Rust maps to typed
+  package errors.
+- Runtime dependencies are exact-pinned `base64 0.22.1`, `crc32fast 1.5.0`,
+  `miniz_oxide 0.8.9` without default features, `ryu-js 1.0.2`, and
+  `sha2 0.10.9`. Exact-pinned build dependencies are `cc 1.2.62`,
+  `flate2 1.1.9` with its Rust backend, `sha2 0.10.9`, and `tar 0.4.44`.
 
 Tests:
 
@@ -336,6 +453,16 @@ Tests:
 - Rust unit and real-filesystem coverage is colocated in
   `src-tauri/src/project_file.rs`, including Windows replace-existing and
   replacement-failure tests.
+- Pure package-codec unit, security, independent-fixture, public-facade
+  round-trip, and native allocation fault-injection tests are colocated under
+  `src-tauri/crates/sbls-package-codec/src/` and run through the registered
+  Cargo test command after the repository's Node tests. `conformance_tests.rs`
+  covers deterministic exact current-schema Disc and all-four-surface Case
+  encode-to-decode across all five raster families, older-schema hydration
+  without codec-owned migration, mutation isolation, and an independently
+  built valid Store package whose bytes match the public writer and decode
+  through the public reader. At this checkpoint the Rust `1.77.2` full crate
+  suite passes `241/241`, including focused raster `23/23` and native `7/7`.
 - `src/project/projectCaseInsertTextPersistence.test.ts`
 - `src/project/projectCaseInsertTextNormalization.test.ts`
 - `src/diagnostics/projectParityHarness.test.ts`
@@ -348,7 +475,12 @@ Risks:
 - Schema validation is shallow compared with the number of nested editor states.
 - Migration support currently contains only the explicit `0.1.0` to `0.2.0`
   compatibility step.
-- Open issue `#48` tracks schema validation and migration support.
+- Closed issue `#48` established the current schema-validation/migration
+  baseline; future schema changes remain owned by `PROJECT_FILE_SPEC.md`.
+- Production `.sbls` binary IPC, Open/Save/Save As activation, legacy
+  conversion, session format adoption, and dirty/replacement integration remain
+  absent. The package-domain codec must not be mistaken for those later application
+  slices.
 
 ## Templates and Workspace Types
 
@@ -1432,3 +1564,9 @@ should still run the normal validation set when practical:
 - `npm run lint`
 - `npm run test`
 - `npm run build`
+
+Package-codec changes additionally use the workspace-aware Rust checks:
+
+- `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
+- `cargo test --manifest-path src-tauri/Cargo.toml --package sbls-package-codec --locked --jobs 1`
+- `cargo clippy --manifest-path src-tauri/Cargo.toml --package sbls-package-codec --all-targets --locked -- -D warnings`

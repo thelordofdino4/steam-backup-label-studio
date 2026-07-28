@@ -4,7 +4,7 @@
 > Read when: Architecture-sensitive work, renderer/editor/export changes, schema work, drag/selection, or parity-sensitive changes.
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
-> Package/save-load authority cross-references and current persistence facts reviewed against commit: `a104825583a1cc03e145a9e460e9abccf4483bf7` on 2026-07-27.
+> Package/save-load authority cross-references reviewed against synchronized parent commit `ba89635bc4075b013361feb6af33147f1a4e14e3` plus the focused unstaged `agent/sbls-pure-package-codec` implementation checkpoint on 2026-07-27. The broader as-built inventory below still records its separately identified refactor baseline where stated.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -31,6 +31,12 @@ Post-refactor documentation reconciliation note:
   candidate discovery, layout, and smoke diagnostics.
 - This SDD documents the as-built code after that merge. It does not claim
   future architecture is implemented.
+- The later package-codec checkpoint starts from
+  `ba89635bc4075b013361feb6af33147f1a4e14e3` and adds one Rust-owned
+  package-domain workspace member plus its focused tests and vendored native
+  decoder sources. Those files are
+  described as current implementation in the package-focused sections below;
+  they are not evidence that production `.sbls` Open or Save is connected.
 - Manual app testing was reported before the merge with no regressions spotted,
   but this documentation refresh did not independently launch Tauri.
 
@@ -66,7 +72,9 @@ This document does not:
 
 - Claim live Tauri runtime behavior was manually verified.
 - Claim case insert alpha completion.
-- Claim future `.sbls` package read/write support exists.
+- Claim application-connected `.sbls` Open, Save, Save As, binary project IPC,
+  or dialog/filter support exists. The runtime-disconnected package-domain codec is the
+  only implemented package layer.
 - Claim DVD/Amaray or Blu-ray editors are implemented.
 - Replace source code, tests, issue descriptions, or manual smoke checklists as the source of detailed implementation truth.
 
@@ -343,7 +351,11 @@ Application-menu presentation IDs are separate from semantic command and owner I
 
 ### 6.1 Current Implementation Summary
 
-Package scripts define dev, build, lint, test, cycle checking, Vite preview, and Tauri CLI entry points.
+Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
+Tauri CLI entry points. The standard test runner executes explicit Node test
+batches, stops the Node phase after its first failing batch, and then always
+runs the focused `sbls-package-codec` Rust suite with `--locked --jobs 1` while
+preserving the combined failure status.
 
 ### 6.2 Key Files
 
@@ -368,15 +380,21 @@ Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
 - `npm run diagnose:text-editor:browser`: browser-only text-editor diagnostic
   route.
 - `npm run capture:ribbon:browser`: browser-only ribbon capture diagnostics.
-- `npm run test`: `scripts/run-tests.mjs`, which runs Node's built-in test runner in batches over the explicit list in `scripts/test-file-list.mjs`.
+- `npm run test`: `scripts/run-tests.mjs`, which runs Node's built-in test runner
+  in batches over the explicit list in `scripts/test-file-list.mjs`, then runs
+  the runtime-disconnected Rust package-codec tests declared by that same
+  registry.
 - `npm run preview`: Vite preview.
 - `npm run tauri`: Tauri CLI.
 
 ### 6.4 Source-Of-Truth State
 
 - `package.json` is the source of truth for standard npm commands.
-- `scripts/test-file-list.mjs` is the source of truth for tests included in
-  `npm run test`; `scripts/run-tests.mjs` owns batching.
+- `scripts/test-file-list.mjs` is the source of truth for Node test files and
+  follow-on focused test commands included in `npm run test`;
+  `scripts/run-tests.mjs` owns sequential Node batching, stops after the first
+  failing Node batch, then still runs every follow-on command and accumulates
+  the final failure status.
 - `scripts/check-cycles.mjs` owns relative import cycle detection.
 - Vite, ESLint, and TypeScript configuration live in their dedicated config files.
 
@@ -406,11 +424,16 @@ Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
 
 ### 7.1 Current Implementation Summary
 
-Projects are saved as plain JSON files, commonly named `.sbls.json`. The current saved-project type is a union of disc and case insert project shapes under schema version `0.2.0`.
+Production projects are saved as plain JSON files, commonly named
+`.sbls.json`. The current saved-project type is a union of disc and case insert
+project shapes under schema version `0.2.0`.
 
-The target ZIP-compatible `.sbls` package format is defined in
-[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) but is
-not implemented. The original format-choice rationale remains in
+The ZIP-compatible `.sbls` package format is defined in
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md). Its
+first package-domain encoder/decoder is implemented as the
+runtime-disconnected Rust workspace member `sbls-package-codec`. No frontend,
+Tauri command, filesystem, dialog, lifecycle, production Open, Save, or Save As
+adapter consumes it. The original format-choice rationale remains in
 [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 
 ### 7.2 Key Files
@@ -430,12 +453,22 @@ not implemented. The original format-choice rationale remains in
 - `docs/PROJECT_FILE_SPEC.md`
 - `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md`
 - `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`
+- `src-tauri/crates/sbls-package-codec/Cargo.toml`
+- `src-tauri/crates/sbls-package-codec/src/lib.rs`
+- `src-tauri/crates/sbls-package-codec/src/conformance_tests.rs`
+- `src-tauri/crates/sbls-package-codec/src/encode.rs`
+- `src-tauri/crates/sbls-package-codec/src/decode.rs`
+- `src-tauri/crates/sbls-package-codec/vendor/PROVENANCE.md`
 
 ### 7.3 Source-Of-Truth State
 
 - `SavedProject`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case insert project state types live in `src/project/projectTypes.ts`.
 - `CURRENT_PROJECT_SCHEMA_VERSION` is `0.2.0` in `src/project/projectSchema.ts`.
 - `PROJECT_SCHEMA_MIGRATIONS` registers the compatibility step from `0.1.0`.
+- `sbls-package-codec` owns package bytes, manifest/projection/bindings,
+  content-addressed raster assets, strict ZIP/JSON validation, hydration, and
+  package failures. It returns hydrated JSON bytes to the later schema boundary
+  and does not become a second `SavedProject` or lifecycle owner.
 - Disc guided workflow persistence stores only active layout ID/version plus
   independent canonical omitted and completed slot IDs; owner state, canonical
   preset definitions, resolved runtime geometry, and export composition remain
@@ -450,11 +483,14 @@ not implemented. The original format-choice rationale remains in
 
 ### 7.5 Serialization Contract
 
-- Current project files are JSON.
+- Current application-connected project files are JSON.
 - Imported and uploaded images are embedded as data URLs where needed for reload.
 - Built-in generic assets stay routed through `src/assets/assetManifest.ts` rather than being copied into every project.
 - Provenance/status metadata may include source kind, source ID, sanitized label, and safe source URL.
 - Durable local file paths should not be required after reload.
+- The package-domain encoder writes deterministic Store-only ZIP32 bytes in
+  memory; its reader accepts only the contract's bounded Store/Deflate profile
+  and returns isolated hydrated JSON. Neither operation reads or writes a path.
 
 ### 7.6 Invariants And Future-Change Rules
 
@@ -462,8 +498,9 @@ not implemented. The original format-choice rationale remains in
 - Keep `home` as a workspace only, not a project type.
 - Do not collapse disc and case insert schema owners.
 - Add migrations before changing saved-project semantics.
-- Keep package-format behavior clearly labeled target/unimplemented until the
-  codec, lifecycle integration, binary persistence, compatibility, and native
+- Distinguish the implemented package-domain codec from unimplemented application
+  integration. Do not label `.sbls` user support current until lifecycle
+  integration, binary persistence, compatibility adapters, and native runtime
   validation required by
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
   exist.
@@ -486,6 +523,110 @@ not implemented. The original format-choice rationale remains in
   `0.2.0` compatibility step.
 - Issue `#48` is closed; future validation/migration changes remain governed by
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
+
+### 7.9 Runtime-Disconnected Package Codec
+
+The package-domain public boundary is intentionally small:
+`encode_project_package(&ProjectPackageEncodeInput)` borrows a boundary value
+that itself owns immutable
+normalized JSON, diagnostic creator metadata, and one typed capture decision
+for every expanded registry owner; `decode_project_package(&[u8])` returns
+owned hydrated JSON plus separate validated package metadata. Stable
+`ProjectPackageFailure` values carry a closed `FailureCode` and normative
+`FailureStage`. Inputs are never paths, and transport metadata never enters the
+hydrated project.
+
+Known typed failures pass through that boundary unchanged. As last-resort Rust
+containment, an unexpected encode unwind becomes
+`project.package.encode-failed` at encoding and an unexpected decode unwind
+becomes `project.package.archive-invalid` at raw input. Unwind containment is
+not an allocation strategy; the package contract still requires every
+hostile-input-derived allocation to be fallible.
+
+The crate keeps the complete package policy together. `archive.rs` owns strict
+ZIP32 inventory/Store writing/Store-or-Deflate reading; `json.rs` owns bounded
+duplicate-key-rejecting JSON and RFC 8785 emission; `manifest.rs`, `registry.rs`,
+`assets.rs`, `encode.rs`, and `decode.rs` own the manifest, exact Disc/Case
+pointer vocabulary, canonical data URLs, projection, binding, hashing,
+deduplication, and hydration; `limits.rs` and `error.rs` own checked budgets and
+stable failures; `raster.rs` owns the five-format raster gate.
+
+Decoder lifetimes deliberately avoid several avoidable full-copy overlaps. ZIP
+inventory borrows caller bytes; manifest entry bytes drop after parsing;
+native/raster working memory is active for only one asset; validated encoded
+assets drop after hydration; the manifest's transport graph drops before
+canonical hydrated-output allocation; and the hydrated tree drops after
+serialization. A separate 512 MiB hostile-JSON phase ledger covers the owned
+Store/Deflate entry buffer currently feeding the parser plus retained
+manifest/project roots, collection capacities, strings, keys, and number
+tokens. It precharges old-plus-replacement capacity during collection growth,
+uses receipts for transfer/release, and rolls back every outstanding
+operation-owned charge after success or failure. Hydration-created strings,
+canonical output, caller archive bytes, raster/native work, and
+allocator-private metadata are intentionally outside that ledger and retain
+their separate budgets.
+
+Neither the JSON phase ledger nor the native working ledger establishes a
+measured whole-process ceiling. Asset validation still retains prior encoded
+assets while validating the current entry, hydration retains encoded assets
+while data URLs accumulate, and output serialization temporarily overlaps the
+hydrated tree. The pure codec proves those lifetimes and its owned allocation
+boundaries deterministically. Windows x64 RSS, other-platform process evidence,
+and IPC/webview copy measurement belong to the later runtime/platform adapter
+gate, after the actual linkage and byte transport exist.
+
+JPEG and WebP full decoding uses a narrow Rust-consumed crate-private C boundary
+built from exact-pinned libjpeg-turbo `3.1.4.1` archive SHA-256
+`ecae8008e2cc9ade2f2c1bb9d5e6d4fb73e7c433866a056bd82980741571a022`
+and libwebp `1.6.0` archive SHA-256
+`e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564`.
+The build does not consult system codecs. Audited allocator overlays enforce checked,
+fallible, operation-scoped allocation under the 512 MiB decoder ceiling,
+single-validator leasing, deterministic cleanup, and safe typed failure
+conversion. Native reallocation precharges the still-live old block plus the
+complete replacement block, including both ledger headers, before calling the
+system allocator; one-byte-over rejection and failure cleanup are exercised.
+JPEG fatal `longjmp` remains inside one C wrapper frame. Exact
+versions, source/archive/overlay digests, notices, exclusions, and patch
+rationale live under `src-tauri/crates/sbls-package-codec/vendor/`.
+The root `LICENSE` contains MIT text, but `README.md` still says a license has
+not been chosen and the application manifest leaves `license` empty; this
+package slice does not resolve that repository-level conflict. The unpublished
+codec manifest currently declares `MIT AND BSD-3-Clause AND IJG`, while the
+checked-in libjpeg-turbo IJG/Modified-BSD notices and libwebp Modified-BSD
+notice/patent grant remain the authoritative upstream texts.
+
+The narrow boundary description applies to the Rust-consumed production
+validation surface; the private static archive retains selected upstream,
+ledger, and test-probe link symbols. Package configuration disables libjpeg
+environment reads with `NO_GETENV` and forces libwebp's audited generic C path
+through a verified `cpu.h` overlay. Windows x64 compilation is exercised;
+macOS, Linux, and other Windows architectures remain source/configuration
+reviewed pending an executed cross-target build matrix.
+
+The JPEG v1 profile is deliberately limited to 8-bit Huffman baseline or
+progressive grayscale/three-component DCT with the contract's fixed component
+and sampling layouts. The BMP v1 profile is deliberately limited to canonical
+bottom-up Windows `BITMAPINFOHEADER`, 24-bit BGR, uncompressed `BI_RGB` data.
+Well-formed family members outside those profiles use
+`project.package.asset-jpeg-profile-unsupported` and
+`project.package.asset-bmp-profile-unsupported`; malformed family data remains
+the general `project.package.asset-type-invalid` failure.
+
+The crate-level conformance suite exercises the public boundary, rather than
+only private helpers. It includes deterministic exact current-schema Disc and
+all-four-surface Case round trips spanning PNG, JPEG, WebP, GIF, and BMP;
+older-schema hydration without package-owned migration; mutation isolation;
+and an independent Store-only ZIP32/manifest builder whose valid golden bytes
+match the public writer and pass the public reader. Focused tests separately
+exercise the closed profiles, stable failures, hostile JSON allocation
+receipts, native allocation/reallocation faults, one-validator ownership, and
+cleanup/reuse.
+
+The workspace root lists this crate as a member but keeps the Tauri app as its
+default member. The app crate has no dependency on the codec, and no native
+command registers it. This isolation is a required current architecture fact,
+not a temporary claim that package support is available to users.
 
 ## 8. Rendering Model
 
@@ -1674,10 +1815,12 @@ baseline, dirty-state, replacement-guard, and native close/Quit semantics are
 defined in [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md).
 That contract records the implemented Open checkpoint while remaining normative
 for unfinished lifecycle work. Serialized fields and migrations remain owned by
-[`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md). Exact target `.sbls` codec,
-security, legacy-conversion, and atomic binary persistence behavior is defined
-by [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
-and remains unimplemented.
+[`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md). Exact `.sbls` codec, security,
+legacy-conversion, and atomic binary persistence behavior is defined by
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
+The package-domain codec/security layer is implemented in a disconnected workspace
+member; legacy conversion, binary persistence, and lifecycle/runtime integration
+remain unimplemented.
 
 ### 15.2 Key Files
 
@@ -1694,6 +1837,13 @@ and remains unimplemented.
 - `src/tauri/fileSystem.ts`
 - `src-tauri/src/commands/files.rs`
 - `src-tauri/src/project_file.rs`
+- `src-tauri/crates/sbls-package-codec/src/lib.rs`
+- `src-tauri/crates/sbls-package-codec/src/conformance_tests.rs`
+- `src-tauri/crates/sbls-package-codec/src/encode.rs`
+- `src-tauri/crates/sbls-package-codec/src/decode.rs`
+- `src-tauri/crates/sbls-package-codec/src/archive.rs`
+- `src-tauri/crates/sbls-package-codec/src/raster.rs`
+- `src-tauri/crates/sbls-package-codec/vendor/PROVENANCE.md`
 
 ### 15.3 Source-Of-Truth State
 
@@ -1702,7 +1852,8 @@ accepted through Open, the lifecycle session additionally owns the session ID,
 selected path, exact normalized clean baseline, revision, and last editor route.
 Editor mutations outside Open are not yet projected back into lifecycle state,
 so lifecycle dirty authority is not yet complete. Saved JSON snapshots remain
-the source accepted by staging and the output produced by legacy Save.
+the source accepted by staging and the output produced by legacy Save. The pure
+package crate owns no active session and is not called by either path.
 
 ### 15.4 Render/Edit/Export Paths
 
@@ -1717,6 +1868,10 @@ the source accepted by staging and the output produced by legacy Save.
 - `write_project_file` preserves its frontend signature and delegates opaque
   JSON bytes to `src-tauri/src/project_file.rs`; the binary export writer is not
   routed through this project persistence boundary.
+- Package encode/decode currently exists only as a protocol-bounded in-memory Rust API
+  with borrowed package input and owned output.
+  No application adapter passes its bytes to `read_project_file`,
+  `write_project_file`, `write_binary_file`, or the lifecycle root.
 - Export uses runtime state after any load/restore.
 
 ### 15.5 Invariants And Future-Change Rules
@@ -1960,8 +2115,9 @@ Current tests cover broad helper and contract areas:
   migration are implemented, while any future schema change remains separate
   work under [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - Preview selection, snapping, keyboard nudging, inspector, and context-menu workflows remain open under related preview issues.
-- Target [`.sbls` package read/write](PROJECT_PACKAGE_FORMAT_CONTRACT.md) is not
-  implemented.
+- Production [`.sbls` binary persistence, lifecycle Open/Save/Save As, legacy
+  conversion, and runtime activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md) are
+  not implemented; the package-domain codec itself is runtime-disconnected and current.
 - DVD/Amaray and Blu-ray editors are future planned surfaces, not current working editors.
 
 ### 19.3 Areas For User Review
@@ -2008,7 +2164,7 @@ Consequences:
 - Shared helpers must be neutral or adapter-based.
 - Parity work must map source-of-truth behavior to every applicable target surface.
 
-### ADR-003: Plain JSON Project Files Are Current Format
+### ADR-003: Plain JSON Project Files Are The Current Production Format
 
 Status: Accepted, current.
 
@@ -2017,17 +2173,23 @@ Decision:
 - Current projects are plain `.sbls.json` JSON files using schema version `0.2.0`.
 - Schema `0.1.0` projects migrate explicitly to `0.2.0` without inferred guidance or owner changes.
 - Images needed for reload are embedded as data URLs where supported.
-- Target `.sbls` packages are defined by
+- `.sbls` packages are defined by
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md),
-  remain unimplemented, and preserve the choice recorded in
+  and preserve the choice recorded in
   [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
+- A deterministic, security-bounded, Rust-owned v1 codec with crate-private
+  vendored native JPEG/WebP validation shims is implemented as a
+  runtime-disconnected workspace member. It is not a production project-file
+  path, Tauri command, or lifecycle adapter.
 
 Consequences:
 
 - Current save/load work must preserve JSON compatibility under
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
-- Package behavior must not be implied in UI/docs until the target
-  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) is
+- User-facing package behavior must not be implied in UI/docs until the later
+  binary persistence, lifecycle, compatibility, and production activation
+  requirements in
+  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) are
   implemented and validated.
 - Target package work must continue loading existing JSON projects.
 
@@ -2200,7 +2362,9 @@ Consequences:
 The following are documented future plans or active gaps, not current implemented guarantees:
 
 - Guided Start and opening-screen workflow.
-- Full [`.sbls` package read/write](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
+- Application-connected [`.sbls` package Open/Save/Save As and binary
+  persistence](PROJECT_PACKAGE_FORMAT_CONTRACT.md); the package-domain codec is already a
+  runtime-disconnected implementation owner.
 - DVD/Amaray and Blu-ray case editors.
 - Direct printer integration.
 - Full arbitrary layer management.
