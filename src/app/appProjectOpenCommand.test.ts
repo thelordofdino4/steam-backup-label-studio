@@ -6,6 +6,7 @@ import {
 import {
   createApplicationLifecycleCompositionRoot,
 } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
+import { canSaveProjectSessionDirectly } from '../lifecycle/projectSession.ts'
 import {
   commandFailed,
   commandSucceeded,
@@ -17,6 +18,7 @@ import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
 import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
+import type { SavedProject } from '../project/projectTypes.ts'
 import {
   stageAppProjectOpen,
   type StagedProjectOpenCandidate,
@@ -25,6 +27,7 @@ import {
   createApplicationProjectOpenCommandOwner,
   type ApplicationProjectOpenRuntimeDependencies,
 } from './appProjectOpenCommand.ts'
+import { createApplicationProjectSaveCommandOwners } from './appProjectSaveCommand.ts'
 
 function discContents(): string {
   return JSON.stringify({
@@ -51,10 +54,13 @@ function discContents(): string {
 async function candidateFor(
   contents: string,
   path: string,
+  persistenceFormat: 'legacy-json' | 'sbls-package-v1' = 'legacy-json',
 ): Promise<StagedProjectOpenCandidate> {
   const result = await stageAppProjectOpen({
     openDialog: async () => path,
     readProjectFileCommand: async () => contents,
+    recognizeProjectFileFormatCommand: async () => persistenceFormat,
+    decodeProjectPackageFileCommand: async () => new TextEncoder().encode(contents),
     caseInsertBrandingSources: createBrandingSources(),
   })
   assert.equal(result.status, 'success')
@@ -115,6 +121,166 @@ for (const projectType of ['disc', 'caseInsert'] as const) {
     assert.equal(root.getStateSnapshot().generation, 1)
     assert.deepEqual(applied, [candidate])
   })
+}
+
+for (const [openedPath, expectedDialogCount] of [
+  ['C:\\projects\\direct.sbls', 0],
+  ['C:\\projects\\wrong.json', 1],
+] as const) {
+  test(`ordinary Save immediately after package Open routes correctly for ${openedPath}`, async () => {
+    const candidate = await candidateFor(
+      discContents(),
+      openedPath,
+      'sbls-package-v1',
+    )
+    const writtenPaths: string[] = []
+    let dialogCount = 0
+    const saveOwners = createApplicationProjectSaveCommandOwners(() => ({
+      captureCurrentProject: () =>
+        candidate.normalizedProject as unknown as SavedProject,
+      saveDialog: async () => {
+        dialogCount += 1
+        return 'C:\\projects\\rerouted.sbls'
+      },
+      packageWrite: {
+        encodeAndWrite: async (input) => {
+          writtenPaths.push(input.destinationPath)
+          return Object.freeze({ status: 'success' as const })
+        },
+      },
+    }))
+    const root = createApplicationLifecycleCompositionRoot({
+      ports: {
+        openProject: createApplicationProjectOpenCommandOwner(
+          () => dependenciesFor(candidate, []),
+        ),
+        saveProject: saveOwners.saveProject,
+        saveProjectAs: saveOwners.saveProjectAs,
+      },
+    })
+
+    await root.dispatch('project.open')
+    const result = await root.dispatch('project.save')
+
+    assert.equal(result.disposition, 'executed')
+    if (result.disposition === 'executed') {
+      assert.equal(
+        result.result.status,
+        'success',
+        JSON.stringify(result.result),
+      )
+    }
+    assert.equal(dialogCount, expectedDialogCount)
+    assert.deepEqual(writtenPaths, [
+      expectedDialogCount === 0
+        ? openedPath
+        : 'C:\\projects\\rerouted.sbls',
+    ])
+  })
+}
+
+test('failed package Open preserves an existing destination and clean baseline', async () => {
+  const candidate = await candidateFor(
+    discContents(),
+    'C:\\projects\\existing.sbls',
+    'sbls-package-v1',
+  )
+  let nextStage = commandSucceeded(candidate)
+  let applyCount = 0
+  const owner = createApplicationProjectOpenCommandOwner(() => ({
+    stageCandidate: async () => nextStage,
+    prepareEditorAggregateApply: () => commandSucceeded({
+      commitLifecycleAndApply(commitLifecycle) {
+        const result = commitLifecycle()
+        if (result.status === 'committed') applyCount += 1
+        return result
+      },
+    }),
+  }))
+  const root = createApplicationLifecycleCompositionRoot({
+    ports: { openProject: owner },
+  })
+  await root.dispatch('project.open')
+  const before = root.getStateSnapshot()
+  nextStage = commandFailed({
+    code: 'project.package.archive-invalid',
+    userMessage: 'The project package archive is invalid.',
+    recoverable: true,
+  })
+
+  const result = await root.dispatch('project.open')
+
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed') {
+    assert.equal(result.result.status, 'failure')
+  }
+  assert.deepEqual(root.getStateSnapshot(), before)
+  assert.equal(
+    root.getLifecycleState().activeSession?.currentPath,
+    'C:\\projects\\existing.sbls',
+  )
+  assert.deepEqual(
+    root.getLifecycleState().activeSession?.cleanBaseline?.exactSnapshot,
+    candidate.normalizedProject,
+  )
+  assert.equal(applyCount, 1)
+})
+
+for (const projectType of ['disc', 'caseInsert'] as const) {
+  for (const [suffix, directSaveEligible] of [
+    ['sbls', true],
+    ['json', false],
+  ] as const) {
+    test(`package ${projectType} Open from .${suffix} commits exact package identity and direct-Save eligibility`, async () => {
+      const path = `C:\\projects\\${projectType}.${suffix}`
+      const contents = projectType === 'disc'
+        ? discContents()
+        : JSON.stringify(createBlankJewelCaseSavedProject('Package Case'))
+      const candidate = await candidateFor(
+        contents,
+        path,
+        'sbls-package-v1',
+      )
+      const applied: StagedProjectOpenCandidate[] = []
+      let sessionIdCount = 0
+      const root = createApplicationLifecycleCompositionRoot({
+        ports: {
+          openProject: createApplicationProjectOpenCommandOwner(
+            () => dependenciesFor(candidate, applied),
+          ),
+        },
+        createSessionId: () => {
+          sessionIdCount += 1
+          return `package-${projectType}`
+        },
+      })
+
+      const before = root.getStateSnapshot()
+      const result = await root.dispatch('project.open')
+      assert.equal(result.disposition, 'executed')
+      if (result.disposition === 'executed') {
+        assert.equal(result.result.status, 'success')
+      }
+      const after = root.getStateSnapshot()
+      const session = after.state.activeSession
+      assert.ok(session)
+      assert.equal(before.generation, 0)
+      assert.equal(after.generation, 1)
+      assert.equal(sessionIdCount, 1)
+      assert.equal(session.kind, projectType)
+      assert.equal(session.currentPath, path)
+      assert.equal(session.persistenceFormat, 'sbls-package-v1')
+      assert.equal(session.revision, 0)
+      assert.deepEqual(session.project, candidate.normalizedProject)
+      assert.deepEqual(
+        session.cleanBaseline?.exactSnapshot,
+        candidate.normalizedProject,
+      )
+      assert.deepEqual(session.lastEditorRoute, candidate.editorRoute)
+      assert.equal(canSaveProjectSessionDirectly(session), directSaveEligible)
+      assert.deepEqual(applied, [candidate])
+    })
+  }
 }
 
 test('stale lifecycle CAS does not apply the staged editor candidate', async () => {

@@ -53,6 +53,11 @@ import {
   isProjectPackageCommandFailure,
   type ProjectPackageCommandFailure,
 } from '../tauri/packageProjectFile.ts'
+import {
+  isProjectFormatRecognitionFailure,
+  type ProjectFormatRecognitionFailure,
+  type ProjectRecognizedFileFormat,
+} from '../tauri/projectFileFormat.ts'
 
 type DialogFilter = Readonly<{
   name: string
@@ -65,6 +70,8 @@ export type OpenProjectDialog = (options: Readonly<{
 }>) => Promise<string | string[] | null>
 
 export type ReadProjectFileCommand = (path: string) => Promise<string>
+export type RecognizeProjectFileFormatCommand =
+  (path: string) => Promise<ProjectRecognizedFileFormat>
 
 export type StagedDiscProjectOpenCandidate = Readonly<{
   projectType: 'disc'
@@ -104,6 +111,8 @@ export type StageAppProjectOpenParams = ProjectOpenRestorationDependencies &
   Readonly<{
     openDialog: OpenProjectDialog
     readProjectFileCommand: ReadProjectFileCommand
+    recognizeProjectFileFormatCommand: RecognizeProjectFileFormatCommand
+    decodeProjectPackageFileCommand: DecodeProjectPackageFileCommand
   }>
 
 export type DecodeProjectPackageFileCommand =
@@ -125,7 +134,7 @@ export type StageProjectOpenContentsParams =
 const PROJECT_FILE_FILTERS = Object.freeze([
   Object.freeze({
     name: 'Steam Backup Label Studio Project',
-    extensions: Object.freeze(['json']),
+    extensions: Object.freeze(['sbls', 'json']),
   }),
 ] as const satisfies readonly DialogFilter[])
 
@@ -172,7 +181,8 @@ function failure(
 }
 
 function structuredReadFailure(
-  error: ProjectFileCommandFailure | ProjectPackageCommandFailure,
+  error: ProjectFileCommandFailure | ProjectPackageCommandFailure |
+    ProjectFormatRecognitionFailure,
 ): ApplicationCommandResult<never> {
   const stage = isProjectPackageCommandFailure(error)
     ? ` at ${error.cause.stage}`
@@ -418,9 +428,9 @@ export async function stageProjectOpenContents(
 }
 
 /**
- * Dormant `.sbls` package staging entry. It owns no dialog, lifecycle state,
- * replacement guard, or live editor mutation and is not called by production
- * Open until the package activation slice explicitly composes it.
+ * `.sbls` package staging entry. It owns no dialog, lifecycle state,
+ * replacement guard, or live editor mutation. Production Open calls it only
+ * after the native recognition boundary identifies package content.
  */
 export async function stageProjectPackageOpen(
   params: StageProjectPackageOpenParams,
@@ -503,6 +513,28 @@ export async function stageAppProjectOpen(
     )
   }
 
+  let recognizedFormat: ProjectRecognizedFileFormat
+  try {
+    recognizedFormat = await params.recognizeProjectFileFormatCommand(selected)
+  } catch (error) {
+    const structured = isProjectFileCommandFailure(error) ||
+      isProjectFormatRecognitionFailure(error)
+      ? error
+      : createProjectFileCommandFailure(
+          'project.read-failed',
+          'transport-rejection-invalid',
+          'project-format-recognition-stage',
+        )
+    return structuredReadFailure(structured)
+  }
+
+  if (recognizedFormat === 'sbls-package-v1') {
+    return stageProjectPackageOpen({
+      ...params,
+      selectedPath: selected,
+    })
+  }
+
   let contents: string
   try {
     contents = await params.readProjectFileCommand(selected)
@@ -517,7 +549,7 @@ export async function stageAppProjectOpen(
   return stageProjectOpenContents({
     ...params,
     selectedPath: selected,
-    contents,
+    contents: contents.startsWith('\uFEFF') ? contents.slice(1) : contents,
     persistenceFormat: 'legacy-json',
   })
 }

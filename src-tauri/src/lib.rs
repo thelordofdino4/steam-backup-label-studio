@@ -3,6 +3,7 @@ mod legacy_project_identity;
 mod platform;
 mod project_binary_io;
 mod project_file;
+mod project_format_recognition;
 
 fn application_invoke_handler<R: tauri::Runtime>(
 ) -> impl Fn(tauri::ipc::Invoke<R>) -> bool + Send + Sync + 'static {
@@ -11,6 +12,7 @@ fn application_invoke_handler<R: tauri::Runtime>(
         commands::files::read_project_file,
         commands::files::write_binary_file,
         commands::project_files::read_binary_project_file,
+        commands::project_files::recognize_project_file_format,
         commands::project_files::write_binary_project_file,
         commands::project_packages::decode_project_package_file,
         commands::project_packages::encode_and_write_project_package_file,
@@ -51,10 +53,11 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn dedicated_binary_project_commands_are_registered_in_the_application_handler() {
+    fn dedicated_project_persistence_commands_are_registered_in_the_application_handler() {
         let source = include_str!("lib.rs");
         for (module, command) in [
             ("project_files", "read_binary_project_file"),
+            ("project_files", "recognize_project_file_format"),
             ("project_files", "write_binary_project_file"),
             ("project_packages", "decode_project_package_file"),
             ("project_packages", "encode_and_write_project_package_file"),

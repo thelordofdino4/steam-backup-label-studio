@@ -9,6 +9,9 @@ use crate::project_binary_io::{
     self, BinaryProjectReadError, BinaryProjectWriteError, MAX_BINARY_PROJECT_BYTES,
 };
 use crate::project_file::{AtomicProjectWriteError, AtomicProjectWritePhase};
+use crate::project_format_recognition::{
+    self, ProjectFormatRecognitionError, RecognizedProjectFormat,
+};
 
 pub(crate) const PROJECT_PATH_HEADER_NAME: &str = "x-sbls-project-path-v1";
 pub(crate) const MAX_PROJECT_PATH_UTF8_BYTES: usize = 4_096;
@@ -218,6 +221,62 @@ pub(crate) struct ProjectFileCommandSuccess {
     status: &'static str,
 }
 
+#[derive(Debug, Serialize)]
+pub(crate) struct ProjectFormatRecognitionSuccess {
+    status: &'static str,
+    format: &'static str,
+}
+
+impl ProjectFormatRecognitionSuccess {
+    const fn new(format: RecognizedProjectFormat) -> Self {
+        Self {
+            status: "success",
+            format: format.as_str(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct ProjectFormatRecognitionCause {
+    stage: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct ProjectFormatRecognitionFailure {
+    status: &'static str,
+    code: &'static str,
+    recoverable: bool,
+    message: &'static str,
+    cause: ProjectFormatRecognitionCause,
+}
+
+impl ProjectFormatRecognitionFailure {
+    const fn unsupported() -> Self {
+        Self {
+            status: "failure",
+            code: "project.format.unsupported",
+            recoverable: true,
+            message: "The selected file is not a supported project format.",
+            cause: ProjectFormatRecognitionCause {
+                stage: "content-recognition",
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub(crate) enum RecognizeProjectFileFormatFailure {
+    ProjectFile(ProjectFileCommandFailure),
+    Recognition(ProjectFormatRecognitionFailure),
+}
+
+impl From<ProjectFileCommandFailure> for RecognizeProjectFileFormatFailure {
+    fn from(failure: ProjectFileCommandFailure) -> Self {
+        Self::ProjectFile(failure)
+    }
+}
+
 impl ProjectFileCommandSuccess {
     const fn new() -> Self {
         Self { status: "success" }
@@ -406,6 +465,58 @@ where
     read_project_bytes_request_with(headers, body, read_file).map(Response::new)
 }
 
+fn recognize_request_with<F>(
+    headers: &HeaderMap,
+    body: &InvokeBody,
+    recognize_file: F,
+) -> Result<ProjectFormatRecognitionSuccess, RecognizeProjectFileFormatFailure>
+where
+    F: FnOnce(&Path) -> Result<RecognizedProjectFormat, ProjectFormatRecognitionError>,
+{
+    match body {
+        InvokeBody::Raw(bytes) if bytes.is_empty() => {}
+        InvokeBody::Raw(_) => {
+            return Err(ProjectFileCommandFailure::request_failure(
+                ProjectFileFailureCode::ReadFailed,
+                "read-body-not-empty",
+                "project-format-recognition-request",
+            )
+            .into());
+        }
+        InvokeBody::Json(_) => {
+            return Err(ProjectFileCommandFailure::request_failure(
+                ProjectFileFailureCode::ReadFailed,
+                "raw-body-required",
+                "project-format-recognition-request",
+            )
+            .into());
+        }
+    }
+
+    let path = request_path(
+        headers,
+        ProjectFileFailureCode::ReadFailed,
+        "project-format-recognition-path",
+    )?;
+    let format = recognize_file(&path).map_err(|error| match error {
+        ProjectFormatRecognitionError::TooLarge => RecognizeProjectFileFormatFailure::ProjectFile(
+            ProjectFileCommandFailure::file_too_large("project-format-recognition-limit"),
+        ),
+        ProjectFormatRecognitionError::Unsupported => {
+            RecognizeProjectFileFormatFailure::Recognition(
+                ProjectFormatRecognitionFailure::unsupported(),
+            )
+        }
+        ProjectFormatRecognitionError::Io { operation, source } => {
+            RecognizeProjectFileFormatFailure::ProjectFile(ProjectFileCommandFailure::new(
+                ProjectFileFailureCode::ReadFailed,
+                Some(io_cause(operation, &source, Vec::new())),
+            ))
+        }
+    })?;
+    Ok(ProjectFormatRecognitionSuccess::new(format))
+}
+
 fn write_request_with<F>(
     headers: &HeaderMap,
     body: &InvokeBody,
@@ -445,6 +556,15 @@ pub(crate) fn read_binary_project_file(
 ) -> Result<Response, ProjectFileCommandFailure> {
     read_request_with(request.headers(), request.body(), |path| {
         project_binary_io::read(path)
+    })
+}
+
+#[tauri::command]
+pub(crate) fn recognize_project_file_format(
+    request: Request<'_>,
+) -> Result<ProjectFormatRecognitionSuccess, RecognizeProjectFileFormatFailure> {
+    recognize_request_with(request.headers(), request.body(), |path| {
+        project_format_recognition::recognize(path)
     })
 }
 
@@ -570,6 +690,90 @@ mod tests {
         match response.body().unwrap() {
             InvokeResponseBody::Raw(actual) => assert_eq!(actual, expected),
             InvokeResponseBody::Json(_) => panic!("binary read returned a JSON response"),
+        }
+    }
+
+    #[test]
+    fn recognition_success_is_small_structured_format_metadata() {
+        for (recognized, expected) in [
+            (RecognizedProjectFormat::LegacyJson, "legacy-json"),
+            (RecognizedProjectFormat::SblsPackageV1, "sbls-package-v1"),
+        ] {
+            let result = recognize_request_with(
+                &headers_for("C:\\Projects\\misleading.json"),
+                &InvokeBody::Raw(Vec::new()),
+                |path| {
+                    assert_eq!(path, Path::new("C:\\Projects\\misleading.json"));
+                    Ok(recognized)
+                },
+            )
+            .unwrap();
+            assert_eq!(
+                serde_json::to_value(result).unwrap(),
+                json!({"status": "success", "format": expected})
+            );
+        }
+    }
+
+    #[test]
+    fn recognition_failures_preserve_stable_file_and_format_codes() {
+        let cases = [
+            (
+                ProjectFormatRecognitionError::Unsupported,
+                "project.format.unsupported",
+                "content-recognition",
+            ),
+            (
+                ProjectFormatRecognitionError::TooLarge,
+                "project.file-too-large",
+                "project-format-recognition-limit",
+            ),
+            (
+                ProjectFormatRecognitionError::Io {
+                    operation: "project-format-recognition-content",
+                    source: io::Error::new(io::ErrorKind::PermissionDenied, "SECRET NATIVE PATH"),
+                },
+                "project.read-failed",
+                "project-format-recognition-content",
+            ),
+        ];
+
+        for (failure, expected_code, expected_stage_or_operation) in cases {
+            let error = recognize_request_with(
+                &headers_for("C:\\SECRET\\project.sbls"),
+                &InvokeBody::Raw(Vec::new()),
+                |_| Err(failure),
+            )
+            .unwrap_err();
+            let value = serde_json::to_value(error).unwrap();
+            assert_eq!(value["code"], expected_code);
+            let stage_or_operation = value["cause"]
+                .get("stage")
+                .or_else(|| value["cause"].get("operation"))
+                .unwrap();
+            assert_eq!(stage_or_operation, expected_stage_or_operation);
+            let serialized = value.to_string();
+            assert!(!serialized.contains("SECRET"));
+            assert!(!serialized.contains("project.sbls"));
+        }
+    }
+
+    #[test]
+    fn recognition_request_requires_empty_raw_body_and_one_canonical_path() {
+        let requests = [
+            (HeaderMap::new(), InvokeBody::Raw(Vec::new())),
+            (headers_for("project.json"), InvokeBody::Raw(vec![1])),
+            (headers_for("project.json"), InvokeBody::Json(json!({}))),
+        ];
+
+        for (headers, body) in requests {
+            let mut called = false;
+            let result = recognize_request_with(&headers, &body, |_| {
+                called = true;
+                Ok(RecognizedProjectFormat::LegacyJson)
+            });
+            assert!(result.is_err());
+            assert!(!called);
         }
     }
 

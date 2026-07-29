@@ -4,7 +4,7 @@
 > Read when: Architecture-sensitive work, renderer/editor/export changes, schema work, drag/selection, or parity-sensitive changes.
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
-> Package/save-load authority cross-references reviewed against synchronized parent commit `607ab5ffc73f22f71105ea7e5434c93f3de439ef` plus the focused uncommitted `agent/sbls-format-identity-package-save` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
+> Package/save-load authority cross-references reviewed against PR #325 merge commit `b69ce9e905041796c318c059e55cc030a587d962` plus the focused uncommitted `agent/sbls-production-package-open` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -54,6 +54,13 @@ Post-refactor documentation reconciliation note:
   built-in compatibility registry, bounded native encode/write, atomic commit,
   and native legacy-source alias protection. It deliberately leaves production
   package Open, content sniffing, replacement guards, Resume, and menus dormant.
+- PR #325 merged production package Save/Save As at
+  `b69ce9e905041796c318c059e55cc030a587d962`. The focused package-Open
+  checkpoint documented here adds bounded native content recognition, `.sbls`
+  and `.json` chooser affordances, production package-versus-legacy dispatch,
+  and truthful package session adoption through the existing immutable staging
+  and lifecycle commit owners. It leaves replacement guards, Resume, menus,
+  shortcuts, and history absent.
 - Manual app testing was reported before the merge with no regressions spotted,
   but this documentation refresh did not independently launch Tauri.
 
@@ -90,10 +97,9 @@ This document does not:
 
 - Claim live Tauri runtime behavior was manually verified.
 - Claim case insert alpha completion.
-- Claim application-connected `.sbls` Open or content recognition exists.
-  Production Save/Save As and package-codec encode/write composition are
-  connected; package read/decode/staging remains dormant and production Open is
-  still legacy JSON-only.
+- Claim native Tauri workflow acceptance was performed for application-connected
+  `.sbls` Open/Save/Save As. Their source paths are connected, but this
+  checkpoint did not run the interactive Tauri application or platform dialogs.
 - Claim DVD/Amaray or Blu-ray editors are implemented.
 - Replace source code, tests, issue descriptions, or manual smoke checklists as the source of detailed implementation truth.
 
@@ -443,19 +449,22 @@ preserving the combined failure status.
 
 ### 7.1 Current Implementation Summary
 
-Production Save and Save As write `.sbls` package-v1 files. Existing plain
-`.json` and `.sbls.json` projects remain readable legacy imports. The hydrated
+Production Open recognizes and stages `.sbls` package-v1 or legacy JSON content;
+extensions are chooser affordances rather than decoder selectors. Save and Save
+As write `.sbls` package-v1 files only. Existing plain `.json` and `.sbls.json`
+projects remain readable legacy imports. The hydrated
 saved-project type remains a union of Disc and Case Insert shapes under schema
 version `0.2.0`; package/session metadata does not enter it.
 
 The ZIP-compatible `.sbls` package format is defined in
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md). Its
 package-domain encoder/decoder is implemented as the dependency-isolated Rust
-workspace member `sbls-package-codec`. Dormant raw-byte Tauri commands provide
-bounded native reading and atomic binary writing. A separate dormant native
-command now composes bounded read with codec decode and returns hydrated JSON
-through a strict TypeScript port into the existing mutation-free staging owner;
-production Open does not call it. Production Save/Save As instead use one
+workspace member `sbls-package-codec`. Dormant generic raw-byte Tauri commands
+provide bounded native reading and atomic binary writing. Production Open uses
+a focused bounded native recognizer and a separate native command that composes
+bounded read with codec decode and returns hydrated JSON through a strict
+TypeScript port into the existing mutation-free staging owner. Production
+Save/Save As use one
 closed TypeScript capture plan and bounded raw request, native borrowed-input
 encoding, and direct atomic commit without returning package bytes to the
 WebView. The
@@ -480,6 +489,7 @@ original format-choice rationale remains in
 - `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md`
 - `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`
 - `src/tauri/binaryProjectFile.ts`
+- `src/tauri/projectFileFormat.ts`
 - `src/tauri/packageProjectFile.ts`
 - `src/tauri/projectPackageWrite.ts`
 - `src/package/projectPackageCapturePlan.ts`
@@ -489,6 +499,7 @@ original format-choice rationale remains in
 - `src-tauri/src/legacy_project_identity.rs`
 - `src-tauri/src/project_binary_io.rs`
 - `src-tauri/src/project_file.rs`
+- `src-tauri/src/project_format_recognition.rs`
 - `src-tauri/crates/sbls-package-codec/Cargo.toml`
 - `src-tauri/crates/sbls-package-codec/src/lib.rs`
 - `src-tauri/crates/sbls-package-codec/src/conformance_tests.rs`
@@ -516,9 +527,10 @@ original format-choice rationale remains in
 - Save captures one immutable normalized snapshot, builds one owner-aware plan,
   writes a complete package atomically, then adopts only the committed snapshot
   as baseline; a newer current snapshot remains dirty.
-- Production Load parses legacy JSON, routes by project type/template clues,
-  normalizes sparse data, then restores runtime state. Package Load staging is
-  present but dormant.
+- Production Open recognizes content natively. Legacy content uses the existing
+  text/JSON path; package content is decoded and hydrated natively, then both
+  branches route, normalize, and restore through the shared immutable staging
+  owner before one lifecycle compare-and-swap/apply.
 - Export reads current runtime state; PNG bytes are not part of project serialization.
 
 ### 7.5 Serialization Contract
@@ -542,12 +554,11 @@ original format-choice rationale remains in
 - Keep `home` as a workspace only, not a project type.
 - Do not collapse disc and case insert schema owners.
 - Add migrations before changing saved-project semantics.
-- Distinguish implemented package Save/Save As from dormant package Open.
-  `.sbls` output support is current; portable Open/user round-trip support must
-  not be claimed until content recognition, package Open activation, and native
+- Distinguish source-connected package Open/Save/Save As from native runtime
+  acceptance. Content recognition and package Open activation are current;
+  native dialogs and platform behavior must not be claimed verified until the
   runtime validation required by
-  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
-  exist.
+  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 
 ### 7.7 Validation Expectations
 
@@ -568,7 +579,7 @@ original format-choice rationale remains in
 - Issue `#48` is closed; future validation/migration changes remain governed by
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 
-### 7.9 Package Codec And Dormant Decode Integration
+### 7.9 Package Codec And Production Decode Integration
 
 The package-domain public boundary is intentionally small:
 `encode_project_package(&ProjectPackageEncodeInput)` borrows a boundary value
@@ -616,9 +627,9 @@ assets while validating the current entry, hydration retains encoded assets
 while data URLs accumulate, and output serialization temporarily overlaps the
 hydrated tree. The pure codec proves those lifetimes and its owned allocation
 boundaries deterministically. Windows x64 RSS, other-platform process evidence,
-and hydrated-response IPC/WebView copy measurement belong to the later
-production-activation gate; source-level linkage and byte transport now exist
-only through the dormant native decode adapter.
+and hydrated-response IPC/WebView copy measurement remain native-runtime
+evidence gaps; source-level production Open linkage and hydrated-byte transport
+now use the native decode adapter.
 
 JPEG and WebP full decoding uses a narrow Rust-consumed crate-private C boundary
 built from exact-pinned libjpeg-turbo `3.1.4.1` archive SHA-256
@@ -673,11 +684,13 @@ default member. The app crate has one local path dependency on the codec. The
 registered `decode_project_package_file` command reuses the bounded file-read
 request owner, lends its operation-owned archive buffer to the codec, discards
 transport metadata, and moves only hydrated JSON bytes into the raw response.
-`packageProjectFile.ts` validates the exact raw response and closed safe failure
-DTO; `stageProjectPackageOpen` performs strict UTF-8 decoding and delegates to
-the same parse/migrate/normalize/route/restore/candidate-capture path as legacy
-Open. This entire path is dormant from production Open and owns no lifecycle or
-live editor mutation.
+`project_format_recognition.rs` and `projectFileFormat.ts` own bounded native
+recognition and its strict two-value DTO. `packageProjectFile.ts` validates the
+exact raw response and closed safe failure DTO; `stageProjectPackageOpen`
+performs strict UTF-8 decoding and delegates to the same
+parse/migrate/normalize/route/restore/candidate-capture path as legacy Open.
+Production Open composes these adapters, while lifecycle identity and live
+editor mutation remain owned by the later compare-and-swap/apply boundary.
 
 ## 8. Rendering Model
 
@@ -1872,11 +1885,11 @@ normative for unfinished lifecycle work. Serialized fields and migrations remain
 legacy-conversion, and atomic binary persistence behavior is defined by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 The package-domain codec/security layer and bounded binary project-I/O layer
-retain separate ownership. Dormant native read/decode composition, strict raw
-hydrated-response transport, and shared mutation-free package staging are now
-implemented. Package Save/Save As, legacy conversion, session-format adoption,
-and lifecycle/runtime integration are implemented; production package Open
-activation remains dormant.
+retain separate ownership. Native content recognition, read/decode composition,
+strict raw hydrated-response transport, and shared mutation-free package
+staging are implemented. Package Open/Save/Save As, legacy conversion,
+session-format adoption, and lifecycle/runtime composition are source-connected;
+native Tauri workflow acceptance remains unperformed.
 
 ### 15.2 Key Files
 
@@ -1894,6 +1907,7 @@ activation remains dormant.
 - `src/project/savedProjectNormalization.ts`
 - `src/tauri/fileSystem.ts`
 - `src/tauri/binaryProjectFile.ts`
+- `src/tauri/projectFileFormat.ts`
 - `src/tauri/packageProjectFile.ts`
 - `src/tauri/projectPackageWrite.ts`
 - `src/tauri/projectFileFailure.ts`
@@ -1902,6 +1916,7 @@ activation remains dormant.
 - `src-tauri/src/commands/project_packages.rs`
 - `src-tauri/src/legacy_project_identity.rs`
 - `src-tauri/src/project_binary_io.rs`
+- `src-tauri/src/project_format_recognition.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/crates/sbls-package-codec/src/lib.rs`
 - `src-tauri/crates/sbls-package-codec/src/conformance_tests.rs`
@@ -1919,10 +1934,12 @@ path, exact normalized clean baseline, revision, and last editor route. A
 focused app boundary captures the complete current editor aggregate for Save;
 after commit, the lifecycle session adopts the written snapshot as baseline and
 captures the latest aggregate so in-flight edits remain current and dirty.
-Legacy JSON remains the source accepted by production Open. The package crate,
-native decode command, raw decode port, and package staging entry own no active
-session and remain dormant from production Open. The encode/write command also
-owns no session: the lifecycle Save owner alone authorizes it and adopts state.
+Production Open accepts content-recognized legacy JSON or package input. The
+package crate, recognizer, native decode command, raw decode port, and package
+staging entry own no active session: the lifecycle Open owner alone adopts the
+accepted path, truthful format, route, revision-zero state, and baseline. The
+encode/write command also owns no session: the lifecycle Save owner alone
+authorizes it and adopts state.
 
 ### 15.4 Render/Edit/Export Paths
 
@@ -1946,7 +1963,11 @@ owns no session: the lifecycle Save owner alone authorizes it and adopts state.
   plan/project frame plus destination and optional legacy-source headers,
   borrows project JSON into the codec, and passes one complete owned package
   buffer directly to the atomic writer. It returns no package bytes.
-- Dormant `decode_project_package_file` reuses the binary reader's
+- Production `recognize_project_file_format` uses an empty raw request plus the
+  canonical path header and returns only `legacy-json` or `sbls-package-v1`.
+  It enforces the 256 MiB file-length boundary and exact package/BOM/JSON-prefix
+  recognition without inspecting filename suffixes.
+- Production `decode_project_package_file` reuses the binary reader's
   path/body/read owner, lends the owned archive buffer to the protocol-bounded
   Rust codec, and moves only hydrated JSON into a raw response. The strict
   TypeScript port validates exact file/package failures and the contract-derived
@@ -1954,8 +1975,8 @@ owns no session: the lifecycle Save owner alone authorizes it and adopts state.
   or metadata.
 - `stageProjectPackageOpen` performs strict UTF-8 decode, then calls the same
   parse/migrate/normalize/route/restore/candidate-capture owner used by legacy
-  staging. Production `stageAppProjectOpen` remains JSON-only and does not call
-  the package stage.
+  staging. Production `stageAppProjectOpen` recognizes first and dispatches to
+  package staging without any JSON fallback after a package failure.
 - Export uses runtime state after any load/restore.
 
 ### 15.5 Invariants And Future-Change Rules
@@ -1984,8 +2005,9 @@ owns no session: the lifecycle Save owner alone authorizes it and adopts state.
   protection, exhaustive safe failures, file-before-codec precedence,
   isolation, and registration. TypeScript tests must cover the closed capture
   plan, built-in registry digests, exact DTO guards, strict UTF-8, Save routing
-  and adoption, shared Disc/Case staging, immutability, and negative package-Open
-  production wiring.
+  and adoption, native recognition/misleading-suffix dispatch, shared full
+  Disc/all-four-surface Case staging, immutability, lifecycle identity, and
+  direct-Save eligibility.
 - Manual validation should save, reload, and export both disc and case insert projects when affected.
 
 ### 15.7 Known Risks
@@ -2207,11 +2229,11 @@ Current tests cover broad helper and contract areas:
   migration are implemented, while any future schema change remains separate
   work under [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - Preview selection, snapping, keyboard nudging, inspector, and context-menu workflows remain open under related preview issues.
-- Production [`.sbls` package Open, content recognition, replacement guarding,
-  and full runtime activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md) are not
-  implemented. Package Save/Save As, legacy conversion, encoder/write
-  composition, session format identity, bounded binary I/O, and dormant native
-  decode/staging are current implementation owners.
+- Production [`.sbls` package Open and content recognition](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
+  are source-connected alongside package Save/Save As, legacy conversion,
+  encoder/write composition, session format identity, and bounded binary I/O.
+  Dirty-aware replacement guarding and native Tauri workflow acceptance remain
+  unimplemented.
 - DVD/Amaray and Blu-ray editors are future planned surfaces, not current working editors.
 
 ### 19.3 Areas For User Review
@@ -2274,21 +2296,21 @@ Decision:
   [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 - A deterministic, security-bounded, Rust-owned v1 codec with crate-private
   vendored native JPEG/WebP validation shims is implemented as a
-  dependency-isolated workspace member. One dormant Tauri command composes
-  bounded file read with codec decode and one dormant TypeScript path stages
-  only hydrated JSON through existing project owners. A separate production
+  dependency-isolated workspace member. A production native recognizer selects
+  legacy versus package content; one Tauri command composes bounded file read
+  with codec decode and one TypeScript path stages only hydrated JSON through
+  existing project owners. A separate production
   native command composes bounded capture metadata/project JSON, borrowed codec
   encode, and the existing atomic writer for lifecycle Save/Save As.
 
 Consequences:
 
-- Current package Save and legacy JSON Open work must preserve hydrated schema compatibility under
+- Current package/legacy Open and package Save must preserve hydrated schema compatibility under
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
-- User-facing `.sbls` Save behavior may be described as current; `.sbls` Open
-  or portable user round-trip behavior must not be implied until the later
-  production Open activation requirements in
-  [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) are
-  implemented and validated.
+- Source-connected `.sbls` Open/Save behavior may be described as current;
+  native platform workflow acceptance must not be implied until the runtime
+  requirements in [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
+  are executed.
 - Target package work must continue loading existing JSON projects.
 
 ### ADR-004: Fixed Layer Order Policy
@@ -2460,10 +2482,10 @@ Consequences:
 The following are documented future plans or active gaps, not current implemented guarantees:
 
 - Guided Start and opening-screen workflow.
-- Application-connected [`.sbls` package Open, content recognition, and
-  replacement-guard activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md); package
-  Save/Save As, encoder/write composition, session format identity, bounded
-  binary project I/O, and dormant native decode/staging are already implemented.
+- Dirty-aware [replacement-guard activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md),
+  Home Resume, and native package workflow acceptance; content-recognized
+  `.sbls` Open/Save/Save As, encoder/write composition, session format identity,
+  bounded binary project I/O, and native decode/staging are already source-connected.
 - DVD/Amaray and Blu-ray case editors.
 - Direct printer integration.
 - Full arbitrary layer management.

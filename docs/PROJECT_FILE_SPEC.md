@@ -87,11 +87,13 @@ through `src/project/projectCaseInsert.ts`, while case-owned defaults,
 normalization, state transitions, source helpers, and focused action modules
 live under `src/caseInsert/`.
 
-The bounded package-domain codec exists as a Rust workspace member. A dormant
-native command composes the dedicated bounded binary project reader with that
-codec and returns only hydrated JSON bytes; a strict dormant TypeScript port
-performs fatal UTF-8 decoding and delegates to the same mutation-free
-parse/migrate/normalize/route/restore staging owner as legacy Open.
+The bounded package-domain codec exists as a Rust workspace member. Production
+Open first calls a focused native recognizer that returns only `legacy-json` or
+`sbls-package-v1`. The package branch composes the dedicated bounded binary
+project reader with that codec and returns only hydrated JSON bytes; its strict
+TypeScript port performs fatal UTF-8 decoding and delegates to the same
+mutation-free parse/migrate/normalize/route/restore staging owner as legacy
+Open. Raw package bytes remain native-owned.
 
 The Tauri application now also links the codec encoder to one production native
 `encode_and_write_project_package_file` composition. Lifecycle-owned Save and
@@ -103,9 +105,11 @@ written baseline while preserving newer edits as dirty. Legacy Open establishes
 `legacy-json`; Save from that session routes through package Save As and native
 same-file checks protect the source.
 
-Production package Open, content sniffing, and `.sbls` Open filters remain
-unimplemented and dormant. Documentation and UI must not imply complete
-application-connected package Open support. Exact behavior is defined by
+Production Open now exposes `.sbls` and `.json` chooser affordances, recognizes
+the selected file by bounded native content inspection rather than suffix, and
+commits a truthful `legacy-json` or `sbls-package-v1` session only after shared
+immutable staging and lifecycle compare-and-swap succeed. This source-connected
+checkpoint is not native Tauri workflow acceptance. Exact behavior is defined by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md); the
 closed #56 rationale is preserved in
 [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
@@ -171,14 +175,14 @@ Optional causes contain only stable categories, operations, numeric platform
 codes, and safe secondary cleanup categories; paths, payloads, and raw OS error
 strings are excluded.
 
-The legacy UTF-8 JSON read command remains the production Open owner. Its text
-write command remains registered for compatibility, but production Save and
-Save As no longer call it. The generic raw binary TypeScript ports remain
-dormant and have no production application, lifecycle, dialog, menu, or export
-caller. The application staging module exports a separate package entry that
-accepts an injected dormant decode command, but no production Open composition
-root supplies or calls it. The native decode adapter shares the bounded Rust
-reader owner directly; the production native encode/write adapter accepts one
+The legacy UTF-8 JSON read command remains the production read owner only after
+native recognition selects `legacy-json`. Its text write command remains
+registered for compatibility, but production Save and Save As no longer call
+it. The generic raw binary TypeScript ports remain dormant and have no
+production application, lifecycle, dialog, menu, or export caller. Production
+package Open calls the focused native decode adapter, which shares the bounded
+Rust reader owner directly and returns hydrated JSON rather than package bytes.
+The production native encode/write adapter accepts one
 narrowly framed raw request containing capture metadata plus canonical project
 JSON and passes its complete owned package buffer directly to the atomic
 writer. The package codec does not consume TypeScript ports or filesystem paths.
@@ -186,8 +190,7 @@ writer. The package codec does not consume TypeScript ports or filesystem paths.
 is not an atomic project-package writer. These infrastructure boundaries add no
 schema fields. The focused production Save checkpoint adds only session-owned
 format/path/baseline transitions and lifecycle command behavior under #308;
-package Open, replacement guards, Resume, menu, shortcuts, and history remain
-absent.
+replacement guards, Resume, menu, shortcuts, and history remain absent.
 
 ## Current Saved State
 

@@ -217,22 +217,33 @@ test('package port rejects invalid paths before invoking native code', async () 
   assert.equal(invoked, false)
 })
 
-test('package port stays raw, metadata-free, and dormant from production Open', async () => {
+test('package port stays raw and metadata-free while production Open uses only its typed decoder', async () => {
   const source = await readFile('src/tauri/packageProjectFile.ts', 'utf8')
   assert.doesNotMatch(
     source,
     /Array\.from|btoa|atob|base64|JSON\.stringify|\.\.\.bytes|number\[\]/,
   )
 
+  const appSource = await readFile('src/app/App.tsx', 'utf8')
+  assert.match(appSource, /decodeProjectPackageFile/)
+  assert.match(
+    appSource,
+    /decodeProjectPackageFileCommand: decodeProjectPackageFile/,
+  )
+  assert.doesNotMatch(appSource, /decode_project_package_file|Uint8Array/)
+
+  const stagingSource = await readFile('src/app/appProjectLoad.ts', 'utf8')
+  assert.match(stagingSource, /stageProjectPackageOpen/)
+  assert.doesNotMatch(stagingSource, /decode_project_package_file|invoke\(/)
+
   for (const file of [
-    'src/app/App.tsx',
     'src/app/appProjectOpenCommand.ts',
     'src/lifecycle/applicationLifecycleCompositionRoot.ts',
   ]) {
     const productionSource = await readFile(file, 'utf8')
     assert.doesNotMatch(
       productionSource,
-      /decode_project_package_file|decodeProjectPackageFile|stageProjectPackageOpen/,
+      /decode_project_package_file|decodeProjectPackageFile/,
       file,
     )
   }

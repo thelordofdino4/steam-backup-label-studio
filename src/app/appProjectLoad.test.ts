@@ -8,6 +8,8 @@ import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
 import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
+import { createProjectPackageCommandFailure } from '../tauri/packageProjectFile.ts'
+import { createProjectFormatRecognitionFailure } from '../tauri/projectFileFormat.ts'
 import {
   stageAppProjectOpen,
   type StageAppProjectOpenParams,
@@ -47,6 +49,10 @@ function paramsFor(
   return {
     openDialog: async () => 'C:\\projects\\candidate.sbls.json',
     readProjectFileCommand: async () => contents,
+    recognizeProjectFileFormatCommand: async () => 'legacy-json',
+    decodeProjectPackageFileCommand: async () => {
+      throw new Error('Package decoder must not run for legacy content.')
+    },
     defaultSteamBannerLockupImageUrl: 'default-lockup.png',
     resolveBackgroundImageSize: async () => ({ width: 320, height: 200 }),
     caseInsertBrandingSources: createBrandingSources(),
@@ -56,15 +62,25 @@ function paramsFor(
 
 test('Open staging cancellation performs no read or live mutation', async () => {
   let readCount = 0
+  let recognitionCount = 0
+  let decodeCount = 0
   const result = await stageAppProjectOpen(paramsFor('', {
     openDialog: async (options) => {
       assert.equal(options.multiple, false)
-      assert.deepEqual(options.filters?.[0]?.extensions, ['json'])
+      assert.deepEqual(options.filters?.[0]?.extensions, ['sbls', 'json'])
       return null
+    },
+    recognizeProjectFileFormatCommand: async () => {
+      recognitionCount += 1
+      return 'legacy-json'
     },
     readProjectFileCommand: async () => {
       readCount += 1
       return ''
+    },
+    decodeProjectPackageFileCommand: async () => {
+      decodeCount += 1
+      return new Uint8Array()
     },
   }))
 
@@ -73,6 +89,129 @@ test('Open staging cancellation performs no read or live mutation', async () => 
     reason: 'file-dialog-dismissed',
   })
   assert.equal(readCount, 0)
+  assert.equal(recognitionCount, 0)
+  assert.equal(decodeCount, 0)
+})
+
+test('content identity, not .json, .sbls.json, or .sbls suffixes, selects legacy staging', async () => {
+  for (const path of [
+    'C:\\projects\\legacy.json',
+    'C:\\projects\\legacy.sbls.json',
+    'C:\\projects\\misleading.sbls',
+  ]) {
+    let readCount = 0
+    let decodeCount = 0
+    const result = await stageAppProjectOpen(paramsFor(
+      `\uFEFF \n${createDiscProjectContents()}`,
+      {
+        openDialog: async () => path,
+        recognizeProjectFileFormatCommand: async (recognizedPath) => {
+          assert.equal(recognizedPath, path)
+          return 'legacy-json'
+        },
+        readProjectFileCommand: async (readPath) => {
+          assert.equal(readPath, path)
+          readCount += 1
+          return `\uFEFF \n${createDiscProjectContents()}`
+        },
+        decodeProjectPackageFileCommand: async () => {
+          decodeCount += 1
+          return new Uint8Array()
+        },
+      },
+    ))
+
+    assert.equal(result.status, 'success', path)
+    if (result.status === 'success') {
+      assert.equal(result.value.persistenceFormat, 'legacy-json')
+      assert.equal(result.value.selectedPath, path)
+    }
+    assert.equal(readCount, 1)
+    assert.equal(decodeCount, 0)
+  }
+})
+
+test('package identity dispatches only to native decode regardless of suffix casing', async () => {
+  const hydrated = new TextEncoder().encode(createDiscProjectContents())
+  for (const path of [
+    'C:\\projects\\package.sbls',
+    'C:\\projects\\package.SBLS',
+    'C:\\projects\\misleading.json',
+  ]) {
+    let readCount = 0
+    let decodeCount = 0
+    const result = await stageAppProjectOpen(paramsFor('', {
+      openDialog: async () => path,
+      recognizeProjectFileFormatCommand: async () => 'sbls-package-v1',
+      readProjectFileCommand: async () => {
+        readCount += 1
+        return createDiscProjectContents()
+      },
+      decodeProjectPackageFileCommand: async (decodedPath) => {
+        assert.equal(decodedPath, path)
+        decodeCount += 1
+        return hydrated
+      },
+    }))
+
+    assert.equal(result.status, 'success', path)
+    if (result.status === 'success') {
+      assert.equal(result.value.persistenceFormat, 'sbls-package-v1')
+      assert.equal(result.value.selectedPath, path)
+    }
+    assert.equal(readCount, 0)
+    assert.equal(decodeCount, 1)
+  }
+})
+
+test('recognition and package failures remain typed and never fall back to JSON', async () => {
+  const recognitionFailure = createProjectFormatRecognitionFailure()
+  let readCount = 0
+  let decodeCount = 0
+  const unrecognized = await stageAppProjectOpen(paramsFor('', {
+    recognizeProjectFileFormatCommand: async () => {
+      throw recognitionFailure
+    },
+    readProjectFileCommand: async () => {
+      readCount += 1
+      return createDiscProjectContents()
+    },
+    decodeProjectPackageFileCommand: async () => {
+      decodeCount += 1
+      return new Uint8Array()
+    },
+  }))
+  assert.equal(unrecognized.status, 'failure')
+  if (unrecognized.status === 'failure') {
+    assert.equal(unrecognized.error.code, 'project.format.unsupported')
+  }
+  assert.equal(readCount, 0)
+  assert.equal(decodeCount, 0)
+
+  const packageFailure = createProjectPackageCommandFailure(
+    'project.package.archive-invalid',
+    'archive-envelope',
+  )
+  const malformedPackage = await stageAppProjectOpen(paramsFor('', {
+    recognizeProjectFileFormatCommand: async () => 'sbls-package-v1',
+    readProjectFileCommand: async () => {
+      readCount += 1
+      return createDiscProjectContents()
+    },
+    decodeProjectPackageFileCommand: async () => {
+      decodeCount += 1
+      throw packageFailure
+    },
+  }))
+  assert.equal(malformedPackage.status, 'failure')
+  if (malformedPackage.status === 'failure') {
+    assert.equal(
+      malformedPackage.error.code,
+      'project.package.archive-invalid',
+    )
+  }
+  assert.equal(readCount, 0)
+  assert.equal(decodeCount, 1)
 })
 
 test('Open staging rejects an invalid array dialog response deterministically', async () => {

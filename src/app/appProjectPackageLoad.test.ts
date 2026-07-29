@@ -17,6 +17,7 @@ import {
   createProjectFileCommandFailure,
 } from '../tauri/binaryProjectFile.ts'
 import {
+  stageAppProjectOpen,
   stageProjectPackageOpen,
   type ProjectOpenRestorationDependencies,
   type StageProjectPackageOpenParams,
@@ -27,6 +28,24 @@ function restorationDependencies(): ProjectOpenRestorationDependencies {
     defaultSteamBannerLockupImageUrl: 'default-lockup.png',
     resolveBackgroundImageSize: async () => ({ width: 320, height: 200 }),
     caseInsertBrandingSources: createBrandingSources(),
+  }
+}
+
+function productionPackageParams(
+  contents: string,
+  path = 'C:\\projects\\production.sbls',
+) {
+  return {
+    ...restorationDependencies(),
+    openDialog: async () => path,
+    recognizeProjectFileFormatCommand: async () => 'sbls-package-v1' as const,
+    readProjectFileCommand: async () => {
+      throw new Error('Legacy reader must not receive package content.')
+    },
+    decodeProjectPackageFileCommand: async (decodedPath: string) => {
+      assert.equal(decodedPath, path)
+      return new TextEncoder().encode(contents)
+    },
   }
 }
 
@@ -118,6 +137,65 @@ test('package staging accepts Case JSON through the same route and restore owner
     result.value.restoredProject.caseInsert,
   )
   assert.equal(Object.isFrozen(result.value.normalizedProject), true)
+})
+
+test('production composition restores representative full Disc package state immutably', async () => {
+  const contents = await readFile('fixtures/projects/full-branding.sbls.json', 'utf8')
+  const result = await stageAppProjectOpen(productionPackageParams(contents))
+
+  assert.equal(result.status, 'success')
+  if (result.status !== 'success') return
+  assert.equal(result.value.projectType, 'disc')
+  assert.equal(result.value.persistenceFormat, 'sbls-package-v1')
+  assert.equal(Object.isFrozen(result.value), true)
+  assert.equal(Object.isFrozen(result.value.normalizedProject), true)
+  assert.equal(Object.isFrozen(result.value.restoredProject), true)
+  assert.doesNotMatch(
+    JSON.stringify(result.value.normalizedProject),
+    /packageVersion|manifest\.json|bindings|archiveEntry|assetId/i,
+  )
+})
+
+test('production composition restores cover, tray, and both Case spines including disabled remembered assets', async () => {
+  const project = createBlankJewelCaseSavedProject('Full Package Case')
+  const rememberedAsset = 'data:image/png;base64,remembered'
+  project.caseInsert.templates.cover.background = {
+    ...project.caseInsert.templates.cover.background,
+    enabled: false,
+    imageDataUrl: rememberedAsset,
+    imageSize: { width: 640, height: 480 },
+  }
+  project.caseInsert.templates.tray.textBlocks[0] = {
+    ...project.caseInsert.templates.tray.textBlocks[0],
+    value: 'Hydrated tray text',
+  }
+  project.caseInsert.spine.left.title = {
+    ...project.caseInsert.spine.left.title,
+    value: 'Hydrated left spine',
+  }
+  project.caseInsert.spine.right.title = {
+    ...project.caseInsert.spine.right.title,
+    value: 'Hydrated right spine',
+  }
+
+  const result = await stageAppProjectOpen(
+    productionPackageParams(JSON.stringify(project)),
+  )
+
+  assert.equal(result.status, 'success')
+  if (result.status !== 'success') return
+  assert.equal(result.value.projectType, 'caseInsert')
+  assert.equal(result.value.persistenceFormat, 'sbls-package-v1')
+  const restored = result.value.restoredProject.caseInsert
+  assert.equal(restored.templates.cover.background.enabled, false)
+  assert.equal(restored.templates.cover.background.imageDataUrl, rememberedAsset)
+  assert.equal(restored.templates.tray.textBlocks[0]?.value, 'Hydrated tray text')
+  assert.equal(restored.spine.left.title.value, 'Hydrated left spine')
+  assert.equal(restored.spine.right.title.value, 'Hydrated right spine')
+  assert.equal(Object.isFrozen(restored.templates.cover), true)
+  assert.equal(Object.isFrozen(restored.templates.tray), true)
+  assert.equal(Object.isFrozen(restored.spine.left), true)
+  assert.equal(Object.isFrozen(restored.spine.right), true)
 })
 
 test('hydrated asset data reaches existing background inspection without package metadata', async () => {

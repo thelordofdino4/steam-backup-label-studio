@@ -161,6 +161,8 @@ import type {
   ProjectTitleArtwork,
 } from '../project/projectTypes'
 import { readProjectFile, writeBinaryFile } from '../tauri/fileSystem'
+import { decodeProjectPackageFile } from '../tauri/packageProjectFile'
+import { recognizeProjectFileFormat } from '../tauri/projectFileFormat'
 import { encodeAndWriteProjectPackageFile } from '../tauri/projectPackageWrite'
 import {
   type LegalTextCandidate,
@@ -1774,6 +1776,8 @@ function App() {
         })),
       }),
       readProjectFileCommand: readProjectFile,
+      recognizeProjectFileFormatCommand: recognizeProjectFileFormat,
+      decodeProjectPackageFileCommand: decodeProjectPackageFile,
       defaultSteamBannerLockupImageUrl:
         DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
       resolveBackgroundImageSize: async (imageDataUrl) =>

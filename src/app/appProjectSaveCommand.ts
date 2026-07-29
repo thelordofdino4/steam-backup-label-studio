@@ -223,7 +223,7 @@ async function runSave(
       persistenceFormat: 'sbls-package-v1',
     })
   })
-  if (adoption.status !== 'committed') {
+  if (adoption.status === 'stale') {
     return failure(
       'project.save-stale-session',
       'The project was written, but its lifecycle baseline could not be adopted.',
