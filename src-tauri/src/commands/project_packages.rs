@@ -1,12 +1,30 @@
 use std::path::Path;
 
-use sbls_package_codec::{decode_project_package, ProjectPackageFailure};
-use serde::Serialize;
+use sbls_package_codec::{
+    decode_project_package, encode_project_package_from_borrowed, AssetCapture,
+    AssetCaptureDecision, AssetOwner, CaseSurface, LogoRole, PackageCreator, PlatformKind,
+    ProjectPackageFailure, TechnicalKind,
+};
+use serde::{Deserialize, Serialize};
 use tauri::http::HeaderMap;
 use tauri::ipc::{InvokeBody, Request, Response};
 
-use crate::commands::project_files::{read_project_bytes_request_with, ProjectFileCommandFailure};
+use crate::commands::project_files::{
+    path_from_headers, path_from_named_header, read_project_bytes_request_with,
+    ProjectFileCommandFailure,
+};
+use crate::legacy_project_identity::{
+    compare_legacy_source_destination, LegacyDestinationIdentity,
+};
 use crate::project_binary_io::{self, BinaryProjectReadError};
+use crate::project_file::{self, AtomicProjectWritePhase};
+
+const LEGACY_SOURCE_PATH_HEADER_NAME: &str = "x-sbls-legacy-source-path-v1";
+const WRITE_REQUEST_MAGIC: &[u8; 8] = b"SBLSPSV1";
+const WRITE_REQUEST_HEADER_BYTES: usize = 16;
+const MAX_CAPTURE_PLAN_BYTES: usize = 2_097_152;
+const MAX_PROJECT_JSON_BYTES: usize = 16_777_216;
+const MAX_CONCRETE_OWNERS: usize = 4_096;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,6 +60,411 @@ impl From<ProjectPackageFailure> for ProjectPackageCommandFailure {
 pub(crate) enum DecodeProjectPackageFileFailure {
     ProjectFile(ProjectFileCommandFailure),
     ProjectPackage(ProjectPackageCommandFailure),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DestinationFailureCode {
+    ExtensionInvalid,
+    ConflictsSource,
+}
+
+impl DestinationFailureCode {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::ExtensionInvalid => "project.package.destination-extension-invalid",
+            Self::ConflictsSource => "project.legacy-conversion.destination-conflicts-source",
+        }
+    }
+
+    const fn message(self) -> &'static str {
+        match self {
+            Self::ExtensionInvalid => "The package destination must end in .sbls.",
+            Self::ConflictsSource => {
+                "The package destination must be different from the legacy project source."
+            }
+        }
+    }
+
+    const fn stage(self) -> &'static str {
+        match self {
+            Self::ExtensionInvalid => "destination-validation",
+            Self::ConflictsSource => "destination-identity",
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ProjectPackageDestinationFailure {
+    status: &'static str,
+    code: &'static str,
+    recoverable: bool,
+    message: &'static str,
+    cause: ProjectPackageDestinationCause,
+}
+
+#[derive(Debug, Serialize)]
+struct ProjectPackageDestinationCause {
+    stage: &'static str,
+}
+
+impl ProjectPackageDestinationFailure {
+    fn new(code: DestinationFailureCode) -> Self {
+        Self {
+            status: "failure",
+            code: code.as_str(),
+            recoverable: true,
+            message: code.message(),
+            cause: ProjectPackageDestinationCause {
+                stage: code.stage(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub(crate) enum EncodeAndWriteProjectPackageFileFailure {
+    ProjectFile(ProjectFileCommandFailure),
+    ProjectPackage(ProjectPackageCommandFailure),
+    Destination(ProjectPackageDestinationFailure),
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct EncodeAndWriteProjectPackageFileSuccess {
+    status: &'static str,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CapturePlanDto {
+    version: u8,
+    captures: Vec<CaptureDto>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CaptureDto {
+    owner_id: String,
+    decision: CaptureDecisionDto,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+enum CaptureDecisionDto {
+    NoAcceptedAsset,
+    ProjectOwnedDataUrl,
+    QualifiedBuiltIn { compatibility_id: String },
+    UnsupportedNonportableAsset,
+}
+
+#[derive(Debug)]
+struct ParsedWriteRequest<'a> {
+    project_json: &'a [u8],
+    captures: Vec<AssetCapture>,
+}
+
+fn write_request_failure(category: &'static str) -> EncodeAndWriteProjectPackageFileFailure {
+    EncodeAndWriteProjectPackageFileFailure::ProjectFile(
+        ProjectFileCommandFailure::package_write_request_failure(
+            category,
+            "project-package-write-request",
+        ),
+    )
+}
+
+fn read_be_u32(bytes: &[u8]) -> Option<usize> {
+    let bytes: [u8; 4] = bytes.try_into().ok()?;
+    usize::try_from(u32::from_be_bytes(bytes)).ok()
+}
+
+fn parse_index(value: &str) -> Option<usize> {
+    if value.is_empty() || (value.len() > 1 && value.starts_with('0')) {
+        return None;
+    }
+    let value = value.parse::<usize>().ok()?;
+    (value < MAX_CONCRETE_OWNERS).then_some(value)
+}
+
+fn parse_surface(value: &str) -> Option<CaseSurface> {
+    match value {
+        "cover" => Some(CaseSurface::Cover),
+        "tray" => Some(CaseSurface::Tray),
+        "spine-left" => Some(CaseSurface::SpineLeft),
+        "spine-right" => Some(CaseSurface::SpineRight),
+        _ => None,
+    }
+}
+
+fn parse_platform(value: &str) -> Option<PlatformKind> {
+    match value {
+        "pc" => Some(PlatformKind::Pc),
+        "windows" => Some(PlatformKind::Windows),
+        "linux" => Some(PlatformKind::Linux),
+        "steamDeck" => Some(PlatformKind::SteamDeck),
+        "macos" => Some(PlatformKind::Macos),
+        _ => None,
+    }
+}
+
+fn parse_technical(value: &str) -> Option<TechnicalKind> {
+    match value {
+        "audio" => Some(TechnicalKind::Audio),
+        "surround" => Some(TechnicalKind::Surround),
+        "codec" => Some(TechnicalKind::Codec),
+        "middleware" => Some(TechnicalKind::Middleware),
+        "technology" => Some(TechnicalKind::Technology),
+        _ => None,
+    }
+}
+
+fn parse_owner_id(value: &str) -> Option<AssetOwner> {
+    let mut segments = value.split('.');
+    let first = segments.next()?;
+    let second = segments.next()?;
+    let third = segments.next();
+    let fourth = segments.next();
+    let fifth = segments.next();
+    if segments.next().is_some() {
+        return None;
+    }
+
+    match (first, second, third, fourth, fifth) {
+        ("disc", "background", None, None, None) => Some(AssetOwner::DiscBackground),
+        ("disc", "steam-banner", None, None, None) => Some(AssetOwner::DiscSteamBanner),
+        ("disc", "logo", Some(role), None, None) => Some(AssetOwner::DiscPrimaryLogo {
+            role: match role {
+                "developer" => LogoRole::Developer,
+                "publisher" => LogoRole::Publisher,
+                _ => return None,
+            },
+        }),
+        ("disc", "logo", Some(role), Some("additional"), Some(index)) => {
+            Some(AssetOwner::DiscAdditionalLogo {
+                role: match role {
+                    "developer" => LogoRole::Developer,
+                    "publisher" => LogoRole::Publisher,
+                    _ => return None,
+                },
+                index: parse_index(index)?,
+            })
+        }
+        ("disc", "title", Some("current"), None, None) => Some(AssetOwner::DiscTitleCurrent),
+        ("disc", "title", Some("default"), None, None) => Some(AssetOwner::DiscTitleDefault),
+        ("disc", "artwork", Some("additional"), Some(index), None) => {
+            Some(AssetOwner::DiscAdditionalArtwork {
+                index: parse_index(index)?,
+            })
+        }
+        ("disc", "rating", Some("custom"), None, None) => Some(AssetOwner::DiscRatingCustom),
+        ("disc", "media", Some("custom"), None, None) => Some(AssetOwner::DiscMediaCustom),
+        ("disc", "platform", Some(platform), None, None) => Some(AssetOwner::DiscPlatformCustom {
+            platform: parse_platform(platform)?,
+        }),
+        ("disc", "technical", Some(technical), None, None) => {
+            Some(AssetOwner::DiscTechnicalPrimary {
+                technical: parse_technical(technical)?,
+            })
+        }
+        ("disc", "technical", Some(technical), Some("additional"), Some(index)) => {
+            Some(AssetOwner::DiscTechnicalAdditional {
+                technical: parse_technical(technical)?,
+                index: parse_index(index)?,
+            })
+        }
+        ("case", surface, Some("banner"), None, None) => Some(AssetOwner::CaseBanner {
+            surface: parse_surface(surface)?,
+        }),
+        ("case", surface, Some("background"), None, None) => Some(AssetOwner::CaseBackground {
+            surface: parse_surface(surface)?,
+        }),
+        ("case", surface, Some("title"), Some("current"), None) => {
+            Some(AssetOwner::CaseTitleCurrent {
+                surface: parse_surface(surface)?,
+            })
+        }
+        ("case", surface, Some("title"), Some("default"), None) => {
+            Some(AssetOwner::CaseTitleDefault {
+                surface: parse_surface(surface)?,
+            })
+        }
+        ("case", surface, Some(kind), Some(index), None) => {
+            let surface = parse_surface(surface)?;
+            let index = parse_index(index)?;
+            match kind {
+                "artwork" => Some(AssetOwner::CaseArtwork { surface, index }),
+                "logo" => Some(AssetOwner::CaseLogo { surface, index }),
+                "mark" => Some(AssetOwner::CaseMark { surface, index }),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+fn parse_write_request(bytes: &[u8]) -> Result<ParsedWriteRequest<'_>, &'static str> {
+    if bytes.len() < WRITE_REQUEST_HEADER_BYTES || &bytes[..8] != WRITE_REQUEST_MAGIC {
+        return Err("framing-invalid");
+    }
+    let plan_length = read_be_u32(&bytes[8..12]).ok_or("framing-invalid")?;
+    let project_length = read_be_u32(&bytes[12..16]).ok_or("framing-invalid")?;
+    if plan_length > MAX_CAPTURE_PLAN_BYTES || project_length > MAX_PROJECT_JSON_BYTES {
+        return Err("size-limit-exceeded");
+    }
+    let plan_end = WRITE_REQUEST_HEADER_BYTES
+        .checked_add(plan_length)
+        .ok_or("size-limit-exceeded")?;
+    let project_end = plan_end
+        .checked_add(project_length)
+        .ok_or("size-limit-exceeded")?;
+    if project_end != bytes.len() {
+        return Err("framing-invalid");
+    }
+    let plan: CapturePlanDto = serde_json::from_slice(&bytes[WRITE_REQUEST_HEADER_BYTES..plan_end])
+        .map_err(|_| "capture-plan-invalid")?;
+    if plan.version != 1 || plan.captures.len() > MAX_CONCRETE_OWNERS {
+        return Err("capture-plan-invalid");
+    }
+    let mut captures = Vec::new();
+    captures
+        .try_reserve_exact(plan.captures.len())
+        .map_err(|_| "allocation-denied")?;
+    for capture in plan.captures {
+        let owner = parse_owner_id(&capture.owner_id).ok_or("capture-plan-invalid")?;
+        let decision = match capture.decision {
+            CaptureDecisionDto::NoAcceptedAsset => AssetCaptureDecision::NoAcceptedAsset,
+            CaptureDecisionDto::ProjectOwnedDataUrl => AssetCaptureDecision::ProjectOwnedDataUrl,
+            CaptureDecisionDto::QualifiedBuiltIn { compatibility_id } => {
+                AssetCaptureDecision::qualified_built_in(&compatibility_id)
+                    .map_err(|_| "capture-plan-invalid")?
+            }
+            CaptureDecisionDto::UnsupportedNonportableAsset => {
+                AssetCaptureDecision::UnsupportedNonportableAsset
+            }
+        };
+        captures.push(AssetCapture::new(owner, decision));
+    }
+    Ok(ParsedWriteRequest {
+        project_json: &bytes[plan_end..project_end],
+        captures,
+    })
+}
+
+fn has_sbls_suffix(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("sbls"))
+}
+
+fn require_distinct_legacy_destination(
+    source: &Path,
+    destination: &Path,
+) -> Result<(), EncodeAndWriteProjectPackageFileFailure> {
+    match compare_legacy_source_destination(source, destination) {
+        LegacyDestinationIdentity::Distinct => Ok(()),
+        LegacyDestinationIdentity::Conflict | LegacyDestinationIdentity::Indeterminate => {
+            Err(EncodeAndWriteProjectPackageFileFailure::Destination(
+                ProjectPackageDestinationFailure::new(DestinationFailureCode::ConflictsSource),
+            ))
+        }
+    }
+}
+
+fn encode_and_write_request_with<F>(
+    headers: &HeaderMap,
+    body: &InvokeBody,
+    before_commit_identity_check: F,
+) -> Result<EncodeAndWriteProjectPackageFileSuccess, EncodeAndWriteProjectPackageFileFailure>
+where
+    F: FnMut(),
+{
+    let mut before_commit_identity_check = before_commit_identity_check;
+    let destination = path_from_headers(headers).map_err(|failure| {
+        EncodeAndWriteProjectPackageFileFailure::ProjectFile(
+            ProjectFileCommandFailure::package_write_request_failure(
+                failure.category(),
+                "project-package-write-destination",
+            ),
+        )
+    })?;
+    if !has_sbls_suffix(&destination) {
+        return Err(EncodeAndWriteProjectPackageFileFailure::Destination(
+            ProjectPackageDestinationFailure::new(DestinationFailureCode::ExtensionInvalid),
+        ));
+    }
+    let legacy_source =
+        path_from_named_header(headers, LEGACY_SOURCE_PATH_HEADER_NAME).map_err(|failure| {
+            EncodeAndWriteProjectPackageFileFailure::ProjectFile(
+                ProjectFileCommandFailure::package_write_request_failure(
+                    failure.category(),
+                    "project-package-write-legacy-source",
+                ),
+            )
+        })?;
+    if let Some(source) = &legacy_source {
+        require_distinct_legacy_destination(source, &destination)?;
+    }
+    let bytes = match body {
+        InvokeBody::Raw(bytes) => bytes.as_slice(),
+        InvokeBody::Json(_) => return Err(write_request_failure("raw-body-required")),
+    };
+    let request = parse_write_request(bytes).map_err(write_request_failure)?;
+    let creator = PackageCreator::steam_backup_label_studio(env!("CARGO_PKG_VERSION"))
+        .map_err(ProjectPackageCommandFailure::from)
+        .map_err(EncodeAndWriteProjectPackageFileFailure::ProjectPackage)?;
+    let package =
+        encode_project_package_from_borrowed(request.project_json, &creator, &request.captures)
+            .map_err(ProjectPackageCommandFailure::from)
+            .map_err(EncodeAndWriteProjectPackageFileFailure::ProjectPackage)?;
+    drop(request.captures);
+
+    let write_result = project_file::write_with_precommit_guard(&destination, &package, || {
+        before_commit_identity_check();
+        if let Some(source) = &legacy_source {
+            match compare_legacy_source_destination(source, &destination) {
+                LegacyDestinationIdentity::Distinct => Ok(()),
+                LegacyDestinationIdentity::Conflict | LegacyDestinationIdentity::Indeterminate => {
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "legacy source identity conflict",
+                    ))
+                }
+            }
+        } else {
+            Ok(())
+        }
+    });
+    drop(package);
+    if let Err(error) = write_result {
+        if error.phase() == AtomicProjectWritePhase::PreCommitValidation {
+            return Err(EncodeAndWriteProjectPackageFileFailure::Destination(
+                ProjectPackageDestinationFailure::new(DestinationFailureCode::ConflictsSource),
+            ));
+        }
+        return Err(EncodeAndWriteProjectPackageFileFailure::ProjectFile(
+            ProjectFileCommandFailure::from_atomic(error),
+        ));
+    }
+    Ok(EncodeAndWriteProjectPackageFileSuccess { status: "success" })
+}
+
+fn encode_and_write_request(
+    headers: &HeaderMap,
+    body: &InvokeBody,
+) -> Result<EncodeAndWriteProjectPackageFileSuccess, EncodeAndWriteProjectPackageFileFailure> {
+    encode_and_write_request_with(headers, body, || {})
+}
+
+#[tauri::command]
+pub(crate) fn encode_and_write_project_package_file(
+    request: Request<'_>,
+) -> Result<EncodeAndWriteProjectPackageFileSuccess, EncodeAndWriteProjectPackageFileFailure> {
+    encode_and_write_request(request.headers(), request.body())
 }
 
 fn decode_request_with<R, D>(
@@ -88,10 +511,39 @@ mod tests {
         ProjectPackageEncodeInput, TechnicalKind,
     };
     use serde_json::json;
+    use std::fs;
     use std::io;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::sync::{Arc, Barrier};
     use tauri::http::HeaderValue;
     use tauri::ipc::{InvokeResponseBody, IpcResponse};
+
+    static TEST_DIRECTORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+    struct TestDirectory(PathBuf);
+
+    impl TestDirectory {
+        fn new() -> Self {
+            let sequence = TEST_DIRECTORY_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "sbls-package-write-command-{}-{sequence}",
+                std::process::id()
+            ));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+
+        fn join(&self, name: &str) -> PathBuf {
+            self.0.join(name)
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
 
     fn encode_path(path: &str) -> String {
         let mut encoded = String::new();
@@ -119,6 +571,17 @@ mod tests {
 
     fn project_asset(owner: AssetOwner) -> AssetCapture {
         AssetCapture::new(owner, AssetCaptureDecision::ProjectOwnedDataUrl)
+    }
+
+    fn no_asset(owner: AssetOwner) -> AssetCapture {
+        AssetCapture::new(owner, AssetCaptureDecision::NoAcceptedAsset)
+    }
+
+    fn qualified_asset(owner: AssetOwner, compatibility_id: &str) -> AssetCapture {
+        AssetCapture::new(
+            owner,
+            AssetCaptureDecision::qualified_built_in(compatibility_id).unwrap(),
+        )
     }
 
     fn disc_captures() -> Vec<AssetCapture> {
@@ -162,6 +625,61 @@ mod tests {
         captures
     }
 
+    fn default_disc_captures() -> Vec<AssetCapture> {
+        let mut captures = vec![
+            no_asset(AssetOwner::DiscBackground),
+            qualified_asset(AssetOwner::DiscSteamBanner, "steam-banner:banner-lockup"),
+            qualified_asset(
+                AssetOwner::DiscPrimaryLogo {
+                    role: LogoRole::Developer,
+                },
+                "logo:developer",
+            ),
+            qualified_asset(
+                AssetOwner::DiscPrimaryLogo {
+                    role: LogoRole::Publisher,
+                },
+                "logo:publisher",
+            ),
+            no_asset(AssetOwner::DiscTitleCurrent),
+            no_asset(AssetOwner::DiscTitleDefault),
+            no_asset(AssetOwner::DiscRatingCustom),
+            no_asset(AssetOwner::DiscMediaCustom),
+        ];
+        captures.extend(
+            PlatformKind::ALL
+                .into_iter()
+                .map(|platform| no_asset(AssetOwner::DiscPlatformCustom { platform })),
+        );
+        captures.extend(
+            TechnicalKind::ALL
+                .into_iter()
+                .map(|technical| no_asset(AssetOwner::DiscTechnicalPrimary { technical })),
+        );
+        captures
+    }
+
+    fn default_case_captures() -> Vec<AssetCapture> {
+        let mut captures = Vec::new();
+        for surface in CaseSurface::ALL {
+            captures.extend([
+                qualified_asset(
+                    AssetOwner::CaseBanner { surface },
+                    match surface {
+                        CaseSurface::Cover | CaseSurface::Tray => "steam-banner:banner-lockup",
+                        CaseSurface::SpineLeft | CaseSurface::SpineRight => {
+                            "steam-banner:spine-icon"
+                        }
+                    },
+                ),
+                no_asset(AssetOwner::CaseBackground { surface }),
+                no_asset(AssetOwner::CaseTitleCurrent { surface }),
+                no_asset(AssetOwner::CaseTitleDefault { surface }),
+            ]);
+        }
+        captures
+    }
+
     fn package(project: &[u8], captures: Vec<AssetCapture>) -> Vec<u8> {
         encode_project_package(&ProjectPackageEncodeInput::new(
             project.to_vec(),
@@ -169,6 +687,127 @@ mod tests {
             captures,
         ))
         .unwrap()
+    }
+
+    fn owner_id(owner: AssetOwner) -> String {
+        match owner {
+            AssetOwner::DiscBackground => "disc.background".into(),
+            AssetOwner::DiscSteamBanner => "disc.steam-banner".into(),
+            AssetOwner::DiscPrimaryLogo { role } => format!(
+                "disc.logo.{}",
+                match role {
+                    LogoRole::Developer => "developer",
+                    LogoRole::Publisher => "publisher",
+                }
+            ),
+            AssetOwner::DiscAdditionalLogo { role, index } => format!(
+                "disc.logo.{}.additional.{index}",
+                match role {
+                    LogoRole::Developer => "developer",
+                    LogoRole::Publisher => "publisher",
+                }
+            ),
+            AssetOwner::DiscTitleCurrent => "disc.title.current".into(),
+            AssetOwner::DiscTitleDefault => "disc.title.default".into(),
+            AssetOwner::DiscAdditionalArtwork { index } => {
+                format!("disc.artwork.additional.{index}")
+            }
+            AssetOwner::DiscRatingCustom => "disc.rating.custom".into(),
+            AssetOwner::DiscMediaCustom => "disc.media.custom".into(),
+            AssetOwner::DiscPlatformCustom { platform } => {
+                format!("disc.platform.{}", platform.as_str())
+            }
+            AssetOwner::DiscTechnicalPrimary { technical } => {
+                format!("disc.technical.{}", technical.as_str())
+            }
+            AssetOwner::DiscTechnicalAdditional { technical, index } => {
+                format!("disc.technical.{}.additional.{index}", technical.as_str())
+            }
+            AssetOwner::CaseBanner { surface } => {
+                format!("case.{}.banner", surface_id(surface))
+            }
+            AssetOwner::CaseBackground { surface } => {
+                format!("case.{}.background", surface_id(surface))
+            }
+            AssetOwner::CaseTitleCurrent { surface } => {
+                format!("case.{}.title.current", surface_id(surface))
+            }
+            AssetOwner::CaseTitleDefault { surface } => {
+                format!("case.{}.title.default", surface_id(surface))
+            }
+            AssetOwner::CaseArtwork { surface, index } => {
+                format!("case.{}.artwork.{index}", surface_id(surface))
+            }
+            AssetOwner::CaseLogo { surface, index } => {
+                format!("case.{}.logo.{index}", surface_id(surface))
+            }
+            AssetOwner::CaseMark { surface, index } => {
+                format!("case.{}.mark.{index}", surface_id(surface))
+            }
+        }
+    }
+
+    fn surface_id(surface: CaseSurface) -> &'static str {
+        match surface {
+            CaseSurface::Cover => "cover",
+            CaseSurface::Tray => "tray",
+            CaseSurface::SpineLeft => "spine-left",
+            CaseSurface::SpineRight => "spine-right",
+        }
+    }
+
+    fn write_request(project: &[u8], captures: &[AssetCapture]) -> Vec<u8> {
+        let capture_values = captures
+            .iter()
+            .map(|capture| {
+                let decision = match capture.decision() {
+                    AssetCaptureDecision::NoAcceptedAsset => {
+                        json!({"kind": "no-accepted-asset"})
+                    }
+                    AssetCaptureDecision::ProjectOwnedDataUrl => {
+                        json!({"kind": "project-owned-data-url"})
+                    }
+                    AssetCaptureDecision::QualifiedBuiltIn { compatibility_id } => json!({
+                        "kind": "qualified-built-in",
+                        "compatibilityId": compatibility_id,
+                    }),
+                    AssetCaptureDecision::UnsupportedNonportableAsset => {
+                        json!({"kind": "unsupported-nonportable-asset"})
+                    }
+                    AssetCaptureDecision::CapturedBytes { .. }
+                    | AssetCaptureDecision::BuiltInCaptureRequired => {
+                        panic!("decision is not representable by the package-write request")
+                    }
+                };
+                json!({
+                    "ownerId": owner_id(capture.owner()),
+                    "decision": decision,
+                })
+            })
+            .collect::<Vec<_>>();
+        let plan = serde_json::to_vec(&json!({
+            "version": 1,
+            "captures": capture_values,
+        }))
+        .unwrap();
+        let mut request = Vec::with_capacity(16 + plan.len() + project.len());
+        request.extend_from_slice(WRITE_REQUEST_MAGIC);
+        request.extend_from_slice(&u32::try_from(plan.len()).unwrap().to_be_bytes());
+        request.extend_from_slice(&u32::try_from(project.len()).unwrap().to_be_bytes());
+        request.extend_from_slice(&plan);
+        request.extend_from_slice(project);
+        request
+    }
+
+    fn write_headers(destination: &Path, legacy_source: Option<&Path>) -> HeaderMap {
+        let mut headers = headers_for(destination.to_str().unwrap());
+        if let Some(source) = legacy_source {
+            headers.insert(
+                LEGACY_SOURCE_PATH_HEADER_NAME,
+                HeaderValue::from_str(&encode_path(source.to_str().unwrap())).unwrap(),
+            );
+        }
+        headers
     }
 
     fn one_pixel_bmp_data_url() -> String {
@@ -297,6 +936,59 @@ mod tests {
                 "spine": {
                     "left": empty_case_surface(),
                     "right": empty_case_surface()
+                }
+            }
+        }))
+        .unwrap()
+    }
+
+    fn default_disc_project() -> Vec<u8> {
+        serde_json::to_vec(&json!({
+            "schemaVersion": "0.2.0",
+            "projectType": "disc",
+            "template": {"type": "disc"},
+            "background": {"imageDataUrl": null},
+            "steamBackupLogo": {"placement": "top", "lockupImageDataUrl": null},
+            "logoAssets": {
+                "developerLogoDataUrl": null,
+                "publisherLogoDataUrl": null,
+                "additionalDeveloperLogos": [],
+                "additionalPublisherLogos": []
+            },
+            "additionalArtwork": {"elements": []}
+        }))
+        .unwrap()
+    }
+
+    fn default_case_surface(source_id: &str) -> serde_json::Value {
+        json!({
+            "steamBanner": {
+                "lockupImageDataUrl": null,
+                "lockupImageSource": {
+                    "source": "built-in",
+                    "sourceId": source_id
+                }
+            },
+            "background": {"imageDataUrl": null},
+            "artworkSlots": [],
+            "logoSlots": [],
+            "markSlots": []
+        })
+    }
+
+    fn default_case_project() -> Vec<u8> {
+        serde_json::to_vec(&json!({
+            "schemaVersion": "0.2.0",
+            "projectType": "caseInsert",
+            "template": {"type": "caseInsert"},
+            "caseInsert": {
+                "templates": {
+                    "cover": default_case_surface("case-steam-banner:cover-lockup"),
+                    "tray": default_case_surface("case-steam-banner:cover-lockup")
+                },
+                "spine": {
+                    "left": default_case_surface("case-steam-banner:spine-icon"),
+                    "right": default_case_surface("case-steam-banner:spine-icon")
                 }
             }
         }))
@@ -506,5 +1198,211 @@ mod tests {
         for handle in handles {
             handle.join().unwrap();
         }
+    }
+
+    #[test]
+    fn write_request_framing_rejects_malformed_oversized_and_trailing_input() {
+        for (bytes, expected) in [
+            (Vec::new(), "framing-invalid"),
+            (WRITE_REQUEST_MAGIC.to_vec(), "framing-invalid"),
+            (
+                {
+                    let mut bytes = vec![0_u8; WRITE_REQUEST_HEADER_BYTES];
+                    bytes[..8].copy_from_slice(WRITE_REQUEST_MAGIC);
+                    bytes[8..12].copy_from_slice(
+                        &(u32::try_from(MAX_CAPTURE_PLAN_BYTES).unwrap() + 1).to_be_bytes(),
+                    );
+                    bytes
+                },
+                "size-limit-exceeded",
+            ),
+            (
+                {
+                    let project = minimal_disc_project();
+                    let mut bytes = write_request(&project, &disc_captures());
+                    bytes.push(0);
+                    bytes
+                },
+                "framing-invalid",
+            ),
+        ] {
+            assert_eq!(parse_write_request(&bytes).unwrap_err(), expected);
+        }
+
+        let project = minimal_disc_project();
+        let mut request = write_request(&project, &disc_captures());
+        request[16] = b'!';
+        assert_eq!(
+            parse_write_request(&request).unwrap_err(),
+            "capture-plan-invalid"
+        );
+    }
+
+    #[test]
+    fn native_write_command_round_trips_minimal_disc_and_case_packages() {
+        let directory = TestDirectory::new();
+        for (name, project, captures) in [
+            ("disc.sbls", minimal_disc_project(), disc_captures()),
+            ("case.SBLS", minimal_case_project(), case_captures()),
+        ] {
+            let destination = directory.join(name);
+            let request = write_request(&project, &captures);
+            let result = encode_and_write_request(
+                &write_headers(&destination, None),
+                &InvokeBody::Raw(request),
+            )
+            .unwrap();
+
+            assert_eq!(result.status, "success");
+            let package_bytes = fs::read(&destination).unwrap();
+            assert!(package_bytes.starts_with(b"PK\x03\x04"));
+            let (hydrated, metadata) = decode_project_package(&package_bytes).unwrap().into_parts();
+            assert_eq!(hydrated, project);
+            assert_eq!(metadata.asset_count(), 1, "duplicate bytes deduplicate");
+            assert_eq!(
+                metadata.binding_count(),
+                captures.len(),
+                "every registered custom owner remains bound"
+            );
+        }
+    }
+
+    #[test]
+    fn native_write_command_preserves_default_built_ins_without_asset_entries() {
+        let directory = TestDirectory::new();
+        for (name, project, captures) in [
+            (
+                "default-disc.sbls",
+                default_disc_project(),
+                default_disc_captures(),
+            ),
+            (
+                "default-case.sbls",
+                default_case_project(),
+                default_case_captures(),
+            ),
+        ] {
+            let destination = directory.join(name);
+            encode_and_write_request(
+                &write_headers(&destination, None),
+                &InvokeBody::Raw(write_request(&project, &captures)),
+            )
+            .unwrap();
+
+            let (hydrated, metadata) = decode_project_package(&fs::read(destination).unwrap())
+                .unwrap()
+                .into_parts();
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&hydrated).unwrap(),
+                serde_json::from_slice::<serde_json::Value>(&project).unwrap(),
+            );
+            assert_eq!(metadata.asset_count(), 0);
+            assert_eq!(metadata.binding_count(), 0);
+        }
+    }
+
+    #[test]
+    fn destination_validation_and_legacy_alias_checks_precede_writing() {
+        let directory = TestDirectory::new();
+        let source = directory.join("legacy.sbls");
+        fs::write(&source, b"legacy source bytes").unwrap();
+        let request = write_request(&minimal_disc_project(), &disc_captures());
+
+        let wrong_extension = directory.join("new.json");
+        let wrong = encode_and_write_request(
+            &write_headers(&wrong_extension, None),
+            &InvokeBody::Raw(request.clone()),
+        )
+        .unwrap_err();
+        assert!(matches!(
+            wrong,
+            EncodeAndWriteProjectPackageFileFailure::Destination(
+                ProjectPackageDestinationFailure {
+                    code: "project.package.destination-extension-invalid",
+                    ..
+                }
+            )
+        ));
+        assert!(!wrong_extension.exists());
+
+        let conflict = encode_and_write_request(
+            &write_headers(&source, Some(&source)),
+            &InvokeBody::Raw(request),
+        )
+        .unwrap_err();
+        assert!(matches!(
+            conflict,
+            EncodeAndWriteProjectPackageFileFailure::Destination(
+                ProjectPackageDestinationFailure {
+                    code: "project.legacy-conversion.destination-conflicts-source",
+                    ..
+                }
+            )
+        ));
+        assert_eq!(fs::read(&source).unwrap(), b"legacy source bytes");
+    }
+
+    #[test]
+    fn distinct_legacy_conversion_preserves_source_and_commits_package() {
+        let directory = TestDirectory::new();
+        let source = directory.join("legacy.json");
+        let destination = directory.join("converted.sbls");
+        fs::write(&source, b"legacy source bytes").unwrap();
+        let project = minimal_disc_project();
+        let request = write_request(&project, &disc_captures());
+
+        encode_and_write_request(
+            &write_headers(&destination, Some(&source)),
+            &InvokeBody::Raw(request),
+        )
+        .unwrap();
+
+        assert_eq!(fs::read(&source).unwrap(), b"legacy source bytes");
+        let package_bytes = fs::read(destination).unwrap();
+        assert_eq!(
+            decode_project_package(&package_bytes)
+                .unwrap()
+                .into_parts()
+                .0,
+            project
+        );
+    }
+
+    #[test]
+    fn commit_boundary_recheck_catches_destination_alias_race() {
+        let directory = TestDirectory::new();
+        let source = directory.join("legacy.json");
+        let destination = directory.join("converted.sbls");
+        fs::write(&source, b"legacy source bytes").unwrap();
+        fs::write(&destination, b"prior destination bytes").unwrap();
+        let request = write_request(&minimal_disc_project(), &disc_captures());
+
+        let result = encode_and_write_request_with(
+            &write_headers(&destination, Some(&source)),
+            &InvokeBody::Raw(request),
+            || {
+                fs::remove_file(&destination).unwrap();
+                fs::hard_link(&source, &destination).unwrap();
+            },
+        )
+        .unwrap_err();
+
+        assert!(matches!(
+            result,
+            EncodeAndWriteProjectPackageFileFailure::Destination(
+                ProjectPackageDestinationFailure {
+                    code: "project.legacy-conversion.destination-conflicts-source",
+                    ..
+                }
+            )
+        ));
+        assert_eq!(fs::read(&source).unwrap(), b"legacy source bytes");
+        assert_eq!(fs::read(&destination).unwrap(), b"legacy source bytes");
+        let leftovers = fs::read_dir(&directory.0)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().contains(".tmp"))
+            .count();
+        assert_eq!(leftovers, 0);
     }
 }

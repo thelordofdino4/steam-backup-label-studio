@@ -13,6 +13,10 @@ import {
 
 export type ProjectSessionId = string
 
+export type ProjectPersistenceFormat =
+  | 'legacy-json'
+  | 'sbls-package-v1'
+
 export type DiscEditorRoute = Readonly<{
   workspace: 'disc'
 }>
@@ -35,6 +39,7 @@ export type ProjectSession = Readonly<{
   id: ProjectSessionId
   kind: EditorProjectType
   currentPath: string | null
+  persistenceFormat: ProjectPersistenceFormat | null
   displayName: string
   project: NormalizedPersistableProject
   cleanBaseline: ProjectCleanBaseline | null
@@ -58,11 +63,14 @@ export type NewProjectSessionInput = ProjectSessionSeed
 
 export type LoadedProjectSessionInput = ProjectSessionSeed & Readonly<{
   currentPath: string
+  persistenceFormat: ProjectPersistenceFormat
 }>
 
 export type AdoptSavedBaselineInput = Readonly<{
   acceptedSnapshot: SavedProject
+  currentProject?: SavedProject
   currentPath?: string | null
+  persistenceFormat?: ProjectPersistenceFormat | null
   displayName?: string
 }>
 
@@ -161,6 +169,7 @@ export function captureApplicationLifecycleState(
       id: session.id,
       kind: session.kind,
       currentPath: session.currentPath,
+      persistenceFormat: session.persistenceFormat,
       displayName: session.displayName,
       project,
       cleanBaseline: baselineSnapshot
@@ -187,6 +196,7 @@ export function createNewProjectSession(
       id: input.sessionId,
       kind,
       currentPath: null,
+      persistenceFormat: null,
       displayName: input.displayName ?? project.title,
       project,
       cleanBaseline: null,
@@ -208,6 +218,7 @@ export function createLoadedProjectSession(
       id: input.sessionId,
       kind,
       currentPath: input.currentPath,
+      persistenceFormat: input.persistenceFormat,
       displayName: input.displayName ?? project.title,
       project,
       cleanBaseline: createBaseline(project),
@@ -283,6 +294,12 @@ export function adoptSavedProjectBaseline(
     input.acceptedSnapshot,
   )
   assertSameProjectKind(session.kind, acceptedSnapshot)
+  const currentProject = input.currentProject
+    ? captureNormalizedProjectSnapshot(input.currentProject)
+    : session.project
+  assertSameProjectKind(session.kind, currentProject)
+  const contentAdvanced = createCanonicalProjectComparisonValue(currentProject) !==
+    createCanonicalProjectComparisonValue(session.project)
 
   return Object.freeze({
     ...state,
@@ -291,8 +308,13 @@ export function adoptSavedProjectBaseline(
       currentPath: input.currentPath === undefined
         ? session.currentPath
         : input.currentPath,
+      persistenceFormat: input.persistenceFormat === undefined
+        ? session.persistenceFormat
+        : input.persistenceFormat,
       displayName: input.displayName ?? session.displayName,
+      project: currentProject,
       cleanBaseline: createBaseline(acceptedSnapshot),
+      revision: contentAdvanced ? session.revision + 1 : session.revision,
     }),
   })
 }
@@ -308,6 +330,18 @@ export function isProjectSessionDirty(session: ProjectSession): boolean {
   return session.cleanBaseline === null ||
     createCanonicalProjectComparisonValue(session.project) !==
       session.cleanBaseline.comparisonValue
+}
+
+export function hasEligibleSblsPath(path: string | null): path is string {
+  if (!path) return false
+  const separator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
+  const fileName = path.slice(separator + 1)
+  return fileName.length > 5 && fileName.toLowerCase().endsWith('.sbls')
+}
+
+export function canSaveProjectSessionDirectly(session: ProjectSession): boolean {
+  return session.persistenceFormat === 'sbls-package-v1' &&
+    hasEligibleSblsPath(session.currentPath)
 }
 
 export function selectIsActiveProjectDirty(

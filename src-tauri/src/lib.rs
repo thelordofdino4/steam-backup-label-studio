@@ -1,4 +1,5 @@
 mod commands;
+mod legacy_project_identity;
 mod platform;
 mod project_binary_io;
 mod project_file;
@@ -12,6 +13,7 @@ fn application_invoke_handler<R: tauri::Runtime>(
         commands::project_files::read_binary_project_file,
         commands::project_files::write_binary_project_file,
         commands::project_packages::decode_project_package_file,
+        commands::project_packages::encode_and_write_project_package_file,
         commands::steam::search_steam_store,
         commands::steam::fetch_steam_app_details,
         commands::steam::fetch_steam_store_items,
@@ -55,6 +57,7 @@ mod tests {
             ("project_files", "read_binary_project_file"),
             ("project_files", "write_binary_project_file"),
             ("project_packages", "decode_project_package_file"),
+            ("project_packages", "encode_and_write_project_package_file"),
         ] {
             let qualified = ["commands::", module, "::", command].concat();
             assert_eq!(

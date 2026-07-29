@@ -4,25 +4,28 @@
 > Purpose: Define application-command semantics, the single-project session lifecycle, dirty/baseline rules, lifecycle guards, and shared result/feedback boundaries for future implementation.
 > Read when: Application commands, Home/editor navigation, project New/Open/Save/Save As/Close behavior, native close/Quit handling, global shortcuts, or lifecycle feedback are being designed or changed.
 > Authoritative source: This document for the target application-command and project-session contract; `PROJECT_FILE_SPEC.md` remains authoritative for hydrated serialized project schema, `PROJECT_PACKAGE_FORMAT_CONTRACT.md` owns target package/container behavior, and the SDD remains authoritative for broader architecture and current as-built boundaries.
-> Evidence baseline: `main` at `42c58821ad355a0cbc3ee602c94ec67ac7345de0` plus the dormant package Open staging checkpoint documented below.
+> Evidence baseline: `main` at `607ab5ffc73f22f71105ea7e5434c93f3de439ef` plus the package Save/Save As checkpoint documented below.
 
 Last refreshed: 2026-07-28.
 
-Implementation checkpoint, 2026-07-28: one production lifecycle composition
-root is now mounted at the React application boundary, and `project.open` is
-the first runtime-connected lifecycle command. Open stages one immutable Disc
-or Case Insert candidate without live mutation, then commits its path-bearing
-clean session and complete editor aggregate in one synchronous React batch.
-All other lifecycle operation ports remain explicitly unimplemented. The
-dirty-aware replacement guard, Save/Save As migration, Home Resume, Close
-Project, native Close Window/Quit, global feedback, and application menu remain
-absent.
+Implementation checkpoint, 2026-07-29: one production lifecycle composition
+root is mounted at the React application boundary. `project.open`,
+`project.save`, and `project.save-as` have production owners. Legacy Open stages
+one immutable Disc or Case Insert candidate and commits a path-bearing clean
+`legacy-json` session. Save and Save As capture one immutable current aggregate,
+write `.sbls` package bytes through the native codec/atomic-writer composition,
+and adopt `sbls-package-v1`, the committed path, and the exact written baseline
+only after success. Newer edits remain current and dirty.
+
+The dirty-aware replacement guard, Home Resume, Close Project, native Close
+Window/Quit, global feedback, production package Open, and application menu
+remain absent.
 
 A separate dormant package Open adapter now performs native-owned bounded
 read/decode, returns hydrated JSON bytes through a strict TypeScript transport,
 and reuses the same mutation-free candidate-staging owner as legacy Open. No
-production lifecycle port, dialog/filter, format identity, replacement guard,
-or session commit calls that adapter; this is staging infrastructure rather
+production Open port, dialog/filter, replacement guard, or session commit calls
+that decode adapter; this is staging infrastructure rather
 than package-format adoption.
 
 ## 1. Status, Authority, And Document Relationships
@@ -111,15 +114,15 @@ slice.
 
 | Current fact / later checkpoint correction | Evidence | Architectural consequence |
 | --- | --- | --- |
-| “Save Project” always opens a save dialog, creates a snapshot, writes it, and discards the selected path after the call. It is Save As behavior, not ordinary Save. | `src/components/sidebar/ProjectPanel.tsx`, `src/app/appProjectSave.ts`, `src/app/appProjectSave.test.ts` | A path-owning session and distinct Save/Save As commands are still missing. |
-| A project successfully accepted through `project.open` now receives an authoritative session ID, selected path, exact normalized project and clean baseline, revision zero, and editor route. Legacy New and Save paths do not yet synchronize their editor mutations with that session authority, and ordinary Save is still absent. | `src/app/appProjectOpenCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for the remaining lifecycle integration. |
+| Historical “Save Project” was dialog-only JSON Save As. The current Project File control dispatches `project.save`; `project.save-as` is a distinct semantic owner. Only a truthful package session with an eligible `.sbls` path writes directly, while pathless, legacy, and wrong-suffix sessions route internally through Save As. | `src/app/appProjectSaveCommand.ts`, `src/app/App.tsx`, focused tests | The production bypass was removed without adding menu presentation. |
+| A project successfully accepted through `project.open` receives an authoritative session ID, selected path, `legacy-json`, exact normalized project and clean baseline, revision zero, and editor route. New projects establish pathless sessions with null persistence identity. Successful package writes preserve the session ID and adopt `sbls-package-v1` only after commit. | `src/app/appProjectOpenCommand.ts`, `src/app/appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for replacement guards, Resume, Close, and broader lifecycle completion. |
 | New Disc inside the Disc editor always asks for confirmation; Home New Disc/New Case reset immediately; Return Home asks separately while retaining current hook/App state. | `src/app/App.tsx`, `src/components/home/HomeScreen.tsx` | New/Open/Home do not consume one shared dirty-aware guard. |
 | Open now completes dialog, read, parse, validation/migration, route resolution, Disc image inspection, restoration, preset reconstruction, and Case branding projection before returning one immutable discriminated candidate. Its lifecycle CAS and complete editor aggregate are then scheduled inside one React batch; stale CAS applies no editor state. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, `src/app/appProjectOpenCommand.ts`, focused tests | The two-phase Open and atomic application seam is runtime-connected for current Home, Disc, and Case Load controls. |
-| A dormant package adapter now composes the bounded native reader and package codec, transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open. | `src-tauri/src/commands/project_packages.rs`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing and restoration stay shared; production `project.open` remains legacy JSON-only until package Open and Save/Save As activate together. |
-| `project.open` now returns the shared typed result taxonomy through the dispatcher. A narrow compatibility adapter forwards at most one message to the existing status owner; legacy Save still uses its prior string callback. | `src/app/appProjectOpenFeedback.ts`, `src/app/appProjectSave.ts`, `src/app/App.tsx` | #300 remains applicable because the shared global feedback owner is not implemented. |
+| A dormant package adapter now composes the bounded native reader and package codec, transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open. | `src-tauri/src/commands/project_packages.rs`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing and restoration stay shared; production `project.open` remains legacy JSON-only even though package Save/Save As is now connected. |
+| `project.open`, `project.save`, and `project.save-as` return the shared typed result taxonomy through the dispatcher. Narrow presentation adapters forward at most one message to the existing status owner. | `src/app/appProjectOpenFeedback.ts`, `src/app/appProjectSaveCommand.ts`, `src/app/App.tsx` | #300 remains applicable because the shared global feedback owner is not implemented. |
 | Status toasts are rendered by editor previews. Home has a separate status message, but Home-triggered Open cancellation/failure only calls the preview-oriented announcer. | `src/hooks/useStatusToasts.ts`, `src/components/preview/PreviewToastStack.tsx`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx` | Home can miss meaningful Open feedback; #300 remains applicable. |
-| Rust project writes preserve the existing Tauri signature while delegating opaque JSON bytes to a focused same-directory temporary-write-and-replace owner. | `src-tauri/src/commands/files.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | The #312 native persistence prerequisite is implemented in this checkpoint; the broader #308 session, Save/Save As, baseline, dirty-state, and guard work remains unimplemented. |
-| `src/main.tsx` constructs one application-scoped lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed Open adapters without recreating the root. Only the Open production port is implemented; every other lifecycle port remains disabled, and native Tauri/application-menu adapters do not consume the root. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, focused tests | The first runtime slice is implemented without claiming complete lifecycle, native menu, termination, recovery, or history ownership. |
+| Rust project writes delegate opaque bytes to a focused same-directory temporary-write-and-replace owner. The package write command fully encodes first, then passes the owned package buffer directly to that writer; conversion adds native source/destination identity preflight and a final pre-commit recheck. | `src-tauri/src/commands/project_packages.rs`, `src-tauri/src/legacy_project_identity.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | #312 remains the atomic primitive owner; the new composition does not move package or lifecycle semantics into filesystem code. |
+| `src/main.tsx` constructs one application-scoped lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed Open and Save adapters without recreating the root. Open, Save, and Save As are production ports; native Tauri/application-menu presentation does not consume the root. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, focused tests | The persistence foundation is connected without claiming replacement, Resume, native menu, termination, recovery, or history ownership. |
 | Text controls have browser/native editing behavior, but no application-level project history owner exists. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
 | PNG export asks for a destination, then builds preflight, then always opens a confirmation dialog, including when no warning exists. | `src/app/appPngExport.ts`, `src/app/appPngExport.test.ts` | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) owns the stricter target order, with #302 as focused implementation work; this lifecycle contract supplies shared vocabulary only. |
 | The runtime case navigation identity is Front/Back/Spine, while saved project data stores only the coarser Cover/Tray pane. Back versus Spine is not restorable. | `src/editor/editorNavigationShell.ts`, `src/app/App.tsx`, `src/project/caseInsertProjectAdapters.ts`, `src/project/projectTypes.ts` | Full navigation identity is session/UI state. The existing coarse persisted pane remains a schema compatibility fact until separately changed. |
@@ -222,8 +225,8 @@ Canonical comparison must:
 - exclude or stabilize volatile persistence-envelope metadata generated by the
   act of saving, such as `savedAt`, so regenerating a timestamp cannot make an
   otherwise unchanged project dirty;
-- when package support is implemented, apply the same canonical data-URL
-  normalization required by
+- when production package hydration is activated, apply the same canonical
+  data-URL normalization required by
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) to
   current content and the written baseline, so equivalent lexical spelling
   cannot make a successful Save immediately dirty;
@@ -540,14 +543,15 @@ parent-directory sync follows commit, so this contract still does not promise
 power-loss durability for the directory entry, antivirus behavior, or stronger
 filesystem guarantees than the documented host primitive provides.
 
-The target `.sbls` encoder, destination rules, and bounded binary project IPC
+The `.sbls` encoder, destination rules, and narrowly framed package-write IPC
 are defined by
-[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
-The package projection, manifest, archive bytes, and buffers are write-plan
-artifacts; the exact normalized hydrated snapshot remains the baseline. The
-current `write_project_file(String)` path is UTF-8 JSON-only even though the
-underlying #312 writer accepts arbitrary bytes, and the direct PNG binary writer
-must not be used for package Save.
+[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) and
+are now production-connected for Save/Save As. The package projection,
+manifest, archive bytes, and buffers are write-plan artifacts; the exact
+normalized hydrated snapshot remains the baseline. The registered
+`write_project_file(String)` path remains UTF-8 JSON-only but has no production
+Save caller, and the direct PNG binary writer is unchanged and is not used for
+package Save.
 
 ### 12.2 Open As A Two-Phase Transition
 
@@ -745,18 +749,21 @@ Dependency-focused implementation order:
    is mounted at the React application boundary.
 2. Typed command results, registry/dispatcher, centralized state and
    implementation-aware predicates, and lifecycle busy ownership are present;
-   `project.open` is the sole production operation port.
+   `project.open`, `project.save`, and `project.save-as` are production ports.
 3. The atomic persistence primitive implemented under #312 is present and
-   consumed by the legacy text Save path. Dormant bounded binary project
+   retained by the registered legacy text path. Dormant bounded binary project
    read/write adapters and native package read/decode plus shared mutation-free
-   hydration staging are present, but production lifecycle ports do not call
-   them.
+   hydration staging are present. Production Save/Save As instead call the
+   focused native encode-and-atomic-write composition.
 4. Two-phase Open and atomic aggregate load/apply transition are present.
-5. Save/Save As and the dirty-aware replacement guard under #308.
-6. Home Resume and global feedback, including #300.
-7. Native Close Window/Quit adapter with one-use termination authorization.
-8. Shortcut router, #298 focus behavior, and future menu adapters.
-9. Transaction/history owner when separately designed.
+5. Session format identity, package Save/Save As, exact baseline adoption, and
+   legacy-source protection are present; production package Open stays dormant.
+6. Package-aware Open/content recognition and the dirty-aware replacement guard
+   under #308.
+7. Home Resume and global feedback, including #300.
+8. Native Close Window/Quit adapter with one-use termination authorization.
+9. Shortcut router, #298 focus behavior, and future menu adapters.
+10. Transaction/history owner when separately designed.
 
 ## 18. Exclusions And Explicitly Unresolved Questions
 
@@ -783,18 +790,15 @@ The #312 primitive and durability question is now resolved by section 12.1. The
 following questions remain for focused implementation or product decisions
 without weakening the invariants above:
 
-1. How native path identity handles Windows case, UNC paths, symlinks, and
-   path-display normalization while keeping the user-selected destination
-   truthful.
-2. Whether the current serialized coarse Case Cover/Tray pane should remain for
+1. Whether the current serialized coarse Case Cover/Tray pane should remain for
    compatibility, be removed in a future schema version, or expand through a
    separately approved navigation-persistence decision. This contract still
    treats the full Front/Back/Spine route as session-only.
-3. Whether non-conflicting editing is enabled during each platform's native
+2. Whether non-conflicting editing is enabled during each platform's native
    dialog and long file operation. If enabled, the snapshot/revision rules in
    this contract are mandatory.
-4. Exact feedback retention, notification presentation, and diagnostic storage
+3. Exact feedback retention, notification presentation, and diagnostic storage
    policy, provided Home/editor accessibility and non-duplication remain true.
-5. Multi-window semantics if the product ever grows beyond the current
+4. Multi-window semantics if the product ever grows beyond the current
    single-session model; such a change requires a replacement lifecycle
    contract rather than weakening “at most one session” implicitly.

@@ -3,7 +3,7 @@
 > Purpose: Hydrated `SavedProject` schema, current/legacy JSON compatibility, validation, normalization, and migrations.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
 > Authoritative source: This document for hydrated saved-project fields and migrations; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for target package/container behavior; SDD for architecture boundaries.
-> Last reviewed against commit: `42c58821ad355a0cbc3ee602c94ec67ac7345de0` plus the dormant package Open staging checkpoint documented below.
+> Last reviewed against commit: `607ab5ffc73f22f71105ea7e5434c93f3de439ef` plus the package Save/Save As checkpoint documented below.
 
 
 Last refreshed: 2026-07-28.
@@ -19,7 +19,8 @@ without depending on the original local files after reload when assets have been
 embedded.
 
 Application-session metadata is outside this schema. A native current path,
-in-memory session ID, clean baseline, revision, derived dirty state, lifecycle
+`legacy-json`/`sbls-package-v1` persistence identity, in-memory session ID,
+clean baseline, revision, derived dirty state, lifecycle
 busy state, feedback, focus, and dialog state must not become serialized merely
 to implement the draft target lifecycle in
 [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md).
@@ -66,7 +67,10 @@ never infer it from owner coordinates or Guided progress.
 
 ## Current Format
 
-The current implementation saves plain JSON project files. User-facing filenames are commonly named `.sbls.json`.
+Production Save and Save As now write ZIP-compatible package-v1 bytes only to
+an exact user-selected filename ending in `.sbls` under ASCII
+case-insensitive comparison. Plain `.json` and `.sbls.json` files remain
+readable legacy imports; no production command creates a new JSON project.
 
 The current source-of-truth type is `SavedProject` in `src/project/projectTypes.ts`.
 It is a union of `SavedDiscProject` and `SavedCaseInsertProject`.
@@ -84,15 +88,24 @@ normalization, state transitions, source helpers, and focused action modules
 live under `src/caseInsert/`.
 
 The bounded package-domain codec exists as a Rust workspace member. A dormant
-native command now composes the dedicated bounded binary project reader with
-that codec and returns only hydrated JSON bytes; a strict dormant TypeScript
-port performs fatal UTF-8 decoding and delegates to the same mutation-free
-parse/migrate/normalize/route/restore staging owner as legacy Open. The Tauri
-application links the codec only for that registered but uncalled adapter.
-Production `.sbls` Open, Save, Save As, dialog filters, content recognition,
-lifecycle format adoption, and legacy conversion are not implemented.
-Documentation and UI must not imply that application-connected package support
-exists today. Exact target behavior is defined by
+native command composes the dedicated bounded binary project reader with that
+codec and returns only hydrated JSON bytes; a strict dormant TypeScript port
+performs fatal UTF-8 decoding and delegates to the same mutation-free
+parse/migrate/normalize/route/restore staging owner as legacy Open.
+
+The Tauri application now also links the codec encoder to one production native
+`encode_and_write_project_package_file` composition. Lifecycle-owned Save and
+Save As capture one immutable normalized project plus a closed owner-aware
+asset plan, send the bounded raw request once, encode complete package bytes in
+native Rust, and atomically commit through the existing project writer. A
+successful write adopts the `.sbls` path, `sbls-package-v1` identity, and exact
+written baseline while preserving newer edits as dirty. Legacy Open establishes
+`legacy-json`; Save from that session routes through package Save As and native
+same-file checks protect the source.
+
+Production package Open, content sniffing, and `.sbls` Open filters remain
+unimplemented and dormant. Documentation and UI must not imply complete
+application-connected package Open support. Exact behavior is defined by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md); the
 closed #56 rationale is preserved in
 [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
@@ -158,18 +171,23 @@ Optional causes contain only stable categories, operations, numeric platform
 codes, and safe secondary cleanup categories; paths, payloads, and raw OS error
 strings are excluded.
 
-The legacy UTF-8 JSON read/write commands remain production Open/Save owners.
-The raw binary TypeScript ports have no production application, lifecycle,
-dialog, menu, or export caller. The application staging module exports a
-separate package entry that accepts an injected dormant decode command, but no
-production composition root supplies or calls it. The native package adapter
-shares the bounded Rust reader owner directly; the package codec does not
-consume TypeScript ports or filesystem paths.
+The legacy UTF-8 JSON read command remains the production Open owner. Its text
+write command remains registered for compatibility, but production Save and
+Save As no longer call it. The generic raw binary TypeScript ports remain
+dormant and have no production application, lifecycle, dialog, menu, or export
+caller. The application staging module exports a separate package entry that
+accepts an injected dormant decode command, but no production Open composition
+root supplies or calls it. The native decode adapter shares the bounded Rust
+reader owner directly; the production native encode/write adapter accepts one
+narrowly framed raw request containing capture metadata plus canonical project
+JSON and passes its complete owned package buffer directly to the atomic
+writer. The package codec does not consume TypeScript ports or filesystem paths.
 `write_binary_file` and PNG export behavior are unchanged; that direct writer
 is not an atomic project-package writer. These infrastructure boundaries add no
-schema fields, session state, current path, dirty baseline, Save/Save As
-distinction, or lifecycle command behavior; those remain under #308 and
-[`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
+schema fields. The focused production Save checkpoint adds only session-owned
+format/path/baseline transitions and lifecycle command behavior under #308;
+package Open, replacement guards, Resume, menu, shortcuts, and history remain
+absent.
 
 ## Current Saved State
 

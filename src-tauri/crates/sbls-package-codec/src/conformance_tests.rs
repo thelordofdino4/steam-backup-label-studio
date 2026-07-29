@@ -1403,7 +1403,7 @@ fn archive_writer_and_reader_accept_exact_caps_and_reject_one_under() {
 }
 
 #[test]
-fn unavailable_semantic_built_ins_are_rejected_at_both_public_facades() {
+fn unknown_semantic_built_ins_are_rejected_at_both_public_facades() {
     let _schedule = native::native_test_schedule_lock();
     let catalog = raster_catalog();
     let disc = full_disc_project("0.2.0", &catalog);
@@ -1414,7 +1414,7 @@ fn unavailable_semantic_built_ins_are_rejected_at_both_public_facades() {
             replace_once(
                 disc.clone(),
                 r#""ratingBadge":{"enabled":false,"source":"custom""#,
-                r#""ratingBadge":{"enabled":false,"uskBadge":{"layout":{"enabled":true},"ratingValue":"12"},"source":"custom""#,
+                r#""ratingBadge":{"enabled":false,"uskBadge":{"layout":{"enabled":true},"ratingValue":"21"},"source":"custom""#,
             ),
         ),
         (
@@ -1430,7 +1430,7 @@ fn unavailable_semantic_built_ins_are_rejected_at_both_public_facades() {
             replace_once(
                 disc.clone(),
                 r#""additionalArtwork":{"elements":[{"enabled":false,"#,
-                r#""additionalArtwork":{"elements":[{"enabled":false,"frame":{"style":"rocky"},"#,
+                r#""additionalArtwork":{"elements":[{"enabled":false,"frame":{"style":"unknown"},"#,
             ),
         ),
     ];
@@ -1447,7 +1447,7 @@ fn unavailable_semantic_built_ins_are_rejected_at_both_public_facades() {
     let case_rocky = replace_once(
         case.clone(),
         r#""artworkSlots":[{"enabled":false,"#,
-        r#""artworkSlots":[{"enabled":false,"frame":{"style":"rocky"},"#,
+        r#""artworkSlots":[{"enabled":false,"frame":{"style":"unknown"},"#,
     );
     let error = encode_project_package(&ProjectPackageEncodeInput::new(
         case_rocky,
@@ -1478,7 +1478,7 @@ fn unavailable_semantic_built_ins_are_rejected_at_both_public_facades() {
                 |project| {
                     project.replacen(
                         r#""ratingBadge":{"#,
-                        r#""ratingBadge":{"uskBadge":{"layout":{"enabled":true},"ratingValue":"12"},"#,
+                        r#""ratingBadge":{"uskBadge":{"layout":{"enabled":true},"ratingValue":"21"},"#,
                         1,
                     )
                 },
@@ -1506,7 +1506,7 @@ fn unavailable_semantic_built_ins_are_rejected_at_both_public_facades() {
                 |project| {
                     project.replacen(
                         r#""additionalArtwork":{"elements":[{"#,
-                        r#""additionalArtwork":{"elements":[{"frame":{"style":"rocky"},"#,
+                        r#""additionalArtwork":{"elements":[{"frame":{"style":"unknown"},"#,
                         1,
                     )
                 },
@@ -1520,7 +1520,7 @@ fn unavailable_semantic_built_ins_are_rejected_at_both_public_facades() {
                 |project| {
                     project.replacen(
                         r#""artworkSlots":[{"#,
-                        r#""artworkSlots":[{"frame":{"style":"rocky"},"#,
+                        r#""artworkSlots":[{"frame":{"style":"unknown"},"#,
                         1,
                     )
                 },
@@ -1536,7 +1536,7 @@ fn unavailable_semantic_built_ins_are_rejected_at_both_public_facades() {
 }
 
 #[test]
-fn unbound_logo_evidence_and_direct_mark_fallbacks_have_stable_public_precedence() {
+fn unbound_logo_evidence_and_direct_mark_absence_have_stable_public_precedence() {
     let _schedule = native::native_test_schedule_lock();
     let catalog = raster_catalog();
     let disc_source = replace_once(
@@ -1612,9 +1612,8 @@ fn unbound_logo_evidence_and_direct_mark_fallbacks_have_stable_public_precedence
             |project| project,
             |manifest| remove_manifest_binding(manifest, &pointer),
         );
-        let error = decode_project_package(&rewritten).unwrap_err();
-        assert_eq!(error.code, FailureCode::BuiltInUnavailable, "{label}");
-        assert_eq!(error.stage, FailureStage::BindingHydration, "{label}");
+        decode_project_package(&rewritten)
+            .unwrap_or_else(|error| panic!("{label}: unexpected {error:?}"));
     }
 
     for (label, member, owner) in [
@@ -1635,8 +1634,7 @@ fn unbound_logo_evidence_and_direct_mark_fallbacks_have_stable_public_precedence
             |project| remove_root_member(project, member),
             |manifest| remove_manifest_binding(manifest, &pointer),
         );
-        let error = decode_project_package(&rewritten).unwrap_err();
-        assert_eq!(error.code, FailureCode::BuiltInUnavailable, "{label}");
-        assert_eq!(error.stage, FailureStage::BindingHydration, "{label}");
+        decode_project_package(&rewritten)
+            .unwrap_or_else(|error| panic!("{label}: unexpected {error:?}"));
     }
 }

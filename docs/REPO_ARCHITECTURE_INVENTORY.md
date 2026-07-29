@@ -4,7 +4,7 @@
 > Read when: Before refactors, ownership changes, or architecture-sensitive edits.
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
-> Package/save-load ownership refresh: synchronized parent `42c58821ad355a0cbc3ee602c94ec67ac7345de0` plus the focused uncommitted `agent/sbls-dormant-package-open-staging` checkpoint on 2026-07-28.
+> Package/save-load ownership refresh: synchronized parent `607ab5ffc73f22f71105ea7e5434c93f3de439ef` plus the focused uncommitted `agent/sbls-format-identity-package-save` checkpoint on 2026-07-29.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -146,17 +146,17 @@ Render path:
 Native command path:
 
 - `src-tauri/src/main.rs` calls `app_lib::run()`.
-- `src-tauri/src/lib.rs` registers file, dormant bounded binary project-file and
-  package-decode,
+- `src-tauri/src/lib.rs` registers file, dormant bounded binary project-file,
+  production package-encode/write, and dormant package-decode,
   Steam, local Steam, local image, folder opening, and official-site logo
   discovery commands.
 - Command owners are split into `commands/files.rs`, `commands/steam.rs`, `commands/local_steam.rs`, `commands/local_images.rs`, `commands/official_site.rs`, and `platform/open_folder.rs`.
 - `src-tauri/Cargo.toml` is also the workspace root. It lists
   `crates/sbls-package-codec` as a member while retaining the Tauri application
   as the default member. The Tauri application has one local path dependency on
-  the codec for `commands/project_packages.rs`; that dormant command composes
-  bounded read with codec decode. The separately registered binary read/write
-  commands remain codec-agnostic.
+  the codec for `commands/project_packages.rs`; that module composes production
+  encode/atomic write and dormant bounded read/decode. The separately registered
+  binary read/write commands remain codec-agnostic.
 
 Risks:
 
@@ -178,6 +178,9 @@ Key files:
 - `src/app/App.tsx`
 - `src/app/appProjectLoad.ts`
 - `src/app/appProjectSave.ts`
+- `src/app/appProjectSaveCommand.ts`
+- `src/package/projectPackageCapturePlan.ts`
+- `src/tauri/projectPackageWrite.ts`
 - `src/app/appProjectRestore.ts`
 - `src/app/appPngExport.ts`
 - `src/app/appPngExportInputs.ts`
@@ -229,9 +232,9 @@ Source-of-truth state:
   immutable state store, registry/dispatcher, busy coordinator, exhaustive
   typed command-port boundary, operation/session ID boundary, and centralized
   state/busy/termination/owner-aware capability projection. A committed-render
-  dependency ref keeps the root stable while Open adapters change. Only
-  `project.open` has a production command owner; all other lifecycle ports
-  remain explicitly disabled.
+  dependency ref keeps the root stable while Open/Save adapters change.
+  `project.open`, `project.save`, and `project.save-as` have production command
+  owners; the other lifecycle ports remain explicitly disabled.
 - `src/applicationMenu/` now owns the immutable first-release presentation-ID
   catalog, semantic-target mapping, Windows/Linux/macOS descriptor projection,
   injected capability projection, a lifecycle-root capability consumption
@@ -254,8 +257,10 @@ Edit/interaction path:
 
 Save/Open path:
 
-- Legacy Save still calls the existing app save helper and does not yet own a
-  lifecycle path/baseline transition.
+- Project File Save dispatches `project.save`. A truthful package session with
+  an eligible `.sbls` path writes directly; pathless, legacy, and wrong-suffix
+  sessions route through Save As. Commit success alone adopts path,
+  `sbls-package-v1`, and the exact written baseline.
 - Every Home, Disc, and Case Load control dispatches `project.open` through the
   sole root. `appProjectLoad.ts` stages one immutable candidate with no live
   setters; `appProjectOpenCommand.ts` performs lifecycle CAS; and
@@ -286,9 +291,10 @@ Risks:
 
 ## Project Save/Load Model
 
-Purpose: persist production editor projects as JSON, restore them into current
-editor state, and identify the package codec, bounded binary project-I/O, and
-dormant native package read/decode plus shared staging owners.
+Purpose: persist new production editor projects as `.sbls` packages, restore
+legacy JSON into current editor state, and identify the package codec, bounded
+binary project-I/O, production encode/write, and dormant native package
+read/decode plus shared staging owners.
 
 Key files:
 
@@ -304,16 +310,21 @@ Key files:
 - `src/app/appProjectLoad.ts`
 - `src/app/appProjectRestore.ts`
 - `src/app/appProjectOpenCommand.ts`
+- `src/app/appProjectSaveCommand.ts`
+- `src/package/projectPackageCapturePlan.ts`
 - `src/diagnostics/projectParityHarness.ts`
 - `src/tauri/binaryProjectFile.ts`
 - `src/tauri/binaryProjectFile.test.ts`
 - `src/tauri/projectFileFailure.ts`
 - `src/tauri/packageProjectFile.ts`
 - `src/tauri/packageProjectFile.test.ts`
+- `src/tauri/projectPackageWrite.ts`
+- `src/tauri/projectPackageWrite.test.ts`
 - `src/app/appProjectPackageLoad.test.ts`
 - `src-tauri/src/commands/files.rs`
 - `src-tauri/src/commands/project_files.rs`
 - `src-tauri/src/commands/project_packages.rs`
+- `src-tauri/src/legacy_project_identity.rs`
 - `src-tauri/src/project_binary_io.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/crates/sbls-package-codec/Cargo.toml`
@@ -412,14 +423,18 @@ Save/load path:
 
 Serialization:
 
-- Current application-connected files are plain `.sbls.json` JSON projects.
+- New application-connected Save/Save As files are `.sbls` package v1;
+  `.json`/`.sbls.json` remain legacy imports.
 - Imported image data is stored as data URLs where supported.
 - Durable local source file paths are avoided through asset provenance helpers.
-- The package-domain crate can encode/decode bounded `.sbls` v1 bytes in memory;
-  only the dormant native package command calls its decoder.
+- The package-domain crate encodes/decodes bounded `.sbls` v1 bytes in memory;
+  production package Save calls its borrowed-input encoder and dormant package
+  Open staging calls its decoder.
 - The dormant raw binary project-I/O port can move bounded opaque bytes to and
-  from a path. The dormant package path instead composes native read/decode so
-  archive bytes never enter the WebView; neither path is production-wired.
+  from a path. Dormant package Open instead composes native read/decode so
+  archive bytes never enter the WebView. Production package Save uses a
+  separate narrow raw plan/project request and native encode/atomic-write
+  composition; package output never enters the WebView.
 
 Package-domain codec boundary:
 
@@ -509,14 +524,17 @@ Tests:
   replacement-failure tests.
 - Focused Rust tests cover bounded reader limits and allocation failure,
   partial/interrupted reads, operation isolation, binary writer delegation,
-  raw command contracts, canonical path decoding, exact failure mapping,
-  native Disc/Case package decode with assets, borrowed input/moved output,
-  every package failure DTO, file-before-codec precedence, concurrent package
-  requests, and command registration. TypeScript port/staging tests cover raw
-  response identity, bounds, all 27 package failures, strict unsafe-shape
-  rejection, canonical Unicode paths, strict UTF-8, current/migrated Disc,
-  Case, hydrated assets, background inspection, immutability, shared schema
-  taxonomy, and negative production wiring.
+  raw command contracts, package-write framing, canonical path decoding, exact
+  failure mapping, real Disc/Case package encode-write-decode, exact-byte
+  deduplication, borrowed input/native-owned output, legacy source aliases and
+  commit-boundary races, every package failure DTO, file-before-codec
+  precedence, concurrent package requests, and command registration.
+  TypeScript tests cover the closed capture plan, built-in registry bytes and
+  digests, raw request/response identity, bounds, all 27 package failures,
+  strict unsafe-shape rejection, Save routing/adoption/concurrent edits,
+  canonical Unicode paths, strict UTF-8, current/migrated Disc, Case, hydrated
+  assets, background inspection, immutability, shared schema taxonomy, and
+  negative production package-Open wiring.
 - Pure package-codec unit, security, independent-fixture, public-facade
   round-trip, and native allocation fault-injection tests are colocated under
   `src-tauri/crates/sbls-package-codec/src/` and run through the registered
@@ -541,11 +559,11 @@ Risks:
   compatibility step.
 - Closed issue `#48` established the current schema-validation/migration
   baseline; future schema changes remain owned by `PROJECT_FILE_SPEC.md`.
-- Production `.sbls` Open/Save/Save As activation, encoder/write composition,
-  legacy conversion, session format adoption, and dirty/replacement integration
-  remain absent. The package-domain codec, bounded binary I/O, and dormant
-  native read/decode/staging path must not be mistaken for user-visible package
-  support.
+- Production `.sbls` Save/Save As, encoder/write composition, legacy
+  conversion, session format adoption, and exact written-baseline integration
+  are present. Production package Open and dirty-aware replacement integration
+  remain absent. The dormant native read/decode/staging path must not be
+  mistaken for user-visible package Open support.
 
 ## Templates and Workspace Types
 

@@ -28,7 +28,7 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 sbls-package-codec = { path = "crates/sbls-package-codec" }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
 
 [workspace]
 members = ["crates/sbls-package-codec"]

@@ -88,6 +88,7 @@ test('package staging accepts current and migrated Disc JSON through the shared 
     assert.deepEqual(bytes, before)
     if (result.status !== 'success') continue
     assert.equal(result.value.projectType, 'disc')
+    assert.equal(result.value.persistenceFormat, 'sbls-package-v1')
     assert.equal(result.value.selectedPath, decodedPath)
     assert.equal(
       result.value.normalizedProject.schemaVersion,
@@ -109,6 +110,7 @@ test('package staging accepts Case JSON through the same route and restore owner
   assert.equal(result.status, 'success')
   if (result.status !== 'success') return
   assert.equal(result.value.projectType, 'caseInsert')
+  assert.equal(result.value.persistenceFormat, 'sbls-package-v1')
   assert.equal(result.value.editorRoute.surface, 'back')
   assert.equal(result.value.restoredProject.activeCaseInsertTemplatePane, 'tray')
   assert.deepEqual(

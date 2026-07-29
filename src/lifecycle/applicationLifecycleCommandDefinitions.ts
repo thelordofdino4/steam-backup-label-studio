@@ -12,6 +12,7 @@ import type {
   ApplicationLifecycleCommandContext,
   ApplicationLifecycleCommandPorts,
 } from './applicationLifecycleCommandPorts.ts'
+import { canSaveProjectSessionDirectly } from './projectSession.ts'
 
 const RETURN_ONLY_FEEDBACK = Object.freeze({
   success: 'return-only',
@@ -127,7 +128,8 @@ export function createApplicationLifecycleCommandDefinitions(
     ),
     'project.save': rootDefinition(
       'project.save',
-      (context) => context.stateSnapshot.state.activeSession?.currentPath
+      (context) => context.stateSnapshot.state.activeSession &&
+        canSaveProjectSessionDirectly(context.stateSnapshot.state.activeSession)
         ? SAVE_SCOPES
         : PATHLESS_SAVE_SCOPES,
       (context, _input, operation) =>

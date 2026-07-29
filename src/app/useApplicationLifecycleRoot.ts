@@ -5,6 +5,9 @@ import type {
 import type {
   ApplicationProjectOpenRuntimeDependencies,
 } from './appProjectOpenCommand.ts'
+import type {
+  ApplicationProjectSaveRuntimeDependencies,
+} from './appProjectSaveCommand.ts'
 import {
   ApplicationLifecycleRuntimeContext,
 } from './applicationLifecycleRuntimeContext.ts'
@@ -15,7 +18,10 @@ import {
  * committed callbacks and owner state.
  */
 export function useApplicationLifecycleRoot(
-  dependencies: ApplicationProjectOpenRuntimeDependencies,
+  dependencies: Readonly<{
+    open: ApplicationProjectOpenRuntimeDependencies
+    save: ApplicationProjectSaveRuntimeDependencies
+  }>,
 ): ApplicationLifecycleCompositionRoot {
   const runtime = useContext(ApplicationLifecycleRuntimeContext)
   if (!runtime) {
@@ -23,7 +29,8 @@ export function useApplicationLifecycleRoot(
   }
 
   useLayoutEffect(() => {
-    runtime.updateProjectOpenDependencies(dependencies)
+    runtime.updateProjectOpenDependencies(dependencies.open)
+    runtime.updateProjectSaveDependencies(dependencies.save)
   }, [dependencies, runtime])
 
   return runtime.root

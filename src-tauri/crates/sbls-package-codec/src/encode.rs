@@ -26,8 +26,8 @@ use crate::model::{AssetCapture, AssetCaptureDecision, ProjectPackageEncodeInput
 use crate::raster::{validate_raster, RasterBudget, RasterError, RasterErrorKind};
 use crate::registry::{
     classify_unbound_owner, expand_registered_owners, first_unavailable_semantic_builtin,
-    AssetOwner, CaseRegistryShape, CaseSurfaceRegistryShape, DiscRegistryShape, ProjectKind,
-    RegistryShape, TechnicalKind, UnboundOwnerDisposition,
+    qualified_builtin_matches, AssetOwner, CaseRegistryShape, CaseSurfaceRegistryShape,
+    DiscRegistryShape, ProjectKind, RegistryShape, TechnicalKind, UnboundOwnerDisposition,
 };
 
 /// Encode one complete in-memory project-package candidate.
@@ -38,8 +38,28 @@ use crate::registry::{
 pub fn encode_project_package(
     input: &ProjectPackageEncodeInput,
 ) -> Result<Vec<u8>, ProjectPackageFailure> {
+    encode_project_package_from_borrowed(
+        input.normalized_project_json(),
+        input.creator(),
+        input.captures(),
+    )
+}
+
+/// Encode while borrowing the caller's one normalized JSON byte sequence.
+/// The output remains newly owned; captures and creator metadata stay borrowed.
+pub fn encode_project_package_from_borrowed(
+    normalized_project_json: &[u8],
+    creator: &crate::model::PackageCreator,
+    captures: &[AssetCapture],
+) -> Result<Vec<u8>, ProjectPackageFailure> {
     match catch_unwind(AssertUnwindSafe(|| {
-        encode_project_package_inner(input, PackageLimits::V1, crate::assets::sha256_digest)
+        encode_project_package_inner_borrowed(
+            normalized_project_json,
+            creator,
+            captures,
+            PackageLimits::V1,
+            crate::assets::sha256_digest,
+        )
     })) {
         Ok(result) => result,
         Err(_) => Err(failure(FailureCode::EncodeFailed, FailureStage::Encoding)),
@@ -52,27 +72,65 @@ struct PendingBinding {
     asset: StagedAssetKey,
 }
 
+#[cfg(test)]
 fn encode_project_package_inner(
     input: &ProjectPackageEncodeInput,
     limits: PackageLimits,
     digest_function: AssetDigestFunction,
 ) -> Result<Vec<u8>, ProjectPackageFailure> {
+    encode_project_package_inner_borrowed(
+        input.normalized_project_json(),
+        input.creator(),
+        input.captures(),
+        limits,
+        digest_function,
+    )
+}
+
+fn encode_project_package_inner_borrowed(
+    normalized_project_json: &[u8],
+    creator: &crate::model::PackageCreator,
+    captures: &[AssetCapture],
+    limits: PackageLimits,
+    digest_function: AssetDigestFunction,
+) -> Result<Vec<u8>, ProjectPackageFailure> {
     let mut raster_budget = RasterBudget::default();
-    encode_project_package_inner_with_raster_budget(
-        input,
+    encode_project_package_inner_with_raster_budget_borrowed(
+        normalized_project_json,
+        creator,
+        captures,
         limits,
         digest_function,
         &mut raster_budget,
     )
 }
 
+#[cfg(test)]
 fn encode_project_package_inner_with_raster_budget(
     input: &ProjectPackageEncodeInput,
     limits: PackageLimits,
     digest_function: AssetDigestFunction,
     raster_budget: &mut RasterBudget,
 ) -> Result<Vec<u8>, ProjectPackageFailure> {
-    let input_length = checked_u64(input.normalized_project_json().len(), FailureStage::Project)?;
+    encode_project_package_inner_with_raster_budget_borrowed(
+        input.normalized_project_json(),
+        input.creator(),
+        input.captures(),
+        limits,
+        digest_function,
+        raster_budget,
+    )
+}
+
+fn encode_project_package_inner_with_raster_budget_borrowed(
+    normalized_project_json: &[u8],
+    creator: &crate::model::PackageCreator,
+    captures: &[AssetCapture],
+    limits: PackageLimits,
+    digest_function: AssetDigestFunction,
+    raster_budget: &mut RasterBudget,
+) -> Result<Vec<u8>, ProjectPackageFailure> {
+    let input_length = checked_u64(normalized_project_json.len(), FailureStage::Project)?;
     if input_length < MIN_PROJECT_BYTES {
         return Err(failure(
             FailureCode::HydratedJsonInvalid,
@@ -82,7 +140,7 @@ fn encode_project_package_inner_with_raster_budget(
     // Resolve project kind in a bounded first pass that never retains any
     // value string larger than the ordinary projection ceiling. A source can
     // therefore never borrow the other project kind's asset-leaf exception.
-    let probe = parse_project_source_probe_with_limits(input.normalized_project_json(), &limits)
+    let probe = parse_project_source_probe_with_limits(normalized_project_json, &limits)
         .map_err(|error| map_json_error(error, FailureStage::Project))?;
     let probed_schema_version = probe
         .get("schemaVersion")
@@ -104,12 +162,9 @@ fn encode_project_package_inner_with_raster_budget(
     // The second pass creates the operation-owned deep copy. It is not mutated
     // until every owner has been classified and every externalized byte
     // payload has passed validation and staging.
-    let mut projection = parse_project_source_json_with_limits(
-        input.normalized_project_json(),
-        &limits,
-        source_kind,
-    )
-    .map_err(|error| map_json_error(error, FailureStage::Project))?;
+    let mut projection =
+        parse_project_source_json_with_limits(normalized_project_json, &limits, source_kind)
+            .map_err(|error| map_json_error(error, FailureStage::Project))?;
     if projection.as_object_entries().is_none() {
         return Err(failure(
             FailureCode::HydratedJsonInvalid,
@@ -141,7 +196,7 @@ fn encode_project_package_inner_with_raster_budget(
     }
     let expected_owners = expand_registered_owners(&schema_version, registry_shape)
         .map_err(|_| resource_limit(FailureStage::AssetCapture))?;
-    let capture_plan = index_complete_capture_plan(&expected_owners, input.captures())?;
+    let capture_plan = index_complete_capture_plan(&expected_owners, captures)?;
 
     let mut stager = AssetStager::with_digest_function(limits, digest_function);
     let planned_binding_count = capture_plan
@@ -220,6 +275,20 @@ fn encode_project_package_inner_with_raster_budget(
                     OwnedAssetPayload::copy_from_slice(*mime_type, bytes, &limits)
                         .map_err(map_asset_capture_error)?,
                 )
+            }
+            AssetCaptureDecision::QualifiedBuiltIn { compatibility_id } => {
+                if !qualified_builtin_matches(&projection, *owner, compatibility_id) {
+                    return Err(failure(
+                        FailureCode::BuiltInCaptureRequired,
+                        FailureStage::AssetCapture,
+                    ));
+                }
+                crate::registry::clear_qualified_builtin_leaf(&mut projection, *owner)
+                    .map_err(|_| capture_failed())?;
+                None
+            }
+            AssetCaptureDecision::UnsupportedNonportableAsset => {
+                return Err(capture_failed());
             }
             AssetCaptureDecision::BuiltInCaptureRequired => {
                 return if matches!(
@@ -377,7 +446,7 @@ fn encode_project_package_inner_with_raster_budget(
 
     let manifest = ManifestV1::new(
         schema_version,
-        input.creator().try_clone_for_writer()?,
+        creator.try_clone_for_writer()?,
         project_entry,
         asset_records,
         bindings,
@@ -1005,7 +1074,7 @@ mod tests {
         let (manifest, project, assets) = inspect_package(&package);
 
         assert_eq!(manifest.assets().len(), 2);
-        assert_eq!(manifest.bindings().len(), 6);
+        assert_eq!(manifest.bindings().len(), 4);
         assert!(manifest
             .bindings()
             .iter()
@@ -1043,7 +1112,7 @@ mod tests {
 
         let (manifest, _, assets) = inspect_package(&canonical);
         assert_eq!(manifest.assets().len(), 2);
-        assert_eq!(manifest.bindings().len(), 6);
+        assert_eq!(manifest.bindings().len(), 4);
         assert!(assets.contains(&bmp));
     }
 
@@ -1071,7 +1140,7 @@ mod tests {
         .unwrap();
         let decoded = decode_project_package(&package).unwrap();
         assert_eq!(decoded.metadata().asset_count(), 1);
-        assert_eq!(decoded.metadata().binding_count(), 6);
+        assert_eq!(decoded.metadata().binding_count(), 4);
         let (pixels, samples, _, _) = raster_budget.totals_for_test();
         assert_eq!(pixels, 1);
         assert_eq!(samples, 4);
@@ -1225,17 +1294,17 @@ mod tests {
     }
 
     #[test]
-    fn non_bindable_semantic_built_ins_are_rejected_before_capture_plan_dispatch() {
+    fn unknown_semantic_built_ins_are_rejected_before_capture_plan_dispatch() {
         for json in [
             disc_json(
-                r#","ratingBadge":{"source":"placeholder","customImageDataUrl":null,"uskBadge":{"ratingValue":"USK 12","layout":{"enabled":false}}}"#,
+                r#","ratingBadge":{"source":"placeholder","customImageDataUrl":null,"uskBadge":{"ratingValue":"21","layout":{"enabled":false}}}"#,
             ),
-            disc_json(r#","discNumberArtwork":{"mode":"text","badgeSet":"bundled"}"#),
+            disc_json(r#","discNumberArtwork":{"mode":"text","badgeSet":"unknown"}"#),
             disc_json(
-                r#","additionalArtwork":{"elements":[{"imageDataUrl":null,"frame":{"style":"rocky","enabled":false}}]}"#,
+                r#","additionalArtwork":{"elements":[{"imageDataUrl":null,"frame":{"style":"unknown","enabled":false}}]}"#,
             ),
             case_json(
-                r#","artworkSlots":[{"imageDataUrl":null,"frame":{"style":"rocky","enabled":false}}]"#,
+                r#","artworkSlots":[{"imageDataUrl":null,"frame":{"style":"unknown","enabled":false}}]"#,
                 "",
                 "",
                 "",
@@ -1278,14 +1347,12 @@ mod tests {
     }
 
     #[test]
-    fn custom_mark_without_retained_custom_bytes_falls_back_to_bundled_capture() {
+    fn custom_mark_without_retained_custom_bytes_is_owner_confirmed_absence() {
         let json = disc_json(
             r#","ratingBadge":{"source":"custom","customImageDataUrl":null,"customImageSize":null}"#,
         );
         let captures = captures_with_forced_no_asset(&json, AssetOwner::DiscRatingCustom);
-        let error = encode_project_package(&input(json, captures)).unwrap_err();
-        assert_eq!(error.code, FailureCode::BuiltInCaptureRequired);
-        assert_eq!(error.stage, FailureStage::AssetCapture);
+        encode_project_package(&input(json, captures)).unwrap();
     }
 
     #[test]
@@ -1346,7 +1413,7 @@ mod tests {
                 Some(expected_data_url.as_str())
             );
         }
-        assert_eq!(decoded.metadata().binding_count(), 5);
+        assert_eq!(decoded.metadata().binding_count(), 3);
         assert_eq!(decoded.metadata().asset_count(), 1);
     }
 
@@ -1364,7 +1431,7 @@ mod tests {
                 },
             ),
             (
-                r#","ratingBadge":{"source":"placeholder","customImageDataUrl":null}"#,
+                r#","metadata":{"ratingSystem":"ESRB","ratingValue":"RP"},"ratingBadge":{"source":"placeholder","customImageDataUrl":null}"#,
                 AssetOwner::DiscRatingCustom,
             ),
             (

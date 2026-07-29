@@ -1,5 +1,5 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { unstable_batchedUpdates } from 'react-dom'
 import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
 import {
@@ -160,7 +160,8 @@ import type {
   ProjectRatingBadge,
   ProjectTitleArtwork,
 } from '../project/projectTypes'
-import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
+import { readProjectFile, writeBinaryFile } from '../tauri/fileSystem'
+import { encodeAndWriteProjectPackageFile } from '../tauri/projectPackageWrite'
 import {
   type LegalTextCandidate,
   type RatingBoardCandidate,
@@ -204,7 +205,7 @@ import {
   shouldApplySteamPlatformMarksEligibilityChange,
 } from './appSteamDiscVisualImport'
 import {
-  runAppProjectSave,
+  createSavedProjectForWorkspace,
 } from './appProjectSave'
 import {
   stageAppProjectOpen,
@@ -235,6 +236,10 @@ type SteamImportOptions = {
 
 function App() {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
+  const [pendingNewProjectSession, setPendingNewProjectSession] = useState<
+    Readonly<{ kind: 'disc' | 'caseInsert'; nonce: number }> | null
+  >(null)
+  const handledNewProjectSessionNonceRef = useRef(0)
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
   const [discGuidedWorkflow, setDiscGuidedWorkflow] =
     useState<DiscGuidedWorkflowState>(INITIAL_DISC_GUIDED_WORKFLOW_STATE)
@@ -1439,22 +1444,46 @@ function App() {
     if (!shouldReset) {
       return
     }
+    if (applicationLifecycleRoot.getBusyState().occupiedScopes.length > 0) {
+      announceStatus('A project operation is already in progress.')
+      return
+    }
 
     resetDiscProjectState()
+    setPendingNewProjectSession((current) => ({
+      kind: 'disc',
+      nonce: (current?.nonce ?? 0) + 1,
+    }))
     setActiveWorkspace('disc')
     setHomeStatusMessage(null)
     announceStatus('Started a new blank project.')
   }
 
   function handleStartNewDiscProject() {
+    if (applicationLifecycleRoot.getBusyState().occupiedScopes.length > 0) {
+      announceStatus('A project operation is already in progress.')
+      return
+    }
     resetDiscProjectState()
+    setPendingNewProjectSession((current) => ({
+      kind: 'disc',
+      nonce: (current?.nonce ?? 0) + 1,
+    }))
     setActiveWorkspace('disc')
     setHomeStatusMessage(null)
     announceStatus('Started a new blank disc project.')
   }
 
   function handleOpenCaseInsertEditor() {
+    if (applicationLifecycleRoot.getBusyState().occupiedScopes.length > 0) {
+      announceStatus('A project operation is already in progress.')
+      return
+    }
     resetCaseInsertProjectState()
+    setPendingNewProjectSession((current) => ({
+      kind: 'caseInsert',
+      nonce: (current?.nonce ?? 0) + 1,
+    }))
     setActiveCaseInsertNavigationSurface('front')
     setActiveWorkspace('caseInsert')
     setHomeStatusMessage(null)
@@ -1632,8 +1661,8 @@ function App() {
     })
   }
 
-  async function handleSaveProject() {
-    await runAppProjectSave({
+  const captureCurrentSavedProject = useCallback(
+    () => createSavedProjectForWorkspace({
       activeWorkspace,
       caseInsertProject: {
         manualGameTitle,
@@ -1680,14 +1709,63 @@ function App() {
         discTextLayout,
         discTextStyles,
       },
-      saveDialog: save,
-      writeProjectFileCommand: writeProjectFile,
-      announceStatus,
-    })
+    }),
+    [
+      activeCaseInsertTemplatePane,
+      activeWorkspace,
+      backgroundImageSize,
+      backgroundImageSource,
+      backgroundImageUrl,
+      backgroundOffset,
+      backgroundScale,
+      customDiscTemplate,
+      discGuidedWorkflow,
+      discTextHtmlSources,
+      discTextLayout,
+      discTextSettings,
+      discTextStyles,
+      discTextTitleValue,
+      discTextValueSources,
+      discTextValues,
+      exportGuides,
+      isBackgroundArtworkEnabled,
+      manualGameTitle,
+      projectAdditionalArtwork,
+      projectDiscNumberArtwork,
+      projectJewelCase,
+      projectLogoAssets,
+      projectMediaMark,
+      projectMetadata,
+      projectPlatformMarks,
+      projectRatingBadge,
+      projectTechnicalMarks,
+      projectTitleArtwork,
+      selectedDiscTemplateId,
+      selectedSteamGame,
+      steamBannerColors,
+      steamBannerFallbackText,
+      steamBannerLockupImageSize,
+      steamBannerLockupImageSource,
+      steamBannerLockupImageUrl,
+      steamBannerLockupLayout,
+      steamBannerUseTextFallback,
+      steamLogoPlacement,
+    ],
+  )
+
+  async function handleSaveProject() {
+    const result = await applicationLifecycleRoot.dispatch('project.save')
+    if (result.disposition === 'not-executed') {
+      if (result.userMessage) announceStatus(result.userMessage)
+      return
+    }
+    const feedback = result.result.feedback
+    if (feedback) announceStatus(feedback.message)
   }
 
   const applicationLifecycleRoot = useApplicationLifecycleRoot({
-    stageCandidate: () => stageAppProjectOpen({
+    open: {
+      stageCandidate: () => stageAppProjectOpen({
       openDialog: async (options) => open({
         multiple: options.multiple,
         filters: options.filters?.map((filter) => ({
@@ -1702,8 +1780,8 @@ function App() {
         createImageSizeWithDetectedContentBounds(await loadImage(imageDataUrl)),
       caseInsertBrandingSources,
     }),
-    prepareEditorAggregateApply: (candidate) =>
-      createApplicationEditorAggregateApplier({
+      prepareEditorAggregateApply: (candidate) =>
+        createApplicationEditorAggregateApplier({
         batchReactUpdates: (apply) => unstable_batchedUpdates(apply),
         shell: {
           setActiveWorkspace,
@@ -1753,8 +1831,46 @@ function App() {
           restoreActiveDiscPresetState:
             activeDiscPreset.restoreActivePresetState,
         },
-      }).prepare(candidate),
+        }).prepare(candidate),
+    },
+    save: {
+      captureCurrentProject: captureCurrentSavedProject,
+      saveDialog: async (options) => save({
+        defaultPath: options.defaultPath,
+        filters: options.filters.map((filter) => ({
+          name: filter.name,
+          extensions: [...filter.extensions],
+        })),
+      }),
+      packageWrite: Object.freeze({
+        encodeAndWrite: encodeAndWriteProjectPackageFile,
+      }),
+    },
   })
+
+  useLayoutEffect(() => {
+    if (!pendingNewProjectSession ||
+      activeWorkspace !== pendingNewProjectSession.kind ||
+      handledNewProjectSessionNonceRef.current === pendingNewProjectSession.nonce) {
+      return
+    }
+    handledNewProjectSessionNonceRef.current = pendingNewProjectSession.nonce
+    const established = applicationLifecycleRoot.establishPathlessProjectSession(
+      captureCurrentSavedProject(),
+      pendingNewProjectSession.kind === 'disc'
+        ? { workspace: 'disc' }
+        : { workspace: 'caseInsert', surface: 'front' },
+    )
+    if (!established) {
+      announceStatus('The new project session could not be established.')
+    }
+  }, [
+    activeWorkspace,
+    announceStatus,
+    applicationLifecycleRoot,
+    captureCurrentSavedProject,
+    pendingNewProjectSession,
+  ])
 
   async function handleLoadProject() {
     const result = await applicationLifecycleRoot.dispatch('project.open')

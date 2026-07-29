@@ -4,7 +4,7 @@
 > Read when: Architecture-sensitive work, renderer/editor/export changes, schema work, drag/selection, or parity-sensitive changes.
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
-> Package/save-load authority cross-references reviewed against synchronized parent commit `42c58821ad355a0cbc3ee602c94ec67ac7345de0` plus the focused uncommitted `agent/sbls-dormant-package-open-staging` implementation checkpoint on 2026-07-28. The broader as-built inventory below still records its separately identified refactor baseline where stated.
+> Package/save-load authority cross-references reviewed against synchronized parent commit `607ab5ffc73f22f71105ea7e5434c93f3de439ef` plus the focused uncommitted `agent/sbls-format-identity-package-save` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -47,6 +47,13 @@ Post-refactor documentation reconciliation note:
   TypeScript port, and delegates to the existing mutation-free staging owner.
   It does not change dialogs, lifecycle commands, production `.sbls` Open,
   Save, or Save As.
+- PR #324 merged that staging checkpoint at
+  `607ab5ffc73f22f71105ea7e5434c93f3de439ef`. The focused package Save
+  checkpoint documented below adds session persistence identity,
+  lifecycle-owned Save/Save As, a closed asset capture plan, a published
+  built-in compatibility registry, bounded native encode/write, atomic commit,
+  and native legacy-source alias protection. It deliberately leaves production
+  package Open, content sniffing, replacement guards, Resume, and menus dormant.
 - Manual app testing was reported before the merge with no regressions spotted,
   but this documentation refresh did not independently launch Tauri.
 
@@ -83,10 +90,10 @@ This document does not:
 
 - Claim live Tauri runtime behavior was manually verified.
 - Claim case insert alpha completion.
-- Claim application-connected `.sbls` Open, Save, Save As, package-codec
-  composition, or dialog/filter support exists. Runtime-disconnected package
-  codec and dormant bounded binary project-I/O infrastructure are implemented
-  separately; neither is a production `.sbls` workflow.
+- Claim application-connected `.sbls` Open or content recognition exists.
+  Production Save/Save As and package-codec encode/write composition are
+  connected; package read/decode/staging remains dormant and production Open is
+  still legacy JSON-only.
 - Claim DVD/Amaray or Blu-ray editors are implemented.
 - Replace source code, tests, issue descriptions, or manual smoke checklists as the source of detailed implementation truth.
 
@@ -266,7 +273,7 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
-The frontend contains a runtime-connected lifecycle foundation and a still-disconnected application-menu foundation. `src/main.tsx` constructs one application lifecycle runtime outside React Strict Mode; `ApplicationLifecycleBoundary` owns its one disposal, while a dependency-ref hook updates committed React adapters without recreating the root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.open` is the only production-implemented lifecycle port. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, an in-memory test port, and a narrow lifecycle-capability consumption helper. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
+The frontend contains a runtime-connected lifecycle foundation and a still-disconnected application-menu foundation. `src/main.tsx` constructs one application lifecycle runtime outside React Strict Mode; `ApplicationLifecycleBoundary` owns its one disposal, while a dependency-ref hook updates committed React adapters without recreating the root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.open`, `project.save`, and `project.save-as` are production-implemented lifecycle ports. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, an in-memory test port, and a narrow lifecycle-capability consumption helper. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
 
 ### 5.2 Key Files
 
@@ -314,7 +321,7 @@ The frontend contains a runtime-connected lifecycle foundation and a still-disco
 
 ### 5.3 Source-Of-Truth State
 
-`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production lifecycle root. Its Open owner stages one immutable accepted project candidate, establishes a path-bearing clean lifecycle session through compare-and-swap, and applies all restored editor owners plus route/workspace/transient state in the same synchronous React batch. Focused app-owned helpers own the remaining project save behavior, PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
+`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production lifecycle root. Its Open owner stages one immutable accepted project candidate, establishes a path-bearing clean lifecycle session through compare-and-swap, and applies all restored editor owners plus route/workspace/transient state in the same synchronous React batch. Its Save owners capture the current complete Disc/Case aggregate through an injected app boundary and delegate package planning/writing and post-commit session adoption to focused modules. Other focused app-owned helpers own PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
@@ -436,9 +443,10 @@ preserving the combined failure status.
 
 ### 7.1 Current Implementation Summary
 
-Production projects are saved as plain JSON files, commonly named
-`.sbls.json`. The current saved-project type is a union of disc and case insert
-project shapes under schema version `0.2.0`.
+Production Save and Save As write `.sbls` package-v1 files. Existing plain
+`.json` and `.sbls.json` projects remain readable legacy imports. The hydrated
+saved-project type remains a union of Disc and Case Insert shapes under schema
+version `0.2.0`; package/session metadata does not enter it.
 
 The ZIP-compatible `.sbls` package format is defined in
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md). Its
@@ -446,8 +454,11 @@ package-domain encoder/decoder is implemented as the dependency-isolated Rust
 workspace member `sbls-package-codec`. Dormant raw-byte Tauri commands provide
 bounded native reading and atomic binary writing. A separate dormant native
 command now composes bounded read with codec decode and returns hydrated JSON
-through a strict TypeScript port into the existing mutation-free staging owner,
-but no lifecycle, dialog, production Open, Save, or Save As owner calls it. The
+through a strict TypeScript port into the existing mutation-free staging owner;
+production Open does not call it. Production Save/Save As instead use one
+closed TypeScript capture plan and bounded raw request, native borrowed-input
+encoding, and direct atomic commit without returning package bytes to the
+WebView. The
 original format-choice rationale remains in
 [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 
@@ -470,9 +481,12 @@ original format-choice rationale remains in
 - `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`
 - `src/tauri/binaryProjectFile.ts`
 - `src/tauri/packageProjectFile.ts`
+- `src/tauri/projectPackageWrite.ts`
+- `src/package/projectPackageCapturePlan.ts`
 - `src/tauri/projectFileFailure.ts`
 - `src-tauri/src/commands/project_files.rs`
 - `src-tauri/src/commands/project_packages.rs`
+- `src-tauri/src/legacy_project_identity.rs`
 - `src-tauri/src/project_binary_io.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/crates/sbls-package-codec/Cargo.toml`
@@ -499,15 +513,23 @@ original format-choice rationale remains in
 ### 7.4 Render/Edit/Export Paths
 
 - Runtime edits update React state first.
-- Save creates a snapshot from runtime state.
-- Load parses JSON, routes by project type/template clues, normalizes sparse data, then restores runtime state.
+- Save captures one immutable normalized snapshot, builds one owner-aware plan,
+  writes a complete package atomically, then adopts only the committed snapshot
+  as baseline; a newer current snapshot remains dirty.
+- Production Load parses legacy JSON, routes by project type/template clues,
+  normalizes sparse data, then restores runtime state. Package Load staging is
+  present but dormant.
 - Export reads current runtime state; PNG bytes are not part of project serialization.
 
 ### 7.5 Serialization Contract
 
-- Current application-connected project files are JSON.
+- New application-connected Save output is `.sbls` package v1; legacy JSON is
+  read-only import compatibility.
 - Imported and uploaded images are embedded as data URLs where needed for reload.
 - Built-in generic assets stay routed through `src/assets/assetManifest.ts` rather than being copied into every project.
+- Package-qualified built-ins are frozen by
+  `docs/PROJECT_PACKAGE_BUILT_IN_REGISTRY_V1.json`; unqualified app assets must
+  be safely captured or rejected before write.
 - Provenance/status metadata may include source kind, source ID, sanitized label, and safe source URL.
 - Durable local file paths should not be required after reload.
 - The package-domain encoder writes deterministic Store-only ZIP32 bytes in
@@ -520,11 +542,10 @@ original format-choice rationale remains in
 - Keep `home` as a workspace only, not a project type.
 - Do not collapse disc and case insert schema owners.
 - Add migrations before changing saved-project semantics.
-- Distinguish the implemented package-domain codec, bounded binary adapters,
-  and dormant decode staging from unimplemented production integration. Do not
-  label `.sbls` user support current until encoder/write composition, lifecycle
-  integration, compatibility/activation adapters, and native runtime
-  validation required by
+- Distinguish implemented package Save/Save As from dormant package Open.
+  `.sbls` output support is current; portable Open/user round-trip support must
+  not be claimed until content recognition, package Open activation, and native
+  runtime validation required by
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
   exist.
 
@@ -1830,10 +1851,12 @@ remains the overlay lookup and rectangle-measurement facade.
 
 ### 15.1 Current Implementation Summary
 
-Save remains orchestrated by `App.tsx`, project snapshot helpers, and Tauri
-file commands. It writes JSON through a same-directory temporary file
-that is fully written, flushed, synchronized, closed, and atomically replaced
-at the native boundary. Open now dispatches through the sole lifecycle root.
+Save remains orchestrated by `App.tsx`, focused project snapshot/package
+helpers, the lifecycle root, and Tauri file commands. It writes complete
+`.sbls` packages through a same-directory temporary file that is fully written,
+flushed, synchronized, closed, identity-rechecked for legacy conversion, and
+atomically replaced at the native boundary. Open dispatches through the same
+lifecycle root.
 Its staging phase reads, parses, validates/migrates, routes, restores, resolves
 Disc background image geometry, reconstructs Disc preset state, and projects
 Case branding before any live mutation. Its commit phase establishes the exact
@@ -1843,17 +1866,17 @@ applies the complete editor aggregate synchronously in the same React batch.
 The draft target-state application-command, single-project session, path,
 baseline, dirty-state, replacement-guard, and native close/Quit semantics are
 defined in [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md).
-That contract records the implemented Open checkpoint while remaining normative
-for unfinished lifecycle work. Serialized fields and migrations remain owned by
+That contract records the implemented Open and Save checkpoints while remaining
+normative for unfinished lifecycle work. Serialized fields and migrations remain owned by
 [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md). Exact `.sbls` codec, security,
 legacy-conversion, and atomic binary persistence behavior is defined by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 The package-domain codec/security layer and bounded binary project-I/O layer
 retain separate ownership. Dormant native read/decode composition, strict raw
 hydrated-response transport, and shared mutation-free package staging are now
-implemented. Legacy conversion, production Open activation, package Save/Save
-As, session-format adoption, and lifecycle/runtime integration remain
-unimplemented.
+implemented. Package Save/Save As, legacy conversion, session-format adoption,
+and lifecycle/runtime integration are implemented; production package Open
+activation remains dormant.
 
 ### 15.2 Key Files
 
@@ -1861,6 +1884,8 @@ unimplemented.
 - `src/app/appProjectLoad.ts`
 - `src/app/appProjectRestore.ts`
 - `src/app/appProjectOpenCommand.ts`
+- `src/app/appProjectSaveCommand.ts`
+- `src/package/projectPackageCapturePlan.ts`
 - `src/project/createProjectSnapshot.ts`
 - `src/project/restoreProjectState.ts`
 - `src/project/caseInsertProjectAdapters.ts`
@@ -1870,10 +1895,12 @@ unimplemented.
 - `src/tauri/fileSystem.ts`
 - `src/tauri/binaryProjectFile.ts`
 - `src/tauri/packageProjectFile.ts`
+- `src/tauri/projectPackageWrite.ts`
 - `src/tauri/projectFileFailure.ts`
 - `src-tauri/src/commands/files.rs`
 - `src-tauri/src/commands/project_files.rs`
 - `src-tauri/src/commands/project_packages.rs`
+- `src-tauri/src/legacy_project_identity.rs`
 - `src-tauri/src/project_binary_io.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/crates/sbls-package-codec/src/lib.rs`
@@ -1886,15 +1913,16 @@ unimplemented.
 
 ### 15.3 Source-Of-Truth State
 
-Runtime feature-owner state remains source of truth while editing. For projects
-accepted through Open, the lifecycle session additionally owns the session ID,
-selected path, exact normalized clean baseline, revision, and last editor route.
-Editor mutations outside Open are not yet projected back into lifecycle state,
-so lifecycle dirty authority is not yet complete. Saved JSON snapshots remain
-the source accepted by production staging and the output produced by legacy
-Save. The package crate, native decode command, raw package port, and package
-staging entry own no active session. They are composed only along the dormant
-read/decode/stage path and are not called by production Open or Save.
+Runtime feature-owner state remains source of truth while editing. The
+lifecycle session owns the session ID, recognized persistence format, selected
+path, exact normalized clean baseline, revision, and last editor route. A
+focused app boundary captures the complete current editor aggregate for Save;
+after commit, the lifecycle session adopts the written snapshot as baseline and
+captures the latest aggregate so in-flight edits remain current and dirty.
+Legacy JSON remains the source accepted by production Open. The package crate,
+native decode command, raw decode port, and package staging entry own no active
+session and remain dormant from production Open. The encode/write command also
+owns no session: the lifecycle Save owner alone authorizes it and adopts state.
 
 ### 15.4 Render/Edit/Export Paths
 
@@ -1906,15 +1934,18 @@ read/decode/stage path and are not called by production Open or Save.
 - The staged discriminated union carries the exact normalized project, selected
   path, project kind, target route, complete restored owner state, and transient
   preset state needed for the non-fallible aggregate application seam.
-- `write_project_file` preserves its frontend signature and delegates opaque
-  JSON bytes to `src-tauri/src/project_file.rs`; the binary export writer is not
-  routed through this project persistence boundary.
+- `write_project_file` remains registered but production Save no longer calls
+  it. The binary export writer is not routed through project-package persistence.
 - Dormant `read_binary_project_file` and `write_binary_project_file` commands
   transport top-level raw bytes and a canonical percent-encoded path header.
   Native reading is bounded at exactly 256 MiB with a fixed scratch buffer;
   native writing performs the same bound check and delegates the caller's byte
   slice to the existing atomic writer. Their TypeScript port is not imported by
   a production Open, Save, Save As, dialog, or lifecycle owner.
+- Production `encode_and_write_project_package_file` validates a narrow raw
+  plan/project frame plus destination and optional legacy-source headers,
+  borrows project JSON into the codec, and passes one complete owned package
+  buffer directly to the atomic writer. It returns no package bytes.
 - Dormant `decode_project_package_file` reuses the binary reader's
   path/body/read owner, lends the owned archive buffer to the protocol-bounded
   Rust codec, and moves only hydrated JSON into a raw response. The strict
@@ -1948,10 +1979,13 @@ read/decode/stage path and are not called by production Open or Save.
   deterministic phase failures, collision ownership, operation ordering, exact
   Disc/Case bytes, and the actual Windows replace-existing failure path.
 - `src-tauri/src/commands/project_packages.rs` tests must cover real Disc/Case
-  package decode, exact hydrated raw bytes, borrowed input/moved output,
-  exhaustive safe failures, file-before-codec precedence, isolation, and
-  registration. TypeScript tests must cover exact DTO guards, strict UTF-8,
-  shared Disc/Case staging, immutability, and negative production wiring.
+  package encode/write/decode, request framing, exact hydrated raw bytes,
+  borrowed input/native-owned output, legacy identity and commit-boundary race
+  protection, exhaustive safe failures, file-before-codec precedence,
+  isolation, and registration. TypeScript tests must cover the closed capture
+  plan, built-in registry digests, exact DTO guards, strict UTF-8, Save routing
+  and adoption, shared Disc/Case staging, immutability, and negative package-Open
+  production wiring.
 - Manual validation should save, reload, and export both disc and case insert projects when affected.
 
 ### 15.7 Known Risks
@@ -2173,11 +2207,11 @@ Current tests cover broad helper and contract areas:
   migration are implemented, while any future schema change remains separate
   work under [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - Preview selection, snapping, keyboard nudging, inspector, and context-menu workflows remain open under related preview issues.
-- Production [`.sbls` lifecycle Open/Save/Save As, encoder/write composition,
-  legacy conversion, and runtime activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
-  are not implemented; the package-domain codec, bounded binary I/O, and
-  dormant native decode/staging infrastructure are current implementation
-  owners.
+- Production [`.sbls` package Open, content recognition, replacement guarding,
+  and full runtime activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md) are not
+  implemented. Package Save/Save As, legacy conversion, encoder/write
+  composition, session format identity, bounded binary I/O, and dormant native
+  decode/staging are current implementation owners.
 - DVD/Amaray and Blu-ray editors are future planned surfaces, not current working editors.
 
 ### 19.3 Areas For User Review
@@ -2230,7 +2264,8 @@ Status: Accepted, current.
 
 Decision:
 
-- Current projects are plain `.sbls.json` JSON files using schema version `0.2.0`.
+- New project output is `.sbls` package v1; plain `.json` and `.sbls.json`
+  projects remain legacy imports. Hydrated projects use schema version `0.2.0`.
 - Schema `0.1.0` projects migrate explicitly to `0.2.0` without inferred guidance or owner changes.
 - Images needed for reload are embedded as data URLs where supported.
 - `.sbls` packages are defined by
@@ -2241,16 +2276,17 @@ Decision:
   vendored native JPEG/WebP validation shims is implemented as a
   dependency-isolated workspace member. One dormant Tauri command composes
   bounded file read with codec decode and one dormant TypeScript path stages
-  only hydrated JSON through existing project owners. Neither is a production
-  project-file or lifecycle path.
+  only hydrated JSON through existing project owners. A separate production
+  native command composes bounded capture metadata/project JSON, borrowed codec
+  encode, and the existing atomic writer for lifecycle Save/Save As.
 
 Consequences:
 
-- Current save/load work must preserve JSON compatibility under
+- Current package Save and legacy JSON Open work must preserve hydrated schema compatibility under
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
-- User-facing package behavior must not be implied in UI/docs until the later
-  encoder/write, lifecycle, compatibility, and production activation
-  requirements in
+- User-facing `.sbls` Save behavior may be described as current; `.sbls` Open
+  or portable user round-trip behavior must not be implied until the later
+  production Open activation requirements in
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) are
   implemented and validated.
 - Target package work must continue loading existing JSON projects.
@@ -2424,10 +2460,10 @@ Consequences:
 The following are documented future plans or active gaps, not current implemented guarantees:
 
 - Guided Start and opening-screen workflow.
-- Application-connected [`.sbls` package Open/Save/Save As, encoder/write
-  composition, and lifecycle activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md);
-  the package-domain codec, bounded binary project-I/O, and dormant native
-  decode/staging path are already implemented without production activation.
+- Application-connected [`.sbls` package Open, content recognition, and
+  replacement-guard activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md); package
+  Save/Save As, encoder/write composition, session format identity, bounded
+  binary project I/O, and dormant native decode/staging are already implemented.
 - DVD/Amaray and Blu-ray case editors.
 - Direct printer integration.
 - Full arbitrary layer management.

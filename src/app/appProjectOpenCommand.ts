@@ -96,6 +96,7 @@ export function createApplicationProjectOpenCommandOwner(
               // project typings to the immutable lifecycle representation.
               project: candidate.normalizedProject as unknown as SavedProject,
               currentPath: candidate.selectedPath,
+              persistenceFormat: candidate.persistenceFormat,
               lastEditorRoute: candidate.editorRoute,
             }),
           ))

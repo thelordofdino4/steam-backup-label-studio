@@ -328,6 +328,7 @@ test('every command invokes only its named port and shares root scopes and state
           sessionId: context.createSessionId(),
           project: createDiscProject('Loaded Disc'),
           currentPath: 'C:\\projects\\loaded.sbls.json',
+          persistenceFormat: 'legacy-json',
         }))
         return commandSucceeded(undefined)
       },
@@ -338,6 +339,7 @@ test('every command invokes only its named port and shares root scopes and state
         calls.push('project.save')
         assert.deepEqual(operation.rootScopes, [
           'lifecycle.transition',
+          'dialog.project-file',
           'persistence.write',
         ])
         commit(context, (state) => adoptSavedProjectBaseline(state, {

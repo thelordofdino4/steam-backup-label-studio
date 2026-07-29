@@ -104,6 +104,7 @@ for (const projectType of ['disc', 'caseInsert'] as const) {
     assert.equal(session.id, `session-${projectType}`)
     assert.equal(session.kind, projectType)
     assert.equal(session.currentPath, path)
+    assert.equal(session.persistenceFormat, 'legacy-json')
     assert.equal(session.revision, 0)
     assert.deepEqual(session.lastEditorRoute, candidate.editorRoute)
     assert.deepEqual(session.project, candidate.normalizedProject)

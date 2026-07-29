@@ -70,6 +70,13 @@ pub enum AssetCaptureDecision {
         mime_type: RasterMime,
         bytes: Vec<u8>,
     },
+    /// The owner confirms that its exact persisted semantic discriminator is
+    /// covered by the package-v1 built-in compatibility registry. No asset
+    /// binding is emitted; decoding revalidates the same tuple.
+    QualifiedBuiltIn { compatibility_id: String },
+    /// The application owner found a retained nonportable value (for example,
+    /// a blob or machine-local URL) that cannot enter a portable package.
+    UnsupportedNonportableAsset,
     /// The owner is a semantic built-in but cannot truthfully accept a bound
     /// byte copy and no frozen compatibility-registry omission is available.
     /// Encoding must fail before producing archive output.
@@ -77,6 +84,25 @@ pub enum AssetCaptureDecision {
 }
 
 impl AssetCaptureDecision {
+    pub fn qualified_built_in(
+        compatibility_id: &str,
+    ) -> Result<AssetCaptureDecision, ProjectPackageFailure> {
+        if compatibility_id.is_empty()
+            || compatibility_id.len() > 128
+            || !compatibility_id
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b':' | b'-' | b'+'))
+        {
+            return Err(ProjectPackageFailure::new(
+                FailureCode::AssetCaptureFailed,
+                FailureStage::AssetCapture,
+            ));
+        }
+        Ok(Self::QualifiedBuiltIn {
+            compatibility_id: try_copy_string(compatibility_id, FailureStage::AssetCapture)?,
+        })
+    }
+
     pub fn captured_bytes(
         mime_type: RasterMime,
         bytes: &[u8],
