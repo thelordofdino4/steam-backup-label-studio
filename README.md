@@ -92,7 +92,7 @@ Preview/export parity is a project rule. User-visible visual layers should use t
 - Straight text dragging, scale, width, alignment, layout presets, visual-element avoidance, style presets, contrast, background, border, preview, export, and save/load persistence.
 - Stable centered curved copyright/legal text with arc length, angle, inset, scale, side, wrapping, preview, export, and save/load persistence.
 - Disc-number graphic badge mode using a built-in starter badge.
-- Production Save and Save As now write ZIP-compatible `.sbls` v1 packages. Existing plain `.json` and `.sbls.json` projects remain readable legacy imports with embedded data URLs.
+- Production Open recognizes content rather than extensions and opens both ZIP-compatible `.sbls` v1 packages and legacy plain `.json`/`.sbls.json` imports. Production Save and Save As write `.sbls` v1 packages only.
 - Export preflight summary and warnings for guide marks, missing backgrounds, unusual custom dimensions, enabled-but-unavailable visuals, and print/readability risks.
 - Preview Design Check separates notification-worthy design omissions from lower-risk print-quality notes, so the badge count is reserved for issues such as missing required artwork, marks, logos, titles, or text.
 - Shared layer-order policy in `src/editor/layerOrder.ts` and documentation in `docs/DISC_EDITOR_LAYER_ORDER.md`.
@@ -141,7 +141,7 @@ The project should not bundle official trademarked assets unless licensing is cl
 - Keep #124 separate: move Guide Legend into the live preview only when that issue is explicitly worked.
 - Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, export preflight, and future case layouts so manual preview/export checks match the current feature set.
 - Continue architecture cleanup tracked by open issues such as #44, #46, and #47 only where it supports alpha work; #48 is the closed schema-validation/migration baseline, and future schema work follows `docs/PROJECT_FILE_SPEC.md`.
-- Use `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md` as the package authority; closed issue #56 remains the historical ZIP-container decision record. Codec, bounded binary I/O, session format identity, and production package Save/Save As are connected. Package Open decoding/staging remains dormant: production Open is still legacy JSON-only.
+- Use `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md` as the package authority; closed issue #56 remains the historical ZIP-container decision record. Codec, bounded native recognition/read/decode, shared immutable staging, session format identity, and production package Open/Save/Save As are source-connected. Native Tauri workflow acceptance and the dirty-aware replacement guard remain future work.
 - Defer Guided Start (#17), DVD/Amaray and Blu-ray case editors, direct printer support, official asset packs, automatic rating lookup, full arbitrary layer management, and broad refactors unless they become necessary for a focused alpha blocker.
 
 ## Planned Platforms

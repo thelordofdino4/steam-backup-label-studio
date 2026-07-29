@@ -181,6 +181,29 @@ test('Save routing uses a direct write only for truthful package sessions', asyn
   }
 })
 
+test('clean direct package Save succeeds when baseline adoption is already exact', async () => {
+  const project = discProject('Already Clean')
+  const harness = createHarness({
+    state: stateFor(project, 'sbls-package-v1', 'clean.sbls'),
+  })
+
+  const result = await harness.root.dispatch('project.save')
+
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed') {
+    assert.equal(result.result.status, 'success')
+  }
+  assert.equal(harness.dialogCalls.length, 0)
+  assert.deepEqual(
+    harness.writeCalls.map(({ destinationPath }) => destinationPath),
+    ['clean.sbls'],
+  )
+  assert.equal(
+    harness.root.getLifecycleState().activeSession?.currentPath,
+    'clean.sbls',
+  )
+})
+
 test('Save and Save As are unavailable without an active session', async () => {
   const harness = createHarness({
     state: createEmptyApplicationLifecycleState(),

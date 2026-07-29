@@ -288,6 +288,7 @@ export const testFiles = [
   'src/templates/templateModel.test.ts',
   'src/tauri/binaryProjectFile.test.ts',
   'src/tauri/packageProjectFile.test.ts',
+  'src/tauri/projectFileFormat.test.ts',
   'src/tauri/projectPackageWrite.test.ts',
 ]
 

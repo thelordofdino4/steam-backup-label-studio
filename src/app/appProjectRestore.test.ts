@@ -49,6 +49,10 @@ async function stageCandidate(
   const result = await stageAppProjectOpen({
     openDialog: async () => 'C:\\projects\\atomic.sbls.json',
     readProjectFileCommand: async () => contents,
+    recognizeProjectFileFormatCommand: async () => 'legacy-json',
+    decodeProjectPackageFileCommand: async () => {
+      throw new Error('Package decoder must not run for legacy content.')
+    },
     caseInsertBrandingSources: createBrandingSources(),
   })
   assert.equal(result.status, 'success')
