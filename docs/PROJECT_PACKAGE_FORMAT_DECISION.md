@@ -3,27 +3,27 @@
 > Purpose: Preserve why the target chose a ZIP-compatible single-file `.sbls` package.
 > Read when: Project packaging or future container work.
 > Authoritative source: `PROJECT_FILE_SPEC.md` for current/hydrated JSON schema; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for exact target package behavior.
-> Last reviewed against commit: `a104825583a1cc03e145a9e460e9abccf4483bf7`.
+> Last reviewed against commit: `607ab5ffc73f22f71105ea7e5434c93f3de439ef` plus the focused package Save checkpoint documented below.
 
 
-Last refreshed: 2026-07-27.
+Last refreshed: 2026-07-29.
 
 Issue: #56 (closed/completed).
 
 ## Decision
 
-The current implemented project format remains plain JSON, normally saved as
-`.sbls.json`, with embedded image data URLs for assets that must reload without
-the original local files.
+At the time of this decision, the implemented project format was plain JSON,
+normally saved as `.sbls.json`, with embedded image data URLs for assets that
+had to reload without the original local files.
 
-The future `.sbls` format should be a ZIP-compatible single-file package, not a
-loose folder bundle and not a custom binary format. The package should contain a
-small manifest, a project JSON projection, and content-addressed asset files
-associated through manifest bindings under the exact target contract.
+The selected `.sbls` format is a ZIP-compatible single-file package, not a loose
+folder bundle and not a custom binary format. The package contains a small
+manifest, a project JSON projection, and content-addressed asset files associated
+through manifest bindings under the exact target contract.
 
-No `.sbls` package read/write behavior is implemented by this decision. The
-current JSON format stays the implemented compatibility baseline until package
-support is explicitly implemented and validated. The draft target
+This historical decision itself implemented no `.sbls` package behavior.
+Production Save/Save As and legacy conversion are now implemented, while
+package Open remains dormant. The draft target
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
 supersedes this ADR's conceptual layout and optional metadata with exact
 normative v1 rules.
@@ -44,7 +44,7 @@ normative v1 rules.
 
 ## Current Asset Strategy
 
-For the current JSON format:
+For the retained legacy JSON import format:
 
 - Embed user-provided, Steam-imported, web, local Steam screenshot, and custom
   replacement images as data URLs when they are needed for reload.

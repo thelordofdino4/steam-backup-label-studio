@@ -92,6 +92,7 @@ impl ProjectFileFailureCode {
             AtomicProjectWritePhase::FlushTemporary => Self::AtomicFlushTemporary,
             AtomicProjectWritePhase::SyncTemporary => Self::AtomicSyncTemporary,
             AtomicProjectWritePhase::CloseTemporary => Self::AtomicCloseTemporary,
+            AtomicProjectWritePhase::PreCommitValidation => Self::AtomicValidateDestination,
             AtomicProjectWritePhase::ReplaceDestination => Self::AtomicReplaceDestination,
         }
     }
@@ -154,6 +155,13 @@ impl ProjectFileCommandFailure {
         )
     }
 
+    pub(crate) fn package_write_request_failure(
+        category: &'static str,
+        operation: &'static str,
+    ) -> Self {
+        Self::request_failure(ProjectFileFailureCode::WriteFailed, category, operation)
+    }
+
     fn file_too_large(operation: &'static str) -> Self {
         Self::request_failure(
             ProjectFileFailureCode::FileTooLarge,
@@ -184,7 +192,7 @@ impl ProjectFileCommandFailure {
         }
     }
 
-    fn from_atomic(error: AtomicProjectWriteError) -> Self {
+    pub(crate) fn from_atomic(error: AtomicProjectWriteError) -> Self {
         let code = ProjectFileFailureCode::from_atomic_phase(error.phase());
         let secondary = error
             .secondary_failures()
@@ -217,7 +225,7 @@ impl ProjectFileCommandSuccess {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PathMetadataFailure {
+pub(crate) enum PathMetadataFailure {
     Missing,
     Duplicate,
     Invalid,
@@ -227,7 +235,7 @@ enum PathMetadataFailure {
 }
 
 impl PathMetadataFailure {
-    const fn category(self) -> &'static str {
+    pub(crate) const fn category(self) -> &'static str {
         match self {
             Self::Missing => "path-metadata-missing",
             Self::Duplicate => "path-metadata-duplicate",
@@ -322,16 +330,25 @@ fn decode_canonical_path(encoded: &str) -> Result<PathBuf, PathMetadataFailure> 
     Ok(PathBuf::from(decoded))
 }
 
-fn path_from_headers(headers: &HeaderMap) -> Result<PathBuf, PathMetadataFailure> {
-    let mut values = headers.get_all(PROJECT_PATH_HEADER_NAME).iter();
-    let value = values.next().ok_or(PathMetadataFailure::Missing)?;
+pub(crate) fn path_from_named_header(
+    headers: &HeaderMap,
+    header_name: &str,
+) -> Result<Option<PathBuf>, PathMetadataFailure> {
+    let mut values = headers.get_all(header_name).iter();
+    let Some(value) = values.next() else {
+        return Ok(None);
+    };
     if values.next().is_some() {
         return Err(PathMetadataFailure::Duplicate);
     }
     let encoded = value
         .to_str()
         .map_err(|_| PathMetadataFailure::Undecodable)?;
-    decode_canonical_path(encoded)
+    decode_canonical_path(encoded).map(Some)
+}
+
+pub(crate) fn path_from_headers(headers: &HeaderMap) -> Result<PathBuf, PathMetadataFailure> {
+    path_from_named_header(headers, PROJECT_PATH_HEADER_NAME)?.ok_or(PathMetadataFailure::Missing)
 }
 
 fn request_path(

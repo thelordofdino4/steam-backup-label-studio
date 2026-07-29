@@ -7,11 +7,18 @@ import {
   createApplicationProjectOpenCommandOwner,
   type ApplicationProjectOpenRuntimeDependencies,
 } from './appProjectOpenCommand.ts'
+import {
+  createApplicationProjectSaveCommandOwners,
+  type ApplicationProjectSaveRuntimeDependencies,
+} from './appProjectSaveCommand.ts'
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
   updateProjectOpenDependencies(
     dependencies: ApplicationProjectOpenRuntimeDependencies,
+  ): void
+  updateProjectSaveDependencies(
+    dependencies: ApplicationProjectSaveRuntimeDependencies,
   ): void
   dispose(): void
 }>
@@ -32,14 +39,20 @@ export function createApplicationLifecycleRuntime(
 ): ApplicationLifecycleRuntime {
   let projectOpenDependencies: ApplicationProjectOpenRuntimeDependencies | null =
     null
+  let projectSaveDependencies: ApplicationProjectSaveRuntimeDependencies | null = null
   let disposed = false
   const createRoot = options.createRoot ??
     createApplicationLifecycleCompositionRoot
+  const saveOwners = createApplicationProjectSaveCommandOwners(
+    () => projectSaveDependencies,
+  )
   const root = createRoot({
     ports: {
       openProject: createApplicationProjectOpenCommandOwner(
         () => projectOpenDependencies,
       ),
+      saveProject: saveOwners.saveProject,
+      saveProjectAs: saveOwners.saveProjectAs,
     },
   })
 
@@ -51,10 +64,17 @@ export function createApplicationLifecycleRuntime(
       }
       projectOpenDependencies = dependencies
     },
+    updateProjectSaveDependencies(dependencies) {
+      if (disposed) {
+        throw new Error('The application lifecycle runtime is disposed.')
+      }
+      projectSaveDependencies = dependencies
+    },
     dispose() {
       if (disposed) return
       disposed = true
       projectOpenDependencies = null
+      projectSaveDependencies = null
       root.dispose()
     },
   })

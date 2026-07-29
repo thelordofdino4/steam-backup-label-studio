@@ -22,7 +22,7 @@ mod registry;
 mod conformance_tests;
 
 pub use decode::decode_project_package;
-pub use encode::encode_project_package;
+pub use encode::{encode_project_package, encode_project_package_from_borrowed};
 pub use error::{FailureCode, FailureStage, ProjectPackageFailure};
 pub use model::{
     AssetCapture, AssetCaptureDecision, DecodedPackageMetadata, DecodedProjectPackage,

@@ -28,7 +28,12 @@ import {
   executableProjectLifecycleCommandCapabilities,
   type ApplicationTerminationCapabilities,
 } from './lifecycleCommandCapabilities.ts'
-import type { ApplicationLifecycleState } from './projectSession.ts'
+import type { SavedProject } from '../project/projectTypes.ts'
+import {
+  createNewProjectSession,
+  type ApplicationLifecycleState,
+  type ProjectSessionEditorRoute,
+} from './projectSession.ts'
 
 const UNIMPLEMENTED_TERMINATION = Object.freeze({
   closeWindow: 'unimplemented',
@@ -72,6 +77,10 @@ export interface ApplicationLifecycleCompositionRoot {
     commandId: ApplicationCommandId,
   ): Promise<ApplicationCommandDispatchResult<void>>
   dispatch(commandId: string): Promise<ApplicationCommandDispatchResult<void>>
+  establishPathlessProjectSession(
+    project: SavedProject,
+    route?: ProjectSessionEditorRoute,
+  ): boolean
   subscribe(subscriber: ApplicationLifecycleCompositionSubscriber): () => void
   listRegisteredCommandIds(): readonly ApplicationCommandId[]
   dispose(): void
@@ -235,6 +244,20 @@ export function createApplicationLifecycleCompositionRoot(
         createCommandContext(definition.id),
         undefined,
       )
+    },
+    establishPathlessProjectSession(
+      project: SavedProject,
+      route?: ProjectSessionEditorRoute,
+    ) {
+      if (disposed || busyCoordinator.getState().occupiedScopes.length > 0) return false
+      const snapshot = stateStore.getSnapshot()
+      const result = stateStore.commitTransition(snapshot.generation, () =>
+        createNewProjectSession({
+          sessionId: createSessionId(),
+          project,
+          ...(route ? { lastEditorRoute: route } : {}),
+        }))
+      return result.status === 'committed'
     },
     subscribe(subscriber: ApplicationLifecycleCompositionSubscriber) {
       if (disposed) {

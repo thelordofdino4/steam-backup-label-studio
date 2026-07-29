@@ -24,6 +24,7 @@ export const testFiles = [
   'src/app/appPngExport.test.ts',
   'src/app/appPngExportInputs.test.ts',
   'src/app/appProjectSave.test.ts',
+  'src/app/appProjectSaveCommand.test.ts',
   'src/app/appCaseInsertPreviewTextHandlers.test.ts',
   'src/app/appSteamDiscVisualImport.test.ts',
   'src/app/appSteamImportPlan.test.ts',
@@ -256,6 +257,8 @@ export const testFiles = [
   'src/project/restoreProjectMarkAssets.test.ts',
   'src/project/restoreProjectDiscText.test.ts',
   'src/project/restoreProjectSteamBanner.test.ts',
+  'src/package/projectPackageCapturePlan.test.ts',
+  'src/package/projectPackageBuiltInRegistryV1.test.ts',
   'src/presets/discPresetDefinition.test.ts',
   'src/presets/discPresetResolution.test.ts',
   'src/presets/discPresetPlacementAdapters.test.ts',
@@ -285,6 +288,7 @@ export const testFiles = [
   'src/templates/templateModel.test.ts',
   'src/tauri/binaryProjectFile.test.ts',
   'src/tauri/packageProjectFile.test.ts',
+  'src/tauri/projectPackageWrite.test.ts',
 ]
 
 export const testCommands = [

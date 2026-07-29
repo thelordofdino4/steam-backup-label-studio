@@ -494,8 +494,8 @@ pub(crate) enum UnboundOwnerDisposition {
 
 /// Renderer-visible semantic built-ins that do not own a data-URL leaf and
 /// therefore cannot truthfully participate in the manifest binding registry.
-/// With no v1 compatibility mappings published, their presence is an explicit
-/// encode/decode gate rather than a synthetic raster binding.
+/// Known v1 identities are supplied by the frozen application compatibility
+/// registry; only unknown selectors reach this explicit gate.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UnavailableSemanticBuiltIn {
     DiscSupplementalUsk,
@@ -510,22 +510,24 @@ pub(crate) fn first_unavailable_semantic_builtin(
 ) -> Option<UnavailableSemanticBuiltIn> {
     match project_kind {
         ProjectKind::Disc => {
-            let supplemental_usk_retained = project
+            let unsupported_supplemental_usk_retained = project
                 .get("ratingBadge")
                 .and_then(|rating| rating.get("uskBadge"))
                 .and_then(|usk| usk.get("ratingValue"))
                 .and_then(JsonValue::as_str)
-                .is_some_and(|value| !value.is_empty());
-            if supplemental_usk_retained {
+                .is_some_and(|value| {
+                    !value.is_empty() && !matches!(value, "0" | "6" | "12" | "16" | "18")
+                });
+            if unsupported_supplemental_usk_retained {
                 return Some(UnavailableSemanticBuiltIn::DiscSupplementalUsk);
             }
 
-            let number_badge_set_retained = project
+            let unsupported_number_badge_set_retained = project
                 .get("discNumberArtwork")
                 .and_then(|value| value.get("badgeSet"))
                 .and_then(JsonValue::as_str)
-                .is_some_and(|value| !value.is_empty());
-            if number_badge_set_retained {
+                .is_some_and(|value| !value.is_empty() && value != "starterRing");
+            if unsupported_number_badge_set_retained {
                 return Some(UnavailableSemanticBuiltIn::DiscNumberBadge);
             }
 
@@ -535,7 +537,7 @@ pub(crate) fn first_unavailable_semantic_builtin(
                 .and_then(JsonValue::as_array)
                 .unwrap_or(&[]);
             elements.iter().enumerate().find_map(|(index, element)| {
-                frame_is_rocky(element)
+                frame_is_unknown_builtin(element)
                     .then_some(UnavailableSemanticBuiltIn::DiscArtworkFrame { index })
             })
         }
@@ -545,7 +547,7 @@ pub(crate) fn first_unavailable_semantic_builtin(
                     .and_then(|value| value.get("artworkSlots"))
                     .and_then(JsonValue::as_array)
                     .unwrap_or(&[]);
-                if let Some(index) = slots.iter().position(frame_is_rocky) {
+                if let Some(index) = slots.iter().position(frame_is_unknown_builtin) {
                     return Some(UnavailableSemanticBuiltIn::CaseArtworkFrame { surface, index });
                 }
             }
@@ -554,21 +556,22 @@ pub(crate) fn first_unavailable_semantic_builtin(
     }
 }
 
-fn frame_is_rocky(owner: &JsonValue) -> bool {
+fn frame_is_unknown_builtin(owner: &JsonValue) -> bool {
     owner
         .get("frame")
         .and_then(|frame| frame.get("style"))
         .and_then(JsonValue::as_str)
-        == Some("rocky")
+        .is_some_and(|style| !matches!(style, "solid" | "rough" | "rocky"))
 }
 
 /// Classify one concrete registry owner whose package binding is absent.
 ///
-/// Package v1 deliberately has no frozen built-in compatibility mappings. A
-/// bundled fallback therefore cannot be omitted from a package even when the
-/// persisted image leaf is null. Disc logo fallbacks and recognized Case logo
-/// roles are selected by the same owner/discriminator rules as the current
-/// renderers, rather than by generic property-name discovery.
+/// Package v1 freezes only the explicit built-in compatibility mappings in the
+/// normative registry. An unbound owner may therefore omit bytes only when its
+/// exact semantic state resolves to one of those mappings. Disc logo fallbacks
+/// and recognized Case logo roles are selected by the same owner/discriminator
+/// rules as the current renderers, rather than by generic property-name
+/// discovery.
 pub(crate) fn classify_unbound_owner(
     project: &JsonValue,
     owner: AssetOwner,
@@ -628,8 +631,25 @@ pub(crate) fn classify_unbound_owner(
                 classify_direct_source_owner(container, "customImageSize", false)
             }
         }
-        AssetOwner::DiscRatingCustom | AssetOwner::DiscMediaCustom => {
-            classify_direct_source_owner(container, "customImageSize", true)
+        AssetOwner::DiscRatingCustom => {
+            let custom = classify_direct_source_owner(container, "customImageSize", false);
+            if custom == UnboundOwnerDisposition::AcceptedAssetMissingBinding {
+                custom
+            } else if disc_rating_compatibility(project, container).is_some() {
+                UnboundOwnerDisposition::BuiltInWithoutCompatibility
+            } else {
+                UnboundOwnerDisposition::NoAcceptedAsset
+            }
+        }
+        AssetOwner::DiscMediaCustom => {
+            let custom = classify_direct_source_owner(container, "customImageSize", false);
+            if custom == UnboundOwnerDisposition::AcceptedAssetMissingBinding {
+                custom
+            } else if disc_media_compatibility(container).is_some() {
+                UnboundOwnerDisposition::BuiltInWithoutCompatibility
+            } else {
+                UnboundOwnerDisposition::NoAcceptedAsset
+            }
         }
         AssetOwner::DiscTechnicalAdditional { .. } => {
             classify_direct_source_owner(container, "customImageSize", false)
@@ -645,6 +665,364 @@ pub(crate) fn classify_unbound_owner(
             classify_provenance_owner(container, "imageSource", "imageSize", false)
         }
     }
+}
+
+/// Validate one application-declared omission against the frozen package-v1
+/// compatibility tuples. Incidental labels, URLs, and file names never qualify.
+pub(crate) fn qualified_builtin_matches(
+    project: &JsonValue,
+    owner: AssetOwner,
+    compatibility_id: &str,
+) -> bool {
+    let container = owner_container(project, owner);
+    if owner_leaf(container, owner)
+        .and_then(JsonValue::as_str)
+        .is_some_and(|value| value.starts_with("data:"))
+    {
+        return false;
+    }
+
+    match owner {
+        AssetOwner::DiscSteamBanner => {
+            compatibility_id == "steam-banner:banner-lockup"
+                && match provenance_source(container, "lockupImageSource") {
+                    None => true,
+                    Some("built-in") => provenance_source_id(container, "lockupImageSource")
+                        .map_or(true, |id| id == "steam-banner:banner-lockup"),
+                    Some(_) => false,
+                }
+        }
+        AssetOwner::CaseBanner { surface } => {
+            let (compatibility, source_id) = match surface {
+                CaseSurface::Cover | CaseSurface::Tray => (
+                    "steam-banner:banner-lockup",
+                    "case-steam-banner:cover-lockup",
+                ),
+                CaseSurface::SpineLeft | CaseSurface::SpineRight => {
+                    ("steam-banner:spine-icon", "case-steam-banner:spine-icon")
+                }
+            };
+            compatibility_id == compatibility
+                && provenance_source_id(container, "lockupImageSource") == Some(source_id)
+        }
+        AssetOwner::DiscPrimaryLogo { role } => {
+            compatibility_id == logo_compatibility_id(role)
+                && classify_unbound_owner(project, owner)
+                    == UnboundOwnerDisposition::BuiltInWithoutCompatibility
+        }
+        AssetOwner::DiscAdditionalLogo { role, .. } => {
+            compatibility_id == logo_compatibility_id(role)
+                && provenance_source(container, "imageSource")
+                    .is_some_and(|source| matches!(source, "built-in" | "placeholder"))
+        }
+        AssetOwner::CaseLogo { .. } => {
+            let Some(source_id) = provenance_source_id(container, "imageSource") else {
+                return false;
+            };
+            if !provenance_source(container, "imageSource")
+                .is_some_and(|source| matches!(source, "built-in" | "placeholder"))
+            {
+                return false;
+            }
+            match compatibility_id {
+                "logo:developer" => {
+                    source_id == "case-logo:developer"
+                        || source_id.starts_with("case-logo:developer:additional:")
+                }
+                "logo:publisher" => {
+                    source_id == "case-logo:publisher"
+                        || source_id.starts_with("case-logo:publisher:additional:")
+                }
+                _ => false,
+            }
+        }
+        AssetOwner::DiscRatingCustom => disc_rating_compatibility(project, container)
+            .is_some_and(|expected| expected == compatibility_id),
+        AssetOwner::DiscMediaCustom => {
+            disc_media_compatibility(container).is_some_and(|expected| expected == compatibility_id)
+        }
+        AssetOwner::DiscPlatformCustom { platform } => {
+            disc_platform_compatibility(project, container, platform)
+                .is_some_and(|expected| expected == compatibility_id)
+        }
+        AssetOwner::DiscTechnicalPrimary { technical }
+        | AssetOwner::DiscTechnicalAdditional { technical, .. } => {
+            technical_compatibility(container, technical)
+                .is_some_and(|expected| expected == compatibility_id)
+        }
+        AssetOwner::CaseMark { .. } => provenance_source_id(container, "imageSource")
+            .and_then(|source_id| source_id.strip_prefix("case-"))
+            .is_some_and(|expected| expected == compatibility_id),
+        AssetOwner::DiscBackground
+        | AssetOwner::DiscTitleCurrent
+        | AssetOwner::DiscTitleDefault
+        | AssetOwner::DiscAdditionalArtwork { .. }
+        | AssetOwner::CaseBackground { .. }
+        | AssetOwner::CaseTitleCurrent { .. }
+        | AssetOwner::CaseTitleDefault { .. }
+        | AssetOwner::CaseArtwork { .. } => false,
+    }
+}
+
+pub(crate) fn has_qualified_builtin_mapping(project: &JsonValue, owner: AssetOwner) -> bool {
+    match owner {
+        AssetOwner::DiscSteamBanner => {
+            qualified_builtin_matches(project, owner, "steam-banner:banner-lockup")
+        }
+        AssetOwner::CaseBanner { surface } => qualified_builtin_matches(
+            project,
+            owner,
+            match surface {
+                CaseSurface::Cover | CaseSurface::Tray => "steam-banner:banner-lockup",
+                CaseSurface::SpineLeft | CaseSurface::SpineRight => "steam-banner:spine-icon",
+            },
+        ),
+        AssetOwner::DiscPrimaryLogo { role } | AssetOwner::DiscAdditionalLogo { role, .. } => {
+            qualified_builtin_matches(project, owner, logo_compatibility_id(role))
+        }
+        AssetOwner::CaseLogo { .. } => ["logo:developer", "logo:publisher"]
+            .into_iter()
+            .any(|id| qualified_builtin_matches(project, owner, id)),
+        AssetOwner::DiscRatingCustom => {
+            disc_rating_compatibility(project, owner_container(project, owner)).is_some()
+        }
+        AssetOwner::DiscMediaCustom => {
+            disc_media_compatibility(owner_container(project, owner)).is_some()
+        }
+        AssetOwner::DiscPlatformCustom { platform } => {
+            disc_platform_compatibility(project, owner_container(project, owner), platform)
+                .is_some()
+        }
+        AssetOwner::DiscTechnicalPrimary { technical }
+        | AssetOwner::DiscTechnicalAdditional { technical, .. } => {
+            technical_compatibility(owner_container(project, owner), technical).is_some()
+        }
+        AssetOwner::CaseMark { .. } => {
+            provenance_source_id(owner_container(project, owner), "imageSource")
+                .and_then(|source_id| source_id.strip_prefix("case-"))
+                .is_some_and(is_known_mark_compatibility)
+        }
+        _ => false,
+    }
+}
+
+fn is_known_mark_compatibility(id: &str) -> bool {
+    matches!(
+        id,
+        "rating:ESRB:E"
+            | "rating:ESRB:E10+"
+            | "rating:ESRB:T"
+            | "rating:ESRB:M"
+            | "rating:ESRB:AO"
+            | "rating:ESRB:RP"
+            | "rating:ESRB:RP17+"
+            | "rating:PEGI:3"
+            | "rating:PEGI:7"
+            | "rating:PEGI:12"
+            | "rating:PEGI:16"
+            | "rating:PEGI:18"
+            | "rating:USK:0"
+            | "rating:USK:6"
+            | "rating:USK:12"
+            | "rating:USK:16"
+            | "rating:USK:18"
+            | "media:bluRay"
+            | "media:cdRom:light"
+            | "media:cdRom:dark"
+            | "media:dataDisc:light"
+            | "media:dataDisc:dark"
+            | "media:dvd:light"
+            | "media:dvd:dark"
+            | "media:dvdRom:light"
+            | "media:dvdRom:dark"
+            | "media:installDisc:light"
+            | "media:installDisc:dark"
+            | "platform:linux:color"
+            | "platform:linux:light"
+            | "platform:linux:dark"
+            | "platform:macos:macos1988"
+            | "platform:macos:macos1995"
+            | "platform:macos:macos2001"
+            | "platform:macos:macos2003"
+            | "platform:macos:macos2012"
+            | "platform:macos:macos2016"
+            | "platform:macos:macos2017"
+            | "platform:pc:pcPlatform"
+            | "platform:pc:pcSimplified"
+            | "platform:pc:pcSimplifiedDark"
+            | "platform:steamDeck:color"
+            | "platform:steamDeck:light"
+            | "platform:steamDeck:dark"
+            | "platform:windows:retro"
+            | "platform:windows:xp"
+            | "platform:windows:vista"
+            | "platform:windows:windows7"
+            | "platform:windows:windows10"
+            | "platform:windows:windows11"
+            | "technical:audio"
+            | "technical:surround"
+            | "technical:codec"
+            | "technical:middleware"
+            | "technical:technology"
+    )
+}
+
+pub(crate) fn clear_qualified_builtin_leaf(
+    project: &mut JsonValue,
+    owner: AssetOwner,
+) -> Result<(), RegistryError> {
+    let Some(container) = owner_container_mut(project, owner) else {
+        return Ok(());
+    };
+    let member = owner_leaf_member(owner);
+    if let Some(leaf) = container.get_mut(member) {
+        *leaf = JsonValue::Null;
+    }
+    Ok(())
+}
+
+fn logo_compatibility_id(role: LogoRole) -> &'static str {
+    match role {
+        LogoRole::Developer => "logo:developer",
+        LogoRole::Publisher => "logo:publisher",
+    }
+}
+
+fn provenance_source<'a>(container: Option<&'a JsonValue>, member: &str) -> Option<&'a str> {
+    container?.get(member)?.get("source")?.as_str()
+}
+
+fn provenance_source_id<'a>(container: Option<&'a JsonValue>, member: &str) -> Option<&'a str> {
+    container?.get(member)?.get("sourceId")?.as_str()
+}
+
+fn disc_rating_compatibility<'a>(
+    project: &'a JsonValue,
+    container: Option<&JsonValue>,
+) -> Option<&'a str> {
+    if container
+        .and_then(|value| value.get("source"))
+        .and_then(JsonValue::as_str)
+        == Some("custom")
+    {
+        return None;
+    }
+    let system = project.get("metadata")?.get("ratingSystem")?.as_str()?;
+    let value = project.get("metadata")?.get("ratingValue")?.as_str()?;
+    match (system, value) {
+        ("ESRB", "E") => Some("rating:ESRB:E"),
+        ("ESRB", "E10+") => Some("rating:ESRB:E10+"),
+        ("ESRB", "T") => Some("rating:ESRB:T"),
+        ("ESRB", "M") => Some("rating:ESRB:M"),
+        ("ESRB", "AO") => Some("rating:ESRB:AO"),
+        ("ESRB", "RP") => Some("rating:ESRB:RP"),
+        ("ESRB", "RP17+") => Some("rating:ESRB:RP17+"),
+        ("PEGI", "3") => Some("rating:PEGI:3"),
+        ("PEGI", "7") => Some("rating:PEGI:7"),
+        ("PEGI", "12") => Some("rating:PEGI:12"),
+        ("PEGI", "16") => Some("rating:PEGI:16"),
+        ("PEGI", "18") => Some("rating:PEGI:18"),
+        ("USK", "0") => Some("rating:USK:0"),
+        ("USK", "6") => Some("rating:USK:6"),
+        ("USK", "12") => Some("rating:USK:12"),
+        ("USK", "16") => Some("rating:USK:16"),
+        ("USK", "18") => Some("rating:USK:18"),
+        _ => None,
+    }
+}
+
+fn disc_media_compatibility(container: Option<&JsonValue>) -> Option<&'static str> {
+    if container
+        .and_then(|value| value.get("source"))
+        .and_then(JsonValue::as_str)
+        == Some("custom")
+    {
+        return None;
+    }
+    let value = container.and_then(|value| value.get("value"))?.as_str()?;
+    let theme = container
+        .and_then(|value| value.get("theme"))
+        .and_then(JsonValue::as_str)
+        .unwrap_or("light");
+    match (value, theme) {
+        ("bluRay", _) => Some("media:bluRay"),
+        ("dvd", "light") => Some("media:dvd:light"),
+        ("dvd", "dark") => Some("media:dvd:dark"),
+        ("dvdRom", "light") => Some("media:dvdRom:light"),
+        ("dvdRom", "dark") => Some("media:dvdRom:dark"),
+        ("cdRom", "light") => Some("media:cdRom:light"),
+        ("cdRom", "dark") => Some("media:cdRom:dark"),
+        ("dataDisc", "light") => Some("media:dataDisc:light"),
+        ("dataDisc", "dark") => Some("media:dataDisc:dark"),
+        ("installDisc", "light") => Some("media:installDisc:light"),
+        ("installDisc", "dark") => Some("media:installDisc:dark"),
+        _ => None,
+    }
+}
+
+fn disc_platform_compatibility(
+    project: &JsonValue,
+    container: Option<&JsonValue>,
+    platform: PlatformKind,
+) -> Option<&'static str> {
+    if container
+        .and_then(|value| value.get("source"))
+        .and_then(JsonValue::as_str)
+        == Some("custom")
+    {
+        return None;
+    }
+    if container.is_none() && !selected_owner_value(project, "platformMarks", platform.as_str()) {
+        return None;
+    }
+    let theme = container
+        .and_then(|value| value.get("theme"))
+        .and_then(JsonValue::as_str);
+    match (platform, theme) {
+        (PlatformKind::Pc, None | Some("pcPlatform")) => Some("platform:pc:pcPlatform"),
+        (PlatformKind::Pc, Some("pcSimplified")) => Some("platform:pc:pcSimplified"),
+        (PlatformKind::Pc, Some("pcSimplifiedDark")) => Some("platform:pc:pcSimplifiedDark"),
+        (PlatformKind::Windows, None | Some("windows11")) => Some("platform:windows:windows11"),
+        (PlatformKind::Windows, Some("retro")) => Some("platform:windows:retro"),
+        (PlatformKind::Windows, Some("xp")) => Some("platform:windows:xp"),
+        (PlatformKind::Windows, Some("vista")) => Some("platform:windows:vista"),
+        (PlatformKind::Windows, Some("windows7")) => Some("platform:windows:windows7"),
+        (PlatformKind::Windows, Some("windows10")) => Some("platform:windows:windows10"),
+        (PlatformKind::Linux, None | Some("color")) => Some("platform:linux:color"),
+        (PlatformKind::Linux, Some("light")) => Some("platform:linux:light"),
+        (PlatformKind::Linux, Some("dark")) => Some("platform:linux:dark"),
+        (PlatformKind::SteamDeck, None | Some("color")) => Some("platform:steamDeck:color"),
+        (PlatformKind::SteamDeck, Some("light")) => Some("platform:steamDeck:light"),
+        (PlatformKind::SteamDeck, Some("dark")) => Some("platform:steamDeck:dark"),
+        (PlatformKind::Macos, None | Some("macos1988")) => Some("platform:macos:macos1988"),
+        (PlatformKind::Macos, Some("macos1995")) => Some("platform:macos:macos1995"),
+        (PlatformKind::Macos, Some("macos2001")) => Some("platform:macos:macos2001"),
+        (PlatformKind::Macos, Some("macos2003")) => Some("platform:macos:macos2003"),
+        (PlatformKind::Macos, Some("macos2012")) => Some("platform:macos:macos2012"),
+        (PlatformKind::Macos, Some("macos2016")) => Some("platform:macos:macos2016"),
+        (PlatformKind::Macos, Some("macos2017")) => Some("platform:macos:macos2017"),
+        _ => None,
+    }
+}
+
+fn technical_compatibility(
+    container: Option<&JsonValue>,
+    technical: TechnicalKind,
+) -> Option<&'static str> {
+    if container
+        .and_then(|value| value.get("source"))
+        .and_then(JsonValue::as_str)
+        == Some("custom")
+    {
+        return None;
+    }
+    Some(match technical {
+        TechnicalKind::Audio => "technical:audio",
+        TechnicalKind::Surround => "technical:surround",
+        TechnicalKind::Codec => "technical:codec",
+        TechnicalKind::Middleware => "technical:middleware",
+        TechnicalKind::Technology => "technical:technology",
+    })
 }
 
 fn owner_container(project: &JsonValue, owner: AssetOwner) -> Option<&JsonValue> {
@@ -701,6 +1079,62 @@ fn owner_container(project: &JsonValue, owner: AssetOwner) -> Option<&JsonValue>
     }
 }
 
+fn owner_container_mut(project: &mut JsonValue, owner: AssetOwner) -> Option<&mut JsonValue> {
+    match owner {
+        AssetOwner::DiscBackground => project.get_mut("background"),
+        AssetOwner::DiscSteamBanner => project.get_mut("steamBackupLogo"),
+        AssetOwner::DiscPrimaryLogo { .. } => project.get_mut("logoAssets"),
+        AssetOwner::DiscAdditionalLogo { role, index } => project
+            .get_mut("logoAssets")?
+            .get_mut(role.additional_field())?
+            .get_index_mut(index),
+        AssetOwner::DiscTitleCurrent => project.get_mut("titleArtwork"),
+        AssetOwner::DiscTitleDefault => {
+            project.get_mut("titleArtwork")?.get_mut("defaultSteamLogo")
+        }
+        AssetOwner::DiscAdditionalArtwork { index } => project
+            .get_mut("additionalArtwork")?
+            .get_mut("elements")?
+            .get_index_mut(index),
+        AssetOwner::DiscRatingCustom => project.get_mut("ratingBadge"),
+        AssetOwner::DiscMediaCustom => project.get_mut("mediaMark"),
+        AssetOwner::DiscPlatformCustom { platform } => project
+            .get_mut("platformMarks")?
+            .get_mut("assets")?
+            .get_mut(platform.as_str()),
+        AssetOwner::DiscTechnicalPrimary { technical } => project
+            .get_mut("technicalMarks")?
+            .get_mut("assets")?
+            .get_mut(technical.as_str()),
+        AssetOwner::DiscTechnicalAdditional { technical, index } => project
+            .get_mut("technicalMarks")?
+            .get_mut("additionalAssets")?
+            .get_mut(technical.as_str())?
+            .get_index_mut(index),
+        AssetOwner::CaseBanner { surface } => {
+            case_surface_container_mut(project, surface)?.get_mut("steamBanner")
+        }
+        AssetOwner::CaseBackground { surface } => {
+            case_surface_container_mut(project, surface)?.get_mut("background")
+        }
+        AssetOwner::CaseTitleCurrent { surface } => {
+            case_surface_container_mut(project, surface)?.get_mut("titleArtwork")
+        }
+        AssetOwner::CaseTitleDefault { surface } => case_surface_container_mut(project, surface)?
+            .get_mut("titleArtwork")?
+            .get_mut("defaultSteamLogo"),
+        AssetOwner::CaseArtwork { surface, index } => case_surface_container_mut(project, surface)?
+            .get_mut("artworkSlots")?
+            .get_index_mut(index),
+        AssetOwner::CaseLogo { surface, index } => case_surface_container_mut(project, surface)?
+            .get_mut("logoSlots")?
+            .get_index_mut(index),
+        AssetOwner::CaseMark { surface, index } => case_surface_container_mut(project, surface)?
+            .get_mut("markSlots")?
+            .get_index_mut(index),
+    }
+}
+
 fn case_surface_container(project: &JsonValue, surface: CaseSurface) -> Option<&JsonValue> {
     let case_insert = project.get("caseInsert")?;
     match surface {
@@ -711,9 +1145,26 @@ fn case_surface_container(project: &JsonValue, surface: CaseSurface) -> Option<&
     }
 }
 
+fn case_surface_container_mut(
+    project: &mut JsonValue,
+    surface: CaseSurface,
+) -> Option<&mut JsonValue> {
+    let case_insert = project.get_mut("caseInsert")?;
+    match surface {
+        CaseSurface::Cover => case_insert.get_mut("templates")?.get_mut("cover"),
+        CaseSurface::Tray => case_insert.get_mut("templates")?.get_mut("tray"),
+        CaseSurface::SpineLeft => case_insert.get_mut("spine")?.get_mut("left"),
+        CaseSurface::SpineRight => case_insert.get_mut("spine")?.get_mut("right"),
+    }
+}
+
 fn owner_leaf(container: Option<&JsonValue>, owner: AssetOwner) -> Option<&JsonValue> {
     let container = container?;
-    let member = match owner {
+    container.get(owner_leaf_member(owner))
+}
+
+fn owner_leaf_member(owner: AssetOwner) -> &'static str {
+    match owner {
         AssetOwner::DiscSteamBanner | AssetOwner::CaseBanner { .. } => "lockupImageDataUrl",
         AssetOwner::DiscPrimaryLogo { role } => role.primary_field(),
         AssetOwner::DiscRatingCustom
@@ -722,8 +1173,7 @@ fn owner_leaf(container: Option<&JsonValue>, owner: AssetOwner) -> Option<&JsonV
         | AssetOwner::DiscTechnicalPrimary { .. }
         | AssetOwner::DiscTechnicalAdditional { .. } => "customImageDataUrl",
         _ => "imageDataUrl",
-    };
-    container.get(member)
+    }
 }
 
 fn classify_provenance_owner(
@@ -1595,17 +2045,17 @@ mod tests {
     #[test]
     fn direct_mark_fallbacks_and_retained_custom_evidence_are_distinct() {
         use UnboundOwnerDisposition::{
-            AcceptedAssetMissingBinding as Missing, BuiltInWithoutCompatibility as BuiltIn,
+            AcceptedAssetMissingBinding as Missing, NoAcceptedAsset as Absent,
         };
 
         let absent = parse_project(r#"{}"#);
         assert_eq!(
             classify_unbound_owner(&absent, AssetOwner::DiscRatingCustom),
-            BuiltIn
+            Absent
         );
         assert_eq!(
             classify_unbound_owner(&absent, AssetOwner::DiscMediaCustom),
-            BuiltIn
+            Absent
         );
 
         let fallback = parse_project(
@@ -1613,11 +2063,11 @@ mod tests {
         );
         assert_eq!(
             classify_unbound_owner(&fallback, AssetOwner::DiscRatingCustom),
-            BuiltIn
+            Absent
         );
         assert_eq!(
             classify_unbound_owner(&fallback, AssetOwner::DiscMediaCustom),
-            BuiltIn
+            Absent
         );
 
         let retained = parse_project(
@@ -1656,20 +2106,20 @@ mod tests {
     }
 
     #[test]
-    fn non_bindable_semantic_built_ins_include_disabled_remembered_selectors() {
+    fn semantic_built_ins_accept_published_ids_and_reject_unknown_selectors() {
         let usk = parse_project(
             r#"{"ratingBadge":{"uskBadge":{"ratingValue":"12","layout":{"enabled":false}}}}"#,
         );
         assert_eq!(
             first_unavailable_semantic_builtin(&usk, ProjectKind::Disc),
-            Some(UnavailableSemanticBuiltIn::DiscSupplementalUsk)
+            None
         );
 
         let disc_number =
             parse_project(r#"{"discNumberArtwork":{"mode":"text","badgeSet":"starterRing"}}"#);
         assert_eq!(
             first_unavailable_semantic_builtin(&disc_number, ProjectKind::Disc),
-            Some(UnavailableSemanticBuiltIn::DiscNumberBadge)
+            None
         );
 
         let disc_frame = parse_project(
@@ -1677,7 +2127,7 @@ mod tests {
         );
         assert_eq!(
             first_unavailable_semantic_builtin(&disc_frame, ProjectKind::Disc),
-            Some(UnavailableSemanticBuiltIn::DiscArtworkFrame { index: 0 })
+            None
         );
 
         let case_frame = parse_project(
@@ -1685,10 +2135,31 @@ mod tests {
         );
         assert_eq!(
             first_unavailable_semantic_builtin(&case_frame, ProjectKind::CaseInsert),
-            Some(UnavailableSemanticBuiltIn::CaseArtworkFrame {
-                surface: CaseSurface::Cover,
-                index: 0,
-            })
+            None
+        );
+
+        assert_eq!(
+            first_unavailable_semantic_builtin(
+                &parse_project(r#"{"ratingBadge":{"uskBadge":{"ratingValue":"21"}}}"#),
+                ProjectKind::Disc,
+            ),
+            Some(UnavailableSemanticBuiltIn::DiscSupplementalUsk)
+        );
+        assert_eq!(
+            first_unavailable_semantic_builtin(
+                &parse_project(r#"{"discNumberArtwork":{"badgeSet":"unknown"}}"#),
+                ProjectKind::Disc,
+            ),
+            Some(UnavailableSemanticBuiltIn::DiscNumberBadge)
+        );
+        assert_eq!(
+            first_unavailable_semantic_builtin(
+                &parse_project(
+                    r#"{"additionalArtwork":{"elements":[{"frame":{"style":"unknown"}}]}}"#
+                ),
+                ProjectKind::Disc,
+            ),
+            Some(UnavailableSemanticBuiltIn::DiscArtworkFrame { index: 0 })
         );
 
         assert_eq!(

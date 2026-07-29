@@ -19,6 +19,7 @@ pub(crate) enum AtomicProjectWritePhase {
     FlushTemporary,
     SyncTemporary,
     CloseTemporary,
+    PreCommitValidation,
     ReplaceDestination,
 }
 
@@ -32,6 +33,7 @@ impl AtomicProjectWritePhase {
             Self::FlushTemporary => "project.atomic-write.flush-temporary",
             Self::SyncTemporary => "project.atomic-write.sync-temporary",
             Self::CloseTemporary => "project.atomic-write.close-temporary",
+            Self::PreCommitValidation => "project.atomic-write.precommit-validation",
             Self::ReplaceDestination => "project.atomic-write.replace-destination",
         }
     }
@@ -45,6 +47,7 @@ impl AtomicProjectWritePhase {
             Self::FlushTemporary => "temporary-file flush",
             Self::SyncTemporary => "temporary-file synchronization",
             Self::CloseTemporary => "temporary-file close",
+            Self::PreCommitValidation => "pre-commit destination validation",
             Self::ReplaceDestination => "destination replacement",
         }
     }
@@ -220,21 +223,65 @@ pub(crate) fn write(
     let mut file_system = RealAtomicFileSystem;
     let mut temporary_paths = UniqueTemporaryPathSource::new();
 
-    write_with(
+    write_with_guard(
         destination,
         contents,
         &mut file_system,
         &mut temporary_paths,
         MAX_TEMP_FILE_ATTEMPTS,
+        &mut || Ok(()),
     )
 }
 
+/// Atomically write bytes while rechecking an external invariant after the
+/// temporary file is closed and immediately before destination replacement.
+pub(crate) fn write_with_precommit_guard(
+    path: impl AsRef<Path>,
+    contents: &[u8],
+    mut guard: impl FnMut() -> io::Result<()>,
+) -> Result<(), AtomicProjectWriteError> {
+    let destination = path.as_ref();
+    let mut file_system = RealAtomicFileSystem;
+    let mut temporary_paths = UniqueTemporaryPathSource::new();
+    write_with_guard(
+        destination,
+        contents,
+        &mut file_system,
+        &mut temporary_paths,
+        MAX_TEMP_FILE_ATTEMPTS,
+        &mut guard,
+    )
+}
+
+#[cfg(test)]
 fn write_with<F, T>(
     destination: &Path,
     contents: &[u8],
     file_system: &mut F,
     temporary_paths: &mut T,
     max_attempts: usize,
+) -> Result<(), AtomicProjectWriteError>
+where
+    F: AtomicFileSystem,
+    T: TemporaryPathSource,
+{
+    write_with_guard(
+        destination,
+        contents,
+        file_system,
+        temporary_paths,
+        max_attempts,
+        &mut || Ok(()),
+    )
+}
+
+fn write_with_guard<F, T>(
+    destination: &Path,
+    contents: &[u8],
+    file_system: &mut F,
+    temporary_paths: &mut T,
+    max_attempts: usize,
+    guard: &mut impl FnMut() -> io::Result<()>,
 ) -> Result<(), AtomicProjectWriteError>
 where
     F: AtomicFileSystem,
@@ -308,6 +355,16 @@ where
             temporary.as_path(),
             None,
             AtomicProjectWritePhase::CloseTemporary,
+            error,
+        ));
+    }
+
+    if let Err(error) = guard() {
+        return Err(fail_with_owned_temporary(
+            file_system,
+            temporary.as_path(),
+            None,
+            AtomicProjectWritePhase::PreCommitValidation,
             error,
         ));
     }
@@ -664,6 +721,28 @@ mod tests {
         let smaller = b"tiny";
         write(&destination, smaller).unwrap();
         assert_eq!(fs::read(&destination).unwrap(), smaller);
+        assert_no_operation_temporaries(&directory);
+    }
+
+    #[test]
+    fn real_precommit_guard_failure_preserves_destination_and_cleans_temporary() {
+        let directory = TestDirectory::new("precommit-guard");
+        let destination = directory.join("guarded.sbls");
+        fs::write(&destination, b"prior destination bytes").unwrap();
+        let mut guard_calls = 0;
+
+        let error = write_with_precommit_guard(&destination, b"new package bytes", || {
+            guard_calls += 1;
+            Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "injected identity conflict",
+            ))
+        })
+        .unwrap_err();
+
+        assert_eq!(guard_calls, 1);
+        assert_eq!(error.phase(), AtomicProjectWritePhase::PreCommitValidation);
+        assert_eq!(fs::read(&destination).unwrap(), b"prior destination bytes");
         assert_no_operation_temporaries(&directory);
     }
 

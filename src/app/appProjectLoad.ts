@@ -14,6 +14,7 @@ import {
   type NormalizedPersistableProject,
 } from '../lifecycle/canonicalProject.ts'
 import type { ProjectSessionEditorRoute } from '../lifecycle/projectSession.ts'
+import type { ProjectPersistenceFormat } from '../lifecycle/projectSession.ts'
 import {
   normalizeSavedCaseInsertProject,
   restoreCaseInsertProjectState,
@@ -68,6 +69,7 @@ export type ReadProjectFileCommand = (path: string) => Promise<string>
 export type StagedDiscProjectOpenCandidate = Readonly<{
   projectType: 'disc'
   selectedPath: string
+  persistenceFormat: ProjectPersistenceFormat
   normalizedProject: NormalizedPersistableProject
   editorRoute: Readonly<{ workspace: 'disc' }>
   restoredProject: DeepReadonly<RestoredProjectState>
@@ -78,6 +80,7 @@ export type StagedDiscProjectOpenCandidate = Readonly<{
 export type StagedCaseInsertProjectOpenCandidate = Readonly<{
   projectType: 'caseInsert'
   selectedPath: string
+  persistenceFormat: ProjectPersistenceFormat
   normalizedProject: NormalizedPersistableProject
   editorRoute: Extract<ProjectSessionEditorRoute, { workspace: 'caseInsert' }>
   restoredProject: DeepReadonly<RestoredCaseInsertProjectState>
@@ -116,6 +119,7 @@ export type StageProjectOpenContentsParams =
   ProjectOpenRestorationDependencies & Readonly<{
     selectedPath: string
     contents: string
+    persistenceFormat: ProjectPersistenceFormat
   }>
 
 const PROJECT_FILE_FILTERS = Object.freeze([
@@ -220,7 +224,7 @@ function routeForCaseInsertProject(
 async function stageDiscProject(
   selectedPath: string,
   project: SavedDiscProject,
-  params: ProjectOpenRestorationDependencies,
+  params: StageProjectOpenContentsParams,
 ): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
   const normalizedProject = captureNormalizedProjectSnapshot(project)
   let restoredProject: RestoredProjectState
@@ -308,6 +312,7 @@ async function stageDiscProject(
     return commandSucceeded(captureCandidate({
       projectType: 'disc',
       selectedPath,
+      persistenceFormat: params.persistenceFormat,
       normalizedProject,
       editorRoute: Object.freeze({ workspace: 'disc' }),
       restoredProject,
@@ -328,7 +333,7 @@ async function stageDiscProject(
 function stageCaseInsertProject(
   selectedPath: string,
   project: SavedCaseInsertProject,
-  params: ProjectOpenRestorationDependencies,
+  params: StageProjectOpenContentsParams,
 ): ApplicationCommandResult<StagedProjectOpenCandidate> {
   try {
     const normalizedProject = normalizeSavedCaseInsertProject(project)
@@ -348,6 +353,7 @@ function stageCaseInsertProject(
     return commandSucceeded(captureCandidate({
       projectType: 'caseInsert',
       selectedPath,
+      persistenceFormat: params.persistenceFormat,
       normalizedProject: acceptedProject,
       editorRoute: routeForCaseInsertProject(normalizedProject),
       restoredProject: {
@@ -456,6 +462,7 @@ export async function stageProjectPackageOpen(
   return stageProjectOpenContents({
     ...params,
     contents,
+    persistenceFormat: 'sbls-package-v1',
   })
 }
 
@@ -511,5 +518,6 @@ export async function stageAppProjectOpen(
     ...params,
     selectedPath: selected,
     contents,
+    persistenceFormat: 'legacy-json',
   })
 }

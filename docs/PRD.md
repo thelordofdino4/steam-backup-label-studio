@@ -3,7 +3,7 @@
 > Purpose: Product goals, non-goals, feature surface, and scope decisions.
 > Read when: Product direction, feature-boundary, UX-scope, or roadmap-priority decisions.
 > Authoritative source: This document for product scope; SDD for implemented architecture.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `607ab5ffc73f22f71105ea7e5434c93f3de439ef` plus the focused package Save checkpoint documented below.
 
 
 Last refreshed: 2026-06-08.
@@ -336,15 +336,16 @@ Export should not silently omit enabled visible elements. Preview/export layer o
 
 ## Project File Format
 
-The current app saves plain JSON project files, commonly named `.sbls.json`.
+Production Save and Save As now write `.sbls` package-v1 files. Existing plain
+JSON projects, commonly named `.json` or `.sbls.json`, remain readable imports;
+Save from an imported legacy session converts through Save As and never writes
+new JSON project files.
 
-Current saved projects embed image data URLs for the visual assets they need to reload, and they store provenance/status metadata where supported. Local path details should not be required after reload for embedded assets.
-
-A bounded, runtime-disconnected `.sbls` package-domain codec now exists, but the
-application does not yet expose package Open, Save, or Save As. Production
-integration, legacy conversion, and the complete portable package workflow
-remain future work and should not block disc-editor alpha unless a specific
-save/load limitation appears.
+The package carries accepted project-owned raster bytes while preserving the
+hydrated saved-project model and its provenance/status metadata. Production
+package Open, content sniffing, and `.sbls` Open filters remain unavailable in
+this checkpoint even though bounded native decode and mutation-free staging are
+present for the next activation slice.
 
 ## Case-Specific Fields
 
@@ -386,7 +387,8 @@ The current MVP focuses on one complete path:
 - Blu-ray case support.
 - Multi-disc wizard.
 - Guided Start / setup wizard.
-- Full application-connected `.sbls` package/container workflow.
+- Application-connected `.sbls` Open/content recognition and dirty-aware
+  replacement workflow.
 - Official asset/logo packs.
 - IGDB or automatic rating lookup.
 - Direct printer integration.

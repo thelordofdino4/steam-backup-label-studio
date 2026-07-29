@@ -5,6 +5,7 @@ import type { SavedDiscProject } from '../project/projectTypes.ts'
 import { createCanonicalProjectComparisonValue } from './canonicalProject.ts'
 import {
   adoptSavedProjectBaseline,
+  captureApplicationLifecycleState,
   closeProjectSession,
   createEmptyApplicationLifecycleState,
   createLoadedProjectSession,
@@ -52,6 +53,7 @@ test('empty, new, and loaded lifecycle states establish one-session invariants',
   })
   assert.equal(fresh.activeSession?.id, 'session-new')
   assert.equal(fresh.activeSession?.currentPath, null)
+  assert.equal(fresh.activeSession?.persistenceFormat, null)
   assert.equal(fresh.activeSession?.cleanBaseline, null)
   assert.equal(fresh.activeSession?.revision, 0)
   assert.equal(fresh.visibleWorkspace, 'disc')
@@ -62,6 +64,7 @@ test('empty, new, and loaded lifecycle states establish one-session invariants',
     project: createCaseInsertProjectSnapshot({ manualGameTitle: 'New Case' }),
   })
   assert.equal(freshCase.activeSession?.currentPath, null)
+  assert.equal(freshCase.activeSession?.persistenceFormat, null)
   assert.equal(freshCase.activeSession?.cleanBaseline, null)
   assert.equal(freshCase.visibleWorkspace, 'caseInsert')
   assert.equal(selectIsActiveProjectDirty(freshCase), true)
@@ -69,9 +72,11 @@ test('empty, new, and loaded lifecycle states establish one-session invariants',
   const loaded = createLoadedProjectSession({
     sessionId: 'session-loaded',
     currentPath: 'C:\\projects\\loaded.sbls.json',
+    persistenceFormat: 'legacy-json',
     project: createDiscProject(),
   })
   assert.equal(loaded.activeSession?.id, 'session-loaded')
+  assert.equal(loaded.activeSession?.persistenceFormat, 'legacy-json')
   assert.equal(loaded.activeSession?.cleanBaseline?.exactSnapshot.savedAt,
     '2026-07-26T12:00:00.000Z')
   assert.equal(selectIsActiveProjectDirty(loaded), false)
@@ -81,6 +86,7 @@ test('project replacement advances revision while navigation preserves session i
   const loaded = createLoadedProjectSession({
     sessionId: 'stable-session',
     currentPath: 'loaded.sbls.json',
+    persistenceFormat: 'legacy-json',
     project: createDiscProject(),
   })
   const changed = replaceActiveProjectContent(
@@ -105,21 +111,28 @@ test('baseline adoption records the exact accepted snapshot and derives dirty st
   const loaded = createLoadedProjectSession({
     sessionId: 'save-session',
     currentPath: 'old.sbls.json',
+    persistenceFormat: 'legacy-json',
     project: original,
   })
   const changedProject = createDiscProject('Changed Disc', '2026-07-26T12:01:00.000Z')
   const changed = replaceActiveProjectContent(loaded, changedProject)
   const staleBaseline = adoptSavedProjectBaseline(changed, {
     acceptedSnapshot: original,
-    currentPath: 'new.sbls.json',
+    currentPath: 'new.sbls',
+    persistenceFormat: 'sbls-package-v1',
   })
   const currentBaseline = adoptSavedProjectBaseline(changed, {
     acceptedSnapshot: changedProject,
-    currentPath: 'new.sbls.json',
+    currentPath: 'new.sbls',
+    persistenceFormat: 'sbls-package-v1',
   })
 
   assert.equal(staleBaseline.activeSession?.revision, 1)
-  assert.equal(staleBaseline.activeSession?.currentPath, 'new.sbls.json')
+  assert.equal(staleBaseline.activeSession?.currentPath, 'new.sbls')
+  assert.equal(
+    staleBaseline.activeSession?.persistenceFormat,
+    'sbls-package-v1',
+  )
   assert.equal(selectIsActiveProjectDirty(staleBaseline), true)
   assert.equal(selectIsActiveProjectDirty(currentBaseline), false)
   assert.deepEqual(
@@ -133,6 +146,7 @@ test('save timestamps and coarse Case pane navigation do not create dirty state'
   const loadedDisc = createLoadedProjectSession({
     sessionId: 'disc-time',
     currentPath: 'disc.sbls.json',
+    persistenceFormat: 'legacy-json',
     project: disc,
   })
   const timeChanged = replaceActiveProjectContent(
@@ -149,6 +163,7 @@ test('save timestamps and coarse Case pane navigation do not create dirty state'
   const loadedCase = createLoadedProjectSession({
     sessionId: 'case-pane',
     currentPath: 'case.sbls.json',
+    persistenceFormat: 'legacy-json',
     project: caseFront,
   })
   const paneChanged = replaceActiveProjectContent(
@@ -165,6 +180,7 @@ test('session-only state cannot affect project comparison or serialized project 
   const loaded = createLoadedProjectSession({
     sessionId: 'metadata-session',
     currentPath: 'before.sbls.json',
+    persistenceFormat: 'legacy-json',
     displayName: 'Before',
     project: createDiscProject(),
   })
@@ -193,15 +209,37 @@ test('session-only state cannot affect project comparison or serialized project 
     'feedback',
     'busy',
     'focus',
+    'legacy-json',
+    'sbls-package-v1',
   ]) {
     assert.equal(serializedProject.includes(sessionOnlyName), false)
   }
+})
+
+test('lifecycle capture freezes truthful format identity without project serialization', () => {
+  const loaded = createLoadedProjectSession({
+    sessionId: 'captured-package',
+    currentPath: 'C:\\projects\\captured.SBLS',
+    persistenceFormat: 'sbls-package-v1',
+    project: createDiscProject('Captured Package'),
+  })
+  const captured = captureApplicationLifecycleState(loaded)
+
+  assert.notEqual(captured, loaded)
+  assert.equal(Object.isFrozen(captured), true)
+  assert.equal(Object.isFrozen(captured.activeSession), true)
+  assert.equal(captured.activeSession?.persistenceFormat, 'sbls-package-v1')
+  assert.equal(
+    JSON.stringify(captured.activeSession?.project).includes('sbls-package-v1'),
+    false,
+  )
 })
 
 test('close retires the session and project-kind mismatches are rejected', () => {
   const disc = createLoadedProjectSession({
     sessionId: 'old-session',
     currentPath: 'disc.sbls.json',
+    persistenceFormat: 'legacy-json',
     project: createDiscProject(),
   })
   assert.deepEqual(closeProjectSession(disc), createEmptyApplicationLifecycleState())

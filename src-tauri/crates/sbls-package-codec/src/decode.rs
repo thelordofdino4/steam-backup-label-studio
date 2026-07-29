@@ -28,8 +28,9 @@ use crate::model::{DecodedPackageMetadata, DecodedProjectPackage};
 use crate::raster::{validate_raster, RasterBudget, RasterError, RasterErrorKind, RasterMime};
 use crate::registry::{
     classify_unbound_owner, expand_registered_owners, first_unavailable_semantic_builtin,
-    resolve_registered_owner, CaseRegistryShape, CaseSurfaceRegistryShape, DiscRegistryShape,
-    ProjectKind, RegistryError, RegistryShape, TechnicalKind, UnboundOwnerDisposition,
+    has_qualified_builtin_mapping, resolve_registered_owner, CaseRegistryShape,
+    CaseSurfaceRegistryShape, DiscRegistryShape, ProjectKind, RegistryError, RegistryShape,
+    TechnicalKind, UnboundOwnerDisposition,
 };
 
 /// Decode one complete package candidate without retaining caller-owned bytes.
@@ -475,7 +476,9 @@ fn hydrate_bindings(
         match classify_unbound_owner(projection, *owner) {
             UnboundOwnerDisposition::NoAcceptedAsset => {}
             UnboundOwnerDisposition::BuiltInWithoutCompatibility => {
-                return Err(built_in_unavailable());
+                if !has_qualified_builtin_mapping(projection, *owner) {
+                    return Err(built_in_unavailable());
+                }
             }
             UnboundOwnerDisposition::AcceptedAssetMissingBinding => {
                 has_unresolved_owner = true;
@@ -1606,20 +1609,20 @@ mod tests {
             (
                 AssetOwner::DiscRatingCustom,
                 r#"{"ratingBadge":{"source":"placeholder","customImageDataUrl":null,"customImageSize":null}}"#,
-                BuiltIn,
+                Absent,
             ),
             (
                 AssetOwner::DiscRatingCustom,
                 r#"{"ratingBadge":{"source":"custom","customImageDataUrl":null,"customImageSize":null}}"#,
-                BuiltIn,
+                Absent,
             ),
-            (AssetOwner::DiscRatingCustom, r#"{}"#, BuiltIn),
+            (AssetOwner::DiscRatingCustom, r#"{}"#, Absent),
             (
                 AssetOwner::DiscMediaCustom,
                 r#"{"mediaMark":{"source":"custom","customImageDataUrl":null,"customImageSize":{"width":1,"height":1}}}"#,
                 Missing,
             ),
-            (AssetOwner::DiscMediaCustom, r#"{}"#, BuiltIn),
+            (AssetOwner::DiscMediaCustom, r#"{}"#, Absent),
             (
                 AssetOwner::DiscPlatformCustom {
                     platform: PlatformKind::Windows,
@@ -1710,7 +1713,7 @@ mod tests {
     }
 
     #[test]
-    fn empty_compatibility_registry_rejects_built_ins_in_old_and_current_schema() {
+    fn published_registry_accepts_exact_disc_built_ins_and_rejects_unqualified_owners() {
         let disc_fragments = [
             r#""steamBackupLogo":{"lockupImageDataUrl":null,"lockupImageSource":{"source":"built-in"}}"#,
             r#""logoAssets":{"developerLogoDataUrl":null,"developerLogoSource":null,"developerLogoSize":null}"#,
@@ -1726,9 +1729,7 @@ mod tests {
                     r#"{{"schemaVersion":"{schema}","template":{{"type":"disc"}},"background":{{"imageDataUrl":null}},{fragment}}}"#,
                 );
                 let bytes = package(project.as_bytes(), schema, Vec::new(), Vec::new());
-                let error = decode_project_package(&bytes).unwrap_err();
-                assert_eq!(error.code, FailureCode::BuiltInUnavailable, "{fragment}");
-                assert_eq!(error.stage, FailureStage::BindingHydration);
+                decode_project_package(&bytes).unwrap();
             }
 
             let additional_disc_logo = format!(
@@ -1741,7 +1742,7 @@ mod tests {
                 Vec::new(),
             );
             let error = decode_project_package(&bytes).unwrap_err();
-            assert_eq!(error.code, FailureCode::BuiltInUnavailable);
+            assert_eq!(error.code, FailureCode::BindingUnresolved);
             assert_eq!(error.stage, FailureStage::BindingHydration);
 
             for case_member in [
@@ -1765,22 +1766,22 @@ mod tests {
     }
 
     #[test]
-    fn empty_compatibility_registry_rejects_semantic_built_ins_without_asset_leaves() {
+    fn unknown_semantic_built_ins_without_asset_leaves_are_rejected() {
         let base = String::from_utf8(minimal_disc_projection("0.2.0", "null")).unwrap();
         let supplemental_usk = base.replacen(
             r#""customImageSize":{"width":1,"height":1}},"mediaMark""#,
-            r#""customImageSize":{"width":1,"height":1},"uskBadge":{"ratingValue":"12","layout":{"enabled":false}}},"mediaMark""#,
+            r#""customImageSize":{"width":1,"height":1},"uskBadge":{"ratingValue":"21","layout":{"enabled":false}}},"mediaMark""#,
             1,
         );
         let disc_number = minimal_disc_projection_with_members(
             "0.2.0",
             "null",
-            r#","discNumberArtwork":{"mode":"text","badgeSet":"starterRing"}"#,
+            r#","discNumberArtwork":{"mode":"text","badgeSet":"unknown"}"#,
         );
         let rocky_disc = minimal_disc_projection_with_members(
             "0.2.0",
             "null",
-            r#","additionalArtwork":{"elements":[{"imageDataUrl":null,"imageSize":null,"sourceId":null,"frame":{"enabled":false,"style":"rocky"}}]}"#,
+            r#","additionalArtwork":{"elements":[{"imageDataUrl":null,"imageSize":null,"sourceId":null,"frame":{"enabled":false,"style":"unknown"}}]}"#,
         );
 
         for project in [supplemental_usk.into_bytes(), disc_number, rocky_disc] {
@@ -1790,7 +1791,7 @@ mod tests {
             assert_eq!(error.stage, FailureStage::BindingHydration);
         }
 
-        let rocky_case = br#"{"schemaVersion":"0.2.0","projectType":"caseInsert","template":{"type":"caseInsert"},"caseInsert":{"templates":{"cover":{"steamBanner":{"lockupImageDataUrl":null},"artworkSlots":[{"imageDataUrl":null,"imageSource":null,"imageSize":null,"frame":{"enabled":false,"style":"rocky"}}]},"tray":{"steamBanner":{"lockupImageDataUrl":null}}},"spine":{"left":{"steamBanner":{"lockupImageDataUrl":null}},"right":{"steamBanner":{"lockupImageDataUrl":null}}}}}"#;
+        let rocky_case = br#"{"schemaVersion":"0.2.0","projectType":"caseInsert","template":{"type":"caseInsert"},"caseInsert":{"templates":{"cover":{"steamBanner":{"lockupImageDataUrl":null},"artworkSlots":[{"imageDataUrl":null,"imageSource":null,"imageSize":null,"frame":{"enabled":false,"style":"unknown"}}]},"tray":{"steamBanner":{"lockupImageDataUrl":null}}},"spine":{"left":{"steamBanner":{"lockupImageDataUrl":null}},"right":{"steamBanner":{"lockupImageDataUrl":null}}}}}"#;
         let bytes = package_with_case_banners(rocky_case, "0.2.0", Vec::new(), Vec::new());
         let error = decode_project_package(&bytes).unwrap_err();
         assert_eq!(error.code, FailureCode::BuiltInUnavailable);
