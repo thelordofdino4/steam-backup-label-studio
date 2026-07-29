@@ -1,46 +1,27 @@
 import { invoke } from '@tauri-apps/api/core'
 
+import {
+  createProjectFileCommandFailure,
+  isProjectFileCommandFailure,
+  type ProjectFileCommandFailure,
+} from './projectFileFailure.ts'
+
+export {
+  PROJECT_FILE_FAILURE_MESSAGES,
+  createProjectFileCommandFailure,
+  isProjectFileCommandFailure,
+} from './projectFileFailure.ts'
+export type {
+  ProjectFileCommandCause,
+  ProjectFileCommandFailure,
+  ProjectFileCommandSecondaryCause,
+  ProjectFileFailureCode,
+} from './projectFileFailure.ts'
+
 export const MAX_BINARY_PROJECT_BYTES = 268_435_456
 export const PROJECT_PATH_HEADER_NAME = 'x-sbls-project-path-v1'
 export const MAX_PROJECT_PATH_UTF8_BYTES = 4_096
 export const MAX_PROJECT_PATH_HEADER_BYTES = 4_096
-
-export const PROJECT_FILE_FAILURE_MESSAGES = Object.freeze({
-  'project.file-too-large': 'The project input exceeds the supported size limit.',
-  'project.read-failed': 'The project file could not be read.',
-  'project.write-failed': 'The project file could not be written.',
-  'project.atomic-write.validate-destination': 'The project destination is invalid.',
-  'project.atomic-write.create-temporary': 'A temporary project file could not be created safely.',
-  'project.atomic-write.collision-exhausted': 'A safe temporary project file name could not be reserved.',
-  'project.atomic-write.write-temporary': 'The project bytes could not be written completely.',
-  'project.atomic-write.flush-temporary': 'The temporary project file could not be flushed.',
-  'project.atomic-write.sync-temporary': 'The temporary project file could not be synchronized.',
-  'project.atomic-write.close-temporary': 'The temporary project file could not be closed before replacement.',
-  'project.atomic-write.replace-destination': 'The existing project file could not be replaced safely.',
-} as const)
-
-export type ProjectFileFailureCode = keyof typeof PROJECT_FILE_FAILURE_MESSAGES
-
-export type ProjectFileCommandSecondaryCause = Readonly<{
-  category: string
-  operation: string
-  platformCode?: number
-}>
-
-export type ProjectFileCommandCause = Readonly<{
-  category: string
-  operation: string
-  platformCode?: number
-  secondary?: readonly ProjectFileCommandSecondaryCause[]
-}>
-
-export type ProjectFileCommandFailure = Readonly<{
-  status: 'failure'
-  code: ProjectFileFailureCode
-  recoverable: true
-  message: string
-  cause?: ProjectFileCommandCause
-}>
 
 export type ProjectFileCommandSuccess = Readonly<{
   status: 'success'
@@ -57,69 +38,19 @@ export type BinaryProjectFilePort = Readonly<{
   write(path: string, bytes: Uint8Array): Promise<ProjectFileCommandSuccess>
 }>
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isSafeCause(value: unknown): value is ProjectFileCommandSecondaryCause {
-  if (!isRecord(value)) {
-    return false
-  }
-  return typeof value.category === 'string' && value.category.length > 0 &&
-    typeof value.operation === 'string' && value.operation.length > 0 &&
-    (value.platformCode === undefined ||
-      (typeof value.platformCode === 'number' && Number.isSafeInteger(value.platformCode)))
-}
-
-function isSafePrimaryCause(value: unknown): value is ProjectFileCommandCause {
-  if (!isRecord(value)) {
-    return false
-  }
-  const secondary = value.secondary
-  return isSafeCause(value) &&
-    (secondary === undefined ||
-      (Array.isArray(secondary) && secondary.every(isSafeCause)))
-}
-
-export function isProjectFileCommandFailure(
-  value: unknown,
-): value is ProjectFileCommandFailure {
-  if (!isRecord(value) || value.status !== 'failure' || value.recoverable !== true) {
-    return false
-  }
-  if (typeof value.code !== 'string' || !(value.code in PROJECT_FILE_FAILURE_MESSAGES)) {
-    return false
-  }
-  const code = value.code as ProjectFileFailureCode
-  return value.message === PROJECT_FILE_FAILURE_MESSAGES[code] &&
-    (value.cause === undefined || isSafePrimaryCause(value.cause))
-}
-
 function isProjectFileCommandSuccess(
   value: unknown,
 ): value is ProjectFileCommandSuccess {
-  return isRecord(value) && value.status === 'success'
-}
-
-function commandFailure(
-  code: ProjectFileFailureCode,
-  category: string,
-  operation: string,
-): ProjectFileCommandFailure {
-  return Object.freeze({
-    status: 'failure',
-    code,
-    recoverable: true,
-    message: PROJECT_FILE_FAILURE_MESSAGES[code],
-    cause: Object.freeze({ category, operation }),
-  })
+  return typeof value === 'object' && value !== null &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>).status === 'success'
 }
 
 function pathFailure(
   operation: 'read' | 'write',
   category: string,
 ): ProjectFileCommandFailure {
-  return commandFailure(
+  return createProjectFileCommandFailure(
     operation === 'read' ? 'project.read-failed' : 'project.write-failed',
     category,
     `project-binary-${operation}-path`,
@@ -160,17 +91,24 @@ export function encodeBinaryProjectPath(
   return encoded
 }
 
-function normalizeRejection(
+export function normalizeProjectFileCommandRejection(
   value: unknown,
   fallbackCode: 'project.read-failed' | 'project.write-failed',
   operation: string,
 ): ProjectFileCommandFailure {
   return isProjectFileCommandFailure(value)
     ? value
-    : commandFailure(fallbackCode, 'transport-rejection-invalid', operation)
+    : createProjectFileCommandFailure(
+        fallbackCode,
+        'transport-rejection-invalid',
+        operation,
+      )
 }
 
-function requestOptions(path: string, operation: 'read' | 'write') {
+export function createBinaryProjectRequestOptions(
+  path: string,
+  operation: 'read' | 'write',
+) {
   return Object.freeze({
     headers: Object.freeze({
       [PROJECT_PATH_HEADER_NAME]: encodeBinaryProjectPath(path, operation),
@@ -197,17 +135,17 @@ export function createBinaryProjectFilePort(
         const response = await invokeCommand<ArrayBuffer>(
           'read_binary_project_file',
           new Uint8Array(0),
-          requestOptions(path, 'read'),
+          createBinaryProjectRequestOptions(path, 'read'),
         )
         if (!(response instanceof ArrayBuffer)) {
-          throw commandFailure(
+          throw createProjectFileCommandFailure(
             'project.read-failed',
             'raw-response-required',
             'project-binary-read-response',
           )
         }
         if (response.byteLength > maximumBytes) {
-          throw commandFailure(
+          throw createProjectFileCommandFailure(
             'project.file-too-large',
             'size-limit-exceeded',
             'project-binary-read-response',
@@ -215,7 +153,7 @@ export function createBinaryProjectFilePort(
         }
         return new Uint8Array(response)
       } catch (error) {
-        throw normalizeRejection(
+        throw normalizeProjectFileCommandRejection(
           error,
           'project.read-failed',
           'project-binary-read-invoke',
@@ -229,14 +167,14 @@ export function createBinaryProjectFilePort(
     ): Promise<ProjectFileCommandSuccess> {
       try {
         if (!(bytes instanceof Uint8Array)) {
-          throw commandFailure(
+          throw createProjectFileCommandFailure(
             'project.write-failed',
             'raw-body-required',
             'project-binary-write-preflight',
           )
         }
         if (bytes.byteLength > maximumBytes) {
-          throw commandFailure(
+          throw createProjectFileCommandFailure(
             'project.file-too-large',
             'size-limit-exceeded',
             'project-binary-write-preflight',
@@ -245,10 +183,10 @@ export function createBinaryProjectFilePort(
         const response = await invokeCommand<unknown>(
           'write_binary_project_file',
           bytes,
-          requestOptions(path, 'write'),
+          createBinaryProjectRequestOptions(path, 'write'),
         )
         if (!isProjectFileCommandSuccess(response)) {
-          throw commandFailure(
+          throw createProjectFileCommandFailure(
             'project.write-failed',
             'success-response-invalid',
             'project-binary-write-response',
@@ -256,7 +194,7 @@ export function createBinaryProjectFilePort(
         }
         return Object.freeze({ status: 'success' })
       } catch (error) {
-        throw normalizeRejection(
+        throw normalizeProjectFileCommandRejection(
           error,
           'project.write-failed',
           'project-binary-write-invoke',

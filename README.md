@@ -141,7 +141,7 @@ The project should not bundle official trademarked assets unless licensing is cl
 - Keep #124 separate: move Guide Legend into the live preview only when that issue is explicitly worked.
 - Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, export preflight, and future case layouts so manual preview/export checks match the current feature set.
 - Continue architecture cleanup tracked by open issues such as #44, #46, and #47 only where it supports alpha work; #48 is the closed schema-validation/migration baseline, and future schema work follows `docs/PROJECT_FILE_SPEC.md`.
-- Use `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md` as the draft target authority for future `.sbls` package implementation; closed issue #56 remains the historical ZIP-container decision record, and package support is not currently implemented.
+- Use `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md` as the draft target authority for `.sbls` package work; closed issue #56 remains the historical ZIP-container decision record. Codec, bounded binary I/O, and dormant native decode/staging infrastructure exist, but production package Open/Save/Save As is not activated.
 - Defer Guided Start (#17), DVD/Amaray and Blu-ray case editors, direct printer support, official asset packs, automatic rating lookup, full arbitrary layer management, and broad refactors unless they become necessary for a focused alpha blocker.
 
 ## Planned Platforms

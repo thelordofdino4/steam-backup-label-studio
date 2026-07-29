@@ -11,6 +11,7 @@ fn application_invoke_handler<R: tauri::Runtime>(
         commands::files::write_binary_file,
         commands::project_files::read_binary_project_file,
         commands::project_files::write_binary_project_file,
+        commands::project_packages::decode_project_package_file,
         commands::steam::search_steam_store,
         commands::steam::fetch_steam_app_details,
         commands::steam::fetch_steam_store_items,
@@ -50,8 +51,12 @@ mod tests {
     #[test]
     fn dedicated_binary_project_commands_are_registered_in_the_application_handler() {
         let source = include_str!("lib.rs");
-        for command in ["read_binary_project_file", "write_binary_project_file"] {
-            let qualified = ["commands::project_files::", command].concat();
+        for (module, command) in [
+            ("project_files", "read_binary_project_file"),
+            ("project_files", "write_binary_project_file"),
+            ("project_packages", "decode_project_package_file"),
+        ] {
+            let qualified = ["commands::", module, "::", command].concat();
             assert_eq!(
                 source.matches(&qualified).count(),
                 1,

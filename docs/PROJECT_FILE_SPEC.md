@@ -3,10 +3,10 @@
 > Purpose: Hydrated `SavedProject` schema, current/legacy JSON compatibility, validation, normalization, and migrations.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
 > Authoritative source: This document for hydrated saved-project fields and migrations; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for target package/container behavior; SDD for architecture boundaries.
-> Last reviewed against commit: `a104825583a1cc03e145a9e460e9abccf4483bf7`.
+> Last reviewed against commit: `42c58821ad355a0cbc3ee602c94ec67ac7345de0` plus the dormant package Open staging checkpoint documented below.
 
 
-Last refreshed: 2026-07-27.
+Last refreshed: 2026-07-28.
 
 ## Purpose
 
@@ -83,10 +83,13 @@ through `src/project/projectCaseInsert.ts`, while case-owned defaults,
 normalization, state transitions, source helpers, and focused action modules
 live under `src/caseInsert/`.
 
-The bounded package-domain codec exists as a runtime-disconnected Rust workspace
-member. Dedicated bounded binary project-read and structured atomic binary
-project-write commands and dormant TypeScript ports also exist, but neither
-side calls the other. Production `.sbls` Open, Save, Save As, dialog filters,
+The bounded package-domain codec exists as a Rust workspace member. A dormant
+native command now composes the dedicated bounded binary project reader with
+that codec and returns only hydrated JSON bytes; a strict dormant TypeScript
+port performs fatal UTF-8 decoding and delegates to the same mutation-free
+parse/migrate/normalize/route/restore staging owner as legacy Open. The Tauri
+application links the codec only for that registered but uncalled adapter.
+Production `.sbls` Open, Save, Save As, dialog filters, content recognition,
 lifecycle format adoption, and legacy conversion are not implemented.
 Documentation and UI must not imply that application-connected package support
 exists today. Exact target behavior is defined by
@@ -156,8 +159,12 @@ codes, and safe secondary cleanup categories; paths, payloads, and raw OS error
 strings are excluded.
 
 The legacy UTF-8 JSON read/write commands remain production Open/Save owners.
-The new TypeScript byte ports are not imported by application, lifecycle,
-dialog, menu, or export code, and the package codec does not consume them.
+The raw binary TypeScript ports have no production application, lifecycle,
+dialog, menu, or export caller. The application staging module exports a
+separate package entry that accepts an injected dormant decode command, but no
+production composition root supplies or calls it. The native package adapter
+shares the bounded Rust reader owner directly; the package codec does not
+consume TypeScript ports or filesystem paths.
 `write_binary_file` and PNG export behavior are unchanged; that direct writer
 is not an atomic project-package writer. These infrastructure boundaries add no
 schema fields, session state, current path, dirty baseline, Save/Save As

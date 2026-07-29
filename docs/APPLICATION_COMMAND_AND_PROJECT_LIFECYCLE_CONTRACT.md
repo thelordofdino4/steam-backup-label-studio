@@ -4,11 +4,11 @@
 > Purpose: Define application-command semantics, the single-project session lifecycle, dirty/baseline rules, lifecycle guards, and shared result/feedback boundaries for future implementation.
 > Read when: Application commands, Home/editor navigation, project New/Open/Save/Save As/Close behavior, native close/Quit handling, global shortcuts, or lifecycle feedback are being designed or changed.
 > Authoritative source: This document for the target application-command and project-session contract; `PROJECT_FILE_SPEC.md` remains authoritative for hydrated serialized project schema, `PROJECT_PACKAGE_FORMAT_CONTRACT.md` owns target package/container behavior, and the SDD remains authoritative for broader architecture and current as-built boundaries.
-> Evidence baseline: `main` at `a104825583a1cc03e145a9e460e9abccf4483bf7`.
+> Evidence baseline: `main` at `42c58821ad355a0cbc3ee602c94ec67ac7345de0` plus the dormant package Open staging checkpoint documented below.
 
-Last refreshed: 2026-07-27.
+Last refreshed: 2026-07-28.
 
-Implementation checkpoint, 2026-07-27: one production lifecycle composition
+Implementation checkpoint, 2026-07-28: one production lifecycle composition
 root is now mounted at the React application boundary, and `project.open` is
 the first runtime-connected lifecycle command. Open stages one immutable Disc
 or Case Insert candidate without live mutation, then commits its path-bearing
@@ -17,6 +17,13 @@ All other lifecycle operation ports remain explicitly unimplemented. The
 dirty-aware replacement guard, Save/Save As migration, Home Resume, Close
 Project, native Close Window/Quit, global feedback, and application menu remain
 absent.
+
+A separate dormant package Open adapter now performs native-owned bounded
+read/decode, returns hydrated JSON bytes through a strict TypeScript transport,
+and reuses the same mutation-free candidate-staging owner as legacy Open. No
+production lifecycle port, dialog/filter, format identity, replacement guard,
+or session commit calls that adapter; this is staging infrastructure rather
+than package-format adoption.
 
 ## 1. Status, Authority, And Document Relationships
 
@@ -108,6 +115,7 @@ slice.
 | A project successfully accepted through `project.open` now receives an authoritative session ID, selected path, exact normalized project and clean baseline, revision zero, and editor route. Legacy New and Save paths do not yet synchronize their editor mutations with that session authority, and ordinary Save is still absent. | `src/app/appProjectOpenCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for the remaining lifecycle integration. |
 | New Disc inside the Disc editor always asks for confirmation; Home New Disc/New Case reset immediately; Return Home asks separately while retaining current hook/App state. | `src/app/App.tsx`, `src/components/home/HomeScreen.tsx` | New/Open/Home do not consume one shared dirty-aware guard. |
 | Open now completes dialog, read, parse, validation/migration, route resolution, Disc image inspection, restoration, preset reconstruction, and Case branding projection before returning one immutable discriminated candidate. Its lifecycle CAS and complete editor aggregate are then scheduled inside one React batch; stale CAS applies no editor state. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, `src/app/appProjectOpenCommand.ts`, focused tests | The two-phase Open and atomic application seam is runtime-connected for current Home, Disc, and Case Load controls. |
+| A dormant package adapter now composes the bounded native reader and package codec, transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open. | `src-tauri/src/commands/project_packages.rs`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing and restoration stay shared; production `project.open` remains legacy JSON-only until package Open and Save/Save As activate together. |
 | `project.open` now returns the shared typed result taxonomy through the dispatcher. A narrow compatibility adapter forwards at most one message to the existing status owner; legacy Save still uses its prior string callback. | `src/app/appProjectOpenFeedback.ts`, `src/app/appProjectSave.ts`, `src/app/App.tsx` | #300 remains applicable because the shared global feedback owner is not implemented. |
 | Status toasts are rendered by editor previews. Home has a separate status message, but Home-triggered Open cancellation/failure only calls the preview-oriented announcer. | `src/hooks/useStatusToasts.ts`, `src/components/preview/PreviewToastStack.tsx`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx` | Home can miss meaningful Open feedback; #300 remains applicable. |
 | Rust project writes preserve the existing Tauri signature while delegating opaque JSON bytes to a focused same-directory temporary-write-and-replace owner. | `src-tauri/src/commands/files.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | The #312 native persistence prerequisite is implemented in this checkpoint; the broader #308 session, Save/Save As, baseline, dirty-state, and guard work remains unimplemented. |
@@ -739,8 +747,10 @@ Dependency-focused implementation order:
    implementation-aware predicates, and lifecycle busy ownership are present;
    `project.open` is the sole production operation port.
 3. The atomic persistence primitive implemented under #312 is present and
-   consumed by the legacy text Save path. Bounded binary project read/write
-   adapters required by the package contract are not implemented.
+   consumed by the legacy text Save path. Dormant bounded binary project
+   read/write adapters and native package read/decode plus shared mutation-free
+   hydration staging are present, but production lifecycle ports do not call
+   them.
 4. Two-phase Open and atomic aggregate load/apply transition are present.
 5. Save/Save As and the dirty-aware replacement guard under #308.
 6. Home Resume and global feedback, including #300.

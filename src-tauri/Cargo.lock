@@ -81,6 +81,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "reqwest 0.12.28",
+ "sbls-package-codec",
  "serde",
  "serde_json",
  "tauri",
