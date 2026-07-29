@@ -42,6 +42,16 @@ import {
   commandSucceeded,
   type ApplicationCommandResult,
 } from '../lifecycle/applicationCommandTypes.ts'
+import {
+  createProjectFileCommandFailure,
+  isProjectFileCommandFailure,
+  type ProjectFileCommandFailure,
+} from '../tauri/projectFileFailure.ts'
+import {
+  createProjectPackageCommandFailure,
+  isProjectPackageCommandFailure,
+  type ProjectPackageCommandFailure,
+} from '../tauri/packageProjectFile.ts'
 
 type DialogFilter = Readonly<{
   name: string
@@ -79,15 +89,34 @@ export type StagedProjectOpenCandidate =
   | StagedDiscProjectOpenCandidate
   | StagedCaseInsertProjectOpenCandidate
 
-export type StageAppProjectOpenParams = Readonly<{
-  openDialog: OpenProjectDialog
-  readProjectFileCommand: ReadProjectFileCommand
+export type ProjectOpenRestorationDependencies = Readonly<{
   defaultSteamBannerLockupImageUrl?: string | null
   resolveBackgroundImageSize?: (
     imageDataUrl: string,
   ) => Promise<RestoredProjectState['backgroundImageSize']>
   caseInsertBrandingSources: CaseInsertBrandingSourceCatalog
 }>
+
+export type StageAppProjectOpenParams = ProjectOpenRestorationDependencies &
+  Readonly<{
+    openDialog: OpenProjectDialog
+    readProjectFileCommand: ReadProjectFileCommand
+  }>
+
+export type DecodeProjectPackageFileCommand =
+  (path: string) => Promise<Uint8Array>
+
+export type StageProjectPackageOpenParams =
+  ProjectOpenRestorationDependencies & Readonly<{
+    selectedPath: string
+    decodeProjectPackageFileCommand: DecodeProjectPackageFileCommand
+  }>
+
+export type StageProjectOpenContentsParams =
+  ProjectOpenRestorationDependencies & Readonly<{
+    selectedPath: string
+    contents: string
+  }>
 
 const PROJECT_FILE_FILTERS = Object.freeze([
   Object.freeze({
@@ -138,6 +167,21 @@ function failure(
   })
 }
 
+function structuredReadFailure(
+  error: ProjectFileCommandFailure | ProjectPackageCommandFailure,
+): ApplicationCommandResult<never> {
+  const stage = isProjectPackageCommandFailure(error)
+    ? ` at ${error.cause.stage}`
+    : ''
+  return commandFailed({
+    code: error.code,
+    userMessage: error.message,
+    diagnosticMessage: `${error.code}${stage}`,
+    cause: error.cause,
+    recoverable: error.recoverable,
+  })
+}
+
 function schemaFailure(error: ProjectSchemaError): ApplicationCommandResult<never> {
   if (error.message.includes('not valid JSON')) {
     return failure(
@@ -176,7 +220,7 @@ function routeForCaseInsertProject(
 async function stageDiscProject(
   selectedPath: string,
   project: SavedDiscProject,
-  params: StageAppProjectOpenParams,
+  params: ProjectOpenRestorationDependencies,
 ): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
   const normalizedProject = captureNormalizedProjectSnapshot(project)
   let restoredProject: RestoredProjectState
@@ -284,7 +328,7 @@ async function stageDiscProject(
 function stageCaseInsertProject(
   selectedPath: string,
   project: SavedCaseInsertProject,
-  params: StageAppProjectOpenParams,
+  params: ProjectOpenRestorationDependencies,
 ): ApplicationCommandResult<StagedProjectOpenCandidate> {
   try {
     const normalizedProject = normalizeSavedCaseInsertProject(project)
@@ -321,6 +365,98 @@ function stageCaseInsertProject(
       error,
     )
   }
+}
+
+/**
+ * Runs the one shared parse, migrate, normalize, route, restore, and immutable
+ * candidate-capture path after a transport has produced project JSON text.
+ */
+export async function stageProjectOpenContents(
+  params: StageProjectOpenContentsParams,
+): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
+  let project: SavedDiscProject | SavedCaseInsertProject
+  try {
+    project = parseSavedProjectContents(params.contents)
+  } catch (error) {
+    return error instanceof ProjectSchemaError
+      ? schemaFailure(error)
+      : failure(
+          'project.validation-failed',
+          'The selected file is not a valid Steam Backup Label Studio project.',
+          error,
+        )
+  }
+
+  let projectType: 'disc' | 'caseInsert'
+  try {
+    projectType = resolveSavedProjectType(project)
+  } catch (error) {
+    return failure(
+      'project.route-failed',
+      'The selected project editor could not be determined.',
+      error,
+    )
+  }
+
+  return projectType === 'caseInsert'
+    ? stageCaseInsertProject(
+        params.selectedPath,
+        project as SavedCaseInsertProject,
+        params,
+      )
+    : stageDiscProject(
+        params.selectedPath,
+        project as SavedDiscProject,
+        params,
+      )
+}
+
+/**
+ * Dormant `.sbls` package staging entry. It owns no dialog, lifecycle state,
+ * replacement guard, or live editor mutation and is not called by production
+ * Open until the package activation slice explicitly composes it.
+ */
+export async function stageProjectPackageOpen(
+  params: StageProjectPackageOpenParams,
+): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
+  let hydratedBytes: Uint8Array
+  try {
+    hydratedBytes = await params.decodeProjectPackageFileCommand(
+      params.selectedPath,
+    )
+    if (!(hydratedBytes instanceof Uint8Array)) {
+      throw createProjectFileCommandFailure(
+        'project.read-failed',
+        'raw-response-required',
+        'project-package-stage-response',
+      )
+    }
+  } catch (error) {
+    const structured = isProjectFileCommandFailure(error) ||
+      isProjectPackageCommandFailure(error)
+      ? error
+      : createProjectFileCommandFailure(
+          'project.read-failed',
+          'transport-rejection-invalid',
+          'project-package-stage-decode',
+        )
+    return structuredReadFailure(structured)
+  }
+
+  let contents: string
+  try {
+    contents = new TextDecoder('utf-8', { fatal: true }).decode(hydratedBytes)
+  } catch {
+    return structuredReadFailure(createProjectPackageCommandFailure(
+      'project.package.hydrated-json-invalid',
+      'binding-hydration',
+    ))
+  }
+
+  return stageProjectOpenContents({
+    ...params,
+    contents,
+  })
 }
 
 /**
@@ -371,35 +507,9 @@ export async function stageAppProjectOpen(
     )
   }
 
-  let project: SavedDiscProject | SavedCaseInsertProject
-  try {
-    project = parseSavedProjectContents(contents)
-  } catch (error) {
-    return error instanceof ProjectSchemaError
-      ? schemaFailure(error)
-      : failure(
-          'project.validation-failed',
-          'The selected file is not a valid Steam Backup Label Studio project.',
-          error,
-        )
-  }
-
-  let projectType: 'disc' | 'caseInsert'
-  try {
-    projectType = resolveSavedProjectType(project)
-  } catch (error) {
-    return failure(
-      'project.route-failed',
-      'The selected project editor could not be determined.',
-      error,
-    )
-  }
-
-  return projectType === 'caseInsert'
-    ? stageCaseInsertProject(
-        selected,
-        project as SavedCaseInsertProject,
-        params,
-      )
-    : stageDiscProject(selected, project as SavedDiscProject, params)
+  return stageProjectOpenContents({
+    ...params,
+    selectedPath: selected,
+    contents,
+  })
 }

@@ -20,6 +20,7 @@ export const testFiles = [
   'src/app/appActiveDiscPresetPlatformMarks.test.ts',
   'src/app/appActiveDiscPresetLegalText.test.ts',
   'src/app/appProjectLoad.test.ts',
+  'src/app/appProjectPackageLoad.test.ts',
   'src/app/appPngExport.test.ts',
   'src/app/appPngExportInputs.test.ts',
   'src/app/appProjectSave.test.ts',
@@ -283,6 +284,7 @@ export const testFiles = [
   'src/templates/caseInsertTemplates.test.ts',
   'src/templates/templateModel.test.ts',
   'src/tauri/binaryProjectFile.test.ts',
+  'src/tauri/packageProjectFile.test.ts',
 ]
 
 export const testCommands = [

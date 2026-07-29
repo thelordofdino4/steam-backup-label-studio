@@ -344,11 +344,11 @@ fn request_path(
     })
 }
 
-fn read_request_with<F>(
+pub(crate) fn read_project_bytes_request_with<F>(
     headers: &HeaderMap,
     body: &InvokeBody,
     read_file: F,
-) -> Result<Response, ProjectFileCommandFailure>
+) -> Result<Vec<u8>, ProjectFileCommandFailure>
 where
     F: FnOnce(&Path) -> Result<Vec<u8>, BinaryProjectReadError>,
 {
@@ -375,8 +375,18 @@ where
         ProjectFileFailureCode::ReadFailed,
         "project-binary-read-path",
     )?;
-    let bytes = read_file(&path).map_err(ProjectFileCommandFailure::from_read)?;
-    Ok(Response::new(bytes))
+    read_file(&path).map_err(ProjectFileCommandFailure::from_read)
+}
+
+fn read_request_with<F>(
+    headers: &HeaderMap,
+    body: &InvokeBody,
+    read_file: F,
+) -> Result<Response, ProjectFileCommandFailure>
+where
+    F: FnOnce(&Path) -> Result<Vec<u8>, BinaryProjectReadError>,
+{
+    read_project_bytes_request_with(headers, body, read_file).map(Response::new)
 }
 
 fn write_request_with<F>(

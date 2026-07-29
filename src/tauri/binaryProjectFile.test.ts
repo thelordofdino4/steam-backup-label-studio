@@ -223,6 +223,39 @@ test('type guard accepts every valid code and rejects malformed objects', () => 
       message: PROJECT_FILE_FAILURE_MESSAGES['project.read-failed'],
       cause: { category: '', operation: 'read' },
     },
+    {
+      status: 'failure',
+      code: 'project.read-failed',
+      recoverable: true,
+      message: PROJECT_FILE_FAILURE_MESSAGES['project.read-failed'],
+      path: 'C:\\private\\secret.sbls',
+    },
+    {
+      status: 'failure',
+      code: 'project.read-failed',
+      recoverable: true,
+      message: PROJECT_FILE_FAILURE_MESSAGES['project.read-failed'],
+      cause: {
+        category: 'io',
+        operation: 'read',
+        source: 'private OS error',
+      },
+    },
+    {
+      status: 'failure',
+      code: 'project.read-failed',
+      recoverable: true,
+      message: PROJECT_FILE_FAILURE_MESSAGES['project.read-failed'],
+      cause: {
+        category: 'io',
+        operation: 'read',
+        secondary: [{
+          category: 'cleanup',
+          operation: 'remove',
+          path: 'C:\\private\\temporary.sbls',
+        }],
+      },
+    },
   ]) {
     assert.equal(isProjectFileCommandFailure(malformed), false)
   }

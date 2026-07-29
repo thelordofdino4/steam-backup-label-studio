@@ -4,7 +4,7 @@
 > Read when: Architecture-sensitive work, renderer/editor/export changes, schema work, drag/selection, or parity-sensitive changes.
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
-> Package/save-load authority cross-references reviewed against synchronized parent commit `a040e72a6972d07c2cd72198fd8bcc835d9ea113` plus the focused unstaged `agent/sbls-bounded-binary-project-io` implementation checkpoint on 2026-07-27. The broader as-built inventory below still records its separately identified refactor baseline where stated.
+> Package/save-load authority cross-references reviewed against synchronized parent commit `42c58821ad355a0cbc3ee602c94ec67ac7345de0` plus the focused uncommitted `agent/sbls-dormant-package-open-staging` implementation checkpoint on 2026-07-28. The broader as-built inventory below still records its separately identified refactor baseline where stated.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -40,8 +40,13 @@ Post-refactor documentation reconciliation note:
 - The later bounded binary project-I/O checkpoint starts from
   `a040e72a6972d07c2cd72198fd8bcc835d9ea113` and adds dormant raw-byte
   Tauri commands, bounded native reading, atomic binary writing, and a dormant
-  TypeScript port. It does not connect those adapters to the package codec,
-  dialogs, lifecycle commands, or production `.sbls` Open, Save, or Save As.
+  TypeScript port.
+- The later dormant package Open-staging checkpoint starts from
+  `42c58821ad355a0cbc3ee602c94ec67ac7345de0` and composes bounded native read
+  with package decode, returns raw hydrated JSON bytes through a strict
+  TypeScript port, and delegates to the existing mutation-free staging owner.
+  It does not change dialogs, lifecycle commands, production `.sbls` Open,
+  Save, or Save As.
 - Manual app testing was reported before the merge with no regressions spotted,
   but this documentation refresh did not independently launch Tauri.
 
@@ -437,11 +442,12 @@ project shapes under schema version `0.2.0`.
 
 The ZIP-compatible `.sbls` package format is defined in
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md). Its
-first package-domain encoder/decoder is implemented as the
-runtime-disconnected Rust workspace member `sbls-package-codec`. Separate
-dormant raw-byte Tauri commands and a dormant TypeScript port provide bounded
-path transport, native reading, and atomic binary writing, but do not call the
-codec or any lifecycle, dialog, production Open, Save, or Save As owner. The
+package-domain encoder/decoder is implemented as the dependency-isolated Rust
+workspace member `sbls-package-codec`. Dormant raw-byte Tauri commands provide
+bounded native reading and atomic binary writing. A separate dormant native
+command now composes bounded read with codec decode and returns hydrated JSON
+through a strict TypeScript port into the existing mutation-free staging owner,
+but no lifecycle, dialog, production Open, Save, or Save As owner calls it. The
 original format-choice rationale remains in
 [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 
@@ -463,7 +469,10 @@ original format-choice rationale remains in
 - `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md`
 - `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`
 - `src/tauri/binaryProjectFile.ts`
+- `src/tauri/packageProjectFile.ts`
+- `src/tauri/projectFileFailure.ts`
 - `src-tauri/src/commands/project_files.rs`
+- `src-tauri/src/commands/project_packages.rs`
 - `src-tauri/src/project_binary_io.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/crates/sbls-package-codec/Cargo.toml`
@@ -511,10 +520,10 @@ original format-choice rationale remains in
 - Keep `home` as a workspace only, not a project type.
 - Do not collapse disc and case insert schema owners.
 - Add migrations before changing saved-project semantics.
-- Distinguish the implemented package-domain codec and dormant bounded binary
-  project-I/O adapters from unimplemented application integration. Do not label
-  `.sbls` user support current until codec/I/O composition, lifecycle
-  integration, compatibility adapters, and native runtime
+- Distinguish the implemented package-domain codec, bounded binary adapters,
+  and dormant decode staging from unimplemented production integration. Do not
+  label `.sbls` user support current until encoder/write composition, lifecycle
+  integration, compatibility/activation adapters, and native runtime
   validation required by
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
   exist.
@@ -538,7 +547,7 @@ original format-choice rationale remains in
 - Issue `#48` is closed; future validation/migration changes remain governed by
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 
-### 7.9 Runtime-Disconnected Package Codec
+### 7.9 Package Codec And Dormant Decode Integration
 
 The package-domain public boundary is intentionally small:
 `encode_project_package(&ProjectPackageEncodeInput)` borrows a boundary value
@@ -586,8 +595,9 @@ assets while validating the current entry, hydration retains encoded assets
 while data URLs accumulate, and output serialization temporarily overlaps the
 hydrated tree. The pure codec proves those lifetimes and its owned allocation
 boundaries deterministically. Windows x64 RSS, other-platform process evidence,
-and IPC/webview copy measurement belong to the later runtime/platform adapter
-gate, after the actual linkage and byte transport exist.
+and hydrated-response IPC/WebView copy measurement belong to the later
+production-activation gate; source-level linkage and byte transport now exist
+only through the dormant native decode adapter.
 
 JPEG and WebP full decoding uses a narrow Rust-consumed crate-private C boundary
 built from exact-pinned libjpeg-turbo `3.1.4.1` archive SHA-256
@@ -637,12 +647,16 @@ exercise the closed profiles, stable failures, hostile JSON allocation
 receipts, native allocation/reallocation faults, one-validator ownership, and
 cleanup/reuse.
 
-The workspace root lists this crate as a member but keeps the Tauri app as its
-default member. The app crate has no dependency on the codec, and no native
-command registers or calls it. The app separately registers dormant bounded
-binary read/write commands; those commands do not link or invoke the codec.
-This isolation is a required current architecture fact, not a temporary claim
-that package support is available to users.
+The workspace root lists this crate as a member and keeps the Tauri app as its
+default member. The app crate has one local path dependency on the codec. The
+registered `decode_project_package_file` command reuses the bounded file-read
+request owner, lends its operation-owned archive buffer to the codec, discards
+transport metadata, and moves only hydrated JSON bytes into the raw response.
+`packageProjectFile.ts` validates the exact raw response and closed safe failure
+DTO; `stageProjectPackageOpen` performs strict UTF-8 decoding and delegates to
+the same parse/migrate/normalize/route/restore/candidate-capture path as legacy
+Open. This entire path is dormant from production Open and owns no lifecycle or
+live editor mutation.
 
 ## 8. Rendering Model
 
@@ -1835,8 +1849,11 @@ for unfinished lifecycle work. Serialized fields and migrations remain owned by
 legacy-conversion, and atomic binary persistence behavior is defined by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 The package-domain codec/security layer and bounded binary project-I/O layer
-are implemented as separate runtime-disconnected owners. Codec/I/O composition,
-legacy conversion, and lifecycle/runtime integration remain unimplemented.
+retain separate ownership. Dormant native read/decode composition, strict raw
+hydrated-response transport, and shared mutation-free package staging are now
+implemented. Legacy conversion, production Open activation, package Save/Save
+As, session-format adoption, and lifecycle/runtime integration remain
+unimplemented.
 
 ### 15.2 Key Files
 
@@ -1852,8 +1869,11 @@ legacy conversion, and lifecycle/runtime integration remain unimplemented.
 - `src/project/savedProjectNormalization.ts`
 - `src/tauri/fileSystem.ts`
 - `src/tauri/binaryProjectFile.ts`
+- `src/tauri/packageProjectFile.ts`
+- `src/tauri/projectFileFailure.ts`
 - `src-tauri/src/commands/files.rs`
 - `src-tauri/src/commands/project_files.rs`
+- `src-tauri/src/commands/project_packages.rs`
 - `src-tauri/src/project_binary_io.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/crates/sbls-package-codec/src/lib.rs`
@@ -1871,9 +1891,10 @@ accepted through Open, the lifecycle session additionally owns the session ID,
 selected path, exact normalized clean baseline, revision, and last editor route.
 Editor mutations outside Open are not yet projected back into lifecycle state,
 so lifecycle dirty authority is not yet complete. Saved JSON snapshots remain
-the source accepted by staging and the output produced by legacy Save. The pure
-package crate and dormant binary project-file port own no active session, are
-not composed with each other, and are not called by either production path.
+the source accepted by production staging and the output produced by legacy
+Save. The package crate, native decode command, raw package port, and package
+staging entry own no active session. They are composed only along the dormant
+read/decode/stage path and are not called by production Open or Save.
 
 ### 15.4 Render/Edit/Export Paths
 
@@ -1894,10 +1915,16 @@ not composed with each other, and are not called by either production path.
   native writing performs the same bound check and delegates the caller's byte
   slice to the existing atomic writer. Their TypeScript port is not imported by
   a production Open, Save, Save As, dialog, or lifecycle owner.
-- Package encode/decode remains a protocol-bounded in-memory Rust API with
-  borrowed package input and owned output. Neither dormant binary command calls
-  it, and no application adapter composes codec bytes with the binary port or
-  lifecycle root.
+- Dormant `decode_project_package_file` reuses the binary reader's
+  path/body/read owner, lends the owned archive buffer to the protocol-bounded
+  Rust codec, and moves only hydrated JSON into a raw response. The strict
+  TypeScript port validates exact file/package failures and the contract-derived
+  671,096,832-byte static hydrated-response cap without receiving archive bytes
+  or metadata.
+- `stageProjectPackageOpen` performs strict UTF-8 decode, then calls the same
+  parse/migrate/normalize/route/restore/candidate-capture owner used by legacy
+  staging. Production `stageAppProjectOpen` remains JSON-only and does not call
+  the package stage.
 - Export uses runtime state after any load/restore.
 
 ### 15.5 Invariants And Future-Change Rules
@@ -1920,6 +1947,11 @@ not composed with each other, and are not called by either production path.
 - `src-tauri/src/project_file.rs` tests must cover real create/replace behavior,
   deterministic phase failures, collision ownership, operation ordering, exact
   Disc/Case bytes, and the actual Windows replace-existing failure path.
+- `src-tauri/src/commands/project_packages.rs` tests must cover real Disc/Case
+  package decode, exact hydrated raw bytes, borrowed input/moved output,
+  exhaustive safe failures, file-before-codec precedence, isolation, and
+  registration. TypeScript tests must cover exact DTO guards, strict UTF-8,
+  shared Disc/Case staging, immutability, and negative production wiring.
 - Manual validation should save, reload, and export both disc and case insert projects when affected.
 
 ### 15.7 Known Risks
@@ -2141,10 +2173,11 @@ Current tests cover broad helper and contract areas:
   migration are implemented, while any future schema change remains separate
   work under [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - Preview selection, snapping, keyboard nudging, inspector, and context-menu workflows remain open under related preview issues.
-- Production [`.sbls` lifecycle Open/Save/Save As, codec/I/O composition,
+- Production [`.sbls` lifecycle Open/Save/Save As, encoder/write composition,
   legacy conversion, and runtime activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
-  are not implemented; the package-domain codec and dormant bounded binary
-  project-I/O infrastructure are separate current implementation owners.
+  are not implemented; the package-domain codec, bounded binary I/O, and
+  dormant native decode/staging infrastructure are current implementation
+  owners.
 - DVD/Amaray and Blu-ray editors are future planned surfaces, not current working editors.
 
 ### 19.3 Areas For User Review
@@ -2206,17 +2239,17 @@ Decision:
   [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md).
 - A deterministic, security-bounded, Rust-owned v1 codec with crate-private
   vendored native JPEG/WebP validation shims is implemented as a
-  runtime-disconnected workspace member. It is not a production project-file
-  path, Tauri command, or lifecycle adapter. Separate dormant bounded binary
-  project-file commands exist in the app crate but do not depend on or call the
-  codec.
+  dependency-isolated workspace member. One dormant Tauri command composes
+  bounded file read with codec decode and one dormant TypeScript path stages
+  only hydrated JSON through existing project owners. Neither is a production
+  project-file or lifecycle path.
 
 Consequences:
 
 - Current save/load work must preserve JSON compatibility under
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - User-facing package behavior must not be implied in UI/docs until the later
-  codec/I/O composition, lifecycle, compatibility, and production activation
+  encoder/write, lifecycle, compatibility, and production activation
   requirements in
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md) are
   implemented and validated.
@@ -2391,10 +2424,10 @@ Consequences:
 The following are documented future plans or active gaps, not current implemented guarantees:
 
 - Guided Start and opening-screen workflow.
-- Application-connected [`.sbls` package Open/Save/Save As, codec/I/O
+- Application-connected [`.sbls` package Open/Save/Save As, encoder/write
   composition, and lifecycle activation](PROJECT_PACKAGE_FORMAT_CONTRACT.md);
-  the package-domain codec and dormant bounded binary project-I/O layer are
-  already separate runtime-disconnected implementation owners.
+  the package-domain codec, bounded binary project-I/O, and dormant native
+  decode/staging path are already implemented without production activation.
 - DVD/Amaray and Blu-ray case editors.
 - Direct printer integration.
 - Full arbitrary layer management.

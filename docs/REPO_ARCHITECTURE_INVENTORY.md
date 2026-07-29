@@ -4,7 +4,7 @@
 > Read when: Before refactors, ownership changes, or architecture-sensitive edits.
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
-> Package/save-load ownership refresh: synchronized parent `a040e72a6972d07c2cd72198fd8bcc835d9ea113` plus the focused unstaged `agent/sbls-bounded-binary-project-io` checkpoint on 2026-07-27.
+> Package/save-load ownership refresh: synchronized parent `42c58821ad355a0cbc3ee602c94ec67ac7345de0` plus the focused uncommitted `agent/sbls-dormant-package-open-staging` checkpoint on 2026-07-28.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -23,13 +23,16 @@ This inventory records how Steam Backup Label Studio is implemented in the repos
 - Working tree status was clean before this documentation refresh.
 - This file is based on repository files, tests, documentation, and the merged
   refactor diff. Unknowns are marked as unknown.
-- Package-codec ownership below was refreshed separately from the later
-  runtime-disconnected working-tree implementation. It does not broadly
+- Package-codec ownership below was refreshed separately from the later pure
+  codec implementation and dormant native integration. It does not broadly
   re-baseline unrelated editor file/line inventories or claim production
   package integration.
 - Bounded binary project-I/O ownership was refreshed from the later dormant
-  raw Tauri transport checkpoint. Those commands and the TypeScript port are
-  not connected to the codec, dialogs, lifecycle, or production project flows.
+  raw Tauri transport checkpoint.
+- Dormant package read/decode ownership was refreshed from the later native
+  composition and TypeScript staging checkpoint. It connects bounded read to
+  codec decode and shared mutation-free project staging, but not to dialogs,
+  lifecycle commands, or production project flows.
 - No browser diagnostic or Tauri runtime verification was performed during this
   documentation refresh. Manual app testing before the refactor merge was
   reported with no regressions spotted.
@@ -143,15 +146,17 @@ Render path:
 Native command path:
 
 - `src-tauri/src/main.rs` calls `app_lib::run()`.
-- `src-tauri/src/lib.rs` registers file, dormant bounded binary project-file,
+- `src-tauri/src/lib.rs` registers file, dormant bounded binary project-file and
+  package-decode,
   Steam, local Steam, local image, folder opening, and official-site logo
   discovery commands.
 - Command owners are split into `commands/files.rs`, `commands/steam.rs`, `commands/local_steam.rs`, `commands/local_images.rs`, `commands/official_site.rs`, and `platform/open_folder.rs`.
 - `src-tauri/Cargo.toml` is also the workspace root. It lists
   `crates/sbls-package-codec` as a member while retaining the Tauri application
-  as the default member. The Tauri application crate does not depend on the
-  codec member and registers no package-codec command. The separately
-  registered binary project-file commands do not call the codec.
+  as the default member. The Tauri application has one local path dependency on
+  the codec for `commands/project_packages.rs`; that dormant command composes
+  bounded read with codec decode. The separately registered binary read/write
+  commands remain codec-agnostic.
 
 Risks:
 
@@ -282,8 +287,8 @@ Risks:
 ## Project Save/Load Model
 
 Purpose: persist production editor projects as JSON, restore them into current
-editor state, and identify the separate runtime-disconnected `.sbls` package
-codec plus dormant bounded binary project-I/O owners.
+editor state, and identify the package codec, bounded binary project-I/O, and
+dormant native package read/decode plus shared staging owners.
 
 Key files:
 
@@ -302,8 +307,13 @@ Key files:
 - `src/diagnostics/projectParityHarness.ts`
 - `src/tauri/binaryProjectFile.ts`
 - `src/tauri/binaryProjectFile.test.ts`
+- `src/tauri/projectFileFailure.ts`
+- `src/tauri/packageProjectFile.ts`
+- `src/tauri/packageProjectFile.test.ts`
+- `src/app/appProjectPackageLoad.test.ts`
 - `src-tauri/src/commands/files.rs`
 - `src-tauri/src/commands/project_files.rs`
+- `src-tauri/src/commands/project_packages.rs`
 - `src-tauri/src/project_binary_io.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/crates/sbls-package-codec/Cargo.toml`
@@ -353,7 +363,11 @@ Source-of-truth state:
   preflight/delegation seam into `project_file.rs`; `commands/project_files.rs`
   owns the raw Tauri request/response adapter, stable command failures, and
   canonical path-header decoding. `src/tauri/binaryProjectFile.ts` owns the
-  matching dormant TypeScript port. None owns lifecycle or package semantics.
+  matching dormant TypeScript port. `commands/project_packages.rs` reuses the
+  read request seam, borrows its archive bytes into `sbls-package-codec`, and
+  moves only hydrated JSON into a raw response. `packageProjectFile.ts` owns the
+  strict dormant frontend port; shared file failure shapes live in
+  `projectFileFailure.ts`. None owns lifecycle or editor semantics.
 
 Render path:
 
@@ -387,16 +401,25 @@ Save/load path:
   raw request bytes and delegates them to the atomic writer. Both carry the
   path in a canonical percent-encoded UTF-8 header capped at 4 KiB, reject
   non-raw transport shapes, and enforce an exact 256 MiB file-byte ceiling.
+- Dormant `decode_project_package_file` accepts the same empty body and path
+  header, reuses that exact bounded read owner, decodes in native Rust, drops
+  package metadata, and returns raw hydrated JSON bytes. Its TypeScript port
+  validates all file/package failures and the exact 671,096,832-byte static
+  hydrated-response cap derived by the package contract.
+- `stageProjectPackageOpen` strictly decodes UTF-8 and delegates to the same
+  parse/migrate/normalize/route/restore/candidate-capture owner used by legacy
+  staging. `stageAppProjectOpen` remains the production JSON-only entry.
 
 Serialization:
 
 - Current application-connected files are plain `.sbls.json` JSON projects.
 - Imported image data is stored as data URLs where supported.
 - Durable local source file paths are avoided through asset provenance helpers.
-- The package-domain crate can encode/decode bounded `.sbls` v1 bytes in memory,
-  but no production project path calls it.
-- The dormant binary project-I/O port can move bounded opaque bytes to and from
-  a path but does not call the package codec or any production project owner.
+- The package-domain crate can encode/decode bounded `.sbls` v1 bytes in memory;
+  only the dormant native package command calls its decoder.
+- The dormant raw binary project-I/O port can move bounded opaque bytes to and
+  from a path. The dormant package path instead composes native read/decode so
+  archive bytes never enter the WebView; neither path is production-wired.
 
 Package-domain codec boundary:
 
@@ -486,10 +509,14 @@ Tests:
   replacement-failure tests.
 - Focused Rust tests cover bounded reader limits and allocation failure,
   partial/interrupted reads, operation isolation, binary writer delegation,
-  raw command contracts, canonical path decoding, exact failure mapping, and
-  command registration (`12/12`, `12/12`, and `1/1`). The registered dormant
-  TypeScript port test covers raw request/response identity, bounds, structured
-  errors, canonical Unicode paths, and negative production wiring (`12/12`).
+  raw command contracts, canonical path decoding, exact failure mapping,
+  native Disc/Case package decode with assets, borrowed input/moved output,
+  every package failure DTO, file-before-codec precedence, concurrent package
+  requests, and command registration. TypeScript port/staging tests cover raw
+  response identity, bounds, all 27 package failures, strict unsafe-shape
+  rejection, canonical Unicode paths, strict UTF-8, current/migrated Disc,
+  Case, hydrated assets, background inspection, immutability, shared schema
+  taxonomy, and negative production wiring.
 - Pure package-codec unit, security, independent-fixture, public-facade
   round-trip, and native allocation fault-injection tests are colocated under
   `src-tauri/crates/sbls-package-codec/src/` and run through the registered
@@ -514,10 +541,11 @@ Risks:
   compatibility step.
 - Closed issue `#48` established the current schema-validation/migration
   baseline; future schema changes remain owned by `PROJECT_FILE_SPEC.md`.
-- Production `.sbls` codec/I/O composition, Open/Save/Save As activation,
+- Production `.sbls` Open/Save/Save As activation, encoder/write composition,
   legacy conversion, session format adoption, and dirty/replacement integration
-  remain absent. The package-domain codec and dormant bounded binary I/O must
-  not be mistaken for those later application slices.
+  remain absent. The package-domain codec, bounded binary I/O, and dormant
+  native read/decode/staging path must not be mistaken for user-visible package
+  support.
 
 ## Templates and Workspace Types
 
@@ -1568,6 +1596,10 @@ Current `npm run test` covers these broad areas:
 - The dormant binary project-file TypeScript port's raw-byte transport,
   canonical path header, exact byte cap, structured error preservation, and
   negative production-wiring boundary.
+- The dormant package command/port/staging path's native-owned bounded
+  read/decode, exhaustive file/package DTO validation, raw hydrated-response
+  ownership, strict UTF-8, shared Disc/Case staging, immutability, and negative
+  production-wiring boundary.
 - Shared project parity harness diagnostics for representative disc and case
   insert runtime/saved/restored/export inputs, including split disc and case
   insert parity suites.
