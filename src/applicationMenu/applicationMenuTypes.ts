@@ -411,7 +411,7 @@ export type ApplicationMenuProjectionContext = Readonly<{
 export type ApplicationMenuItemProjection = Readonly<{
   itemId: ApplicationMenuItemId
   enabled: boolean
-  checked: false
+  checked: boolean
   visible: true
   label?: string
   unavailableReason?: string
@@ -424,4 +424,12 @@ export type ApplicationMenuProjection = Readonly<{
   sessionId?: string
   workspace: ApplicationMenuWorkspace
   items: readonly ApplicationMenuItemProjection[]
+}>
+
+export type ApplicationMenuInvocation = Readonly<{
+  invocationId: string
+  bridgeInstanceId: string
+  itemId: ApplicationMenuItemId
+  windowLabel: string
+  projectionGeneration: number
 }>

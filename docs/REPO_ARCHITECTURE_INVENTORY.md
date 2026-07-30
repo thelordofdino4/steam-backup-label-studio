@@ -253,9 +253,14 @@ Source-of-truth state:
 - `src/applicationMenu/` now owns the immutable first-release presentation-ID
   catalog, semantic-target mapping, Windows/Linux/macOS descriptor projection,
   injected capability projection, a lifecycle-root capability consumption
-  helper, and an in-memory generation-ordered test port. It is intentionally
-  disconnected from React, Tauri, native events, command execution, workflow
-  hosts, and sidebar migration.
+  helper, an in-memory generation-ordered test port, the stripped native
+  transport, validated frontend ingress, and the application-menu runtime.
+  `src/main.tsx` mounts that runtime through `ApplicationMenuBoundary`.
+  `src-tauri/src/application_menu.rs` constructs the descriptor-driven native
+  hierarchy, applies exact-window generation-ordered enabled/checked/label state, forwards typed
+  activation envelopes, and owns bridge-scoped teardown. Semantic command
+  routing, workflow hosts, native window actions, and sidebar migration remain
+  disconnected; the production projection keeps every item disabled.
 
 Render path:
 
@@ -1673,9 +1678,10 @@ Current `npm run test` covers these broad areas:
   guard, New owners, two-phase Open staging, CAS, atomic editor application,
   exact session-only route synchronization, Return/Resume owners, shared
   command feedback, dependency freshness, and current lifecycle-control
-  routing; plus the runtime-disconnected application
-  menu descriptor, semantic-target, platform/capability projection, and
-  in-memory port boundary.
+  routing; plus the runtime-connected application-menu descriptor transport,
+  native construction, conservative capability projection, typed event ingress,
+  generation/identity validation, and teardown boundary. Semantic menu dispatch
+  remains intentionally disconnected.
 - The dormant binary project-file TypeScript port's raw-byte transport,
   canonical path header, exact byte cap, structured error preservation, and
   negative production-wiring boundary.
