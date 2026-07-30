@@ -14,6 +14,9 @@ import type {
 import type {
   ApplicationProjectNewRuntimeDependencies,
 } from './appProjectNewCommand.ts'
+import type {
+  ApplicationWorkspaceNavigationRuntimeDependencies,
+} from './appWorkspaceNavigationCommand.ts'
 import {
   ApplicationLifecycleRuntimeContext,
 } from './applicationLifecycleRuntimeContext.ts'
@@ -29,6 +32,7 @@ export function useApplicationLifecycleRoot(
     save: ApplicationProjectSaveRuntimeDependencies
     replacement: ApplicationProjectReplacementRuntimeDependencies
     newProject: ApplicationProjectNewRuntimeDependencies
+    workspaceNavigation: ApplicationWorkspaceNavigationRuntimeDependencies
   }>,
 ): ApplicationLifecycleCompositionRoot {
   const runtime = useContext(ApplicationLifecycleRuntimeContext)
@@ -41,6 +45,9 @@ export function useApplicationLifecycleRoot(
     runtime.updateProjectSaveDependencies(dependencies.save)
     runtime.updateProjectReplacementDependencies(dependencies.replacement)
     runtime.updateProjectNewDependencies(dependencies.newProject)
+    runtime.updateWorkspaceNavigationDependencies(
+      dependencies.workspaceNavigation,
+    )
   }, [dependencies, runtime])
 
   return runtime.root

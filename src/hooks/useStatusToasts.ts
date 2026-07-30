@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { STATUS_TOAST_ICON_URLS } from '../assets/assetManifest'
 
 export type StatusToastKind =
@@ -74,6 +74,11 @@ const STATUS_TOAST_DISPLAY: Record<StatusToastKind, StatusToastDisplay> = {
     iconUrl: STATUS_TOAST_ICON_URLS.text,
   },
 }
+
+export type StatusAnnouncementOptions = Readonly<{
+  kind?: StatusToastKind
+  deduplicationKey?: string
+}>
 
 function getStatusToastKind(message: string): StatusToastKind {
   const normalizedMessage = message.toLowerCase()
@@ -152,12 +157,27 @@ export function useStatusToasts() {
   )
   const [statusToasts, setStatusToasts] = useState<StatusToast[]>([])
   const nextStatusToastIdRef = useRef(0)
+  const activeDeduplicationKeysRef = useRef(new Map<string, string>())
 
-  function announceStatus(message: string) {
-    const kind = getStatusToastKind(message)
+  const announceStatus = useCallback((
+    message: string,
+    options: StatusAnnouncementOptions = {},
+  ): boolean => {
+    const deduplicationKey = options.deduplicationKey
+    if (
+      deduplicationKey &&
+      activeDeduplicationKeysRef.current.has(deduplicationKey)
+    ) {
+      return false
+    }
+
+    const kind = options.kind ?? getStatusToastKind(message)
     const display = STATUS_TOAST_DISPLAY[kind]
     const toastId = `status-toast-${nextStatusToastIdRef.current}`
     nextStatusToastIdRef.current += 1
+    if (deduplicationKey) {
+      activeDeduplicationKeysRef.current.set(deduplicationKey, toastId)
+    }
 
     const toast: StatusToast = {
       id: toastId,
@@ -172,11 +192,18 @@ export function useStatusToasts() {
     setStatusToasts((currentToasts) => [...currentToasts, toast].slice(-5))
 
     window.setTimeout(() => {
+      if (
+        deduplicationKey &&
+        activeDeduplicationKeysRef.current.get(deduplicationKey) === toastId
+      ) {
+        activeDeduplicationKeysRef.current.delete(deduplicationKey)
+      }
       setStatusToasts((currentToasts) =>
         currentToasts.filter((currentToast) => currentToast.id !== toastId),
       )
     }, 3600)
-  }
+    return true
+  }, [])
 
   return {
     projectStatus,

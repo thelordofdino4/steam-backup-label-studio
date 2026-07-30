@@ -226,8 +226,8 @@ import {
   createApplicationEditorAggregateApplier,
 } from './appProjectRestore'
 import {
-  getProjectOpenCompatibilityFeedback,
-} from './appProjectOpenFeedback'
+  publishApplicationCommandFeedback,
+} from './appApplicationCommandFeedback'
 import {
   useApplicationLifecycleRoot,
 } from './useApplicationLifecycleRoot'
@@ -238,6 +238,14 @@ import { createBlankDiscSavedProject } from '../project/blankDiscProject'
 import {
   prepareNewProjectEditorApply,
 } from './appProjectNewEditorApply'
+import {
+  prepareApplicationWorkspaceNavigationApply,
+  type ApplicationWorkspaceDestination,
+} from './appWorkspaceNavigationApply'
+import { selectHomeResumeProjectSummary } from './appHomeResume'
+import type {
+  ApplicationCommandId,
+} from '../lifecycle/applicationCommandTypes'
 
 type SteamMetadataApplyOptions = {
   announce?: boolean
@@ -266,6 +274,8 @@ function App() {
   const replacementPrompt = useProjectReplacementPrompt()
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const caseInsertPreviewRef = useRef<HTMLDivElement | null>(null)
+  const workspaceFocusRequestRef =
+    useRef<ApplicationWorkspaceDestination | null>(null)
   const discPreviewSize = useDiscPreviewSize({
     activeWorkspace,
     discPreviewRef,
@@ -1452,22 +1462,19 @@ function App() {
     )
   }
 
+  async function dispatchApplicationCommand(commandId: ApplicationCommandId) {
+    const result = await applicationLifecycleRoot.dispatch(commandId)
+    publishApplicationCommandFeedback(result, {
+      announceStatus,
+      setHomeStatusMessage,
+    })
+    return result
+  }
+
   async function dispatchNewProject(
     commandId: 'project.new-disc' | 'project.new-case',
   ) {
-    const result = await applicationLifecycleRoot.dispatch(commandId)
-    if (result.disposition === 'not-executed') {
-      announceStatus(
-        result.userMessage ??
-          (result.reason === 'busy'
-            ? 'A project operation is already in progress.'
-            : 'New Project is currently unavailable.'),
-      )
-      return
-    }
-    if (result.result.feedback) {
-      announceStatus(result.result.feedback.message)
-    }
+    await dispatchApplicationCommand(commandId)
   }
 
   async function handleNewProject() {
@@ -1483,23 +1490,11 @@ function App() {
   }
 
   async function handleReturnToHome() {
-    const shouldReturn = await confirm(
-      'Return to the main menu? Unsaved changes will remain in memory for now, but new actions may replace them.',
-      {
-        title: 'Return to main menu?',
-        kind: 'warning',
-      },
-    )
+    await dispatchApplicationCommand('workspace.return-home')
+  }
 
-    if (!shouldReturn) {
-      return
-    }
-
-    cancelPreviewPointerDrag()
-    cancelCaseInsertPreviewPointerDrag()
-    activeDiscPreset.clearActivePreset()
-    setActiveWorkspace('home')
-    setHomeStatusMessage(null)
+  async function handleResumeProject() {
+    await dispatchApplicationCommand('project.resume')
   }
 
   async function handleSwitchToCaseInsertFromDisc() {
@@ -1734,13 +1729,7 @@ function App() {
   )
 
   async function handleSaveProject() {
-    const result = await applicationLifecycleRoot.dispatch('project.save')
-    if (result.disposition === 'not-executed') {
-      if (result.userMessage) announceStatus(result.userMessage)
-      return
-    }
-    const feedback = result.result.feedback
-    if (feedback) announceStatus(feedback.message)
+    await dispatchApplicationCommand('project.save')
   }
 
   const applicationLifecycleRoot = useApplicationLifecycleRoot({
@@ -1842,6 +1831,24 @@ function App() {
         setHomeStatusMessage,
       }, kind, project),
     },
+    workspaceNavigation: {
+      prepareWorkspaceApply: (destination) =>
+        prepareApplicationWorkspaceNavigationApply({
+          batchReactUpdates: (apply) => unstable_batchedUpdates(apply),
+          cancelActivePointerGestures: () => {
+            cancelPreviewPointerDrag()
+            cancelCaseInsertPreviewPointerDrag()
+          },
+          setActiveWorkspace,
+          restoreCaseInsertRoute: (pane, surface) => {
+            setActiveCaseInsertTemplatePane(pane)
+            setActiveCaseInsertNavigationSurface(surface)
+          },
+          requestFocus: (requestedDestination) => {
+            workspaceFocusRequestRef.current = requestedDestination
+          },
+        }, destination),
+    },
   })
 
   useLayoutEffect(() => {
@@ -1854,16 +1861,41 @@ function App() {
       kind: activeWorkspace,
       project: captureCurrentSavedProject(),
     })
+    applicationLifecycleRoot.synchronizeCurrentEditorRoute({
+      sessionId: session.id,
+      kind: activeWorkspace,
+      route: activeWorkspace === 'disc'
+        ? { workspace: 'disc' }
+        : {
+            workspace: 'caseInsert',
+            surface: activeCaseInsertNavigationSurface,
+          },
+    })
   }, [
+    activeCaseInsertNavigationSurface,
     activeWorkspace,
     applicationLifecycleRoot,
     captureCurrentSavedProject,
   ])
 
+  useLayoutEffect(() => {
+    const destination = workspaceFocusRequestRef.current
+    if (!destination) return
+    workspaceFocusRequestRef.current = null
+
+    const target = destination.workspace === 'home'
+      ? document.getElementById('home-resume-project') ??
+        document.getElementById('home-title')
+      : document.getElementById(
+          destination.workspace === 'disc'
+            ? 'disc-editor-heading'
+            : 'case-insert-editor-heading',
+        )
+    target?.focus({ preventScroll: true })
+  })
+
   async function handleLoadProject() {
-    const result = await applicationLifecycleRoot.dispatch('project.open')
-    const feedbackMessage = getProjectOpenCompatibilityFeedback(result)
-    if (feedbackMessage) announceStatus(feedbackMessage)
+    await dispatchApplicationCommand('project.open')
   }
 
   async function handleExportPng() {
@@ -2134,6 +2166,10 @@ function App() {
     steamLogoPlacement,
   }
 
+  const homeResumeProject = selectHomeResumeProjectSummary(
+    applicationLifecycleRoot.getLifecycleState(),
+  )
+
   if (activeWorkspace === 'home') {
     return (
       <>
@@ -2141,6 +2177,8 @@ function App() {
           onLoadProject={handleLoadProject}
           onNewDisc={handleStartNewDiscProject}
           onNewCaseInsert={handleOpenCaseInsertEditor}
+          onResumeProject={handleResumeProject}
+          resumeProject={homeResumeProject}
           statusMessage={homeStatusMessage}
         />
         <ProjectReplacementDialog
@@ -2235,7 +2273,9 @@ function App() {
       <EditorRoleFocusProvider>
       <main className="app-shell">
       <aside className="sidebar">
-        <h1>Steam Backup Label Studio</h1>
+        <h1 id="disc-editor-heading" tabIndex={-1}>
+          Steam Backup Label Studio
+        </h1>
         <p className="muted">Alpha disc label editor</p>
 
         <ProjectPanel

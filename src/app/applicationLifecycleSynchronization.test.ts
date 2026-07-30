@@ -68,4 +68,59 @@ test('root synchronization publishes one complete canonical change and no identi
     project: createBlankJewelCaseSavedProject(),
   }), 'wrong-kind')
   assert.equal(publications, 1)
+
+  const routed = root.synchronizeCurrentEditorRoute({
+    sessionId: 'sync-root',
+    kind: 'disc',
+    route: { workspace: 'disc' },
+  })
+  assert.equal(routed, 'no-op')
+  assert.equal(publications, 1)
+  assert.equal(root.synchronizeCurrentEditorRoute({
+    sessionId: 'retired-root',
+    kind: 'disc',
+    route: { workspace: 'disc' },
+  }), 'stale-session')
+  assert.equal(root.synchronizeCurrentEditorRoute({
+    sessionId: 'sync-root',
+    kind: 'caseInsert',
+    route: { workspace: 'caseInsert', surface: 'back' },
+  }), 'wrong-kind')
+  assert.equal(publications, 1)
+})
+
+test('root synchronizes one exact Case route without project revision or dirty churn', () => {
+  const project = createBlankJewelCaseSavedProject()
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createLoadedProjectSession({
+      sessionId: 'route-root',
+      project,
+      currentPath: 'C:\\projects\\route-root.sbls',
+      persistenceFormat: 'sbls-package-v1',
+      lastEditorRoute: { workspace: 'caseInsert', surface: 'front' },
+    }),
+  })
+  let publications = 0
+  root.subscribe(() => publications += 1)
+
+  assert.equal(root.synchronizeCurrentEditorRoute({
+    sessionId: 'route-root',
+    kind: 'caseInsert',
+    route: { workspace: 'caseInsert', surface: 'back' },
+  }), 'synchronized')
+  const routed = root.getLifecycleState()
+  assert.deepEqual(routed.activeSession?.lastEditorRoute, {
+    workspace: 'caseInsert',
+    surface: 'back',
+  })
+  assert.equal(routed.activeSession?.revision, 0)
+  assert.equal(selectIsActiveProjectDirty(routed), false)
+  assert.equal(publications, 1)
+  assert.equal(root.synchronizeCurrentEditorRoute({
+    sessionId: 'route-root',
+    kind: 'caseInsert',
+    route: { workspace: 'caseInsert', surface: 'back' },
+  }), 'no-op')
+  assert.equal(publications, 1)
+  root.dispose()
 })

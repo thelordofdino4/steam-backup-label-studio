@@ -279,7 +279,7 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
-The frontend contains a runtime-connected lifecycle foundation and a still-disconnected application-menu foundation. `src/main.tsx` constructs one application lifecycle runtime outside React Strict Mode; `ApplicationLifecycleBoundary` owns its one disposal, while a dependency-ref hook updates committed React adapters without recreating the root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, and `project.save-as` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and is the authoritative dirty/Save source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, an in-memory test port, and a narrow lifecycle-capability consumption helper. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
+The frontend contains a runtime-connected lifecycle foundation and a still-disconnected application-menu foundation. `src/main.tsx` constructs one application lifecycle runtime outside React Strict Mode; `ApplicationLifecycleBoundary` owns its one disposal, while a dependency-ref hook updates committed React adapters without recreating the root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, an in-memory test port, and a narrow lifecycle-capability consumption helper. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
 
 ### 5.2 Key Files
 
@@ -293,9 +293,12 @@ The frontend contains a runtime-connected lifecycle foundation and a still-disco
 - `src/app/appProjectNewCommand.ts`
 - `src/app/appProjectNewEditorApply.ts`
 - `src/app/appProjectOpenCommand.ts`
-- `src/app/appProjectOpenFeedback.ts`
+- `src/app/appApplicationCommandFeedback.ts`
 - `src/app/appProjectReplacementGuard.ts`
 - `src/app/appProjectSaveCommand.ts`
+- `src/app/appWorkspaceNavigationCommand.ts`
+- `src/app/appWorkspaceNavigationApply.ts`
+- `src/app/appHomeResume.ts`
 - `src/app/appProjectLoad.ts`
 - `src/app/appProjectSave.ts`
 - `src/app/appProjectRestore.ts`
@@ -334,7 +337,7 @@ The frontend contains a runtime-connected lifecycle foundation and a still-disco
 
 ### 5.3 Source-Of-Truth State
 
-`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production lifecycle root. After committed React updates, one focused adapter supplies the complete normalized Disc or Case aggregate to the root; canonical equality is a lifecycle state/revision/publication no-op. New Disc, New Case, and Open prepare one complete immutable candidate, use the shared dirty-aware replacement guard when required, and apply lifecycle plus editor/route state atomically after a final session/revision check. Save and Save As capture immutable snapshot `R` from the lifecycle-owned current project, delegate package planning/writing to focused modules, and adopt `R` as baseline after commit without a second editor capture; a newer current `R+1` remains current and dirty. Other focused app-owned helpers own PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
+`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production lifecycle root. After committed React updates, focused adapters supply the complete normalized Disc or Case aggregate and exact Disc or Case Front/Back/Spine route to the root; canonical content equality and route equality are lifecycle no-ops. Route changes are session-only and do not change project revision or dirty state. New Disc, New Case, and Open prepare one complete immutable candidate, use the shared dirty-aware replacement guard when required, and apply lifecycle plus editor/route state atomically after a final session/revision check. Save and Save As capture immutable snapshot `R` from the lifecycle-owned current project, delegate package planning/writing to focused modules, and adopt `R` as baseline after commit without a second editor capture; a newer current `R+1` remains current and dirty. Return Home and Resume use focused semantic owners and one lifecycle/React batch; they do not capture, restore, reload, guard, or mutate project content. One application-command feedback adapter projects typed terminal results once to the shared editor status owner and Home live status surface. Other focused app-owned helpers own PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
@@ -358,6 +361,13 @@ Application-menu presentation IDs are separate from semantic command and owner I
 - Save: `project.save` and `project.save-as` write the lifecycle-owned immutable
   snapshot and adopt only that snapshot as baseline after native commit. They
   never perform a fallible post-commit editor recapture.
+- Return/Resume: `workspace.return-home` retains the exact active session and
+  opens no replacement guard; Home exposes Resume only for that retained
+  session, and `project.resume` restores its exact editor route without read or
+  editor restoration.
+- Command feedback: current lifecycle controls consume one typed terminal
+  result adapter. Accepted messages are deduplicated by the shared status owner
+  and remain available across Home/editor workspace changes.
 - Export: `App.tsx` opens the native destination chooser, calls preflight helpers, always requests confirmation (information for clean summaries and warning for summaries with warnings), calls canvas export helpers, then writes PNG bytes through Tauri.
 
 ### 5.5 Invariants And Future-Change Rules
@@ -1955,6 +1965,12 @@ identity, recognized persistence format, selected path, clean baseline, and
 route while incrementing revision once. Save captures immutable `R` from this
 lifecycle-owned current project. After commit, it adopts `R` as baseline without
 recapturing editor state, so an in-flight `R+1` remains current and dirty.
+The same committed-render boundary synchronizes exact Disc or Case
+Front/Back/Spine navigation into session-only `lastEditorRoute`; identical,
+stale-session, and wrong-kind requests are no-ops, and route changes never
+alter project revision or dirty comparison. Return Home retains that state;
+Resume projects it back into the React shell without reading or restoring a
+project.
 Production Open accepts content-recognized legacy JSON or package input. The
 package crate, recognizer, native decode command, raw decode port, and package
 staging entry own no active session: the lifecycle Open owner alone adopts the
@@ -2254,8 +2270,9 @@ Current tests cover broad helper and contract areas:
   are source-connected alongside package Save/Save As, legacy conversion,
   encoder/write composition, session format identity, and bounded binary I/O.
   New Disc, New Case, and Open use one dirty-aware replacement guard; Home
-  Resume, Close/termination guarding, and native Tauri workflow acceptance
-  remain unimplemented.
+  Return/Resume, exact session-only route retention, and shared lifecycle
+  feedback are source-connected. Close/termination guarding and native Tauri
+  workflow acceptance remain unimplemented.
 - DVD/Amaray and Blu-ray editors are future planned surfaces, not current working editors.
 
 ### 19.3 Areas For User Review

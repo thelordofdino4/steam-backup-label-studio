@@ -124,9 +124,12 @@ Key files:
 - `src/app/appProjectNewCommand.ts`
 - `src/app/appProjectNewEditorApply.ts`
 - `src/app/appProjectOpenCommand.ts`
-- `src/app/appProjectOpenFeedback.ts`
+- `src/app/appApplicationCommandFeedback.ts`
 - `src/app/appProjectReplacementGuard.ts`
 - `src/app/appProjectSaveCommand.ts`
+- `src/app/appWorkspaceNavigationCommand.ts`
+- `src/app/appWorkspaceNavigationApply.ts`
+- `src/app/appHomeResume.ts`
 - `src/components/project/ProjectReplacementDialog.tsx`
 - `src/components/project/useProjectReplacementPrompt.ts`
 - `vite.config.ts`
@@ -238,13 +241,15 @@ Source-of-truth state:
   immutable state store, registry/dispatcher, busy coordinator, exhaustive
   typed command-port boundary, operation/session ID boundary, and centralized
   state/busy/termination/owner-aware capability projection. A committed-render
-  dependency ref keeps the root stable while New/Open/Save/guard adapters
-  change. `project.new-disc`, `project.new-case`, `project.open`, `project.save`,
-  and `project.save-as` have production command owners; the other lifecycle
-  ports remain explicitly disabled. After committed React updates, a focused
-  adapter synchronizes one complete normalized Disc or Case aggregate into the
-  active lifecycle session. Canonical equality is a state/revision/publication
-  no-op.
+  dependency ref keeps the root stable while New/Open/Save/guard/workspace
+  adapters change. `project.new-disc`, `project.new-case`, `project.open`,
+  `project.save`, `project.save-as`, `workspace.return-home`, and
+  `project.resume` have production command owners; Close/termination ports
+  remain explicitly disabled. After committed React updates, focused adapters
+  synchronize one complete normalized Disc or Case aggregate and the exact
+  session-only Disc or Case Front/Back/Spine route into the active lifecycle
+  session. Canonical content and identical route synchronization are no-ops;
+  route changes never change project revision or dirty state.
 - `src/applicationMenu/` now owns the immutable first-release presentation-ID
   catalog, semantic-target mapping, Windows/Linux/macOS descriptor projection,
   injected capability projection, a lifecycle-root capability consumption
@@ -283,6 +288,14 @@ Save/Open path:
   one pathless, baseline-less, dirty Disc or Case session. Guard authorization
   is bound to captured session ID/revision, so stale Discard or Save decisions
   cannot replace newer work.
+- Disc and Case Main Menu controls dispatch `workspace.return-home`, which
+  retains the exact lifecycle session without a replacement guard. Home renders
+  Resume only for that retained session, and `project.resume` restores its exact
+  editor route without reading or restoring project content.
+- Current lifecycle controls publish typed terminal command feedback through
+  one application adapter. The shared status owner enforces active
+  deduplication keys, editor toasts stay mounted at App scope, and Home mirrors
+  accepted messages through a live status surface.
 
 Export path:
 
@@ -592,8 +605,9 @@ Risks:
   baseline; future schema changes remain owned by `PROJECT_FILE_SPEC.md`.
 - Production `.sbls` Open/Save/Save As, content recognition, native
   read/decode and encode/write composition, legacy conversion, session format
-  adoption, and exact baseline integration are source-connected. Dirty-aware
-  replacement integration and native Tauri workflow acceptance remain absent.
+  adoption, exact baseline integration, dirty-aware replacement, Home
+  Return/Resume, exact route retention, and shared feedback are source-connected.
+  Native Tauri workflow acceptance remains absent.
 
 ## Templates and Workspace Types
 
@@ -1640,7 +1654,9 @@ Current `npm run test` covers these broad areas:
   implementation-aware capabilities, complete Disc/Case synchronization,
   canonical dirty derivation, lifecycle-owned Save adoption, shared replacement
   guard, New owners, two-phase Open staging, CAS, atomic editor application,
-  dependency freshness, and current New/Load-control routing; plus the runtime-disconnected application
+  exact session-only route synchronization, Return/Resume owners, shared
+  command feedback, dependency freshness, and current lifecycle-control
+  routing; plus the runtime-disconnected application
   menu descriptor, semantic-target, platform/capability projection, and
   in-memory port boundary.
 - The dormant binary project-file TypeScript port's raw-byte transport,
