@@ -80,6 +80,12 @@ export type SynchronizeProjectContentInput = Readonly<{
   project: SavedProject
 }>
 
+export type SynchronizeProjectRouteInput = Readonly<{
+  sessionId: ProjectSessionId
+  kind: EditorProjectType
+  route: ProjectSessionEditorRoute
+}>
+
 function defaultEditorRoute(kind: EditorProjectType): ProjectSessionEditorRoute {
   return kind === 'disc'
     ? Object.freeze({ workspace: 'disc' })
@@ -92,7 +98,13 @@ function captureEditorRoute(
 ): ProjectSessionEditorRoute {
   const captured = route ?? defaultEditorRoute(kind)
 
-  if (captured.workspace !== kind) {
+  if (
+    captured.workspace !== kind ||
+    (captured.workspace === 'caseInsert' &&
+      captured.surface !== 'front' &&
+      captured.surface !== 'back' &&
+      captured.surface !== 'spine')
+  ) {
     throw new Error(
       `Editor route ${captured.workspace} does not match project kind ${kind}.`,
     )
@@ -292,14 +304,44 @@ export function updateLastEditorRoute(
   route: ProjectSessionEditorRoute,
 ): ApplicationLifecycleState {
   const session = requireActiveSession(state)
+  const capturedRoute = captureEditorRoute(session.kind, route)
+  if (
+    capturedRoute.workspace === session.lastEditorRoute.workspace &&
+    (capturedRoute.workspace === 'disc' ||
+      (session.lastEditorRoute.workspace === 'caseInsert' &&
+        capturedRoute.surface === session.lastEditorRoute.surface))
+  ) {
+    return state
+  }
 
   return Object.freeze({
     ...state,
     activeSession: Object.freeze({
       ...session,
-      lastEditorRoute: captureEditorRoute(session.kind, route),
+      lastEditorRoute: capturedRoute,
     }),
   })
+}
+
+/**
+ * Synchronizes exact editor navigation without treating navigation as project
+ * content. Stale sessions and mismatched kinds are safe semantic no-ops.
+ */
+export function synchronizeActiveProjectRoute(
+  state: ApplicationLifecycleState,
+  input: SynchronizeProjectRouteInput,
+): ApplicationLifecycleState {
+  const session = state.activeSession
+  if (
+    !session ||
+    session.id !== input.sessionId ||
+    session.kind !== input.kind ||
+    input.route.workspace !== input.kind
+  ) {
+    return state
+  }
+
+  return updateLastEditorRoute(state, input.route)
 }
 
 export function returnProjectSessionHome(

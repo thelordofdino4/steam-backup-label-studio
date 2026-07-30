@@ -15,6 +15,7 @@ import {
   returnProjectSessionHome,
   selectIsActiveProjectDirty,
   synchronizeActiveProjectContent,
+  synchronizeActiveProjectRoute,
   updateLastEditorRoute,
 } from './projectSession.ts'
 
@@ -42,6 +43,65 @@ function createDiscProject(
     },
   }
 }
+
+test('exact session route synchronization is identity-preserving and never dirty', () => {
+  const project = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Route Case',
+    savedAt: '2026-07-30T12:00:00.000Z',
+  })
+  const loaded = createLoadedProjectSession({
+    sessionId: 'route-case',
+    currentPath: 'C:\\projects\\route-case.sbls',
+    persistenceFormat: 'sbls-package-v1',
+    project,
+    lastEditorRoute: { workspace: 'caseInsert', surface: 'front' },
+  })
+  const routed = synchronizeActiveProjectRoute(loaded, {
+    sessionId: 'route-case',
+    kind: 'caseInsert',
+    route: { workspace: 'caseInsert', surface: 'spine' },
+  })
+
+  assert.notEqual(routed, loaded)
+  assert.deepEqual(routed.activeSession?.lastEditorRoute, {
+    workspace: 'caseInsert',
+    surface: 'spine',
+  })
+  assert.equal(routed.activeSession?.revision, 0)
+  assert.equal(routed.activeSession?.project, loaded.activeSession?.project)
+  assert.equal(routed.activeSession?.cleanBaseline, loaded.activeSession?.cleanBaseline)
+  assert.equal(routed.activeSession?.currentPath, loaded.activeSession?.currentPath)
+  assert.equal(selectIsActiveProjectDirty(routed), false)
+  assert.equal(
+    JSON.stringify(routed.activeSession?.project).includes('"surface":"spine"'),
+    false,
+  )
+  assert.equal(synchronizeActiveProjectRoute(routed, {
+    sessionId: 'route-case',
+    kind: 'caseInsert',
+    route: { workspace: 'caseInsert', surface: 'spine' },
+  }), routed)
+  assert.equal(synchronizeActiveProjectRoute(routed, {
+    sessionId: 'retired-case',
+    kind: 'caseInsert',
+    route: { workspace: 'caseInsert', surface: 'back' },
+  }), routed)
+  assert.equal(synchronizeActiveProjectRoute(routed, {
+    sessionId: 'route-case',
+    kind: 'disc',
+    route: { workspace: 'disc' },
+  }), routed)
+
+  const home = returnProjectSessionHome(routed)
+  const resumed = resumeProjectSession(home)
+  assert.deepEqual(resumed.activeSession?.lastEditorRoute, {
+    workspace: 'caseInsert',
+    surface: 'spine',
+  })
+  assert.equal(resumed.visibleWorkspace, 'caseInsert')
+  assert.equal(resumed.activeSession?.revision, 0)
+  assert.equal(selectIsActiveProjectDirty(resumed), false)
+})
 
 test('empty, new, and loaded lifecycle states establish one-session invariants', () => {
   const empty = createEmptyApplicationLifecycleState()
@@ -102,8 +162,10 @@ test('project replacement advances revision while navigation preserves session i
   assert.equal(changed.activeSession?.currentPath, 'loaded.sbls.json')
   assert.equal(selectIsActiveProjectDirty(changed), true)
   assert.equal(home.visibleWorkspace, 'home')
+  assert.equal(home.activeSession, changed.activeSession)
   assert.equal(home.activeSession?.revision, 1)
   assert.equal(resumed.visibleWorkspace, 'disc')
+  assert.equal(resumed.activeSession, changed.activeSession)
   assert.equal(resumed.activeSession?.id, 'stable-session')
 })
 

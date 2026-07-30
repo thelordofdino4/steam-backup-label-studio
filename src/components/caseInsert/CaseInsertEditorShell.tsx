@@ -510,7 +510,9 @@ export function CaseInsertEditorShell({
         className="sidebar case-insert-sidebar"
         data-smoke-id="case-insert-sidebar"
       >
-        <h1>Steam Backup Label Studio</h1>
+        <h1 id="case-insert-editor-heading" tabIndex={-1}>
+          Steam Backup Label Studio
+        </h1>
         <p className="muted">{getCaseInsertSidebarStatusLabel(activeTemplatePane)}</p>
 
         <CaseInsertSurfaceTabs

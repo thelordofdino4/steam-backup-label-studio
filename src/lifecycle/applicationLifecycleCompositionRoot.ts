@@ -31,7 +31,9 @@ import {
 import type { SavedProject } from '../project/projectTypes.ts'
 import {
   synchronizeActiveProjectContent,
+  synchronizeActiveProjectRoute,
   type ApplicationLifecycleState,
+  type ProjectSessionEditorRoute,
   type ProjectSessionId,
 } from './projectSession.ts'
 import type { EditorProjectType } from '../editor/editorTypes.ts'
@@ -86,6 +88,11 @@ export interface ApplicationLifecycleCompositionRoot {
     sessionId: ProjectSessionId
     kind: EditorProjectType
     project: SavedProject
+  }>): 'synchronized' | 'no-op' | 'stale-session' | 'wrong-kind' | 'invalid'
+  synchronizeCurrentEditorRoute(input: Readonly<{
+    sessionId: ProjectSessionId
+    kind: EditorProjectType
+    route: ProjectSessionEditorRoute
   }>): 'synchronized' | 'no-op' | 'stale-session' | 'wrong-kind' | 'invalid'
   subscribe(subscriber: ApplicationLifecycleCompositionSubscriber): () => void
   listRegisteredCommandIds(): readonly ApplicationCommandId[]
@@ -272,6 +279,35 @@ export function createApplicationLifecycleCompositionRoot(
             ...input,
             project: project as unknown as SavedProject,
           }))
+      } catch {
+        return 'invalid'
+      }
+
+      if (result.status === 'committed') return 'synchronized'
+      if (result.status === 'no-op') return 'no-op'
+      return 'stale-session'
+    },
+    synchronizeCurrentEditorRoute(input: Readonly<{
+      sessionId: ProjectSessionId
+      kind: EditorProjectType
+      route: ProjectSessionEditorRoute
+    }>) {
+      if (disposed) return 'invalid'
+
+      const snapshot = stateStore.getSnapshot()
+      const session = snapshot.state.activeSession
+      if (!session || session.id !== input.sessionId) return 'stale-session'
+      if (
+        session.kind !== input.kind ||
+        input.route.workspace !== input.kind
+      ) {
+        return 'wrong-kind'
+      }
+
+      let result
+      try {
+        result = stateStore.commitTransition(snapshot.generation, (state) =>
+          synchronizeActiveProjectRoute(state, input))
       } catch {
         return 'invalid'
       }

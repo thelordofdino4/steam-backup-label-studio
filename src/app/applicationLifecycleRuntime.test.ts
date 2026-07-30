@@ -20,6 +20,7 @@ function fakeRoot(onDispose: () => void): ApplicationLifecycleCompositionRoot {
     getSnapshot: () => ({} as never),
     dispatch: async () => ({ disposition: 'not-executed', reason: 'unknown-command' }),
     synchronizeCurrentProject: () => 'no-op',
+    synchronizeCurrentEditorRoute: () => 'no-op',
     subscribe: () => () => {},
     listRegisteredCommandIds: () => [],
     dispose: onDispose,
@@ -57,6 +58,8 @@ test('one application runtime creates one root, dependency updates reuse it, and
   assert.equal(capturedOptions?.ports?.openProject?.availability, 'implemented')
   assert.equal(capturedOptions?.ports?.newDisc?.availability, 'implemented')
   assert.equal(capturedOptions?.ports?.newCase?.availability, 'implemented')
+  assert.equal(capturedOptions?.ports?.returnHome?.availability, 'implemented')
+  assert.equal(capturedOptions?.ports?.resumeProject?.availability, 'implemented')
   runtime.dispose()
   runtime.dispose()
   assert.equal(disposeCount, 1)

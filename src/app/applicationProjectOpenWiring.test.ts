@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
-test('production mounts one lifecycle runtime and every current New/Load surface shares semantic dispatch handlers', async () => {
+test('production mounts one lifecycle runtime and current lifecycle surfaces share semantic dispatch and feedback', async () => {
   const [mainSource, appSource, homeSource, discSource, caseSource] =
     await Promise.all([
       readFile('src/main.tsx', 'utf8'),
@@ -19,7 +19,8 @@ test('production mounts one lifecycle runtime and every current New/Load surface
   assert.match(mainSource, /ApplicationLifecycleBoundary runtime=/)
   assert.equal(mainSource.includes('createApplicationLifecycleCompositionRoot'), false)
   assert.equal(
-    (appSource.match(/dispatch\('project\.open'\)/g) ?? []).length,
+    (appSource.match(/applicationLifecycleRoot\.dispatch\(commandId\)/g) ?? [])
+      .length,
     1,
   )
   assert.equal(appSource.includes('runAppProjectLoad'), false)
@@ -37,14 +38,30 @@ test('production mounts one lifecycle runtime and every current New/Load surface
     2,
   )
   assert.equal(appSource.includes('pendingNewProjectSession'), false)
+  assert.equal(appSource.includes('getProjectOpenCompatibilityFeedback'), false)
+  assert.match(appSource, /dispatchApplicationCommand\('project\.open'\)/)
+  assert.match(
+    appSource,
+    /dispatchApplicationCommand\('workspace\.return-home'\)/,
+  )
+  assert.match(appSource, /dispatchApplicationCommand\('project\.resume'\)/)
+  assert.match(appSource, /publishApplicationCommandFeedback\(result,/)
+  assert.match(appSource, /synchronizeCurrentEditorRoute\(/)
+  assert.match(appSource, /getElementById\('home-resume-project'\)/)
+  assert.match(appSource, /id="disc-editor-heading" tabIndex=\{-1\}/)
+  assert.equal(appSource.includes('Return to the main menu?'), false)
   assert.match(homeSource, /onClick=\{onLoadProject\}/)
   assert.match(homeSource, /onClick=\{onNewDisc\}/)
   assert.match(homeSource, /onClick=\{onNewCaseInsert\}/)
+  assert.match(homeSource, /onClick=\{onResumeProject\}/)
+  assert.match(homeSource, /id="home-title" tabIndex=\{-1\}/)
+  assert.match(homeSource, /role="status"/)
   assert.match(discSource, /onClick=\{handleLoadProject\}/)
   assert.match(discSource, /onClick=\{handleNewProject\}/)
   assert.match(discSource, /onClick=\{handleNewCaseInsert\}/)
   assert.match(caseSource, /onClick=\{onLoadProject\}/)
   assert.match(caseSource, /onClick=\{onNewDisc\}/)
   assert.match(caseSource, /onClick=\{onNewCaseInsert\}/)
+  assert.match(caseSource, /id="case-insert-editor-heading" tabIndex=\{-1\}/)
   assert.equal(appSource.includes("dispatch('menu."), false)
 })

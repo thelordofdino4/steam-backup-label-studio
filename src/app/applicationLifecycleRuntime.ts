@@ -19,6 +19,10 @@ import {
   createApplicationProjectNewCommandOwners,
   type ApplicationProjectNewRuntimeDependencies,
 } from './appProjectNewCommand.ts'
+import {
+  createApplicationWorkspaceNavigationCommandOwners,
+  type ApplicationWorkspaceNavigationRuntimeDependencies,
+} from './appWorkspaceNavigationCommand.ts'
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
@@ -33,6 +37,9 @@ export type ApplicationLifecycleRuntime = Readonly<{
   ): void
   updateProjectNewDependencies(
     dependencies: ApplicationProjectNewRuntimeDependencies,
+  ): void
+  updateWorkspaceNavigationDependencies(
+    dependencies: ApplicationWorkspaceNavigationRuntimeDependencies,
   ): void
   dispose(): void
 }>
@@ -57,6 +64,8 @@ export function createApplicationLifecycleRuntime(
   let projectReplacementDependencies:
     ApplicationProjectReplacementRuntimeDependencies | null = null
   let projectNewDependencies: ApplicationProjectNewRuntimeDependencies | null = null
+  let workspaceNavigationDependencies:
+    ApplicationWorkspaceNavigationRuntimeDependencies | null = null
   let disposed = false
   const createRoot = options.createRoot ??
     createApplicationLifecycleCompositionRoot
@@ -71,6 +80,10 @@ export function createApplicationLifecycleRuntime(
     () => projectNewDependencies,
     replacementGuard,
   )
+  const workspaceNavigationOwners =
+    createApplicationWorkspaceNavigationCommandOwners(
+      () => workspaceNavigationDependencies,
+    )
   const root = createRoot({
     ports: {
       newDisc: newOwners.newDisc,
@@ -81,6 +94,8 @@ export function createApplicationLifecycleRuntime(
       ),
       saveProject: saveOwners.saveProject,
       saveProjectAs: saveOwners.saveProjectAs,
+      returnHome: workspaceNavigationOwners.returnHome,
+      resumeProject: workspaceNavigationOwners.resumeProject,
     },
   })
 
@@ -110,6 +125,12 @@ export function createApplicationLifecycleRuntime(
       }
       projectNewDependencies = dependencies
     },
+    updateWorkspaceNavigationDependencies(dependencies) {
+      if (disposed) {
+        throw new Error('The application lifecycle runtime is disposed.')
+      }
+      workspaceNavigationDependencies = dependencies
+    },
     dispose() {
       if (disposed) return
       disposed = true
@@ -117,6 +138,7 @@ export function createApplicationLifecycleRuntime(
       projectSaveDependencies = null
       projectReplacementDependencies = null
       projectNewDependencies = null
+      workspaceNavigationDependencies = null
       root.dispose()
     },
   })
