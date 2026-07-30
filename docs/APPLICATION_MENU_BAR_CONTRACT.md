@@ -8,15 +8,19 @@
 > Focused package/save-load facts reviewed against `main` at `a104825583a1cc03e145a9e460e9abccf4483bf7` on 2026-07-27; this does not re-baseline unrelated menu evidence.
 > Focused lifecycle/navigation facts reviewed after PR #328 merged at `5e320e8b620bf8184db3e5723d0d26f034195c6e`; the subsequent #298/#309 source checkpoint is recorded without claiming native-menu implementation.
 > Focused lifecycle checkpoint: PR #327 merged at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172`; the later current-project synchronization, shared New/Open replacement guard, Home Return/Resume, exact route retention, and shared feedback boundary are recorded below without claiming native-menu implementation.
+> Focused native-runtime checkpoint: current worktree on 2026-07-30 implements descriptor-driven native construction, conservative state projection, a typed activation bridge, and bridge-scoped teardown without semantic command wiring.
 
 ## 1. Status, scope, and authority
 
-**TARGET REQUIREMENT —** This is a draft target-state normative contract. Its
-requirements finalize the application menu design that later implementation
-must satisfy. The lifecycle dispatcher/capability foundation and pure
-menu-descriptor/capability-projection model exist, but no native menu, menu
-event bridge, rich workflow host, application history, or Help surface is
-implemented at the evidence baseline.
+**CURRENT FACT —** This remains a draft target-state normative contract. The
+lifecycle dispatcher/capability foundation, pure descriptor/projection model,
+and first native runtime adapter now exist. The native adapter constructs the
+platform hierarchy from the TypeScript-owned descriptor, installs every item
+disabled and unchecked, applies validated generation-ordered enabled, checked,
+and dynamic-label presentation state, and forwards typed activations to a
+non-dispatching frontend ingress. Semantic menu command
+wiring, rich workflow hosts, application history, and Help surfaces remain
+unimplemented.
 
 **TARGET REQUIREMENT —** This contract owns:
 
@@ -119,11 +123,11 @@ verification performed against the evidence baseline.
 
 | Claim | Concern | Verified current state | Required target state |
 | --- | --- | --- | --- |
-| CURRENT FACT / TARGET REQUIREMENT | Native application menu | `src-tauri/src/lib.rs` registers plugins and commands but constructs no `tauri::menu` objects and registers no menu-event handler. | Rust constructs the native hierarchy and owns only presentation/native-window adaptation. |
+| CURRENT FACT / TARGET REQUIREMENT | Native application menu | `src-tauri/src/application_menu.rs` constructs the native hierarchy from the TypeScript-owned platform descriptor, retains checkable native item handles, applies enabled/checked/label presentation state, and registers one process-level menu-event handler. All first-slice items remain conservatively disabled and unchecked. | Rust continues to own only presentation/native-window adaptation. |
 | CURRENT FACT / TARGET REQUIREMENT | Custom React application menu | No React menubar, `role="menubar"`, or application-menu component exists. Home “menu cards” are ordinary buttons, not an application menu. | No production React imitation is introduced; the native menu is the default target. |
-| CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | Source imports Tauri core invoke and dialog APIs, but no menu/event/window API and no native-to-frontend menu bridge. | One typed bridge carries stable item invocations and receives capability projections. |
+| CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | One bridge-instance-scoped adapter listens before installation, validates window/bridge/item/invocation identity, rejects duplicate invocations, and forwards typed native envelopes to a frontend ingress. That ingress deliberately does not dispatch semantic commands in this slice. | Later command wiring consumes the same ingress without adding a second native registry or callback path. |
 | CURRENT FACT / TARGET REQUIREMENT | Command registry/dispatcher | One application lifecycle root owns a typed registry/dispatcher. Home and current Project File lifecycle controls dispatch `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `workspace.return-home`, or `project.resume` through one feedback adapter; other workflows are not yet unified. | Menu, Home, sidebar compatibility adapters, buttons, shortcuts, and native close events share the lifecycle/domain dispatcher. |
-| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | Lifecycle commands have centralized state/busy/owner-aware capabilities, and the disconnected pure menu model can consume them. Export, workflow launchers, focused edit, window, and Help capabilities are not yet one application-wide runtime projection. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
+| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | The runtime projects current lifecycle/window state through the pure model, but an explicit `application-menu.semantic-routing-unavailable` boundary keeps routed items disabled; other unavailable owners retain their own reasons. Export, workflow launcher, focused-edit, window-action, and Help execution capabilities remain unwired. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
 | CURRENT FACT / TARGET REQUIREMENT | Home | `HomeScreen.tsx` exposes Resume only when one lifecycle session is retained on Home, plus Open, New Disc, and New Case Insert. Its Resume copy projects kind, display name, dirty/clean state, and exact route from the session; its live status surface receives shared command feedback. | Future File items dispatch these same commands and consume the same capabilities; the native menu must not copy Home callbacks. |
 | CURRENT FACT / TARGET REQUIREMENT | Disc Project File | `ProjectPanel.tsx` exposes Main Menu, New Disc, Save Project, Load Project, Export PNG, and New Case Insert. | Those application-level actions move to File; the panel remains until replacement parity is proven. |
 | CURRENT FACT / TARGET REQUIREMENT | Case Project File | `CaseInsertEditorShell.tsx` duplicates Main Menu, New Case Insert, New Disc, Save, Load, and Export PNG. | The same File adapters serve Disc and Case; no Case-only command copies remain. |
@@ -377,33 +381,33 @@ accelerator.
 
 | Claim | Presentation item ID | Visible label | Parent/order | Group | Semantic class | Exact semantic target | Windows/Linux accelerator | macOS accelerator | Platform placement | Current implementation status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TARGET REQUIREMENT | `menu.file.new-disc` | New Disc Project | File 10 | file-create | Direct command | `project.new-disc` | Ctrl+N | Command+N | File all platforms | Semantic command owner implemented; native menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.file.new-case` | New Case Project | File 20 | file-create | Direct command | `project.new-case` | Ctrl+Shift+N | Command+Shift+N | File all platforms | Semantic command owner implemented; native menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.file.open` | Open Project… | File 30 | file-create | Direct command | `project.open` | Ctrl+O | Command+O | File all platforms | Semantic command owner implemented; native menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.file.save` | Save | File 50 | file-save | Direct command | `project.save` | Ctrl+S | Command+S | File all platforms | Semantic command owner implemented; native menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.file.save-as` | Save As… | File 60 | file-save | Direct command | `project.save-as` | Ctrl+Shift+S | Command+Shift+S | File all platforms | Semantic command owner implemented; native menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.file.export-png` | Export PNG… | File 80 | file-export | Workflow command execution | `export.png` | Ctrl+E | Command+E | File all platforms | Current callback exists; target workflow/bridge not implemented |
-| TARGET REQUIREMENT | `menu.file.return-home` | Return Home | File 100 | file-session | Direct command | `workspace.return-home` | — | — | File all platforms | Semantic command owner implemented; native menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.file.resume-project` | Resume Project | File 110 | file-session | Direct command | `project.resume` | — | — | File all platforms | Semantic command owner and Home adapter implemented; native menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.file.close-project` | Close Project | File 120 | file-session | Direct command | `project.close` | — | — | File all platforms | Not implemented |
-| TARGET REQUIREMENT | `menu.file.close-window` | Close Window | File 140 | file-termination | Guarded application command | `application.close-window` | Ctrl+W | Command+W | File all platforms | Native interception/command not implemented |
-| TARGET REQUIREMENT | `menu.file.quit` | Quit Steam Backup Label Studio | File 150 | file-termination | Guarded application command | `application.quit` | Ctrl+Q | Command+Q | File on Windows/Linux; macOS application menu | Native interception/command not implemented |
-| TARGET REQUIREMENT | `menu.edit.undo` | Undo | Edit 10 | edit-history | Focused-edit role; future history fallback | `focused-edit.undo`; future `history.undo` | Ctrl+Z | Command+Z | Edit all platforms | Browser text behavior exists; menu router/app history not implemented |
-| TARGET REQUIREMENT | `menu.edit.redo` | Redo | Edit 20 | edit-history | Focused-edit role; future history fallback | `focused-edit.redo`; future `history.redo` | Ctrl+Y | Command+Shift+Z | Edit all platforms | Browser text behavior exists; menu router/app history not implemented |
-| TARGET REQUIREMENT | `menu.edit.cut` | Cut | Edit 40 | edit-transfer | Focused-edit role | `focused-edit.cut` | Ctrl+X | Command+X | Edit all platforms | Native/browser behavior exists only through focused controls; menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.edit.copy` | Copy | Edit 50 | edit-transfer | Focused-edit role | `focused-edit.copy` | Ctrl+C | Command+C | Edit all platforms | Same |
-| TARGET REQUIREMENT | `menu.edit.paste` | Paste | Edit 60 | edit-transfer | Focused-edit role | `focused-edit.paste` | Ctrl+V | Command+V | Edit all platforms | Same |
-| TARGET REQUIREMENT | `menu.edit.select-all` | Select All | Edit 70 | edit-transfer | Focused-edit role | `focused-edit.select-all` | Ctrl+A | Command+A | Edit all platforms | Same |
-| TARGET REQUIREMENT | `menu.tools.game` | Game… | Tools 10 | tools-game | Rich workflow launcher | `area.game` / `owner.game.search` / `control.game.query` | — | — | Tools all platforms | Current sidebar exists; target workflow/host not implemented |
-| TARGET REQUIREMENT | `menu.tools.disc-template` | Disc Template… | Tools 30 | tools-disc | Rich workflow launcher | `area.template.disc` / `owner.disc-template` / `control.disc-template.selector` | — | — | Tools all platforms | Current immediate sidebar adapter exists; target workflow/host not implemented |
-| TARGET REQUIREMENT | `menu.tools.disc-layout-presets` | Disc Layout Presets… | Tools 40 | tools-disc | Rich workflow launcher | `area.layout-presets.disc` / `owner.disc-layout-presets` / `control.disc-layout-presets.selector` | — | — | Tools all platforms | Current sidebar exists; target workflow/host not implemented |
-| TARGET REQUIREMENT | `menu.tools.export-options` | Export Options… | Tools 60 | tools-export | Rich workflow launcher | Disc: `area.export` / `owner.export.disc-guides` / `control.export.disc.center-hole`; Case Cover: `owner.export.case-guides` / `control.export.case.cover-trim`; Case Tray/Back/Spine: same owner / `control.export.case.tray-trim` | — | — | Tools all platforms | Current Disc/Case sidebar controls exist; target host not implemented |
-| TARGET REQUIREMENT | `menu.window.minimize` | Minimize | Window 10 | window-size | Native-window operation | `native.window.minimize` | — | Command+M | Window all platforms | Tauri window supports operation; menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.window.toggle-maximize` | Maximize or Restore; Zoom on macOS | Window 20 | window-size | Native-window operation | `native.window.toggle-maximize` | — | — | Window all platforms | Tauri window supports operation; menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.window.toggle-fullscreen` | Enter Full Screen or Exit Full Screen | Window 40 | window-fullscreen | Native-window operation | `native.window.toggle-fullscreen` | F11 | Control+Command+F | Window all platforms | Tauri window supports operation; menu adapter not implemented |
-| TARGET REQUIREMENT | `menu.help.documentation` | Steam Backup Label Studio Help | Help 10 | help-primary | Informational operation | `help.open-documentation` | — | — | Help all platforms | Semantic target defined; packaged Help surface not implemented |
+| TARGET REQUIREMENT | `menu.file.new-disc` | New Disc Project | File 10 | file-create | Direct command | `project.new-disc` | Ctrl+N | Command+N | File all platforms | Native item present but disabled; semantic owner implemented; menu dispatch not wired |
+| TARGET REQUIREMENT | `menu.file.new-case` | New Case Project | File 20 | file-create | Direct command | `project.new-case` | Ctrl+Shift+N | Command+Shift+N | File all platforms | Native item present but disabled; semantic owner implemented; menu dispatch not wired |
+| TARGET REQUIREMENT | `menu.file.open` | Open Project… | File 30 | file-create | Direct command | `project.open` | Ctrl+O | Command+O | File all platforms | Native item present but disabled; semantic owner implemented; menu dispatch not wired |
+| TARGET REQUIREMENT | `menu.file.save` | Save | File 50 | file-save | Direct command | `project.save` | Ctrl+S | Command+S | File all platforms | Native item present but disabled; semantic owner implemented; menu dispatch not wired |
+| TARGET REQUIREMENT | `menu.file.save-as` | Save As… | File 60 | file-save | Direct command | `project.save-as` | Ctrl+Shift+S | Command+Shift+S | File all platforms | Native item present but disabled; semantic owner implemented; menu dispatch not wired |
+| TARGET REQUIREMENT | `menu.file.export-png` | Export PNG… | File 80 | file-export | Workflow command execution | `export.png` | Ctrl+E | Command+E | File all platforms | Native item present but disabled; current callback exists; #302-conforming command owner not implemented |
+| TARGET REQUIREMENT | `menu.file.return-home` | Return Home | File 100 | file-session | Direct command | `workspace.return-home` | — | — | File all platforms | Native item present but disabled; semantic owner implemented; menu dispatch not wired |
+| TARGET REQUIREMENT | `menu.file.resume-project` | Resume Project | File 110 | file-session | Direct command | `project.resume` | — | — | File all platforms | Native item present but disabled; semantic owner and Home adapter implemented; menu dispatch not wired |
+| TARGET REQUIREMENT | `menu.file.close-project` | Close Project | File 120 | file-session | Direct command | `project.close` | — | — | File all platforms | Native item present but disabled; semantic owner not implemented |
+| TARGET REQUIREMENT | `menu.file.close-window` | Close Window | File 140 | file-termination | Guarded application command | `application.close-window` | Ctrl+W | Command+W | File all platforms | Native item present but disabled; interception/semantic owner not implemented |
+| TARGET REQUIREMENT | `menu.file.quit` | Quit Steam Backup Label Studio | File 150 | file-termination | Guarded application command | `application.quit` | Ctrl+Q | Command+Q | File on Windows/Linux; macOS application menu | Native item present but disabled; interception/semantic owner not implemented |
+| TARGET REQUIREMENT | `menu.edit.undo` | Undo | Edit 10 | edit-history | Focused-edit role; future history fallback | `focused-edit.undo`; future `history.undo` | Ctrl+Z | Command+Z | Edit all platforms | Native item present but disabled; focused-edit routing/application history not implemented |
+| TARGET REQUIREMENT | `menu.edit.redo` | Redo | Edit 20 | edit-history | Focused-edit role; future history fallback | `focused-edit.redo`; future `history.redo` | Ctrl+Y | Command+Shift+Z | Edit all platforms | Native item present but disabled; focused-edit routing/application history not implemented |
+| TARGET REQUIREMENT | `menu.edit.cut` | Cut | Edit 40 | edit-transfer | Focused-edit role | `focused-edit.cut` | Ctrl+X | Command+X | Edit all platforms | Native item present but disabled; focused-edit routing not implemented |
+| TARGET REQUIREMENT | `menu.edit.copy` | Copy | Edit 50 | edit-transfer | Focused-edit role | `focused-edit.copy` | Ctrl+C | Command+C | Edit all platforms | Native item present but disabled; focused-edit routing not implemented |
+| TARGET REQUIREMENT | `menu.edit.paste` | Paste | Edit 60 | edit-transfer | Focused-edit role | `focused-edit.paste` | Ctrl+V | Command+V | Edit all platforms | Native item present but disabled; focused-edit routing not implemented |
+| TARGET REQUIREMENT | `menu.edit.select-all` | Select All | Edit 70 | edit-transfer | Focused-edit role | `focused-edit.select-all` | Ctrl+A | Command+A | Edit all platforms | Native item present but disabled; focused-edit routing not implemented |
+| TARGET REQUIREMENT | `menu.tools.game` | Game… | Tools 10 | tools-game | Rich workflow launcher | `area.game` / `owner.game.search` / `control.game.query` | — | — | Tools all platforms | Native item present but disabled; current sidebar exists; target workflow host not implemented |
+| TARGET REQUIREMENT | `menu.tools.disc-template` | Disc Template… | Tools 30 | tools-disc | Rich workflow launcher | `area.template.disc` / `owner.disc-template` / `control.disc-template.selector` | — | — | Tools all platforms | Native item present but disabled; current sidebar exists; target workflow host not implemented |
+| TARGET REQUIREMENT | `menu.tools.disc-layout-presets` | Disc Layout Presets… | Tools 40 | tools-disc | Rich workflow launcher | `area.layout-presets.disc` / `owner.disc-layout-presets` / `control.disc-layout-presets.selector` | — | — | Tools all platforms | Native item present but disabled; current sidebar exists; target workflow host not implemented |
+| TARGET REQUIREMENT | `menu.tools.export-options` | Export Options… | Tools 60 | tools-export | Rich workflow launcher | Disc: `area.export` / `owner.export.disc-guides` / `control.export.disc.center-hole`; Case Cover: `owner.export.case-guides` / `control.export.case.cover-trim`; Case Tray/Back/Spine: same owner / `control.export.case.tray-trim` | — | — | Tools all platforms | Native item present but disabled; current sidebar controls exist; target workflow host not implemented |
+| TARGET REQUIREMENT | `menu.window.minimize` | Minimize | Window 10 | window-size | Native-window operation | `native.window.minimize` | — | Command+M | Window all platforms | Native item present but disabled; window action not wired |
+| TARGET REQUIREMENT | `menu.window.toggle-maximize` | Maximize or Restore; Zoom on macOS | Window 20 | window-size | Native-window operation | `native.window.toggle-maximize` | — | — | Window all platforms | Native dynamic label present but disabled; window action not wired |
+| TARGET REQUIREMENT | `menu.window.toggle-fullscreen` | Enter Full Screen or Exit Full Screen | Window 40 | window-fullscreen | Native-window operation | `native.window.toggle-fullscreen` | F11 | Control+Command+F | Window all platforms | Native dynamic label present but disabled; window action not wired |
+| TARGET REQUIREMENT | `menu.help.documentation` | Steam Backup Label Studio Help | Help 10 | help-primary | Informational operation | `help.open-documentation` | — | — | Help all platforms | Native item present but disabled; packaged Help surface not implemented |
 | FUTURE EXTENSION | `menu.help.report-issue` | Report an Issue | Help 20 | help-primary | Informational operation | `help.report-issue` | — | — | Omitted on all platforms until a trusted configured target exists | Cargo repository/support target is empty; do not enable or invent a URL |
-| TARGET REQUIREMENT | `menu.help.about` | About Steam Backup Label Studio | Help 40 | help-about | Informational/native About operation | `help.show-about` | — | — | Help on Windows/Linux; macOS application menu | Target defined; About surface not implemented |
+| TARGET REQUIREMENT | `menu.help.about` | About Steam Backup Label Studio | Help 40 | help-about | Informational/native About operation | `help.show-about` | — | — | Help on Windows/Linux; macOS application menu | Native item present but disabled; About surface not implemented |
 
 ### Menu-item registry: capability, state, feedback, and focus
 
@@ -908,10 +912,11 @@ later step must not bypass an incomplete earlier semantic owner.
    evidence does not substitute for native Tauri and assistive-technology
    acceptance.
 5. Retain the implemented pure menu descriptor model, exhaustive item mapping,
-   capability-projection model, and in-memory port; they remain disconnected
-   from native construction and runtime dispatch.
-6. Implement native Tauri construction, state application, event bridge,
-   teardown, platform placements, and guarded native close routing.
+   capability-projection model, and in-memory port.
+6. Retain the implemented native Tauri construction, presentation-state
+   application, typed event bridge, bridge-scoped teardown, platform placement,
+   and conservative disabled-until-routed boundary. Semantic dispatch and
+   guarded native close routing remain later work.
 7. Wire File commands, including #302-conforming `export.png`, through the
    shared dispatcher and validate Home/Disc/Case/pathless/dirty outcomes.
 8. Implement the shared accessible workflow host and Tools launchers, then
@@ -925,11 +930,12 @@ later step must not bypass an incomplete earlier semantic owner.
 12. Run focused automated coverage and real native Tauri acceptance on supported
     platforms before claiming the menu implemented.
 
-**TARGET REQUIREMENT —** The smallest safe next implementation slice is step 6:
-construct the native Tauri menu and its one typed event bridge while retaining
-the disconnected pure descriptor/projection model as the presentation source.
-This can proceed without sidebar removal; File or Tools wiring still waits for
-the corresponding semantic owners and migration gates.
+**TARGET REQUIREMENT —** The smallest safe next implementation slice is File
+command routing for the already-implemented lifecycle owners through the typed
+ingress, with dispatch-time capability rechecks and shared feedback. Export PNG
+must remain disabled until issue #302 supplies its conforming command owner;
+Close Project, Close Window, and Quit remain disabled until their guarded
+owners exist. This proceeds without sidebar removal.
 
 ## 14. Issue mapping, migration boundaries, non-goals, and evidence index
 
@@ -997,14 +1003,14 @@ current functionality.
 
 | Claim | Area | Classification | Consequence for menu work |
 | --- | --- | --- | --- |
-| CURRENT FACT | Tauri 2.11 desktop shell, one window, dialog/file invoke ports | Implemented dependency | Native text menu APIs are available, but no menu is constructed. |
+| CURRENT FACT | Tauri 2.11 desktop shell, one window, dialog/file invoke ports, native menu adapter | Implemented dependency/runtime slice | The TypeScript descriptor drives native construction and generation-ordered presentation state; semantic actions remain disabled. |
 | CURRENT FACT | Home New/Load, Disc/Case Project buttons, Export Options, Game, Disc Template, Disc presets | Implemented compatibility presentations | Preserve until replacement adapters pass parity gates. |
 | CURRENT FACT | Contextual ribbon, preview viewport, Design Check, Guide Legend | Implemented separate systems | Do not relocate or redefine. |
 | CURRENT FACT / TARGET REQUIREMENT | Session aggregate, dispatcher, capabilities, dirty/baseline, Save/Save As, Return Home/Resume | Implemented dependency | File menu behavior may consume these semantic owners; Close Project and guarded close/Quit remain unimplemented under #308. |
 | CURRENT FACT / TARGET REQUIREMENT | Atomic byte writer plus package-safe binary project adapters | Primitive implemented; adapters required | Reuse the merged #312 writer and add bounded binary read/structured atomic binary write before package-aware target Save is accepted. |
 | CURRENT FACT / TARGET REQUIREMENT | Shared result/feedback/focus and modal/shortcut prerequisites | Feedback, Home/editor navigation focus, preview-Space ownership, and shared image-candidate-picker focus lifecycle implemented | #298/#309 focused source prerequisites are present. Native/assistive-technology acceptance and any broader modal or global-shortcut owner remain separate. |
 | TARGET REQUIREMENT | Export, Game, geometry, preset target workflows | Required dependency for full migration | Menu launchers consume them; they do not make them exist. |
-| CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection and native bridge/workflow host | Pure descriptor/projection implemented; native/host work required | The in-memory-tested model is runtime-disconnected. Native construction, event bridge, and workflow host are not implemented. |
+| CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection, native bridge, and workflow host | Descriptor/projection and native runtime bridge implemented; semantic routing/host work required | Native construction, projection, typed ingress, and teardown are connected; the workflow host and command routing are not implemented. |
 | TARGET REQUIREMENT | Help and About informational owners | Menu implementation work | IDs and sources are decided here; surfaces remain unimplemented. |
 | FUTURE EXTENSION | Application project Undo/Redo | Future owner | Edit placement reserved; history binding omitted until designed/implemented. |
 | FUTURE EXTENSION | Report an Issue | Future configured resource | Item omitted until trusted target and external-navigation policy exist. |
@@ -1070,6 +1076,6 @@ current sources rather than a new broad architecture audit.
 | CURRENT FACT / TARGET REQUIREMENT | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md) | Current schema authority and no menu-state persistence |
 | CURRENT FACT | `src/app/App.tsx`, `src/components/home/HomeScreen.tsx`, `src/components/sidebar/ProjectPanel.tsx`, `ExportOptionsPanel.tsx`, `GamePanel.tsx`, `TemplatePanel.tsx`, `DiscLayoutPresetsPanel.tsx`, and `src/components/caseInsert/CaseInsertEditorShell.tsx` | Current Home/shell/sidebar adapters and direct callbacks |
 | CURRENT FACT | `src/components/preview/PreviewHeader.tsx`, `ContextualTextRibbonBridge.tsx`, `DiscPreview.tsx`, `CaseInsertPreview.tsx`, `PreviewViewport.tsx`, and `PreviewGuideLegendPanel.tsx` | Separate ribbon and preview-local ownership |
-| CURRENT FACT | `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/src/main.rs`, and `src-tauri/src/lib.rs` | Installed Tauri line, one-window config, version source, and absence of menu/bridge |
+| CURRENT FACT | `src/applicationMenu/applicationMenuRuntime.ts`, `nativeApplicationMenuTransport.ts`, `nativeApplicationMenuPort.ts`, `src/app/ApplicationMenuBoundary.tsx`, `src/main.tsx`, `src-tauri/src/application_menu.rs`, and `src-tauri/src/lib.rs` | Descriptor-driven native construction, conservative projection, typed event envelope/ingress, exact-window attachment, generation safety, and teardown without semantic dispatch |
 | CURRENT FACT | [Official Tauri v2 Window Menu guide](https://v2.tauri.app/learn/window-menu/), [`tauri::menu`](https://docs.rs/tauri/latest/tauri/menu/), [`PredefinedMenuItem`](https://docs.rs/tauri/latest/tauri/menu/struct.PredefinedMenuItem.html), and [`tauri::window::Window`](https://docs.rs/tauri/latest/tauri/window/struct.Window.html) | Native construction/events/state, platform role limits, and true window operations |
 | CURRENT FACT | GitHub issues in the issue matrix, read-only review on 2026-07-26 | Dependencies, adjacent ownership, and confirmation that no exact Application Menu Bar issue exists |

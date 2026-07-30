@@ -279,7 +279,7 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
-The frontend contains a runtime-connected lifecycle foundation and a still-disconnected application-menu foundation. `src/main.tsx` constructs one application lifecycle runtime outside React Strict Mode; `ApplicationLifecycleBoundary` owns its one disposal, while a dependency-ref hook updates committed React adapters without recreating the root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, an in-memory test port, and a narrow lifecycle-capability consumption helper. No React or native Tauri menu consumes the menu model yet, and no menu command is executable through it.
+The frontend contains runtime-connected lifecycle and native application-menu presentation foundations. `src/main.tsx` constructs one application lifecycle runtime and one menu runtime outside React Strict Mode; their focused boundaries own idempotent disposal, while a dependency-ref hook updates committed React lifecycle adapters without recreating the root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, native transport validation, frontend ingress, and runtime lifecycle. Rust constructs the native hierarchy from that descriptor, applies bridge/window/item-set/generation-validated state, and forwards typed activation envelopes. The runtime deliberately projects an unavailable semantic-routing boundary, so all menu actions remain disabled and no menu command is executable in this slice. No custom React menubar exists.
 
 ### 5.2 Key Files
 
@@ -287,6 +287,7 @@ The frontend contains a runtime-connected lifecycle foundation and a still-disco
 - `src/main.tsx`
 - `src/app/App.tsx`
 - `src/app/ApplicationLifecycleBoundary.tsx`
+- `src/app/ApplicationMenuBoundary.tsx`
 - `src/app/applicationLifecycleRuntime.ts`
 - `src/app/applicationLifecycleRuntimeContext.ts`
 - `src/app/useApplicationLifecycleRoot.ts`
@@ -325,10 +326,14 @@ The frontend contains a runtime-connected lifecycle foundation and a still-disco
 - `src/applicationMenu/applicationMenuProjection.ts`
 - `src/applicationMenu/applicationMenuLifecycleCapabilities.ts`
 - `src/applicationMenu/inMemoryApplicationMenuPort.ts`
+- `src/applicationMenu/nativeApplicationMenuTransport.ts`
+- `src/applicationMenu/nativeApplicationMenuPort.ts`
+- `src/applicationMenu/applicationMenuRuntime.ts`
 - `src/editor/editorTypes.ts`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/src/main.rs`
 - `src-tauri/src/lib.rs`
+- `src-tauri/src/application_menu.rs`
 - `src-tauri/src/commands/files.rs`
 - `src-tauri/src/project_file.rs`
 - `src-tauri/src/commands/steam.rs`
@@ -350,15 +355,15 @@ callers; the picker helper is not a general application-modal framework.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
-Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not execute targets or reproduce domain authorization. A one-way helper can read lifecycle capabilities from the composition root without giving the menu a dispatch path or importing menu concepts into lifecycle. The in-memory port is test-only; it stores immutable newer generations per window label and is not a browser or native menu.
+Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not execute targets or reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. Its frontend ingress is intentionally non-dispatching, and a semantic-routing-unavailable capability boundary keeps every native action disabled until the next bounded wiring slice.
 
 ### 5.4 Render, Edit, And Export Paths
 
-- React entry: `src/main.tsx` creates one lifecycle runtime, mounts its owning boundary, and renders `<App />` inside Strict Mode.
+- React entry: `src/main.tsx` creates one lifecycle runtime and one native-menu runtime, mounts their owning boundaries, and renders `<App />` inside Strict Mode.
 - Vite entry: `index.html` provides the root element and loads `/src/main.tsx`.
 - Tauri dev/build entry: `src-tauri/tauri.conf.json` points dev to Vite and packaged frontend output to `dist`.
 - UI routing: `App.tsx` renders `HomeScreen`, disc editor panels plus `DiscPreview`, or `CaseInsertEditorShell`.
-- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`.
+- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects conservative state, and listens for typed native activation envelopes without dispatching them.
 - Open: every current Home, Disc, and Case Load control dispatches
   `project.open`; the owner stages dialog/read/schema/restore work before one
   dirty-aware replacement decision and one batched lifecycle-and-editor commit.
