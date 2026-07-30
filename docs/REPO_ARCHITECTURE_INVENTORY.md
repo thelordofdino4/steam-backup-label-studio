@@ -1240,6 +1240,8 @@ Key files:
 - `src/render/artworkFrameTestGeometry.ts`
 - `src/components/preview/ContentBoundedImage.tsx`
 - `src/components/preview/ArtworkFrameOverlay.tsx`
+- `src/components/sidebar/ImageCandidatePicker.tsx`
+- `src/components/sidebar/imageCandidatePickerFocus.ts`
 - `src/export/drawTitleArtwork.ts`
 - `src/export/drawAdditionalArtwork.ts`
 - `src/export/drawArtworkFrame.ts`
@@ -1269,6 +1271,13 @@ Render path:
 Edit/interaction path:
 
 - Upload, Steam artwork, local Steam screenshots, web artwork, reset, clear, fit, layout, and frame controls call hook or transition helpers.
+- The shared `ImageCandidatePicker` is the presentation owner for picker-local
+  dialog focus entry, dynamic Tab/Shift+Tab containment, idle Escape/Close,
+  selection-busy protection, and safe opener/ancestor restoration.
+  `imageCandidatePickerFocus.ts` owns those DOM focus mechanics. Existing
+  consumer controls continue to own candidate discovery, ordering, application,
+  errors, and project mutation; successful selection still closes once and a
+  rejected selection keeps the dialog open on the attempted candidate.
 - Steam and official-site logo/artwork candidate discovery routes through
   Steam-owned URL, routing, signal, scoring, CSS, and HTML helper modules while
   `steamLogoCandidates.ts` remains the public orchestration entry.
@@ -1413,6 +1422,7 @@ Key files:
 - `src/interaction/useCaseInsertPreviewPointerDrag.ts`
 - `src/components/preview/PreviewViewport.tsx`
 - `src/components/preview/previewViewportModel.ts`
+- `src/components/preview/previewViewportInteractionOwnership.ts`
 - `src/editor/previewEditableRegistry.ts`
 - `src/editor/previewElementOverlay.ts`
 - `src/components/preview/PreviewElementOverlay.tsx`
@@ -1449,6 +1459,13 @@ Render path:
   stage owns the 4px surface guard, minimum right rail reservation, and bottom
   Design Check / Guide Legend rail reservation, while the preview surfaces fill
   the available stage instead of keeping legacy fixed-width caps.
+- `previewViewportInteractionOwnership.ts` owns structural keyboard/pointer
+  classification for preview pan. Space+left-drag is armed only from the
+  preview stage when the origin is not a native control, link, summary,
+  effective contenteditable region, custom interactive role, nonnegative
+  `tabIndex`, or rail descendant; repeat and already-prevented Space are no-ops.
+  Pointer-down rechecks origin. Middle-drag behavior and viewport math remain
+  in `PreviewViewport`/`previewViewportModel`.
 - `PreviewElementOverlay` measures matching DOM nodes and draws hover/selected boxes.
 - Inline text editor renders preview-mounted contextual controls and hidden
   native input/selection adapters. For case insert and straight disc WYSIWYG

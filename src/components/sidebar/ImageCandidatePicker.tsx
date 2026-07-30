@@ -1,4 +1,20 @@
-import { useId, useMemo, useState, type CSSProperties } from 'react'
+import {
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
+import {
+  captureImageCandidatePickerFocusPath,
+  focusImageCandidatePickerTarget,
+  getImageCandidatePickerInitialFocusTarget,
+  getImageCandidatePickerTabTarget,
+  isImageCandidatePickerFocusTargetUsable,
+  restoreImageCandidatePickerFocus,
+} from './imageCandidatePickerFocus'
 
 export type ImageCandidatePickerItem = {
   id: string
@@ -50,6 +66,7 @@ function ImageCandidatePickerDialog({
   items,
   selectLabel,
   selectingItemId,
+  restorationPath,
   closePicker,
   handleSelect,
 }: {
@@ -58,9 +75,107 @@ function ImageCandidatePickerDialog({
   items: ImageCandidatePickerItem[]
   selectLabel: string
   selectingItemId: string | null
+  restorationPath: readonly HTMLElement[]
   closePicker: () => void
   handleSelect: (itemId: string) => void
 }) {
+  const dialogRef = useRef<HTMLElement | null>(null)
+  const previousSelectingItemIdRef = useRef<string | null>(selectingItemId)
+
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    focusImageCandidatePickerTarget(
+      getImageCandidatePickerInitialFocusTarget(dialog),
+    )
+
+    function handleDocumentKeyDown(event: KeyboardEvent) {
+      const currentDialog = dialogRef.current
+      if (!currentDialog) return
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        closePicker()
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      event.preventDefault()
+      focusImageCandidatePickerTarget(getImageCandidatePickerTabTarget(
+        currentDialog,
+        currentDialog.ownerDocument.activeElement,
+        event.shiftKey,
+      ))
+    }
+
+    function containDocumentFocus(event: FocusEvent) {
+      const currentDialog = dialogRef.current
+      if (
+        !currentDialog ||
+        (event.target instanceof Node && currentDialog.contains(event.target))
+      ) {
+        return
+      }
+      focusImageCandidatePickerTarget(
+        getImageCandidatePickerInitialFocusTarget(currentDialog),
+      )
+    }
+
+    document.addEventListener('keydown', handleDocumentKeyDown, true)
+    document.addEventListener('focusin', containDocumentFocus, true)
+    return () => {
+      document.removeEventListener('keydown', handleDocumentKeyDown, true)
+      document.removeEventListener('focusin', containDocumentFocus, true)
+      queueMicrotask(() => restoreImageCandidatePickerFocus(restorationPath))
+    }
+  }, [closePicker, restorationPath])
+
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    const previousSelectingItemId = previousSelectingItemIdRef.current
+    previousSelectingItemIdRef.current = selectingItemId
+    const activeElement = dialog.ownerDocument.activeElement
+    if (
+      selectingItemId &&
+      (!(activeElement instanceof HTMLElement) ||
+        !dialog.contains(activeElement) ||
+        !isImageCandidatePickerFocusTargetUsable(activeElement))
+    ) {
+      focusImageCandidatePickerTarget(dialog)
+      return
+    }
+
+    if (!selectingItemId && previousSelectingItemId) {
+      const previousCandidate = [
+        ...dialog.querySelectorAll<HTMLElement>(
+          '[data-image-candidate-item-id]',
+        ),
+      ].find((candidate) =>
+        candidate.getAttribute('data-image-candidate-item-id') ===
+          previousSelectingItemId &&
+        isImageCandidatePickerFocusTargetUsable(candidate))
+      if (previousCandidate) {
+        focusImageCandidatePickerTarget(previousCandidate)
+        return
+      }
+    }
+
+    if (
+      !selectingItemId &&
+      (!(activeElement instanceof HTMLElement) ||
+        !dialog.contains(activeElement) ||
+        activeElement === dialog)
+    ) {
+      focusImageCandidatePickerTarget(
+        getImageCandidatePickerInitialFocusTarget(dialog),
+      )
+    }
+  }, [selectingItemId])
+
   return (
     <div
       className="image-candidate-picker-backdrop"
@@ -70,13 +185,14 @@ function ImageCandidatePickerDialog({
       }}
     >
       <section
+        ref={dialogRef}
         className="image-candidate-picker-dialog"
         aria-labelledby={titleId}
         aria-modal="true"
+        aria-busy={Boolean(selectingItemId)}
         role="dialog"
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') closePicker()
-        }}
+        tabIndex={-1}
+        data-smoke-id="image-candidate-picker-dialog"
       >
         <div className="image-candidate-picker-header">
           <h2 id={titleId}>{title}</h2>
@@ -84,6 +200,8 @@ function ImageCandidatePickerDialog({
             className="secondary-button image-candidate-picker-close"
             type="button"
             disabled={Boolean(selectingItemId)}
+            data-image-candidate-close="true"
+            data-smoke-id="image-candidate-picker-close"
             onClick={closePicker}
           >
             Close
@@ -100,6 +218,9 @@ function ImageCandidatePickerDialog({
                 key={item.id}
                 type="button"
                 disabled={Boolean(selectingItemId)}
+                data-image-candidate-item="true"
+                data-image-candidate-selected={item.isSelected ? 'true' : 'false'}
+                data-image-candidate-item-id={item.id}
                 onClick={() => handleSelect(item.id)}
               >
                 <span className="image-candidate-picker-preview">
@@ -155,6 +276,10 @@ export function ImageCandidatePreviewPicker({
   const titleId = useId()
   const [isOpen, setIsOpen] = useState(false)
   const [selectingItemId, setSelectingItemId] = useState<string | null>(null)
+  const isOpenRef = useRef(false)
+  const selectingItemIdRef = useRef<string | null>(null)
+  const [restorationPath, setRestorationPath] =
+    useState<readonly HTMLElement[]>([])
   const loopingPreviewItems = useMemo(
     () => getLoopingPreviewItems(items),
     [items],
@@ -169,19 +294,29 @@ export function ImageCandidatePreviewPicker({
   )
   const canAnimatePreview = items.length > 4
 
-  const closePicker = () => {
-    if (!selectingItemId) {
-      setIsOpen(false)
-    }
-  }
+  const closePicker = useCallback(() => {
+    if (!isOpenRef.current || selectingItemIdRef.current) return
+    isOpenRef.current = false
+    setIsOpen(false)
+  }, [])
+
+  const openPicker = useCallback((opener: HTMLButtonElement) => {
+    setRestorationPath(captureImageCandidatePickerFocusPath(opener))
+    isOpenRef.current = true
+    setIsOpen(true)
+  }, [])
 
   const handleSelect = async (itemId: string) => {
+    if (selectingItemIdRef.current) return
+    selectingItemIdRef.current = itemId
     setSelectingItemId(itemId)
 
     try {
       await onSelect(itemId)
+      isOpenRef.current = false
       setIsOpen(false)
     } finally {
+      selectingItemIdRef.current = null
       setSelectingItemId(null)
     }
   }
@@ -196,7 +331,8 @@ export function ImageCandidatePreviewPicker({
         disabled={disabled || Boolean(selectingItemId)}
         aria-label={`${ariaLabel}. Open picker with ${items.length} image candidate${items.length === 1 ? '' : 's'}.`}
         aria-busy={Boolean(selectingItemId)}
-        onClick={() => setIsOpen(true)}
+        data-smoke-id="image-candidate-picker-opener"
+        onClick={(event) => openPicker(event.currentTarget)}
       >
         <span
           className="image-candidate-preview-picker-track"
@@ -235,6 +371,7 @@ export function ImageCandidatePreviewPicker({
           items={items}
           selectLabel={selectLabel}
           selectingItemId={selectingItemId}
+          restorationPath={restorationPath}
           closePicker={closePicker}
           handleSelect={(itemId) => void handleSelect(itemId)}
         />

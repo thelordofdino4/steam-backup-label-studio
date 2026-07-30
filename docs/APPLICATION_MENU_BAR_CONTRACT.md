@@ -6,6 +6,7 @@
 > Authoritative source: This document for target application-menu presentation and integration; focused lifecycle, navigation, Export, Game, Disc geometry, Disc Layout Preset, project-file, and SDD authorities retain their semantic domains.
 > Evidence baseline: `main` at `32e94b0a343d02bb7dfb74adb6d05d325cd73769`, reviewed 2026-07-26.
 > Focused package/save-load facts reviewed against `main` at `a104825583a1cc03e145a9e460e9abccf4483bf7` on 2026-07-27; this does not re-baseline unrelated menu evidence.
+> Focused lifecycle/navigation facts reviewed after PR #328 merged at `5e320e8b620bf8184db3e5723d0d26f034195c6e`; the subsequent #298/#309 source checkpoint is recorded without claiming native-menu implementation.
 > Focused lifecycle checkpoint: PR #327 merged at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172`; the later current-project synchronization, shared New/Open replacement guard, Home Return/Resume, exact route retention, and shared feedback boundary are recorded below without claiming native-menu implementation.
 
 ## 1. Status, scope, and authority
@@ -137,7 +138,8 @@ verification performed against the evidence baseline.
 | CURRENT FACT / TARGET REQUIREMENT | Case “Template” | The Case shell's current Template panel switches Cover Sheet/Tray Card presentation; it is navigation rather than Disc physical geometry. | It remains a Case surface-navigation concern and is not wired to the Disc Template launcher. |
 | CURRENT FACT / TARGET REQUIREMENT | Contextual ribbon | `PreviewHeader.tsx` hosts registered contextual text content; Disc and Case previews mount the provider. | Ribbon ownership and selected-owner behavior remain unchanged by menu migration. |
 | CURRENT FACT / TARGET REQUIREMENT | Preview-local controls | `PreviewViewport.tsx` owns zoom, pan, Fit, and Space-pan state; both previews own Guide Legend and Design Check expansion locally. | Those controls remain preview-local and do not move into this menu. |
-| CURRENT FACT / TARGET REQUIREMENT | Shortcut ownership | The shared preview installs a window-level Space handler; issue #298 records its current interaction gap. No app shortcut router exists. | Modal, focused editable, preview, then global-command precedence is centralized before menu accelerators ship. |
+| CURRENT FACT / TARGET REQUIREMENT | Shortcut ownership | The shared preview's window-level Space listener now arms preview pan only from a preview-owned, noninteractive origin; native controls, links, summaries, effective contenteditable regions, custom interactive roles, nonnegative `tabIndex`, the control rail, repeats, and already-prevented events retain ownership. No app shortcut router exists. | Modal, focused editable, preview, then global-command precedence is centralized before menu accelerators ship. |
+| CURRENT FACT / TARGET REQUIREMENT | Image-candidate modal focus | The shared `ImageCandidatePicker` now owns deterministic selected/first/Close/dialog focus entry, dynamic Tab/Shift+Tab containment, idle Escape/Close, busy-operation protection, and safe opener-or-ancestor restoration. Candidate discovery, ordering, selection, apply, and project mutation remain in existing callers. | Later application-menu and workflow-host modals consume the same precedence requirements without treating this picker-local helper as a general modal framework. |
 | CURRENT FACT / TARGET REQUIREMENT | Undo/Redo | No application project-history owner or `canUndo`/`canRedo` capability exists. Browser/native text controls retain their own editing behavior. | Focused text Undo/Redo remains available; application history integration is a later owner-backed extension. |
 | CURRENT FACT / TARGET REQUIREMENT | Help/About | No Help, About, version-dialog, documentation resource, issue-reporting, or update command exists. | Informational Help/About targets are defined here without claiming implementation; report-issue remains omitted until a trusted resource is configured. |
 
@@ -901,7 +903,10 @@ later step must not bypass an incomplete earlier semantic owner.
    Home/editor command feedback are present under #308/#300. Extend the
    implemented dirty-aware guard only when later Close/termination owners are
    implemented, using #303 only as historical wording/test input.
-4. Implement the required modal and keyboard prerequisites from #309 and #298.
+4. Retain the implemented #309 shared image-candidate-picker focus lifecycle and
+   #298 preview-Space ownership prerequisites. Their source/browser component
+   evidence does not substitute for native Tauri and assistive-technology
+   acceptance.
 5. Retain the implemented pure menu descriptor model, exhaustive item mapping,
    capability-projection model, and in-memory port; they remain disconnected
    from native construction and runtime dispatch.
@@ -920,11 +925,11 @@ later step must not bypass an incomplete earlier semantic owner.
 12. Run focused automated coverage and real native Tauri acceptance on supported
     platforms before claiming the menu implemented.
 
-**TARGET REQUIREMENT —** The smallest safe next implementation slice is step 4:
-complete the focused #309 modal-focus and #298 preview-Space ownership
-prerequisites. The pure menu descriptor/projection slice already exists; after
-those prerequisites, native construction and the event bridge can proceed
-without sidebar removal.
+**TARGET REQUIREMENT —** The smallest safe next implementation slice is step 6:
+construct the native Tauri menu and its one typed event bridge while retaining
+the disconnected pure descriptor/projection model as the presentation source.
+This can proceed without sidebar removal; File or Tools wiring still waits for
+the corresponding semantic owners and migration gates.
 
 ## 14. Issue mapping, migration boundaries, non-goals, and evidence index
 
@@ -942,8 +947,8 @@ separate preview context-menu proposal and is not an application-menu owner.
 | CURRENT FACT / TARGET REQUIREMENT | [#302](https://github.com/thelordofdino4/steam-backup-label-studio/issues/302) | Open | Export sequence implementation required before File Export is conformant. |
 | CURRENT FACT / TARGET REQUIREMENT | [#300](https://github.com/thelordofdino4/steam-backup-label-studio/issues/300) | Open; source acceptance path implemented | Home-originated Open cancellation/failure now uses the shared result/feedback boundary; the issue was not mutated. |
 | CURRENT FACT / TARGET REQUIREMENT | [#303](https://github.com/thelordofdino4/steam-backup-label-studio/issues/303) | Open | Temporary conservative replacement direction; lifecycle contract supersedes it as final dirty-aware architecture. |
-| CURRENT FACT / TARGET REQUIREMENT | [#298](https://github.com/thelordofdino4/steam-backup-label-studio/issues/298) | Open | Space/focused-control ownership prerequisite for global accelerators. |
-| CURRENT FACT / TARGET REQUIREMENT | [#309](https://github.com/thelordofdino4/steam-backup-label-studio/issues/309) | Open | Modal focus entry/containment/restoration prerequisite. |
+| CURRENT FACT / TARGET REQUIREMENT | [#298](https://github.com/thelordofdino4/steam-backup-label-studio/issues/298) | Open; focused source checkpoint implemented | Preview Space now defers to interactive/focused-control ownership and rechecks pointer origin; future global accelerators must preserve that precedence. The issue was not mutated. |
+| CURRENT FACT / TARGET REQUIREMENT | [#309](https://github.com/thelordofdino4/steam-backup-label-studio/issues/309) | Open; shared picker source checkpoint implemented | The shared image-candidate dialog now owns focus entry, containment, idle closure, busy protection, and safe restoration without absorbing candidate semantics. The issue was not mutated. |
 | CURRENT FACT / TARGET REQUIREMENT | [#304](https://github.com/thelordofdino4/steam-backup-label-studio/issues/304) | Open | Game stale-search dependency retained inside the Game owner. |
 | CURRENT FACT / TARGET REQUIREMENT | [#310](https://github.com/thelordofdino4/steam-backup-label-studio/issues/310) | Open | Case Game import visibility/feedback dependency retained inside Game apply. |
 | CURRENT FACT / TARGET REQUIREMENT | [#307](https://github.com/thelordofdino4/steam-backup-label-studio/issues/307) | Open | Disc custom-dimension draft/error dependency retained inside geometry workflow. |
@@ -997,7 +1002,7 @@ current functionality.
 | CURRENT FACT | Contextual ribbon, preview viewport, Design Check, Guide Legend | Implemented separate systems | Do not relocate or redefine. |
 | CURRENT FACT / TARGET REQUIREMENT | Session aggregate, dispatcher, capabilities, dirty/baseline, Save/Save As, Return Home/Resume | Implemented dependency | File menu behavior may consume these semantic owners; Close Project and guarded close/Quit remain unimplemented under #308. |
 | CURRENT FACT / TARGET REQUIREMENT | Atomic byte writer plus package-safe binary project adapters | Primitive implemented; adapters required | Reuse the merged #312 writer and add bounded binary read/structured atomic binary write before package-aware target Save is accepted. |
-| CURRENT FACT / TARGET REQUIREMENT | Shared result/feedback/focus and modal/shortcut prerequisites | Feedback and Home/editor navigation focus implemented; modal/shortcut work required | #300's source path is implemented; complete #309/#298 before broad menu activation. |
+| CURRENT FACT / TARGET REQUIREMENT | Shared result/feedback/focus and modal/shortcut prerequisites | Feedback, Home/editor navigation focus, preview-Space ownership, and shared image-candidate-picker focus lifecycle implemented | #298/#309 focused source prerequisites are present. Native/assistive-technology acceptance and any broader modal or global-shortcut owner remain separate. |
 | TARGET REQUIREMENT | Export, Game, geometry, preset target workflows | Required dependency for full migration | Menu launchers consume them; they do not make them exist. |
 | CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection and native bridge/workflow host | Pure descriptor/projection implemented; native/host work required | The in-memory-tested model is runtime-disconnected. Native construction, event bridge, and workflow host are not implemented. |
 | TARGET REQUIREMENT | Help and About informational owners | Menu implementation work | IDs and sources are decided here; surfaces remain unimplemented. |

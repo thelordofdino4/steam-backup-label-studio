@@ -25,6 +25,11 @@ import {
   type PreviewViewportPoint,
   type PreviewViewportState,
 } from './previewViewportModel'
+import {
+  getPreviewPanStartMode,
+  isPreviewViewportControlTarget,
+  shouldArmPreviewSpacePan,
+} from './previewViewportInteractionOwnership'
 
 type ActivePreviewPan = {
   pointerId: number
@@ -80,16 +85,6 @@ function ArrowIcon({
   )
 }
 
-function isFormEditingTarget(target: EventTarget | null) {
-  return target instanceof Element &&
-    Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
-}
-
-function isPreviewViewportControlTarget(target: EventTarget | null) {
-  return target instanceof Element &&
-    Boolean(target.closest('[data-preview-viewport-controls="true"]'))
-}
-
 function readCssPixelVariable(
   element: HTMLElement,
   name: string,
@@ -133,6 +128,7 @@ export function PreviewViewport({
   const railSizeRecomputeTimeoutRef = useRef<number | null>(null)
   const railSizingFrozenRef = useRef(false)
   const spacePanArmedRef = useRef(false)
+  const pointerInsideStageRef = useRef(false)
   const [viewportState, setViewportState] =
     useState<PreviewViewportState>(PREVIEW_VIEWPORT_DEFAULT_STATE)
   const [railButtonSize, setRailButtonSize] = useState(
@@ -308,6 +304,11 @@ export function PreviewViewport({
     [viewportState.panX, viewportState.panY],
   )
 
+  const clearSpacePanArmed = useCallback(() => {
+    spacePanArmedRef.current = false
+    setIsSpacePanArmed(false)
+  }, [])
+
   const handlePointerDownCapture = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
       if (isPreviewViewportControlTarget(event.target)) {
@@ -323,10 +324,16 @@ export function PreviewViewport({
         previewInteractionPointerIdRef.current = event.pointerId
       }
 
-      const isMiddleMouse = event.button === 1
-      const isSpacePrimaryPan = event.button === 0 && spacePanArmedRef.current
+      const targetInsideStage = event.target instanceof Node &&
+        Boolean(stageRef.current?.contains(event.target))
+      const panStartMode = getPreviewPanStartMode({
+        button: event.button,
+        spacePanArmed: spacePanArmedRef.current,
+        target: event.target,
+        targetInsideStage,
+      })
 
-      if (!isMiddleMouse && !isSpacePrimaryPan) {
+      if (!panStartMode) {
         return
       }
 
@@ -381,12 +388,16 @@ export function PreviewViewport({
     (event: PointerEvent<HTMLDivElement>) => {
       endPan(event.pointerId)
 
+      if (event.type === 'pointercancel') {
+        clearSpacePanArmed()
+      }
+
       if (previewInteractionPointerIdRef.current === event.pointerId) {
         previewInteractionPointerIdRef.current = null
         releaseRailSizeFreeze()
       }
     },
-    [endPan, releaseRailSizeFreeze],
+    [clearSpacePanArmed, endPan, releaseRailSizeFreeze],
   )
 
   const handleRailControlPointerDownCapture = useCallback(
@@ -420,11 +431,16 @@ export function PreviewViewport({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (
-        event.code !== 'Space' ||
-        event.repeat ||
-        isFormEditingTarget(event.target)
-      ) {
+      const targetInsideStage = event.target instanceof Node &&
+        Boolean(stageRef.current?.contains(event.target))
+      if (!shouldArmPreviewSpacePan({
+        code: event.code,
+        defaultPrevented: event.defaultPrevented,
+        repeat: event.repeat,
+        target: event.target,
+        targetInsideStage,
+        pointerInsideStage: pointerInsideStageRef.current,
+      })) {
         return
       }
 
@@ -437,19 +453,27 @@ export function PreviewViewport({
       if (event.code !== 'Space') {
         return
       }
+      clearSpacePanArmed()
+    }
 
-      spacePanArmedRef.current = false
-      setIsSpacePanArmed(false)
+    function handleWindowBlur() {
+      clearSpacePanArmed()
+      const activePan = activePanRef.current
+      if (activePan) endPan(activePan.pointerId)
     }
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleWindowBlur)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleWindowBlur)
+      spacePanArmedRef.current = false
+      pointerInsideStageRef.current = false
     }
-  }, [])
+  }, [clearSpacePanArmed, endPan])
 
   useEffect(() => () => {
     if (railSizeRecomputeTimeoutRef.current !== null) {
@@ -471,6 +495,10 @@ export function PreviewViewport({
         shouldRelease = true
       }
 
+      if (event.type === 'pointercancel') {
+        clearSpacePanArmed()
+      }
+
       if (shouldRelease) {
         releaseRailSizeFreeze()
       }
@@ -483,7 +511,7 @@ export function PreviewViewport({
       window.removeEventListener('pointerup', handleWindowPointerEnd)
       window.removeEventListener('pointercancel', handleWindowPointerEnd)
     }
-  }, [releaseRailSizeFreeze])
+  }, [clearSpacePanArmed, releaseRailSizeFreeze])
 
   useEffect(() => {
     const viewportElement = viewportRef.current
@@ -546,6 +574,12 @@ export function PreviewViewport({
         className="preview-viewport-stage"
         data-smoke-id="preview-viewport-stage"
         style={stageStyle}
+        onPointerEnter={() => {
+          pointerInsideStageRef.current = true
+        }}
+        onPointerLeave={() => {
+          pointerInsideStageRef.current = false
+        }}
       >
         {children}
       </div>
