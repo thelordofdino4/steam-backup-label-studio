@@ -6,14 +6,16 @@
 > Authoritative source: This document for target application-menu presentation and integration; focused lifecycle, navigation, Export, Game, Disc geometry, Disc Layout Preset, project-file, and SDD authorities retain their semantic domains.
 > Evidence baseline: `main` at `32e94b0a343d02bb7dfb74adb6d05d325cd73769`, reviewed 2026-07-26.
 > Focused package/save-load facts reviewed against `main` at `a104825583a1cc03e145a9e460e9abccf4483bf7` on 2026-07-27; this does not re-baseline unrelated menu evidence.
+> Focused lifecycle checkpoint: PR #326 merged at `4db227266695ee0b35d33e1f88e82cd88ad85034`; the later current-project synchronization and shared New/Open replacement guard are recorded below without claiming native-menu implementation.
 
 ## 1. Status, scope, and authority
 
 **TARGET REQUIREMENT —** This is a draft target-state normative contract. Its
 requirements finalize the application menu design that later implementation
-must satisfy. They do not claim that a native menu, menu bridge, dispatcher,
-central capability projection, rich workflow host, application history, or
-Help surface is implemented at the evidence baseline.
+must satisfy. The lifecycle dispatcher/capability foundation and pure
+menu-descriptor/capability-projection model exist, but no native menu, menu
+event bridge, rich workflow host, application history, or Help surface is
+implemented at the evidence baseline.
 
 **TARGET REQUIREMENT —** This contract owns:
 
@@ -119,12 +121,13 @@ verification performed against the evidence baseline.
 | CURRENT FACT / TARGET REQUIREMENT | Native application menu | `src-tauri/src/lib.rs` registers plugins and commands but constructs no `tauri::menu` objects and registers no menu-event handler. | Rust constructs the native hierarchy and owns only presentation/native-window adaptation. |
 | CURRENT FACT / TARGET REQUIREMENT | Custom React application menu | No React menubar, `role="menubar"`, or application-menu component exists. Home “menu cards” are ordinary buttons, not an application menu. | No production React imitation is introduced; the native menu is the default target. |
 | CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | Source imports Tauri core invoke and dialog APIs, but no menu/event/window API and no native-to-frontend menu bridge. | One typed bridge carries stable item invocations and receives capability projections. |
-| CURRENT FACT / TARGET REQUIREMENT | Command registry/dispatcher | `App.tsx` passes component callbacks directly; no shared application-command registry or dispatcher exists. | Menu, Home, sidebar compatibility adapters, buttons, shortcuts, and native close events share the lifecycle/domain dispatcher. |
-| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | Individual controls own limited `disabled` conditions; no application-wide capability projection exists. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
+| CURRENT FACT / TARGET REQUIREMENT | Command registry/dispatcher | One application lifecycle root owns a typed registry/dispatcher. Home and current Project File New/Open/Save compatibility controls dispatch `project.new-disc`, `project.new-case`, `project.open`, or `project.save`; other workflows are not yet unified. | Menu, Home, sidebar compatibility adapters, buttons, shortcuts, and native close events share the lifecycle/domain dispatcher. |
+| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | Lifecycle commands have centralized state/busy/owner-aware capabilities, and the disconnected pure menu model can consume them. Export, workflow launchers, focused edit, window, and Help capabilities are not yet one application-wide runtime projection. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
 | CURRENT FACT / TARGET REQUIREMENT | Home | `HomeScreen.tsx` exposes Load Project, New Disc, and New Case Insert. It has a status surface but no Resume control. | Home controls dispatch the same commands as File items; Resume is added only with the lifecycle/session implementation. |
 | CURRENT FACT / TARGET REQUIREMENT | Disc Project File | `ProjectPanel.tsx` exposes Main Menu, New Disc, Save Project, Load Project, Export PNG, and New Case Insert. | Those application-level actions move to File; the panel remains until replacement parity is proven. |
 | CURRENT FACT / TARGET REQUIREMENT | Case Project File | `CaseInsertEditorShell.tsx` duplicates Main Menu, New Case Insert, New Disc, Save, Load, and Export PNG. | The same File adapters serve Disc and Case; no Case-only command copies remain. |
-| CURRENT FACT / TARGET REQUIREMENT | Save | `runAppProjectSave` always uses the destination chooser; no current format-aware Save behavior exists. | `project.save` writes without a chooser only for an adopted package-v1 session at an eligible `.sbls` path; pathless, legacy-format, or wrong-suffix state delegates to Save As. `project.save-as` always chooses an eligible package destination. |
+| CURRENT FACT / TARGET REQUIREMENT | Save | `project.save` now writes directly only for a truthful package-v1 session at an eligible `.sbls` path; pathless, legacy-format, and wrong-suffix sessions use Save As. Save captures lifecycle-owned `R`, and post-commit adoption preserves a newer current `R+1` as dirty without editor recapture. | Menu adapters dispatch these same owners; `project.save-as` always chooses an eligible package destination. |
+| CURRENT FACT / TARGET REQUIREMENT | New/Open replacement | `project.new-disc`, `project.new-case`, and `project.open` are production owners. No-session and clean replacement proceed without a prompt; dirty/baseline-less replacement uses one accessible Save/Discard Changes/Cancel guard bound to session ID/revision. | File/Home/sidebar adapters continue sharing these owners; Close Project, native Close Window/Quit, and Resume remain later lifecycle work. |
 | CURRENT FACT / TARGET REQUIREMENT | Return Home | The current handler warns that work remains in memory, clears active Disc preset identity, and shows Home; Home cannot Resume. | Return Home retains the complete session and Resume route; Close Project separately retires it. |
 | CURRENT FACT / TARGET REQUIREMENT | Export | Disc and Case Project File buttons call a shared callback that branches on active workspace; destination currently precedes preflight. | File `Export PNG…` dispatches `export.png`; Tools `Export Options…` only reveals owner-backed configuration. |
 | CURRENT FACT / TARGET REQUIREMENT | Game | `GamePanel.tsx` combines query, Search, immediate result-import activation, metadata fields, candidate discovery/application, and feedback. | Tools `Game…` opens the rich Game host; explicit selection, immutable planning, review, and owner apply replace immediate target behavior. |
@@ -886,15 +889,16 @@ fallbacks only. They cannot establish native application-menu acceptance.
 **TARGET REQUIREMENT —** Implementation proceeds in this dependency order; a
 later step must not bypass an incomplete earlier semantic owner.
 
-1. Implement #308's session aggregate, canonical baseline, command
-   registry/dispatcher, centralized capabilities, busy scopes, and exact
-   Save/Save As semantics.
+1. Retain #308's implemented session aggregate, canonical baseline, command
+   registry/dispatcher, lifecycle capabilities, busy scopes, exact Save/Save
+   As semantics, authoritative current-project synchronization, and shared
+   New/Open replacement guard.
 2. Add bounded binary project read and structured atomic binary project-write
    adapters that reuse #312's merged byte writer and preserve its verified
    failure behavior.
-3. Implement shared results, global feedback, the dirty-aware replacement
-   guard, Home Resume, and #300; use #303 only as temporary wording/test input,
-   not as a competing permanent guard.
+3. Implement Home Return/Resume and shared global Home/editor feedback under
+   #308/#300; extend the implemented dirty-aware guard to later Close/termination
+   owners, using #303 only as historical wording/test input.
 4. Implement the required modal and keyboard prerequisites from #309 and #298.
 5. Implement the pure menu descriptor model, exhaustive item mapping, and
    capability-projection model with no native menu or sidebar removal.

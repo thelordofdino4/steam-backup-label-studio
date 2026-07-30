@@ -54,6 +54,12 @@ import type { BrandingPanelProps } from '../components/sidebar/branding/types'
 import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
 import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
 import { ProjectPanel } from '../components/sidebar/ProjectPanel'
+import {
+  ProjectReplacementDialog,
+} from '../components/project/ProjectReplacementDialog'
+import {
+  useProjectReplacementPrompt,
+} from '../components/project/useProjectReplacementPrompt'
 import { DiscLayoutPresetsPanel } from '../components/sidebar/DiscLayoutPresetsPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
 import type { TextPanelProps } from '../components/sidebar/textPanelTypes'
@@ -131,6 +137,7 @@ import {
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
+  createBlankJewelCaseSavedProject,
   createDefaultProjectJewelCaseState,
   setProjectJewelCaseExportGuideIds,
 } from '../project/projectCaseInsert'
@@ -159,6 +166,9 @@ import type {
   ProjectMetadata,
   ProjectRatingBadge,
   ProjectTitleArtwork,
+  SavedCaseInsertProject,
+  SavedDiscProject,
+  SavedProject,
 } from '../project/projectTypes'
 import { readProjectFile, writeBinaryFile } from '../tauri/fileSystem'
 import { decodeProjectPackageFile } from '../tauri/packageProjectFile'
@@ -224,6 +234,10 @@ import {
 import {
   applyDiscRolePresetToOwners,
 } from './appDiscRolePresetApplication'
+import { createBlankDiscSavedProject } from '../project/blankDiscProject'
+import {
+  prepareNewProjectEditorApply,
+} from './appProjectNewEditorApply'
 
 type SteamMetadataApplyOptions = {
   announce?: boolean
@@ -238,10 +252,6 @@ type SteamImportOptions = {
 
 function App() {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
-  const [pendingNewProjectSession, setPendingNewProjectSession] = useState<
-    Readonly<{ kind: 'disc' | 'caseInsert'; nonce: number }> | null
-  >(null)
-  const handledNewProjectSessionNonceRef = useRef(0)
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
   const [discGuidedWorkflow, setDiscGuidedWorkflow] =
     useState<DiscGuidedWorkflowState>(INITIAL_DISC_GUIDED_WORKFLOW_STATE)
@@ -253,6 +263,7 @@ function App() {
     )
   }, [])
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
+  const replacementPrompt = useProjectReplacementPrompt()
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const caseInsertPreviewRef = useRef<HTMLDivElement | null>(null)
   const discPreviewSize = useDiscPreviewSize({
@@ -1365,7 +1376,10 @@ function App() {
     }
   }
 
-  function resetDiscProjectState() {
+  function resetDiscProjectState(preparedProject?: SavedProject) {
+    const blank = preparedProject?.template.type === 'disc'
+      ? preparedProject as SavedDiscProject
+      : null
     cancelPreviewPointerDrag()
     cancelCaseInsertPreviewPointerDrag()
     activeDiscPreset.clearActivePreset()
@@ -1376,8 +1390,8 @@ function App() {
     resetSteamBannerState()
     resetExportGuides()
     resetBackgroundArtwork()
-    setManualGameTitle('Untitled Steam Backup Label')
-    setProjectMetadata(createDefaultProjectMetadata())
+    setManualGameTitle(blank?.game.manualTitle ?? 'Untitled Steam Backup Label')
+    setProjectMetadata(blank?.metadata ?? createDefaultProjectMetadata())
     resetProjectLogoAssets(defaultDiscTemplate)
     resetProjectTitleArtwork(defaultDiscTemplate, 'top')
     resetProjectAdditionalArtwork()
@@ -1390,18 +1404,22 @@ function App() {
     resetLocalSteamScreenshotSearch()
   }
 
-  function resetCaseInsertProjectState() {
+  function resetCaseInsertProjectState(preparedProject?: SavedProject) {
+    const blank = preparedProject?.template.type === 'caseInsert'
+      ? preparedProject as SavedCaseInsertProject
+      : null
+    const blankTitle = blank?.game.manualTitle ?? DEFAULT_CASE_INSERT_PROJECT_TITLE
     cancelCaseInsertPreviewPointerDrag()
     activeDiscPreset.clearActivePreset()
 
-    setManualGameTitle(DEFAULT_CASE_INSERT_PROJECT_TITLE)
-    setProjectMetadata({
+    setManualGameTitle(blankTitle)
+    setProjectMetadata(blank?.metadata ?? {
       ...createDefaultProjectMetadata(),
-      title: DEFAULT_CASE_INSERT_PROJECT_TITLE,
+      title: blankTitle,
     })
     setSelectedSteamGame(null)
     setProjectJewelCase(
-      createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
+      blank?.caseInsert ?? createDefaultProjectJewelCaseState(blankTitle),
     )
     resetProjectLogoAssets(defaultDiscTemplate)
     resetProjectRatingBadge(defaultDiscTemplate)
@@ -1434,62 +1452,34 @@ function App() {
     )
   }
 
+  async function dispatchNewProject(
+    commandId: 'project.new-disc' | 'project.new-case',
+  ) {
+    const result = await applicationLifecycleRoot.dispatch(commandId)
+    if (result.disposition === 'not-executed') {
+      announceStatus(
+        result.userMessage ??
+          (result.reason === 'busy'
+            ? 'A project operation is already in progress.'
+            : 'New Project is currently unavailable.'),
+      )
+      return
+    }
+    if (result.result.feedback) {
+      announceStatus(result.result.feedback.message)
+    }
+  }
+
   async function handleNewProject() {
-    const shouldReset = await confirm(
-      'Start a new project? Unsaved changes will be lost.',
-      {
-        title: 'Start a new project?',
-        kind: 'warning',
-      },
-    )
-
-    if (!shouldReset) {
-      return
-    }
-    if (applicationLifecycleRoot.getBusyState().occupiedScopes.length > 0) {
-      announceStatus('A project operation is already in progress.')
-      return
-    }
-
-    resetDiscProjectState()
-    setPendingNewProjectSession((current) => ({
-      kind: 'disc',
-      nonce: (current?.nonce ?? 0) + 1,
-    }))
-    setActiveWorkspace('disc')
-    setHomeStatusMessage(null)
-    announceStatus('Started a new blank project.')
+    await dispatchNewProject('project.new-disc')
   }
 
-  function handleStartNewDiscProject() {
-    if (applicationLifecycleRoot.getBusyState().occupiedScopes.length > 0) {
-      announceStatus('A project operation is already in progress.')
-      return
-    }
-    resetDiscProjectState()
-    setPendingNewProjectSession((current) => ({
-      kind: 'disc',
-      nonce: (current?.nonce ?? 0) + 1,
-    }))
-    setActiveWorkspace('disc')
-    setHomeStatusMessage(null)
-    announceStatus('Started a new blank disc project.')
+  async function handleStartNewDiscProject() {
+    await dispatchNewProject('project.new-disc')
   }
 
-  function handleOpenCaseInsertEditor() {
-    if (applicationLifecycleRoot.getBusyState().occupiedScopes.length > 0) {
-      announceStatus('A project operation is already in progress.')
-      return
-    }
-    resetCaseInsertProjectState()
-    setPendingNewProjectSession((current) => ({
-      kind: 'caseInsert',
-      nonce: (current?.nonce ?? 0) + 1,
-    }))
-    setActiveCaseInsertNavigationSurface('front')
-    setActiveWorkspace('caseInsert')
-    setHomeStatusMessage(null)
-    announceStatus('Started a new blank case insert project.')
+  async function handleOpenCaseInsertEditor() {
+    await dispatchNewProject('project.new-case')
   }
 
   async function handleReturnToHome() {
@@ -1513,19 +1503,7 @@ function App() {
   }
 
   async function handleSwitchToCaseInsertFromDisc() {
-    const shouldSwitch = await confirm(
-      'Switch to the Case Insert Editor? Unsaved disc changes will remain in memory for now, but case editor work is still in progress.',
-      {
-        title: 'Switch editor?',
-        kind: 'warning',
-      },
-    )
-
-    if (!shouldSwitch) {
-      return
-    }
-
-    handleOpenCaseInsertEditor()
+    await dispatchNewProject('project.new-case')
   }
 
   async function handleSteamImport(
@@ -1838,7 +1816,6 @@ function App() {
         }).prepare(candidate),
     },
     save: {
-      captureCurrentProject: captureCurrentSavedProject,
       saveDialog: async (options) => save({
         defaultPath: options.defaultPath,
         filters: options.filters.map((filter) => ({
@@ -1850,30 +1827,37 @@ function App() {
         encodeAndWrite: encodeAndWriteProjectPackageFile,
       }),
     },
+    replacement: {
+      promptForReplacementDecision: replacementPrompt.requestDecision,
+    },
+    newProject: {
+      createBlankProject: (kind) => kind === 'disc'
+        ? createBlankDiscSavedProject()
+        : createBlankJewelCaseSavedProject(),
+      prepareEditorApply: (kind, project) => prepareNewProjectEditorApply({
+        batchReactUpdates: (apply) => unstable_batchedUpdates(apply),
+        resetDiscProject: resetDiscProjectState,
+        resetCaseProject: resetCaseInsertProjectState,
+        setActiveWorkspace,
+        setHomeStatusMessage,
+      }, kind, project),
+    },
   })
 
   useLayoutEffect(() => {
-    if (!pendingNewProjectSession ||
-      activeWorkspace !== pendingNewProjectSession.kind ||
-      handledNewProjectSessionNonceRef.current === pendingNewProjectSession.nonce) {
-      return
-    }
-    handledNewProjectSessionNonceRef.current = pendingNewProjectSession.nonce
-    const established = applicationLifecycleRoot.establishPathlessProjectSession(
-      captureCurrentSavedProject(),
-      pendingNewProjectSession.kind === 'disc'
-        ? { workspace: 'disc' }
-        : { workspace: 'caseInsert', surface: 'front' },
-    )
-    if (!established) {
-      announceStatus('The new project session could not be established.')
-    }
+    if (activeWorkspace === 'home') return
+    const session = applicationLifecycleRoot.getLifecycleState().activeSession
+    if (!session || session.kind !== activeWorkspace) return
+
+    applicationLifecycleRoot.synchronizeCurrentProject({
+      sessionId: session.id,
+      kind: activeWorkspace,
+      project: captureCurrentSavedProject(),
+    })
   }, [
     activeWorkspace,
-    announceStatus,
     applicationLifecycleRoot,
     captureCurrentSavedProject,
-    pendingNewProjectSession,
   ])
 
   async function handleLoadProject() {
@@ -2152,18 +2136,25 @@ function App() {
 
   if (activeWorkspace === 'home') {
     return (
-      <HomeScreen
-        onLoadProject={handleLoadProject}
-        onNewDisc={handleStartNewDiscProject}
-        onNewCaseInsert={handleOpenCaseInsertEditor}
-        statusMessage={homeStatusMessage}
-      />
+      <>
+        <HomeScreen
+          onLoadProject={handleLoadProject}
+          onNewDisc={handleStartNewDiscProject}
+          onNewCaseInsert={handleOpenCaseInsertEditor}
+          statusMessage={homeStatusMessage}
+        />
+        <ProjectReplacementDialog
+          onDecision={replacementPrompt.decide}
+          open={replacementPrompt.open}
+        />
+      </>
     )
   }
 
   if (activeWorkspace === 'caseInsert') {
     return (
-      <CaseInsertEditorShell
+      <>
+        <CaseInsertEditorShell
         caseInsert={projectJewelCase}
         activeTemplatePane={activeCaseInsertTemplatePane}
         activeNavigationSurface={activeCaseInsertNavigationSurface}
@@ -2230,12 +2221,18 @@ function App() {
           onContentModeChange: handleCaseInsertPreviewTextContentModeChange,
           onUseMetadataValue: handleCaseInsertPreviewTextUseMetadataValue,
         }}
-      />
+        />
+        <ProjectReplacementDialog
+          onDecision={replacementPrompt.decide}
+          open={replacementPrompt.open}
+        />
+      </>
     )
   }
 
   return (
-    <EditorRoleFocusProvider>
+    <>
+      <EditorRoleFocusProvider>
       <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
@@ -2388,7 +2385,12 @@ function App() {
         }}
       />
       </main>
-    </EditorRoleFocusProvider>
+      </EditorRoleFocusProvider>
+      <ProjectReplacementDialog
+        onDecision={replacementPrompt.decide}
+        open={replacementPrompt.open}
+      />
+    </>
   )
 }
 

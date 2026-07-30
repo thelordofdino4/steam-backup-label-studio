@@ -30,10 +30,15 @@ import {
 } from './lifecycleCommandCapabilities.ts'
 import type { SavedProject } from '../project/projectTypes.ts'
 import {
-  createNewProjectSession,
+  synchronizeActiveProjectContent,
   type ApplicationLifecycleState,
-  type ProjectSessionEditorRoute,
+  type ProjectSessionId,
 } from './projectSession.ts'
+import type { EditorProjectType } from '../editor/editorTypes.ts'
+import {
+  captureNormalizedProjectSnapshot,
+  getNormalizedProjectKind,
+} from './canonicalProject.ts'
 
 const UNIMPLEMENTED_TERMINATION = Object.freeze({
   closeWindow: 'unimplemented',
@@ -77,10 +82,11 @@ export interface ApplicationLifecycleCompositionRoot {
     commandId: ApplicationCommandId,
   ): Promise<ApplicationCommandDispatchResult<void>>
   dispatch(commandId: string): Promise<ApplicationCommandDispatchResult<void>>
-  establishPathlessProjectSession(
-    project: SavedProject,
-    route?: ProjectSessionEditorRoute,
-  ): boolean
+  synchronizeCurrentProject(input: Readonly<{
+    sessionId: ProjectSessionId
+    kind: EditorProjectType
+    project: SavedProject
+  }>): 'synchronized' | 'no-op' | 'stale-session' | 'wrong-kind' | 'invalid'
   subscribe(subscriber: ApplicationLifecycleCompositionSubscriber): () => void
   listRegisteredCommandIds(): readonly ApplicationCommandId[]
   dispose(): void
@@ -245,19 +251,34 @@ export function createApplicationLifecycleCompositionRoot(
         undefined,
       )
     },
-    establishPathlessProjectSession(
-      project: SavedProject,
-      route?: ProjectSessionEditorRoute,
-    ) {
-      if (disposed || busyCoordinator.getState().occupiedScopes.length > 0) return false
+    synchronizeCurrentProject(input: Readonly<{
+      sessionId: ProjectSessionId
+      kind: EditorProjectType
+      project: SavedProject
+    }>) {
+      if (disposed) return 'invalid'
+
       const snapshot = stateStore.getSnapshot()
-      const result = stateStore.commitTransition(snapshot.generation, () =>
-        createNewProjectSession({
-          sessionId: createSessionId(),
-          project,
-          ...(route ? { lastEditorRoute: route } : {}),
-        }))
-      return result.status === 'committed'
+      const session = snapshot.state.activeSession
+      if (!session || session.id !== input.sessionId) return 'stale-session'
+      if (session.kind !== input.kind) return 'wrong-kind'
+
+      let result
+      try {
+        const project = captureNormalizedProjectSnapshot(input.project)
+        if (getNormalizedProjectKind(project) !== input.kind) return 'wrong-kind'
+        result = stateStore.commitTransition(snapshot.generation, (state) =>
+          synchronizeActiveProjectContent(state, {
+            ...input,
+            project: project as unknown as SavedProject,
+          }))
+      } catch {
+        return 'invalid'
+      }
+
+      if (result.status === 'committed') return 'synchronized'
+      if (result.status === 'no-op') return 'no-op'
+      return 'stale-session'
     },
     subscribe(subscriber: ApplicationLifecycleCompositionSubscriber) {
       if (disposed) {

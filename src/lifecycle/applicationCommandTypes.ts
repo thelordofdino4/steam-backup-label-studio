@@ -85,6 +85,7 @@ export const COMMAND_BUSY_SCOPES = Object.freeze([
   'lifecycle.transition',
   'workspace.navigation',
   'dialog.project-file',
+  'dialog.project-replacement',
   'persistence.read',
   'persistence.write',
   'application.termination',

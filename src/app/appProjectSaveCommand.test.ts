@@ -4,6 +4,9 @@ import test from 'node:test'
 import {
   createApplicationLifecycleCompositionRoot,
 } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
+import type {
+  ApplicationLifecycleCommandContext,
+} from '../lifecycle/applicationLifecycleCommandPorts.ts'
 import {
   createEmptyApplicationLifecycleState,
   createLoadedProjectSession,
@@ -74,18 +77,14 @@ type WriteInput = Parameters<ProjectPackageWritePort['encodeAndWrite']>[0]
 
 function createHarness(options: Readonly<{
   state: ApplicationLifecycleState
-  currentProject?: SavedProject
   dialogResult?: string | null
   write?: (input: WriteInput) => Promise<ProjectFileCommandSuccess>
 }>) {
-  let currentProject = options.currentProject ??
-    options.state.activeSession!.project as SavedProject
   const dialogCalls: Array<Parameters<
     ApplicationProjectSaveRuntimeDependencies['saveDialog']
   >[0]> = []
   const writeCalls: WriteInput[] = []
   const dependencies: ApplicationProjectSaveRuntimeDependencies = {
-    captureCurrentProject: () => currentProject,
     saveDialog: async (dialogOptions) => {
       dialogCalls.push(dialogOptions)
       return options.dialogResult ?? null
@@ -111,8 +110,14 @@ function createHarness(options: Readonly<{
     root,
     dialogCalls,
     writeCalls,
-    setCurrentProject(project: SavedProject) {
-      currentProject = project
+    synchronizeCurrentProject(project: SavedProject) {
+      const session = root.getLifecycleState().activeSession
+      assert.ok(session)
+      return root.synchronizeCurrentProject({
+        sessionId: session.id,
+        kind: session.kind,
+        project,
+      })
     },
   }
 }
@@ -207,7 +212,6 @@ test('clean direct package Save succeeds when baseline adoption is already exact
 test('Save and Save As are unavailable without an active session', async () => {
   const harness = createHarness({
     state: createEmptyApplicationLifecycleState(),
-    currentProject: discProject(),
   })
   for (const commandId of ['project.save', 'project.save-as']) {
     const result = await harness.root.dispatch(commandId)
@@ -257,31 +261,27 @@ test('wrong suffix and cancellation perform no write or lifecycle adoption', asy
   }
 })
 
-test('a mismatched editor aggregate is rejected before package writing', async () => {
+test('direct Save uses the lifecycle-owned project without an editor capture port', async () => {
   const initial = stateFor(
     discProject('Authorized Disc'),
     'sbls-package-v1',
     'authorized.sbls',
   )
-  const harness = createHarness({
-    state: initial,
-    currentProject: createBlankJewelCaseSavedProject('Wrong Case'),
-  })
-  const before = harness.root.getStateSnapshot()
+  const harness = createHarness({ state: initial })
   const result = await harness.root.dispatch('project.save')
 
-  assert.equal(harness.writeCalls.length, 0)
-  assert.equal(harness.root.getStateSnapshot(), before)
+  assert.equal(harness.writeCalls.length, 1)
+  assert.equal(
+    harness.writeCalls[0].normalizedProject.title,
+    'Authorized Disc',
+  )
   assert.equal(result.disposition, 'executed')
   if (result.disposition === 'executed') {
-    assert.equal(result.result.status, 'failure')
-    if (result.result.status === 'failure') {
-      assert.equal(result.result.error.code, 'project.save-stale-session')
-    }
+    assert.equal(result.result.status, 'success')
   }
 })
 
-test('a replacement editor aggregate after commit cannot adopt the written baseline', async () => {
+test('wrong-kind synchronization during a write cannot mutate the active session', async () => {
   let resolveWrite!: () => void
   const writeGate = new Promise<void>((resolve) => {
     resolveWrite = resolve
@@ -298,21 +298,23 @@ test('a replacement editor aggregate after commit cannot adopt the written basel
       return { status: 'success' }
     },
   })
-  const before = harness.root.getStateSnapshot()
   const save = harness.root.dispatch('project.save')
   await new Promise((resolve) => setImmediate(resolve))
-  harness.setCurrentProject(createBlankJewelCaseSavedProject('Replacement Case'))
+  const before = harness.root.getStateSnapshot()
+  assert.equal(
+    harness.synchronizeCurrentProject(
+      createBlankJewelCaseSavedProject('Replacement Case'),
+    ),
+    'wrong-kind',
+  )
+  assert.equal(harness.root.getStateSnapshot(), before)
   resolveWrite()
   const result = await save
 
   assert.equal(harness.writeCalls.length, 1)
-  assert.equal(harness.root.getStateSnapshot(), before)
   assert.equal(result.disposition, 'executed')
   if (result.disposition === 'executed') {
-    assert.equal(result.result.status, 'failure')
-    if (result.result.status === 'failure') {
-      assert.equal(result.result.error.code, 'project.save-stale-session')
-    }
+    assert.equal(result.result.status, 'success')
   }
 })
 
@@ -323,8 +325,7 @@ test('successful Save As adopts path, format, and exact written baseline after c
   })
   const written = discProject('Written R')
   const harness = createHarness({
-    state: stateFor(discProject('Legacy'), 'legacy-json', 'legacy.json'),
-    currentProject: written,
+    state: stateFor(written, 'legacy-json', 'legacy.json'),
     dialogResult: 'converted.SBLS',
     write: async () => {
       await writeGate
@@ -361,7 +362,6 @@ test('an edit made while snapshot R writes remains current and dirty', async () 
   const latestR1 = discProject('Revision R+1', '2026-07-29T00:01:00.000Z')
   const harness = createHarness({
     state: stateFor(writtenR, 'sbls-package-v1', 'direct.sbls'),
-    currentProject: writtenR,
     write: async () => {
       await writeGate
       return { status: 'success' }
@@ -370,7 +370,7 @@ test('an edit made while snapshot R writes remains current and dirty', async () 
 
   const first = harness.root.dispatch('project.save')
   await new Promise((resolve) => setImmediate(resolve))
-  harness.setCurrentProject(latestR1)
+  assert.equal(harness.synchronizeCurrentProject(latestR1), 'synchronized')
   const repeated = await harness.root.dispatch('project.save')
   assert.equal(repeated.disposition, 'not-executed')
   assert.equal(harness.writeCalls.length, 1)
@@ -382,6 +382,62 @@ test('an edit made while snapshot R writes remains current and dirty', async () 
   assert.equal(session.cleanBaseline?.exactSnapshot.title, 'Revision R')
   assert.equal(session.revision, 1)
   assert.equal(selectIsActiveProjectDirty(harness.root.getLifecycleState()), true)
+})
+
+test('a replaced session cannot adopt path, format, or baseline after commit', async () => {
+  const initial = stateFor(
+    discProject('Written session'),
+    'sbls-package-v1',
+    'written.sbls',
+  )
+  const replacement = createNewProjectSession({
+    sessionId: 'replacement-session',
+    project: discProject('Replacement session'),
+  })
+  let state = initial
+  let generation = 0
+  const owners = createApplicationProjectSaveCommandOwners(() => ({
+    saveDialog: async () => null,
+    packageWrite: {
+      async encodeAndWrite() {
+        state = replacement
+        generation += 1
+        return { status: 'success' }
+      },
+    },
+  }))
+  assert.equal(owners.saveProject.availability, 'implemented')
+  if (owners.saveProject.availability !== 'implemented') return
+  const context: ApplicationLifecycleCommandContext = {
+    commandId: 'project.save',
+    stateSnapshot: { generation, state },
+    getCurrentStateSnapshot: () => ({ generation, state }),
+    commitState: () => {
+      throw new Error('A stale session must be rejected before adoption.')
+    },
+    createSessionId: () => 'unused-session',
+  }
+
+  const result = await owners.saveProject.executeSaveProject(
+    context,
+    undefined,
+    {
+      id: 'stale-save',
+      commandId: 'project.save',
+      rootScopes: ['lifecycle.transition', 'persistence.write'],
+      ownsScope: () => true,
+      withScopes: async (_scopes, run) => run(),
+    },
+  )
+
+  assert.equal(result.status, 'failure')
+  if (result.status === 'failure') {
+    assert.equal(result.error.code, 'project.save-stale-session')
+  }
+  assert.equal(state.activeSession?.id, 'replacement-session')
+  assert.equal(state.activeSession?.currentPath, null)
+  assert.equal(state.activeSession?.persistenceFormat, null)
+  assert.equal(state.activeSession?.cleanBaseline, null)
 })
 
 test('failed writes preserve the complete prior session and safe taxonomy', async () => {

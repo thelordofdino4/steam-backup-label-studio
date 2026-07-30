@@ -191,8 +191,8 @@ test('App clears transient activation on resets and restores staged Disc activat
     'utf8',
   )
 
-  assert.match(source, /function resetDiscProjectState\(\)[\s\S]*?clearActivePreset\(\)/)
-  assert.match(source, /function resetCaseInsertProjectState\(\)[\s\S]*?clearActivePreset\(\)/)
+  assert.match(source, /function resetDiscProjectState\([^)]*\)[\s\S]*?clearActivePreset\(\)/)
+  assert.match(source, /function resetCaseInsertProjectState\([^)]*\)[\s\S]*?clearActivePreset\(\)/)
   assert.match(
     source,
     /function handleReturnToHome\(\)[\s\S]*?clearActivePreset\(\)[\s\S]*?setActiveWorkspace\('home'\)/,

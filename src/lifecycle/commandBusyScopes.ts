@@ -8,13 +8,15 @@ const BUSY_SCOPE_ORDER: Readonly<Record<CommandBusyScope, number>> = Object.free
   'lifecycle.transition': 10,
   'workspace.navigation': 20,
   'dialog.project-file': 30,
-  'persistence.read': 40,
-  'persistence.write': 50,
-  'application.termination': 60,
+  'dialog.project-replacement': 40,
+  'persistence.read': 50,
+  'persistence.write': 60,
+  'application.termination': 70,
 })
 
 const CHILD_LIFECYCLE_SCOPES = new Set<CommandBusyScope>([
   'dialog.project-file',
+  'dialog.project-replacement',
   'persistence.read',
   'persistence.write',
   'application.termination',

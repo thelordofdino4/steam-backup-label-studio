@@ -14,6 +14,10 @@ import type {
   StagedProjectOpenCandidate,
 } from './appProjectLoad.ts'
 import type { SavedProject } from '../project/projectTypes.ts'
+import type { ProjectReplacementGuard } from './appProjectReplacementGuard.ts'
+import {
+  isProjectReplacementAuthorizationCurrent,
+} from './appProjectReplacementGuard.ts'
 
 export type ApplicationProjectOpenRuntimeDependencies = Readonly<{
   stageCandidate(): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>>
@@ -42,10 +46,11 @@ function failure(
 
 export function createApplicationProjectOpenCommandOwner(
   getRuntimeDependencies: GetRuntimeDependencies,
+  replacementGuard: ProjectReplacementGuard,
 ): OpenProjectCommandOwner {
   return Object.freeze({
     availability: 'implemented',
-    async executeOpenProject(context) {
+    async executeOpenProject(context, _input, operation) {
       const dependencies = getRuntimeDependencies()
       if (!dependencies) {
         return failure(
@@ -59,16 +64,6 @@ export function createApplicationProjectOpenCommandOwner(
       if (staged.status !== 'success') return staged
 
       const candidate = staged.value
-      const latestSnapshot = context.getCurrentStateSnapshot()
-
-      if (latestSnapshot.state.activeSession) {
-        return failure(
-          'project.open-replacement-guard-unimplemented',
-          'Opening another project is unavailable until unsaved-change protection is ready.',
-          'A lifecycle-backed session exists, but the dirty-aware replacement guard is not implemented.',
-        )
-      }
-
       let prepared: ApplicationCommandResult<
         PreparedApplicationEditorAggregateApply
       >
@@ -84,12 +79,30 @@ export function createApplicationProjectOpenCommandOwner(
       }
       if (prepared.status !== 'success') return prepared
 
+      const guarded = await replacementGuard(context, operation)
+      if (guarded.status !== 'success') return guarded
+
+      const latestSnapshot = context.getCurrentStateSnapshot()
+      if (!isProjectReplacementAuthorizationCurrent(
+        latestSnapshot.state,
+        guarded.value,
+      )) {
+        return failure(
+          'project.open-stale-state',
+          'The active project changed while Open Project was in progress.',
+          'The final replacement authorization no longer matches the lifecycle session.',
+        )
+      }
+
       let commit
       try {
         commit = prepared.value.commitLifecycleAndApply(() =>
           context.commitState(
             latestSnapshot.generation,
-            () => createLoadedProjectSession({
+            (state) => isProjectReplacementAuthorizationCurrent(
+              state,
+              guarded.value,
+            ) ? createLoadedProjectSession({
               sessionId: context.createSessionId(),
               // The canonical snapshot is schema-validated and cloned again by
               // createLoadedProjectSession; this cast only bridges mutable legacy
@@ -98,7 +111,7 @@ export function createApplicationProjectOpenCommandOwner(
               currentPath: candidate.selectedPath,
               persistenceFormat: candidate.persistenceFormat,
               lastEditorRoute: candidate.editorRoute,
-            }),
+            }) : state,
           ))
       } catch (error) {
         return failure(

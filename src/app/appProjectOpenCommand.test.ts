@@ -6,7 +6,10 @@ import {
 import {
   createApplicationLifecycleCompositionRoot,
 } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
-import { canSaveProjectSessionDirectly } from '../lifecycle/projectSession.ts'
+import {
+  canSaveProjectSessionDirectly,
+  createNewProjectSession,
+} from '../lifecycle/projectSession.ts'
 import {
   commandFailed,
   commandSucceeded,
@@ -18,7 +21,6 @@ import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
 import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
-import type { SavedProject } from '../project/projectTypes.ts'
 import {
   stageAppProjectOpen,
   type StagedProjectOpenCandidate,
@@ -28,6 +30,11 @@ import {
   type ApplicationProjectOpenRuntimeDependencies,
 } from './appProjectOpenCommand.ts'
 import { createApplicationProjectSaveCommandOwners } from './appProjectSaveCommand.ts'
+import {
+  createProjectReplacementGuard,
+  type ProjectReplacementGuard,
+} from './appProjectReplacementGuard.ts'
+import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
 
 function discContents(): string {
   return JSON.stringify({
@@ -84,6 +91,13 @@ function dependenciesFor(
   }
 }
 
+const authorizeCurrentReplacement: ProjectReplacementGuard = async (context) => {
+  const session = context.getCurrentStateSnapshot().state.activeSession
+  return commandSucceeded(session
+    ? { sessionId: session.id, revision: session.revision }
+    : { sessionId: null, revision: null })
+}
+
 for (const projectType of ['disc', 'caseInsert'] as const) {
   test(`successful ${projectType} Open creates one exact clean path-bearing session`, async () => {
     const path = `C:\\projects\\${projectType}.sbls.json`
@@ -94,6 +108,7 @@ for (const projectType of ['disc', 'caseInsert'] as const) {
     const applied: StagedProjectOpenCandidate[] = []
     const owner = createApplicationProjectOpenCommandOwner(
       () => dependenciesFor(candidate, applied),
+      authorizeCurrentReplacement,
     )
     const root = createApplicationLifecycleCompositionRoot({
       ports: { openProject: owner },
@@ -136,8 +151,6 @@ for (const [openedPath, expectedDialogCount] of [
     const writtenPaths: string[] = []
     let dialogCount = 0
     const saveOwners = createApplicationProjectSaveCommandOwners(() => ({
-      captureCurrentProject: () =>
-        candidate.normalizedProject as unknown as SavedProject,
       saveDialog: async () => {
         dialogCount += 1
         return 'C:\\projects\\rerouted.sbls'
@@ -153,6 +166,7 @@ for (const [openedPath, expectedDialogCount] of [
       ports: {
         openProject: createApplicationProjectOpenCommandOwner(
           () => dependenciesFor(candidate, []),
+          authorizeCurrentReplacement,
         ),
         saveProject: saveOwners.saveProject,
         saveProjectAs: saveOwners.saveProjectAs,
@@ -196,7 +210,7 @@ test('failed package Open preserves an existing destination and clean baseline',
         return result
       },
     }),
-  }))
+  }), authorizeCurrentReplacement)
   const root = createApplicationLifecycleCompositionRoot({
     ports: { openProject: owner },
   })
@@ -247,6 +261,7 @@ for (const projectType of ['disc', 'caseInsert'] as const) {
         ports: {
           openProject: createApplicationProjectOpenCommandOwner(
             () => dependenciesFor(candidate, applied),
+            authorizeCurrentReplacement,
           ),
         },
         createSessionId: () => {
@@ -295,7 +310,7 @@ test('stale lifecycle CAS does not apply the staged editor candidate', async () 
         return result
       },
     }),
-  }))
+  }), authorizeCurrentReplacement)
   assert.equal(owner.availability, 'implemented')
   if (owner.availability !== 'implemented') return
   let commitCount = 0
@@ -358,7 +373,7 @@ test('cancelled and failed staging preserve lifecycle and editor state', async (
           },
         })
       },
-    }))
+    }), authorizeCurrentReplacement)
     const root = createApplicationLifecycleCompositionRoot({
       ports: { openProject: owner },
     })
@@ -383,7 +398,7 @@ test('editor apply precondition failure preserves lifecycle and editor state', a
       userMessage: 'The opened project could not be applied to the editor.',
       recoverable: true,
     }),
-  }))
+  }), authorizeCurrentReplacement)
   const root = createApplicationLifecycleCompositionRoot({
     ports: { openProject: owner },
   })
@@ -407,7 +422,7 @@ test('editor apply precondition failure preserves lifecycle and editor state', a
   assert.equal(root.getStateSnapshot().generation, 0)
 })
 
-test('an authoritative active session returns the stable missing-guard result', async () => {
+test('an authorized active session is replaced atomically by Open', async () => {
   const first = await candidateFor(discContents(), 'first.json')
   const second = await candidateFor(discContents(), 'second.json')
   let nextCandidate = first
@@ -422,26 +437,132 @@ test('an authoritative active session returns the stable missing-guard result', 
         return result
       },
     }),
-  }))
+  }), authorizeCurrentReplacement)
   const root = createApplicationLifecycleCompositionRoot({
     ports: { openProject: owner },
   })
   await root.dispatch('project.open')
   nextCandidate = second
+  const beforeSessionId = root.getLifecycleState().activeSession?.id
+
+  const result = await root.dispatch('project.open')
+
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed') {
+    assert.equal(result.result.status, 'success')
+  }
+  assert.notEqual(root.getLifecycleState().activeSession?.id, beforeSessionId)
+  assert.equal(root.getLifecycleState().activeSession?.currentPath, 'second.json')
+  assert.equal(applyCount, 2)
+})
+
+test('dirty Open stages and prepares before one shared guard, and Cancel changes nothing', async () => {
+  const candidate = await candidateFor(discContents(), 'candidate.json')
+  const initial = createNewProjectSession({
+    sessionId: 'dirty-open',
+    project: createBlankDiscSavedProject(),
+  })
+  const order: string[] = []
+  let applyCount = 0
+  const guard = createProjectReplacementGuard(
+    () => ({
+      promptForReplacementDecision: async () => {
+        order.push('guard')
+        return 'cancel'
+      },
+    }),
+    async () => {
+      throw new Error('Save was not selected.')
+    },
+  )
+  const owner = createApplicationProjectOpenCommandOwner(() => ({
+    stageCandidate: async () => {
+      order.push('stage')
+      return commandSucceeded(candidate)
+    },
+    prepareEditorAggregateApply: () => {
+      order.push('prepare')
+      return commandSucceeded({
+        commitLifecycleAndApply(commitLifecycle) {
+          applyCount += 1
+          return commitLifecycle()
+        },
+      })
+    },
+  }), guard)
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: initial,
+    ports: { openProject: owner },
+  })
   const before = root.getStateSnapshot()
 
   const result = await root.dispatch('project.open')
 
   assert.equal(result.disposition, 'executed')
   if (result.disposition === 'executed') {
-    assert.equal(result.result.status, 'failure')
-    if (result.result.status === 'failure') {
-      assert.equal(
-        result.result.error.code,
-        'project.open-replacement-guard-unimplemented',
-      )
-    }
+    assert.equal(result.result.status, 'declined')
   }
+  assert.deepEqual(order, ['stage', 'prepare', 'guard'])
   assert.equal(root.getStateSnapshot(), before)
-  assert.equal(applyCount, 1)
+  assert.equal(applyCount, 0)
 })
+
+for (const persistenceFormat of ['legacy-json', 'sbls-package-v1'] as const) {
+  test(`dirty Open Discard atomically commits truthful ${persistenceFormat} identity`, async () => {
+    const path = persistenceFormat === 'legacy-json'
+      ? 'replacement.json'
+      : 'replacement.sbls'
+    const candidate = await candidateFor(
+      discContents(),
+      path,
+      persistenceFormat,
+    )
+    const initial = createNewProjectSession({
+      sessionId: 'discard-open',
+      project: createBlankDiscSavedProject(),
+    })
+    let promptCount = 0
+    let applyCount = 0
+    let sessionIdCount = 0
+    const guard = createProjectReplacementGuard(
+      () => ({
+        promptForReplacementDecision: async () => {
+          promptCount += 1
+          return 'discard'
+        },
+      }),
+      async () => commandSucceeded(undefined),
+    )
+    const owner = createApplicationProjectOpenCommandOwner(() => ({
+      stageCandidate: async () => commandSucceeded(candidate),
+      prepareEditorAggregateApply: () => commandSucceeded({
+        commitLifecycleAndApply(commitLifecycle) {
+          const commit = commitLifecycle()
+          if (commit.status === 'committed') applyCount += 1
+          return commit
+        },
+      }),
+    }), guard)
+    const root = createApplicationLifecycleCompositionRoot({
+      initialState: initial,
+      ports: { openProject: owner },
+      createSessionId: () => {
+        sessionIdCount += 1
+        return 'opened-replacement'
+      },
+    })
+
+    const result = await root.dispatch('project.open')
+
+    assert.equal(result.disposition, 'executed')
+    assert.equal(promptCount, 1)
+    assert.equal(applyCount, 1)
+    assert.equal(sessionIdCount, 1)
+    const session = root.getLifecycleState().activeSession
+    assert.equal(session?.id, 'opened-replacement')
+    assert.equal(session?.currentPath, path)
+    assert.equal(session?.persistenceFormat, persistenceFormat)
+    assert.equal(session?.revision, 0)
+    assert.deepEqual(session?.cleanBaseline?.exactSnapshot, session?.project)
+  })
+}

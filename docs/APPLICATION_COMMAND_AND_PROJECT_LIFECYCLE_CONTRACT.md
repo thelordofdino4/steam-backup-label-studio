@@ -4,23 +4,31 @@
 > Purpose: Define application-command semantics, the single-project session lifecycle, dirty/baseline rules, lifecycle guards, and shared result/feedback boundaries for future implementation.
 > Read when: Application commands, Home/editor navigation, project New/Open/Save/Save As/Close behavior, native close/Quit handling, global shortcuts, or lifecycle feedback are being designed or changed.
 > Authoritative source: This document for the target application-command and project-session contract; `PROJECT_FILE_SPEC.md` remains authoritative for hydrated serialized project schema, `PROJECT_PACKAGE_FORMAT_CONTRACT.md` owns target package/container behavior, and the SDD remains authoritative for broader architecture and current as-built boundaries.
-> Evidence baseline: PR #325 merged to `main` at `b69ce9e905041796c318c059e55cc030a587d962`, plus the focused production package-Open checkpoint documented below.
+> Evidence baseline: PR #326 merged to `main` at `4db227266695ee0b35d33e1f88e82cd88ad85034`, plus the focused current-project synchronization and replacement-guard checkpoint documented below.
 
-Last refreshed: 2026-07-28.
+Last refreshed: 2026-07-29.
 
 Implementation checkpoint, 2026-07-29: one production lifecycle composition
-root is mounted at the React application boundary. `project.open`,
-`project.save`, and `project.save-as` have production owners. Open recognizes
+root is mounted at the React application boundary. `project.new-disc`,
+`project.new-case`, `project.open`, `project.save`, and `project.save-as` have
+production owners. Open recognizes
 package versus legacy content natively, stages one immutable Disc or Case Insert
 candidate through the shared owner, and commits a path-bearing clean session
-with truthful `sbls-package-v1` or `legacy-json` identity. Save and Save As capture one immutable current aggregate,
+with truthful `sbls-package-v1` or `legacy-json` identity. After every committed
+React editor update, one focused boundary synchronizes the complete normalized
+Disc or Case aggregate into the active session; canonical equality is a
+revision/publication no-op. Save and Save As capture immutable snapshot `R`
+from that lifecycle-owned current project,
 write `.sbls` package bytes through the native codec/atomic-writer composition,
 and adopt `sbls-package-v1`, the committed path, and the exact written baseline
-only after success. Newer edits remain current and dirty.
+only after success. They perform no post-commit editor recapture. If current
+content advances to `R+1` while `R` writes, `R+1` remains current, baseline `R`
+is adopted, and the session remains dirty.
 
-The dirty-aware replacement guard, Home Resume, Close Project, native Close
-Window/Quit, global feedback, and application menu
-remain absent.
+New Disc, New Case, and Open consume one shared dirty-aware
+Save/Discard/Cancel guard with session-ID/revision authorization. Home Resume,
+Close Project, guarded native Close Window/Quit, global feedback, shortcuts,
+history, and native application-menu construction remain absent.
 
 Production Open exposes `.sbls` and `.json` chooser affordances, uses a focused
 bounded native recognizer, and calls the existing native-owned bounded package
@@ -116,14 +124,15 @@ slice.
 | Current fact / later checkpoint correction | Evidence | Architectural consequence |
 | --- | --- | --- |
 | Historical “Save Project” was dialog-only JSON Save As. The current Project File control dispatches `project.save`; `project.save-as` is a distinct semantic owner. Only a truthful package session with an eligible `.sbls` path writes directly, while pathless, legacy, and wrong-suffix sessions route internally through Save As. A successful clean direct write remains successful when baseline adoption is already a semantic no-op. | `src/app/appProjectSaveCommand.ts`, `src/app/App.tsx`, focused tests | The production bypass was removed without adding menu presentation. |
-| A project successfully accepted through `project.open` receives an authoritative session ID, selected path, content-recognized `legacy-json` or `sbls-package-v1`, exact normalized project and clean baseline, revision zero, and editor route. New projects establish pathless sessions with null persistence identity. Successful package writes preserve the session ID and adopt `sbls-package-v1` only after commit. | `src/app/appProjectLoad.ts`, `src/app/appProjectOpenCommand.ts`, `src/app/appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for replacement guards, Resume, Close, and broader lifecycle completion. |
-| New Disc inside the Disc editor always asks for confirmation; Home New Disc/New Case reset immediately; Return Home asks separately while retaining current hook/App state. | `src/app/App.tsx`, `src/components/home/HomeScreen.tsx` | New/Open/Home do not consume one shared dirty-aware guard. |
+| A project successfully accepted through `project.open` receives an authoritative session ID, selected path, content-recognized `legacy-json` or `sbls-package-v1`, exact normalized project and clean baseline, revision zero, and editor route. New Disc/New Case establish pathless, baseline-less, dirty sessions with null persistence identity. Successful package writes preserve the session ID and adopt `sbls-package-v1` only after commit. | `src/app/appProjectLoad.ts`, `src/app/appProjectOpenCommand.ts`, `src/app/appProjectNewCommand.ts`, `src/app/appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for Home Resume, Close, termination, feedback, and broader lifecycle completion. |
+| Disc and Case editor owners still own their editable React state. A committed-render adapter supplies one complete normalized aggregate to `synchronizeCurrentProject`; equal canonical content is a reference/state/revision/publication no-op, while a real content change preserves session metadata and advances revision once. | `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleCompositionRoot.ts`, focused tests | The lifecycle session is now the authoritative Save/dirty source without moving editor state into a reducer. Session-only route, pane, focus, zoom, selection, modal, and workflow-host state stays outside dirty comparison. |
+| Home, Disc, and Case New controls dispatch `project.new-disc` or `project.new-case`; all current Load controls dispatch `project.open`. These three owners stage/prepare a complete candidate, consume one shared dirty-aware Save/Discard/Cancel guard when necessary, recheck session ID/revision, and commit lifecycle/editor state atomically. | `src/app/appProjectNewCommand.ts`, `src/app/appProjectReplacementGuard.ts`, `src/app/appProjectOpenCommand.ts`, `src/components/project/ProjectReplacementDialog.tsx`, `src/app/App.tsx` | #303's always-prompt direction is superseded in production for New/Open. Return Home and later Close/termination remain separate #308 work. |
 | Open now completes dialog, read, parse, validation/migration, route resolution, Disc image inspection, restoration, preset reconstruction, and Case branding projection before returning one immutable discriminated candidate. Its lifecycle CAS and complete editor aggregate are then scheduled inside one React batch; stale CAS applies no editor state. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, `src/app/appProjectOpenCommand.ts`, focused tests | The two-phase Open and atomic application seam is runtime-connected for current Home, Disc, and Case Load controls. |
 | Production Open calls a focused native content recognizer, then either the legacy text reader or the bounded native package reader/codec. The package branch transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open without fallback after a package failure. | `src-tauri/src/project_format_recognition.rs`, `src-tauri/src/commands/project_files.rs`, `src-tauri/src/commands/project_packages.rs`, `src/tauri/projectFileFormat.ts`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing, restoration, and lifecycle commit stay shared. Extensions affect chooser visibility and Save eligibility, never Open identity. |
 | `project.open`, `project.save`, and `project.save-as` return the shared typed result taxonomy through the dispatcher. Narrow presentation adapters forward at most one message to the existing status owner. | `src/app/appProjectOpenFeedback.ts`, `src/app/appProjectSaveCommand.ts`, `src/app/App.tsx` | #300 remains applicable because the shared global feedback owner is not implemented. |
 | Status toasts are rendered by editor previews. Home has a separate status message, but Home-triggered Open cancellation/failure only calls the preview-oriented announcer. | `src/hooks/useStatusToasts.ts`, `src/components/preview/PreviewToastStack.tsx`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx` | Home can miss meaningful Open feedback; #300 remains applicable. |
 | Rust project writes delegate opaque bytes to a focused same-directory temporary-write-and-replace owner. The package write command fully encodes first, then passes the owned package buffer directly to that writer; conversion adds native source/destination identity preflight and a final pre-commit recheck. | `src-tauri/src/commands/project_packages.rs`, `src-tauri/src/legacy_project_identity.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | #312 remains the atomic primitive owner; the new composition does not move package or lifecycle semantics into filesystem code. |
-| `src/main.tsx` constructs one application-scoped lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed Open and Save adapters without recreating the root. Open, Save, and Save As are production ports; native Tauri/application-menu presentation does not consume the root. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, focused tests | The persistence foundation is connected without claiming replacement, Resume, native menu, termination, recovery, or history ownership. |
+| `src/main.tsx` constructs one application-scoped lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed New/Open/Save/guard adapters without recreating the root. New Disc, New Case, Open, Save, and Save As are production ports; native Tauri/application-menu presentation does not consume the root. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, focused tests | The current-project and replacement foundation is connected without claiming Resume, Close, native menu, termination, recovery, or history ownership. |
 | Text controls have browser/native editing behavior, but no application-level project history owner exists. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
 | PNG export asks for a destination, then builds preflight, then always opens a confirmation dialog, including when no warning exists. | `src/app/appPngExport.ts`, `src/app/appPngExport.test.ts` | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) owns the stricter target order, with #302 as focused implementation work; this lifecycle contract supplies shared vocabulary only. |
 | The runtime case navigation identity is Front/Back/Spine, while saved project data stores only the coarser Cover/Tray pane. Back versus Spine is not restorable. | `src/editor/editorNavigationShell.ts`, `src/app/App.tsx`, `src/project/caseInsertProjectAdapters.ts`, `src/project/projectTypes.ts` | Full navigation identity is session/UI state. The existing coarse persisted pane remains a schema compatibility fact until separately changed. |
@@ -532,7 +541,10 @@ The user-visible persistence invariant is:
   baseline until write/commit succeeds;
 - a failed encode/write changes neither current path, persistence format, nor
   clean baseline;
-- the write consumes one immutable normalized snapshot, not live mutable state.
+- the write consumes one immutable lifecycle-owned normalized snapshot, not
+  live mutable state;
+- after native commit, baseline/path/format adoption reads only lifecycle state
+  and performs no second fallible editor capture.
 
 This contract owns those invariants. The focused #312 implementation selects an
 adjacent exclusive temporary file followed by one platform namespace commit:
@@ -750,7 +762,8 @@ Dependency-focused implementation order:
    is mounted at the React application boundary.
 2. Typed command results, registry/dispatcher, centralized state and
    implementation-aware predicates, and lifecycle busy ownership are present;
-   `project.open`, `project.save`, and `project.save-as` are production ports.
+   `project.new-disc`, `project.new-case`, `project.open`, `project.save`, and
+   `project.save-as` are production ports.
 3. The atomic persistence primitive implemented under #312 is present and
    retained by the registered legacy text path. Dormant bounded binary project
    read/write adapters and native package read/decode plus shared mutation-free
@@ -760,8 +773,9 @@ Dependency-focused implementation order:
 5. Session format identity, package Save/Save As, exact baseline adoption,
    legacy-source protection, and content-recognized package/legacy Open are
    present.
-6. The dirty-aware replacement guard under #308.
-7. Home Resume and global feedback, including #300.
+6. Complete current-project synchronization and the dirty-aware replacement
+   guard for New Disc, New Case, and Open are present under #308.
+7. Home Return/Resume and global Home/editor feedback, including #300.
 8. Native Close Window/Quit adapter with one-use termination authorization.
 9. Shortcut router, #298 focus behavior, and future menu adapters.
 10. Transaction/history owner when separately designed.
