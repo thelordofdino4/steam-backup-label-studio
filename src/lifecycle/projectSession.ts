@@ -74,6 +74,12 @@ export type AdoptSavedBaselineInput = Readonly<{
   displayName?: string
 }>
 
+export type SynchronizeProjectContentInput = Readonly<{
+  sessionId: ProjectSessionId
+  kind: EditorProjectType
+  project: SavedProject
+}>
+
 function defaultEditorRoute(kind: EditorProjectType): ProjectSessionEditorRoute {
   return kind === 'disc'
     ? Object.freeze({ workspace: 'disc' })
@@ -237,6 +243,13 @@ export function replaceActiveProjectContent(
   const project = captureNormalizedProjectSnapshot(replacement)
   assertSameProjectKind(session.kind, project)
 
+  if (
+    createCanonicalProjectComparisonValue(project) ===
+      createCanonicalProjectComparisonValue(session.project)
+  ) {
+    return state
+  }
+
   return Object.freeze({
     ...state,
     activeSession: Object.freeze({
@@ -245,6 +258,33 @@ export function replaceActiveProjectContent(
       revision: session.revision + 1,
     }),
   })
+}
+
+/**
+ * Synchronizes one complete editor-owned aggregate into the active lifecycle
+ * session. Stale sessions and mismatched project kinds are semantic no-ops so
+ * a committed React render can never overwrite a replacement session.
+ */
+export function synchronizeActiveProjectContent(
+  state: ApplicationLifecycleState,
+  input: SynchronizeProjectContentInput,
+): ApplicationLifecycleState {
+  const session = state.activeSession
+  if (
+    !session ||
+    session.id !== input.sessionId ||
+    session.kind !== input.kind
+  ) {
+    return state
+  }
+
+  const project = captureNormalizedProjectSnapshot(input.project)
+  if (getNormalizedProjectKind(project) !== input.kind) return state
+
+  return replaceActiveProjectContent(
+    state,
+    project as unknown as SavedProject,
+  )
 }
 
 export function updateLastEditorRoute(

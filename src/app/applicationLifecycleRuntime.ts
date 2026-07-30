@@ -11,6 +11,14 @@ import {
   createApplicationProjectSaveCommandOwners,
   type ApplicationProjectSaveRuntimeDependencies,
 } from './appProjectSaveCommand.ts'
+import {
+  createProjectReplacementGuard,
+  type ApplicationProjectReplacementRuntimeDependencies,
+} from './appProjectReplacementGuard.ts'
+import {
+  createApplicationProjectNewCommandOwners,
+  type ApplicationProjectNewRuntimeDependencies,
+} from './appProjectNewCommand.ts'
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
@@ -19,6 +27,12 @@ export type ApplicationLifecycleRuntime = Readonly<{
   ): void
   updateProjectSaveDependencies(
     dependencies: ApplicationProjectSaveRuntimeDependencies,
+  ): void
+  updateProjectReplacementDependencies(
+    dependencies: ApplicationProjectReplacementRuntimeDependencies,
+  ): void
+  updateProjectNewDependencies(
+    dependencies: ApplicationProjectNewRuntimeDependencies,
   ): void
   dispose(): void
 }>
@@ -40,16 +54,30 @@ export function createApplicationLifecycleRuntime(
   let projectOpenDependencies: ApplicationProjectOpenRuntimeDependencies | null =
     null
   let projectSaveDependencies: ApplicationProjectSaveRuntimeDependencies | null = null
+  let projectReplacementDependencies:
+    ApplicationProjectReplacementRuntimeDependencies | null = null
+  let projectNewDependencies: ApplicationProjectNewRuntimeDependencies | null = null
   let disposed = false
   const createRoot = options.createRoot ??
     createApplicationLifecycleCompositionRoot
   const saveOwners = createApplicationProjectSaveCommandOwners(
     () => projectSaveDependencies,
   )
+  const replacementGuard = createProjectReplacementGuard(
+    () => projectReplacementDependencies,
+    saveOwners.saveProjectWithinOperation,
+  )
+  const newOwners = createApplicationProjectNewCommandOwners(
+    () => projectNewDependencies,
+    replacementGuard,
+  )
   const root = createRoot({
     ports: {
+      newDisc: newOwners.newDisc,
+      newCase: newOwners.newCase,
       openProject: createApplicationProjectOpenCommandOwner(
         () => projectOpenDependencies,
+        replacementGuard,
       ),
       saveProject: saveOwners.saveProject,
       saveProjectAs: saveOwners.saveProjectAs,
@@ -70,11 +98,25 @@ export function createApplicationLifecycleRuntime(
       }
       projectSaveDependencies = dependencies
     },
+    updateProjectReplacementDependencies(dependencies) {
+      if (disposed) {
+        throw new Error('The application lifecycle runtime is disposed.')
+      }
+      projectReplacementDependencies = dependencies
+    },
+    updateProjectNewDependencies(dependencies) {
+      if (disposed) {
+        throw new Error('The application lifecycle runtime is disposed.')
+      }
+      projectNewDependencies = dependencies
+    },
     dispose() {
       if (disposed) return
       disposed = true
       projectOpenDependencies = null
       projectSaveDependencies = null
+      projectReplacementDependencies = null
+      projectNewDependencies = null
       root.dispose()
     },
   })

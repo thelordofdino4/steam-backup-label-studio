@@ -4,7 +4,7 @@
 > Read when: Before refactors, ownership changes, or architecture-sensitive edits.
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
-> Package/save-load ownership refresh: PR #325 merge commit `b69ce9e905041796c318c059e55cc030a587d962` plus the focused uncommitted `agent/sbls-production-package-open` checkpoint on 2026-07-29.
+> Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -121,8 +121,14 @@ Key files:
 - `src/app/applicationLifecycleRuntime.ts`
 - `src/app/applicationLifecycleRuntimeContext.ts`
 - `src/app/useApplicationLifecycleRoot.ts`
+- `src/app/appProjectNewCommand.ts`
+- `src/app/appProjectNewEditorApply.ts`
 - `src/app/appProjectOpenCommand.ts`
 - `src/app/appProjectOpenFeedback.ts`
+- `src/app/appProjectReplacementGuard.ts`
+- `src/app/appProjectSaveCommand.ts`
+- `src/components/project/ProjectReplacementDialog.tsx`
+- `src/components/project/useProjectReplacementPrompt.ts`
 - `vite.config.ts`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/Cargo.toml`
@@ -232,9 +238,13 @@ Source-of-truth state:
   immutable state store, registry/dispatcher, busy coordinator, exhaustive
   typed command-port boundary, operation/session ID boundary, and centralized
   state/busy/termination/owner-aware capability projection. A committed-render
-  dependency ref keeps the root stable while Open/Save adapters change.
-  `project.open`, `project.save`, and `project.save-as` have production command
-  owners; the other lifecycle ports remain explicitly disabled.
+  dependency ref keeps the root stable while New/Open/Save/guard adapters
+  change. `project.new-disc`, `project.new-case`, `project.open`, `project.save`,
+  and `project.save-as` have production command owners; the other lifecycle
+  ports remain explicitly disabled. After committed React updates, a focused
+  adapter synchronizes one complete normalized Disc or Case aggregate into the
+  active lifecycle session. Canonical equality is a state/revision/publication
+  no-op.
 - `src/applicationMenu/` now owns the immutable first-release presentation-ID
   catalog, semantic-target mapping, Windows/Linux/macOS descriptor projection,
   injected capability projection, a lifecycle-root capability consumption
@@ -259,13 +269,20 @@ Save/Open path:
 
 - Project File Save dispatches `project.save`. A truthful package session with
   an eligible `.sbls` path writes directly; pathless, legacy, and wrong-suffix
-  sessions route through Save As. Commit success alone adopts path,
-  `sbls-package-v1`, and the exact written baseline.
+  sessions route through Save As. The owner writes lifecycle-owned immutable
+  snapshot `R`; commit success adopts path, `sbls-package-v1`, and baseline `R`
+  without recapturing editor state, preserving any newer current `R+1` as dirty.
 - Every Home, Disc, and Case Load control dispatches `project.open` through the
   sole root. `appProjectLoad.ts` stages one immutable candidate with no live
-  setters; `appProjectOpenCommand.ts` performs lifecycle CAS; and
+  setters; `appProjectOpenCommand.ts` prepares its editor aggregate, runs the
+  shared dirty-aware replacement guard, performs final authorization/CAS, and
   `appProjectRestore.ts` commits lifecycle notifications and the complete
   editor/route/transient aggregate inside one synchronous React batch.
+- Home, Disc, and Case New/Switch controls dispatch `project.new-disc` or
+  `project.new-case`. Both owners use the same guard and atomically establish
+  one pathless, baseline-less, dirty Disc or Case session. Guard authorization
+  is bound to captured session ID/revision, so stale Discard or Save decisions
+  cannot replace newer work.
 
 Export path:
 
@@ -1620,8 +1637,10 @@ Current `npm run test` covers these broad areas:
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
 - The runtime-connected application lifecycle composition root, state store,
   command registry/dispatcher, busy coordinator, typed command ports,
-  implementation-aware capabilities, two-phase Open staging, CAS, atomic editor
-  application, dependency freshness, and current Load-control routing; plus the runtime-disconnected application
+  implementation-aware capabilities, complete Disc/Case synchronization,
+  canonical dirty derivation, lifecycle-owned Save adoption, shared replacement
+  guard, New owners, two-phase Open staging, CAS, atomic editor application,
+  dependency freshness, and current New/Load-control routing; plus the runtime-disconnected application
   menu descriptor, semantic-target, platform/capability projection, and
   in-memory port boundary.
 - The dormant binary project-file TypeScript port's raw-byte transport,

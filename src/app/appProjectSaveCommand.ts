@@ -1,6 +1,7 @@
 import {
   commandFailed,
   commandSucceeded,
+  type ApplicationCommandOperationToken,
   type ApplicationCommandResult,
 } from '../lifecycle/applicationCommandTypes.ts'
 import type {
@@ -15,7 +16,6 @@ import {
 } from '../lifecycle/projectSession.ts'
 import {
   captureNormalizedProjectSnapshot,
-  getNormalizedProjectKind,
 } from '../lifecycle/canonicalProject.ts'
 import type { SavedProject } from '../project/projectTypes.ts'
 import {
@@ -40,7 +40,6 @@ export type ProjectPackageSaveDialog = (options: Readonly<{
 }>) => Promise<string | null>
 
 export type ApplicationProjectSaveRuntimeDependencies = Readonly<{
-  captureCurrentProject(): SavedProject
   saveDialog: ProjectPackageSaveDialog
   packageWrite: ProjectPackageWritePort
 }>
@@ -116,9 +115,9 @@ async function runSave(
   context: ApplicationLifecycleCommandContext,
   dependencies: ApplicationProjectSaveRuntimeDependencies,
   forceSaveAs: boolean,
+  operation: ApplicationCommandOperationToken,
 ): Promise<ApplicationCommandResult<void>> {
-  const initial = context.stateSnapshot
-  const session = initial.state.activeSession
+  const session = context.getCurrentStateSnapshot().state.activeSession
   if (!session) {
     return failure(
       'project.no-active-session',
@@ -126,43 +125,16 @@ async function runSave(
       'The Save owner was invoked without an active lifecycle session.',
     )
   }
-  const route = forceSaveAs ? 'save-as' : selectProjectSaveRoute(session)
-  let destination = route === 'direct-package-save' ? session.currentPath : null
-  if (route === 'save-as') {
-    destination = await dependencies.saveDialog({
-      defaultPath: getDefaultPackageFileName(session.kind),
-      filters: PACKAGE_FILTERS,
-    })
-    if (destination === null) return cancelled()
-  }
-  if (!hasEligibleSblsPath(destination)) {
-    return writeFailure(createProjectPackageDestinationFailure(
-      'project.package.destination-extension-invalid',
-    ))
-  }
 
-  const beforeCapture = context.getCurrentStateSnapshot()
-  if (beforeCapture.state.activeSession?.id !== session.id) {
-    return failure(
-      'project.save-stale-session',
-      'The active project changed before it could be saved.',
-      'The lifecycle session identity changed before snapshot capture.',
-    )
-  }
-
+  // R is the immutable lifecycle-owned aggregate accepted by this operation.
+  // Later editor synchronization may advance the same session to R+1 without
+  // changing the bytes or baseline associated with this write.
   let writtenProject: ReturnType<typeof captureNormalizedProjectSnapshot>
   let capturePlan: ReturnType<typeof createProjectPackageCapturePlan>
   try {
     writtenProject = captureNormalizedProjectSnapshot(
-      dependencies.captureCurrentProject(),
+      session.project as unknown as SavedProject,
     )
-    if (getNormalizedProjectKind(writtenProject) !== session.kind) {
-      return failure(
-        'project.save-stale-session',
-        'The active project changed before it could be saved.',
-        'The captured editor aggregate does not match the authorized session kind.',
-      )
-    }
     capturePlan = createProjectPackageCapturePlan(
       writtenProject as unknown as SavedProject,
     )
@@ -174,74 +146,92 @@ async function runSave(
     )
   }
 
-  try {
-    await dependencies.packageWrite.encodeAndWrite({
-      destinationPath: destination,
-      legacySourcePath: session.persistenceFormat === 'legacy-json'
-        ? session.currentPath
-        : null,
-      normalizedProject: writtenProject as unknown as SavedProject,
-      capturePlan,
-    })
-  } catch (error) {
-    return writeFailure(error)
-  }
+  const route = forceSaveAs ? 'save-as' : selectProjectSaveRoute(session)
+  const scopes = route === 'save-as'
+    ? ['dialog.project-file', 'persistence.write'] as const
+    : ['persistence.write'] as const
 
-  let latestProject: ReturnType<typeof captureNormalizedProjectSnapshot>
-  try {
-    latestProject = captureNormalizedProjectSnapshot(
-      dependencies.captureCurrentProject(),
-    )
-    if (getNormalizedProjectKind(latestProject) !== session.kind) {
+  return operation.withScopes(scopes, async () => {
+    let destination = route === 'direct-package-save' ? session.currentPath : null
+    if (route === 'save-as') {
+      destination = await dependencies.saveDialog({
+        defaultPath: getDefaultPackageFileName(session.kind),
+        filters: PACKAGE_FILTERS,
+      })
+      if (destination === null) return cancelled()
+    }
+    if (!hasEligibleSblsPath(destination)) {
+      return writeFailure(createProjectPackageDestinationFailure(
+        'project.package.destination-extension-invalid',
+      ))
+    }
+
+    const beforeWrite = context.getCurrentStateSnapshot()
+    if (beforeWrite.state.activeSession?.id !== session.id) {
       return failure(
         'project.save-stale-session',
-        'The project was written, but a replacement editor is now active.',
-        'The post-commit editor aggregate does not match the authorized session kind.',
+        'The active project changed before it could be saved.',
+        'The lifecycle session identity changed before package writing.',
       )
     }
-  } catch {
-    return failure(
-      'project.save-post-commit-capture-failed',
-      'The package was written, but the current editor state could not be reconciled.',
-      'Post-commit canonical snapshot capture failed; no lifecycle baseline was adopted.',
-    )
-  }
-  const beforeAdoption = context.getCurrentStateSnapshot()
-  if (beforeAdoption.state.activeSession?.id !== session.id) {
-    return failure(
-      'project.save-stale-session',
-      'The project was written, but a replacement session is now active.',
-      'The lifecycle session identity changed before baseline adoption.',
-    )
-  }
-  const adoption = context.commitState(beforeAdoption.generation, (state) => {
-    if (state.activeSession?.id !== session.id) return state
-    return adoptSavedProjectBaseline(state, {
-      acceptedSnapshot: writtenProject as unknown as SavedProject,
-      currentProject: latestProject as unknown as SavedProject,
-      currentPath: destination,
-      persistenceFormat: 'sbls-package-v1',
+
+    try {
+      await dependencies.packageWrite.encodeAndWrite({
+        destinationPath: destination,
+        legacySourcePath: session.persistenceFormat === 'legacy-json'
+          ? session.currentPath
+          : null,
+        normalizedProject: writtenProject as unknown as SavedProject,
+        capturePlan,
+      })
+    } catch (error) {
+      return writeFailure(error)
+    }
+
+    const beforeAdoption = context.getCurrentStateSnapshot()
+    if (beforeAdoption.state.activeSession?.id !== session.id) {
+      return failure(
+        'project.save-stale-session',
+        'The project was written, but a replacement session is now active.',
+        'The lifecycle session identity changed before baseline adoption.',
+      )
+    }
+
+    const adoption = context.commitState(beforeAdoption.generation, (state) => {
+      if (state.activeSession?.id !== session.id) return state
+      return adoptSavedProjectBaseline(state, {
+        acceptedSnapshot: writtenProject as unknown as SavedProject,
+        currentPath: destination,
+        persistenceFormat: 'sbls-package-v1',
+      })
+    })
+    if (adoption.status === 'stale') {
+      return failure(
+        'project.save-stale-session',
+        'The project was written, but its lifecycle baseline could not be adopted.',
+        `The lifecycle transition returned ${adoption.status}.`,
+      )
+    }
+
+    return commandSucceeded(undefined, {
+      kind: 'success',
+      message: 'Project saved.',
+      deduplicationKey: `project.save:${session.id}:${adoption.snapshot.generation}`,
     })
   })
-  if (adoption.status === 'stale') {
-    return failure(
-      'project.save-stale-session',
-      'The project was written, but its lifecycle baseline could not be adopted.',
-      `The lifecycle transition returned ${adoption.status}.`,
-    )
-  }
-  return commandSucceeded(undefined, {
-    kind: 'success',
-    message: 'Project saved.',
-    deduplicationKey: `project.save:${session.id}:${adoption.snapshot.generation}`,
-  })
 }
+
+export type SaveProjectWithinOperation = (
+  context: ApplicationLifecycleCommandContext,
+  operation: ApplicationCommandOperationToken,
+) => Promise<ApplicationCommandResult<void>>
 
 export function createApplicationProjectSaveCommandOwners(
   getRuntimeDependencies: GetRuntimeDependencies,
 ): Readonly<{
   saveProject: SaveProjectCommandOwner
   saveProjectAs: SaveProjectAsCommandOwner
+  saveProjectWithinOperation: SaveProjectWithinOperation
 }> {
   const unavailable = () => failure(
     'project.save-runtime-unavailable',
@@ -250,20 +240,35 @@ export function createApplicationProjectSaveCommandOwners(
   )
   const saveProject: SaveProjectCommandOwner = Object.freeze({
     availability: 'implemented' as const,
-    executeSaveProject(context) {
+    executeSaveProject(context, _input, operation) {
       const dependencies = getRuntimeDependencies()
-      return dependencies ? runSave(context, dependencies, false) : unavailable()
+      return dependencies
+        ? runSave(context, dependencies, false, operation)
+        : unavailable()
     },
   })
   const saveProjectAs: SaveProjectAsCommandOwner = Object.freeze({
     availability: 'implemented' as const,
-    executeSaveProjectAs(context) {
+    executeSaveProjectAs(context, _input, operation) {
       const dependencies = getRuntimeDependencies()
-      return dependencies ? runSave(context, dependencies, true) : unavailable()
+      return dependencies
+        ? runSave(context, dependencies, true, operation)
+        : unavailable()
     },
   })
+  const saveProjectWithinOperation: SaveProjectWithinOperation = async (
+    context,
+    operation,
+  ) => {
+    const dependencies = getRuntimeDependencies()
+    return dependencies
+      ? runSave(context, dependencies, false, operation)
+      : unavailable()
+  }
+
   return Object.freeze({
     saveProject,
     saveProjectAs,
+    saveProjectWithinOperation,
   })
 }

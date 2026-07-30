@@ -14,6 +14,7 @@ import {
   resumeProjectSession,
   returnProjectSessionHome,
   selectIsActiveProjectDirty,
+  synchronizeActiveProjectContent,
   updateLastEditorRoute,
 } from './projectSession.ts'
 
@@ -141,7 +142,7 @@ test('baseline adoption records the exact accepted snapshot and derives dirty st
   )
 })
 
-test('save timestamps and coarse Case pane navigation do not create dirty state', () => {
+test('canonical no-op synchronization ignores save timestamps and Case pane navigation', () => {
   const disc = createDiscProject()
   const loadedDisc = createLoadedProjectSession({
     sessionId: 'disc-time',
@@ -153,7 +154,8 @@ test('save timestamps and coarse Case pane navigation do not create dirty state'
     loadedDisc,
     { ...disc, savedAt: '2030-01-01T00:00:00.000Z' },
   )
-  assert.equal(timeChanged.activeSession?.revision, 1)
+  assert.equal(timeChanged, loadedDisc)
+  assert.equal(timeChanged.activeSession?.revision, 0)
   assert.equal(selectIsActiveProjectDirty(timeChanged), false)
 
   const caseFront = createCaseInsertProjectSnapshot({
@@ -173,7 +175,78 @@ test('save timestamps and coarse Case pane navigation do not create dirty state'
       savedAt: '2030-01-01T00:00:00.000Z',
     }),
   )
+  assert.equal(paneChanged, loadedCase)
+  assert.equal(paneChanged.activeSession?.revision, 0)
   assert.equal(selectIsActiveProjectDirty(paneChanged), false)
+})
+
+test('complete Disc and Case synchronization preserves identity and rejects stale or wrong-kind input', () => {
+  const loadedDisc = createLoadedProjectSession({
+    sessionId: 'sync-disc',
+    currentPath: 'disc.sbls',
+    persistenceFormat: 'sbls-package-v1',
+    project: createDiscProject('Baseline Disc'),
+  })
+  const changedDisc = synchronizeActiveProjectContent(loadedDisc, {
+    sessionId: 'sync-disc',
+    kind: 'disc',
+    project: createDiscProject('Edited Disc'),
+  })
+  assert.equal(changedDisc.activeSession?.project.title, 'Edited Disc')
+  assert.equal(changedDisc.activeSession?.revision, 1)
+  assert.equal(changedDisc.activeSession?.id, 'sync-disc')
+  assert.equal(changedDisc.activeSession?.currentPath, 'disc.sbls')
+  assert.equal(changedDisc.activeSession?.persistenceFormat, 'sbls-package-v1')
+  assert.deepEqual(
+    changedDisc.activeSession?.cleanBaseline,
+    loadedDisc.activeSession?.cleanBaseline,
+  )
+  assert.deepEqual(
+    changedDisc.activeSession?.lastEditorRoute,
+    loadedDisc.activeSession?.lastEditorRoute,
+  )
+  assert.equal(selectIsActiveProjectDirty(changedDisc), true)
+
+  const restoredDisc = synchronizeActiveProjectContent(changedDisc, {
+    sessionId: 'sync-disc',
+    kind: 'disc',
+    project: createDiscProject('Baseline Disc'),
+  })
+  assert.equal(restoredDisc.activeSession?.revision, 2)
+  assert.equal(selectIsActiveProjectDirty(restoredDisc), false)
+
+  const caseProject = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Baseline Case',
+    savedAt: '2026-07-26T12:00:00.000Z',
+  })
+  const loadedCase = createLoadedProjectSession({
+    sessionId: 'sync-case',
+    currentPath: 'case.sbls',
+    persistenceFormat: 'sbls-package-v1',
+    project: caseProject,
+  })
+  const changedCase = synchronizeActiveProjectContent(loadedCase, {
+    sessionId: 'sync-case',
+    kind: 'caseInsert',
+    project: createCaseInsertProjectSnapshot({
+      manualGameTitle: 'Edited Case',
+      savedAt: '2026-07-26T12:01:00.000Z',
+    }),
+  })
+  assert.equal(changedCase.activeSession?.project.title, 'Edited Case')
+  assert.equal(changedCase.activeSession?.revision, 1)
+  assert.equal(selectIsActiveProjectDirty(changedCase), true)
+
+  assert.equal(synchronizeActiveProjectContent(changedCase, {
+    sessionId: 'retired-session',
+    kind: 'caseInsert',
+    project: caseProject,
+  }), changedCase)
+  assert.equal(synchronizeActiveProjectContent(changedCase, {
+    sessionId: 'sync-case',
+    kind: 'disc',
+    project: createDiscProject('Wrong kind'),
+  }), changedCase)
 })
 
 test('session-only state cannot affect project comparison or serialized project content', () => {

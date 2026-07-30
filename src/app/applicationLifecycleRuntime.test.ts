@@ -19,6 +19,7 @@ function fakeRoot(onDispose: () => void): ApplicationLifecycleCompositionRoot {
     getLifecycleCommandCapabilities: () => ({} as never),
     getSnapshot: () => ({} as never),
     dispatch: async () => ({ disposition: 'not-executed', reason: 'unknown-command' }),
+    synchronizeCurrentProject: () => 'no-op',
     subscribe: () => () => {},
     listRegisteredCommandIds: () => [],
     dispose: onDispose,
@@ -54,6 +55,8 @@ test('one application runtime creates one root, dependency updates reuse it, and
   assert.equal(createCount, 1)
   assert.equal(runtime.root, root)
   assert.equal(capturedOptions?.ports?.openProject?.availability, 'implemented')
+  assert.equal(capturedOptions?.ports?.newDisc?.availability, 'implemented')
+  assert.equal(capturedOptions?.ports?.newCase?.availability, 'implemented')
   runtime.dispose()
   runtime.dispose()
   assert.equal(disposeCount, 1)
@@ -102,7 +105,7 @@ test('Open reads current dependency-ref values rather than first-render closures
   runtime.dispose()
 })
 
-test('separate application runtimes are isolated and only Open is production-implemented', async () => {
+test('separate application runtimes isolate the production New and Open owners', async () => {
   const first = createApplicationLifecycleRuntime()
   const second = createApplicationLifecycleRuntime()
   for (const [runtime, reason] of [
@@ -120,8 +123,12 @@ test('separate application runtimes are isolated and only Open is production-imp
   assert.notEqual(first.root, second.root)
   const capabilities = first.root.getLifecycleCommandCapabilities()
   assert.equal(capabilities['project.open'].canExecute, true)
+  assert.equal(capabilities['project.new-disc'].canExecute, true)
+  assert.equal(capabilities['project.new-case'].canExecute, true)
   for (const id of first.root.listRegisteredCommandIds()) {
-    if (id !== 'project.open') assert.equal(capabilities[id].canExecute, false, id)
+    if (!['project.open', 'project.new-disc', 'project.new-case'].includes(id)) {
+      assert.equal(capabilities[id].canExecute, false, id)
+    }
   }
 
   first.dispose()

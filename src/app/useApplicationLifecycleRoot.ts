@@ -8,6 +8,12 @@ import type {
 import type {
   ApplicationProjectSaveRuntimeDependencies,
 } from './appProjectSaveCommand.ts'
+import type {
+  ApplicationProjectReplacementRuntimeDependencies,
+} from './appProjectReplacementGuard.ts'
+import type {
+  ApplicationProjectNewRuntimeDependencies,
+} from './appProjectNewCommand.ts'
 import {
   ApplicationLifecycleRuntimeContext,
 } from './applicationLifecycleRuntimeContext.ts'
@@ -21,6 +27,8 @@ export function useApplicationLifecycleRoot(
   dependencies: Readonly<{
     open: ApplicationProjectOpenRuntimeDependencies
     save: ApplicationProjectSaveRuntimeDependencies
+    replacement: ApplicationProjectReplacementRuntimeDependencies
+    newProject: ApplicationProjectNewRuntimeDependencies
   }>,
 ): ApplicationLifecycleCompositionRoot {
   const runtime = useContext(ApplicationLifecycleRuntimeContext)
@@ -31,6 +39,8 @@ export function useApplicationLifecycleRoot(
   useLayoutEffect(() => {
     runtime.updateProjectOpenDependencies(dependencies.open)
     runtime.updateProjectSaveDependencies(dependencies.save)
+    runtime.updateProjectReplacementDependencies(dependencies.replacement)
+    runtime.updateProjectNewDependencies(dependencies.newProject)
   }, [dependencies, runtime])
 
   return runtime.root
