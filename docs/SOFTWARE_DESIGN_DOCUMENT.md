@@ -304,6 +304,8 @@ The frontend contains a runtime-connected lifecycle foundation and a still-disco
 - `src/app/appProjectRestore.ts`
 - `src/components/project/ProjectReplacementDialog.tsx`
 - `src/components/project/useProjectReplacementPrompt.ts`
+- `src/components/sidebar/ImageCandidatePicker.tsx`
+- `src/components/sidebar/imageCandidatePickerFocus.ts`
 - `src/app/appPngExport.ts`
 - `src/app/appPngExportInputs.ts`
 - `src/app/appSteamImportPlan.ts`
@@ -338,6 +340,13 @@ The frontend contains a runtime-connected lifecycle foundation and a still-disco
 ### 5.3 Source-Of-Truth State
 
 `src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production lifecycle root. After committed React updates, focused adapters supply the complete normalized Disc or Case aggregate and exact Disc or Case Front/Back/Spine route to the root; canonical content equality and route equality are lifecycle no-ops. Route changes are session-only and do not change project revision or dirty state. New Disc, New Case, and Open prepare one complete immutable candidate, use the shared dirty-aware replacement guard when required, and apply lifecycle plus editor/route state atomically after a final session/revision check. Save and Save As capture immutable snapshot `R` from the lifecycle-owned current project, delegate package planning/writing to focused modules, and adopt `R` as baseline after commit without a second editor capture; a newer current `R+1` remains current and dirty. Return Home and Resume use focused semantic owners and one lifecycle/React batch; they do not capture, restore, reload, guard, or mutate project content. One application-command feedback adapter projects typed terminal results once to the shared editor status owner and Home live status surface. Other focused app-owned helpers own PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
+
+The shared image-candidate picker owns only its accessible dialog mechanics:
+selected-or-first usable initial focus, dynamic Tab/Shift+Tab containment, idle
+Escape/Close, busy-operation protection, and restoration to the valid opener or
+nearest surviving focus fallback. Candidate discovery, ordering, selection,
+application, and project mutation remain owned by the existing feature
+callers; the picker helper is not a general application-modal framework.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
@@ -1808,6 +1817,7 @@ Preview interactions use shared pointer-drag primitives plus editor-specific ada
 - `src/interaction/useCaseInsertPreviewPointerDrag.ts`
 - `src/components/preview/PreviewViewport.tsx`
 - `src/components/preview/previewViewportModel.ts`
+- `src/components/preview/previewViewportInteractionOwnership.ts`
 - `src/editor/previewEditableRegistry.ts`
 - `src/editor/previewElementOverlay.ts`
 - `src/components/preview/PreviewElementOverlay.tsx`
@@ -1853,6 +1863,13 @@ remains the overlay lookup and rectangle-measurement facade.
   space, while the fitted stage still reserves the header height and the
   app-shell header/ribbon controls remain visually and interactively above the
   preview.
+  Its window-level Space listener arms Space+left-drag only when the key began
+  from a preview-owned, noninteractive origin. Native controls, links,
+  summaries, effective contenteditable regions, custom interactive roles,
+  nonnegative `tabIndex`, and the preview control rail retain Space; repeat and
+  already-prevented events are ignored. Pointer-down rechecks the actual origin,
+  while middle-drag keeps its existing preview-stage behavior. Keyup, window
+  blur, pointer cancellation, and unmount clear the transient armed state.
 - Inline text adapters use registry-defined target keys while surface adapters continue to own geometry, values, commit behavior, and move handling.
 - Export consumes saved layout state and does not reuse DOM overlay measurements.
 
@@ -1877,6 +1894,9 @@ remains the overlay lookup and rectangle-measurement facade.
 
 - `src/interaction/dragGeometry.test.ts` and overlay/editor tests cover deterministic helpers.
 - Runtime validation is required for pointer capture, drag affordances, overlay measurement, focus behavior, text selection, and move handles.
+- Source-level component tests cover Space ownership and picker focus mechanics;
+  real native Tauri and assistive-technology checks remain the acceptance
+  boundary for native focus/keyboard behavior.
 
 ### 14.7 Known Risks
 

@@ -7,6 +7,7 @@
 > Last broad documentation-map review against commit: `a104825583a1cc03e145a9e460e9abccf4483bf7`.
 > Package persistence entries reviewed against synchronized parent `607ab5ffc73f22f71105ea7e5434c93f3de439ef` plus the focused uncommitted `agent/sbls-format-identity-package-save` checkpoint on 2026-07-29.
 > Lifecycle entries reviewed against PR #327 merged at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172` plus the focused Home Return/Resume and shared-feedback checkpoint on 2026-07-30.
+> Keyboard/modal entries reviewed after PR #328 merged at `5e320e8b620bf8184db3e5723d0d26f034195c6e` plus the focused #298/#309 source checkpoint on 2026-07-30.
 
 This map is the entry point for repository documentation. If two documents disagree, use the conflict rule listed here rather than treating older status reports, audits, or implementation plans as current truth.
 
