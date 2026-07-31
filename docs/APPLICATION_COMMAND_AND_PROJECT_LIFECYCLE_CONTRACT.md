@@ -31,8 +31,10 @@ and Resume are production owners: Return Home retains the exact session without
 a guard, and Resume restores the retained Disc or exact Case Front/Back/Spine
 route without read, restore, or project mutation. One command-feedback boundary
 projects typed terminal results to Home and editor status surfaces with active
-deduplication-key enforcement. Close Project, guarded native Close Window/Quit,
-shortcuts, history, and native application-menu construction remain absent.
+deduplication-key enforcement. The native File menu now resolves and dispatches
+the same seven implemented lifecycle owners through descriptor semantic targets
+and that shared feedback boundary. Close Project, guarded native Close
+Window/Quit, shortcuts, history, and all other menu semantics remain absent.
 
 Production Open exposes `.sbls` and `.json` chooser affordances, uses a focused
 bounded native recognizer, and calls the existing native-owned bounded package
@@ -135,7 +137,7 @@ slice.
 | Production Open calls a focused native content recognizer, then either the legacy text reader or the bounded native package reader/codec. The package branch transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open without fallback after a package failure. | `src-tauri/src/project_format_recognition.rs`, `src-tauri/src/commands/project_files.rs`, `src-tauri/src/commands/project_packages.rs`, `src/tauri/projectFileFormat.ts`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing, restoration, and lifecycle commit stay shared. Extensions affect chooser visibility and Save eligibility, never Open identity. |
 | New, Open, Save, Return Home, and Resume controls dispatch through one application adapter that consumes `ApplicationCommandDispatchResult`, selects at most one `ApplicationCommandFeedbackIntent`, enforces active deduplication keys in the shared status owner, and mirrors accepted feedback to Home. | `src/app/appApplicationCommandFeedback.ts`, `src/hooks/useStatusToasts.ts`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx`, focused tests | Home-originated Open cancellation/failure is now visible and announced. Issue #300 remains open on GitHub but its source acceptance gap is resolved by this checkpoint. |
 | Rust project writes delegate opaque bytes to a focused same-directory temporary-write-and-replace owner. The package write command fully encodes first, then passes the owned package buffer directly to that writer; conversion adds native source/destination identity preflight and a final pre-commit recheck. | `src-tauri/src/commands/project_packages.rs`, `src-tauri/src/legacy_project_identity.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | #312 remains the atomic primitive owner; the new composition does not move package or lifecycle semantics into filesystem code. |
-| `src/main.tsx` constructs one application-scoped lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed New/Open/Save/guard/workspace adapters without recreating the root. New Disc, New Case, Open, Save, Save As, Return Home, and Resume are production ports; native Tauri/application-menu presentation does not consume the root. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, focused tests | The lifecycle navigation foundation is connected without claiming Close, native menu, termination, recovery, or history ownership. |
+| `src/main.tsx` constructs one application-scoped lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed New/Open/Save/guard/workspace adapters without recreating the root. New Disc, New Case, Open, Save, Save As, Return Home, and Resume are production ports. A separate committed-render menu ingress resolves only those seven File targets from the menu descriptor, dispatches through this root, and publishes through the shared feedback owner. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/ApplicationMenuBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, `src/app/useApplicationMenuLifecycleIngress.ts`, `src/applicationMenu/applicationMenuLifecycleRouting.ts`, focused tests | The lifecycle navigation and native File presentation foundations are connected without claiming Export, Close, termination, other menus, recovery, or history ownership. |
 | Text controls have browser/native editing behavior, but no application-level project history owner exists. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
 | PNG export asks for a destination, then builds preflight, then always opens a confirmation dialog, including when no warning exists. | `src/app/appPngExport.ts`, `src/app/appPngExport.test.ts` | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) owns the stricter target order, with #302 as focused implementation work; this lifecycle contract supplies shared vocabulary only. |
 | The runtime Case navigation identity is Front/Back/Spine, while saved project data retains the coarser Cover/Tray compatibility field. A committed-render route adapter synchronizes the exact surface into session-only `lastEditorRoute`; equality, stale sessions, and wrong kinds are no-ops. | `src/editor/editorNavigationShell.ts`, `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/project/projectTypes.ts` | Return Home/Resume now restores Back versus Spine exactly without changing project revision, dirty comparison, schema, or persisted compatibility data. |
@@ -789,8 +791,9 @@ Dependency-focused implementation order:
 Beyond the implementation checkpoint above, this contract does not claim
 current support for:
 
-- native application-menu rendering; the final target hierarchy and adapter
-  boundary are defined in
+- application-menu behavior beyond the seven implemented File lifecycle
+  commands; Export, Close/termination, Edit, Tools, Window, and Help remain
+  disabled under
   [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md);
 - recent projects;
 - autosave, crash recovery, or resumable drafts across process restarts;

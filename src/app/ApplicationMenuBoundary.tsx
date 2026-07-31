@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from 'react'
 import type {
   ApplicationMenuRuntime,
 } from '../applicationMenu/applicationMenuRuntime.ts'
+import { ApplicationMenuRuntimeContext } from './applicationMenuRuntimeContext.ts'
 
 export function ApplicationMenuBoundary({
   runtime,
@@ -18,5 +19,9 @@ export function ApplicationMenuBoundary({
     }
   }, [runtime])
 
-  return children
+  return (
+    <ApplicationMenuRuntimeContext.Provider value={runtime}>
+      {children}
+    </ApplicationMenuRuntimeContext.Provider>
+  )
 }

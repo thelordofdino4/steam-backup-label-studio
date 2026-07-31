@@ -180,7 +180,7 @@ test('failed or rejected application preserves guided and generic activation', (
   }), CLASSIC_PRESET_REF)
 })
 
-test('App clears transient activation on resets and restores staged Disc activation atomically', () => {
+test('App clears transient activation on project resets and restores staged Disc activation atomically', () => {
   const source = readFileSync(new URL('../app/App.tsx', import.meta.url), 'utf8')
   const stagingSource = readFileSync(
     new URL('../app/appProjectLoad.ts', import.meta.url),
@@ -195,7 +195,11 @@ test('App clears transient activation on resets and restores staged Disc activat
   assert.match(source, /function resetCaseInsertProjectState\([^)]*\)[\s\S]*?clearActivePreset\(\)/)
   assert.match(
     source,
-    /function handleReturnToHome\(\)[\s\S]*?clearActivePreset\(\)[\s\S]*?setActiveWorkspace\('home'\)/,
+    /async function handleReturnToHome\(\)\s*{\s*await dispatchApplicationCommand\('workspace\.return-home'\)\s*}/,
+  )
+  assert.doesNotMatch(
+    source,
+    /async function handleReturnToHome\(\)\s*{[^}]*?(?:clearActivePreset|setActiveWorkspace)/,
   )
   assert.match(
     source,

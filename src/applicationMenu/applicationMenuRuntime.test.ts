@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { createApplicationLifecycleCompositionRoot } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
+import {
+  createApplicationLifecycleCompositionRoot,
+  type ApplicationLifecycleCompositionRoot,
+  type ApplicationLifecycleCompositionSnapshot,
+} from '../lifecycle/applicationLifecycleCompositionRoot.ts'
+import {
+  APPLICATION_LIFECYCLE_COMMAND_IDS,
+  type ApplicationCommandDispatchResult,
+} from '../lifecycle/applicationCommandTypes.ts'
 import { createApplicationMenuPlatformDescriptor } from './applicationMenuRegistry.ts'
 import {
   createApplicationMenuRuntime,
@@ -16,6 +24,49 @@ import type { NativeApplicationMenuPort } from './nativeApplicationMenuPort.ts'
 
 function flush() {
   return new Promise<void>((resolve) => setImmediate(resolve))
+}
+
+function fakeLifecycle(
+  dispatch: (
+    commandId: string,
+  ) => Promise<ApplicationCommandDispatchResult<void>>,
+): ApplicationLifecycleCompositionRoot {
+  const connected = new Set([
+    'project.new-disc',
+    'project.new-case',
+    'project.open',
+    'project.save',
+    'project.save-as',
+    'workspace.return-home',
+    'project.resume',
+  ])
+  const capabilities = Object.freeze(Object.fromEntries(
+    APPLICATION_LIFECYCLE_COMMAND_IDS.map((commandId) => [
+      commandId,
+      connected.has(commandId)
+        ? Object.freeze({ canExecute: true })
+        : Object.freeze({
+            canExecute: false,
+            reasonCode: 'application.command-owner-unimplemented',
+          }),
+    ]),
+  )) as ApplicationLifecycleCompositionSnapshot['capabilities']
+  const snapshot = Object.freeze({
+    generation: 0,
+    stateGeneration: 0,
+    lifecycle: Object.freeze({
+      activeSession: null,
+      visibleWorkspace: 'home',
+    }),
+    busy: Object.freeze({ occupiedScopes: Object.freeze([]) }),
+    capabilities,
+  }) as ApplicationLifecycleCompositionSnapshot
+
+  return {
+    getSnapshot: () => snapshot,
+    subscribe: () => () => {},
+    dispatch,
+  } as unknown as ApplicationLifecycleCompositionRoot
 }
 
 function fakePort(
@@ -66,7 +117,7 @@ test('browser fallback performs no native registration or projection', async () 
   lifecycle.dispose()
 })
 
-test('native runtime projects conservative state with monotonic generations and no dispatch', async () => {
+test('native runtime projects conservative state with monotonic generations before readiness', async () => {
   const lifecycle = createApplicationLifecycleCompositionRoot()
   const projections: ApplicationMenuProjection[] = []
   const diagnostics: ApplicationMenuRuntimeDiagnostic[] = []
@@ -132,8 +183,8 @@ test('native runtime projects conservative state with monotonic generations and 
     projectionGeneration: 1,
   })
   assert.deepEqual(diagnostics.at(-1), {
-    code: 'application-menu.invocation-unexpected',
-    detail: 'menu.file.open',
+    code: 'application-menu.invocation-rejected',
+    detail: 'lifecycle-ingress-not-ready',
   })
 
   await runtime.dispose()
@@ -169,4 +220,216 @@ test('start failure cleans up native registration and owned subscriptions', asyn
   assert.equal(lifecycleNotifications, 0)
   await runtime.dispose()
   lifecycle.dispose()
+})
+
+test('lifecycle readiness enables only authoritative connected capabilities and remounts safely', async () => {
+  const projections: ApplicationMenuProjection[] = []
+  const diagnostics: ApplicationMenuRuntimeDiagnostic[] = []
+  let invocationIngress: ((invocation: ApplicationMenuInvocation) => void) | null = null
+  let dispatchCalls = 0
+  const lifecycle = fakeLifecycle(async (commandId) => {
+    dispatchCalls += 1
+    return {
+      disposition: 'executed',
+      commandId: commandId as 'project.open',
+      result: { status: 'success', value: undefined },
+    }
+  })
+  const runtime = createApplicationMenuRuntime(lifecycle, {
+    nativeAvailable: () => true,
+    createNativePort: async (ingress) => {
+      invocationIngress = ingress
+      return fakePort(projections, () => {})
+    },
+    captureWindowState: async () => ({
+      windowLabel: 'main', live: true, maximized: false, fullscreen: false,
+    }),
+    subscribeWindowState: async () => () => {},
+    onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+  })
+
+  assert.equal(await runtime.start(), 'started')
+  await flush()
+  assert.ok(projections.at(-1)?.items.every((item) => !item.enabled))
+
+  const firstDisconnect = runtime.connectLifecycleIngress({
+    publishFeedback: () => {},
+  })
+  await flush()
+  const ready = projections.at(-1)!
+  const byId = new Map(ready.items.map((item) => [item.itemId, item]))
+  for (const itemId of [
+    'menu.file.new-disc',
+    'menu.file.new-case',
+    'menu.file.open',
+    'menu.file.save',
+    'menu.file.save-as',
+    'menu.file.return-home',
+    'menu.file.resume-project',
+  ] as const) {
+    assert.equal(byId.get(itemId)?.enabled, true, itemId)
+  }
+  assert.equal(byId.get('menu.file.export-png')?.enabled, false)
+  assert.equal(byId.get('menu.file.close-project')?.enabled, false)
+  assert.equal(byId.get('menu.file.close-window')?.enabled, false)
+  assert.equal(byId.get('menu.file.quit')?.enabled, false)
+  assert.ok(ready.items
+    .filter((item) => !item.itemId.startsWith('menu.file.'))
+    .every((item) => !item.enabled))
+
+  const secondDisconnect = runtime.connectLifecycleIngress({
+    publishFeedback: () => {},
+  })
+  await flush()
+  const projectionCount = projections.length
+  firstDisconnect()
+  await flush()
+  assert.equal(projections.length, projectionCount)
+
+  secondDisconnect()
+  await flush()
+  assert.equal(
+    projections.at(-1)?.items.find((item) =>
+      item.itemId === 'menu.file.open')?.unavailableReason,
+    'application-menu.semantic-routing-unavailable',
+  )
+
+  await runtime.dispose()
+  ;(invocationIngress as ((invocation: ApplicationMenuInvocation) => void) | null)?.({
+    invocationId: 'late-event',
+    bridgeInstanceId: 'bridge-1',
+    itemId: 'menu.file.open',
+    windowLabel: 'main',
+    projectionGeneration: ready.generation,
+  })
+  await flush()
+  assert.equal(dispatchCalls, 0)
+  assert.deepEqual(diagnostics.at(-1), {
+    code: 'application-menu.invocation-rejected',
+    detail: 'runtime-not-live',
+  })
+})
+
+test('native lifecycle ingress dispatches once, rechecks results, publishes once, and rejects invalid envelopes', async () => {
+  const projections: ApplicationMenuProjection[] = []
+  const diagnostics: ApplicationMenuRuntimeDiagnostic[] = []
+  const commandIds: string[] = []
+  const publications: ApplicationCommandDispatchResult<void>[] = []
+  let invocationIngress: ((invocation: ApplicationMenuInvocation) => void) | null = null
+  let nextResult: ApplicationCommandDispatchResult<void> | null = null
+  let rejectDispatch = false
+  const lifecycle = fakeLifecycle(async (commandId) => {
+    commandIds.push(commandId)
+    if (rejectDispatch) throw new Error('synthetic dispatch rejection')
+    return nextResult ?? {
+      disposition: 'executed',
+      commandId: commandId as 'project.open',
+      result: { status: 'success', value: undefined },
+    }
+  })
+  const runtime = createApplicationMenuRuntime(lifecycle, {
+    nativeAvailable: () => true,
+    createNativePort: async (ingress) => {
+      invocationIngress = ingress
+      return fakePort(projections, () => {})
+    },
+    captureWindowState: async () => ({
+      windowLabel: 'main', live: true, maximized: false, fullscreen: false,
+    }),
+    subscribeWindowState: async () => () => {},
+    onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+  })
+  runtime.connectLifecycleIngress({
+    publishFeedback: (dispatch) => publications.push(dispatch),
+  })
+  assert.equal(await runtime.start(), 'started')
+  await flush()
+  const generation = projections.at(-1)!.generation
+  const invoke = (
+    invocationId: string,
+    itemId: ApplicationMenuInvocation['itemId'],
+    overrides: Partial<ApplicationMenuInvocation> = {},
+  ) => (invocationIngress as (invocation: ApplicationMenuInvocation) => void)({
+    invocationId,
+    bridgeInstanceId: 'bridge-1',
+    itemId,
+    windowLabel: 'main',
+    projectionGeneration: generation,
+    ...overrides,
+  })
+
+  const items = [
+    'menu.file.new-disc',
+    'menu.file.new-case',
+    'menu.file.open',
+    'menu.file.save',
+    'menu.file.save-as',
+    'menu.file.return-home',
+    'menu.file.resume-project',
+  ] as const
+  items.forEach((itemId, index) => invoke(`allowed-${index}`, itemId))
+  await flush()
+  assert.deepEqual(commandIds, [
+    'project.new-disc',
+    'project.new-case',
+    'project.open',
+    'project.save',
+    'project.save-as',
+    'workspace.return-home',
+    'project.resume',
+  ])
+  assert.equal(publications.length, 7)
+
+  invoke('allowed-0', 'menu.file.new-disc')
+  invoke('stale', 'menu.file.open', { projectionGeneration: generation + 1 })
+  invoke('wrong-window', 'menu.file.open', { windowLabel: 'other' })
+  invoke('excluded-export', 'menu.file.export-png')
+  invoke('excluded-close', 'menu.file.close-project')
+  await flush()
+  assert.equal(commandIds.length, 7)
+  assert.equal(publications.length, 7)
+  assert.ok(diagnostics.some((diagnostic) =>
+    diagnostic.code === 'application-menu.invocation-duplicate'))
+  assert.ok(diagnostics.some((diagnostic) =>
+    diagnostic.code === 'application-menu.invocation-rejected' &&
+    diagnostic.detail === 'stale-projection'))
+  assert.ok(diagnostics.some((diagnostic) =>
+    diagnostic.code === 'application-menu.invocation-rejected' &&
+    diagnostic.detail === 'bridge-or-window-mismatch'))
+  assert.ok(diagnostics.some((diagnostic) =>
+    diagnostic.code === 'application-menu.invocation-rejected' &&
+    diagnostic.detail === 'wrong-routing-owner'))
+  assert.ok(diagnostics.some((diagnostic) =>
+    diagnostic.code === 'application-menu.invocation-rejected' &&
+    diagnostic.detail === 'lifecycle-command-not-connected'))
+
+  nextResult = {
+    disposition: 'not-executed',
+    reason: 'disabled',
+    commandId: 'project.save',
+    userMessage: 'Save is unavailable now.',
+  }
+  invoke('disabled-save', 'menu.file.save')
+  nextResult = {
+    disposition: 'not-executed',
+    reason: 'busy',
+    commandId: 'project.save',
+  }
+  invoke('busy-save', 'menu.file.save')
+  await flush()
+  assert.deepEqual(publications.slice(-2).map((result) =>
+    result.disposition === 'not-executed' ? result.reason : null), [
+    'disabled',
+    'busy',
+  ])
+
+  rejectDispatch = true
+  nextResult = null
+  invoke('async-rejection', 'menu.file.open')
+  await flush()
+  assert.ok(diagnostics.some((diagnostic) =>
+    diagnostic.code === 'application-menu.invocation-unexpected' &&
+    diagnostic.detail === 'synthetic dispatch rejection'))
+
+  await runtime.dispose()
 })

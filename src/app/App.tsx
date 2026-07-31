@@ -232,6 +232,9 @@ import {
   useApplicationLifecycleRoot,
 } from './useApplicationLifecycleRoot'
 import {
+  useApplicationMenuLifecycleIngress,
+} from './useApplicationMenuLifecycleIngress'
+import {
   applyDiscRolePresetToOwners,
 } from './appDiscRolePresetApplication'
 import { createBlankDiscSavedProject } from '../project/blankDiscProject'
@@ -1849,6 +1852,10 @@ function App() {
           },
         }, destination),
     },
+  })
+  useApplicationMenuLifecycleIngress({
+    announceStatus,
+    setHomeStatusMessage,
   })
 
   useLayoutEffect(() => {
