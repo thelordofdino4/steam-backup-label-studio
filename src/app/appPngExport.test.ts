@@ -3,88 +3,100 @@ import test from 'node:test'
 import {
   runCaseInsertPngExport,
   runDiscPngExport,
-  type ConfirmDialog,
   type RunCaseInsertPngExportParams,
   type RunDiscPngExportParams,
-  type SaveDialog,
-  type WriteBinaryFileCommand,
 } from './appPngExport.ts'
 
 function createStatusRecorder(statuses: string[]) {
   return (message: string) => statuses.push(message)
 }
 
-test('case insert PNG export reports cancellation before preflight work', async () => {
-  const calls: string[] = []
-  const statuses: string[] = []
-  const saveDialog: SaveDialog = async (options) => {
-    calls.push(`save:${options.defaultPath}`)
-    return null
-  }
-  const confirmDialog: ConfirmDialog = async () => {
-    calls.push('confirm')
-    return true
-  }
-  const writeBinaryFileCommand: WriteBinaryFileCommand = async () => {
-    calls.push('write')
-  }
-
-  await runCaseInsertPngExport({
+function createCaseInput(
+  overrides: Partial<RunCaseInsertPngExportParams> = {},
+): RunCaseInsertPngExportParams {
+  return {
     caseInsert: {} as RunCaseInsertPngExportParams['caseInsert'],
     activeTemplatePane: 'cover',
     brandingSources: {} as RunCaseInsertPngExportParams['brandingSources'],
-    saveDialog,
-    confirmDialog,
-    writeBinaryFileCommand,
-    buildPreflightSummary: () => {
-      calls.push('preflight')
-      return { message: 'preflight', hasWarnings: false, warnings: [] }
-    },
-    exportPngBytes: async () => {
-      calls.push('export')
-      return { bytes: [1], width: 10, height: 20, dpi: 300 }
-    },
-    announceStatus: createStatusRecorder(statuses),
-  })
+    saveDialog: async () => 'case.png',
+    confirmDialog: async () => true,
+    writeBinaryFileCommand: async () => undefined,
+    buildPreflightSummary: () => ({
+      message: 'case preflight',
+      hasWarnings: false,
+      warnings: [],
+    }),
+    exportPngBytes: async () => ({
+      bytes: [1, 2, 3],
+      width: 100,
+      height: 200,
+      dpi: 300,
+    }),
+    announceStatus: () => undefined,
+    ...overrides,
+  }
+}
 
-  assert.deepEqual(calls, ['save:steam-backup-cover-sheet.png'])
-  assert.deepEqual(statuses, ['Export cancelled.'])
-})
+function createDiscInput(
+  overrides: Partial<RunDiscPngExportParams> = {},
+): RunDiscPngExportParams {
+  return {
+    preflight: {
+      manualGameTitle: 'Manual title for preflight',
+    } as RunDiscPngExportParams['preflight'],
+    exportInput: {
+      manualGameTitle: 'Resolved title for renderer',
+    } as RunDiscPngExportParams['exportInput'],
+    getPreviewSize: () => 512,
+    saveDialog: async () => 'disc.png',
+    confirmDialog: async () => true,
+    writeBinaryFileCommand: async () => undefined,
+    buildPreflightSummary: () => ({
+      message: 'disc preflight',
+      hasWarnings: false,
+      warnings: [],
+    }),
+    exportPngBytes: async () => ({
+      bytes: [9],
+      width: 300,
+      height: 300,
+    }),
+    announceStatus: () => undefined,
+    ...overrides,
+  }
+}
 
-test('case insert PNG export preserves preflight, write, and status ordering', async () => {
+test('clean case insert export skips confirmation and opens destination after preflight', async () => {
   const calls: string[] = []
   const statuses: string[] = []
 
-  await runCaseInsertPngExport({
-    caseInsert: {} as RunCaseInsertPngExportParams['caseInsert'],
+  await runCaseInsertPngExport(createCaseInput({
     activeTemplatePane: 'tray',
-    brandingSources: {} as RunCaseInsertPngExportParams['brandingSources'],
-    saveDialog: async (options) => {
-      calls.push(`save:${options.defaultPath}`)
-      return 'tray.png'
-    },
-    confirmDialog: async (message, options) => {
-      calls.push(`confirm:${message}:${options.kind}`)
-      return true
-    },
-    writeBinaryFileCommand: async (path, bytes) => {
-      calls.push(`write:${path}:${bytes.join(',')}`)
-    },
     buildPreflightSummary: (params) => {
       calls.push(`preflight:${params.activeTemplatePane}:${params.dpi}`)
       return { message: 'case preflight', hasWarnings: false, warnings: [] }
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return true
+    },
+    saveDialog: async (options) => {
+      calls.push(`save:${options.defaultPath}:${options.filters?.[0]?.extensions[0]}`)
+      return 'tray.png'
     },
     exportPngBytes: async (params) => {
       calls.push(`export:${params.activeTemplatePane}:${params.dpi}`)
       return { bytes: [1, 2, 3], width: 100, height: 200, dpi: params.dpi ?? 0 }
     },
+    writeBinaryFileCommand: async (path, bytes) => {
+      calls.push(`write:${path}:${bytes.join(',')}`)
+    },
     announceStatus: createStatusRecorder(statuses),
-  })
+  }))
 
   assert.deepEqual(calls, [
-    'save:steam-backup-tray-card.png',
     'preflight:tray:300',
-    'confirm:case preflight:info',
+    'save:steam-backup-tray-card.png:png',
     'export:tray:300',
     'write:tray.png:1,2,3',
   ])
@@ -93,48 +105,514 @@ test('case insert PNG export preserves preflight, write, and status ordering', a
   ])
 })
 
-test('disc PNG export keeps preflight and renderer inputs distinct', async () => {
+test('case insert warnings receive exactly one confirmation before destination selection', async () => {
   const calls: string[] = []
-  const statuses: string[] = []
-  const preflight = {
-    manualGameTitle: 'Manual title for preflight',
-  } as RunDiscPngExportParams['preflight']
-  const exportInput = {
-    manualGameTitle: 'Resolved title for renderer',
-  } as RunDiscPngExportParams['exportInput']
 
-  await runDiscPngExport({
-    preflight,
-    exportInput,
-    getPreviewSize: () => 512,
-    saveDialog: async (options) => {
-      calls.push(`save:${options.defaultPath}`)
-      return 'disc.png'
+  await runCaseInsertPngExport(createCaseInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'case warning', hasWarnings: true, warnings: ['warning'] }
     },
     confirmDialog: async (message, options) => {
-      calls.push(`confirm:${message}:${options.kind}`)
+      calls.push(
+        `confirm:${message}:${options.kind}:${options.title}:${options.okLabel}:${options.cancelLabel}`,
+      )
       return true
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return 'case.png'
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [1], width: 10, height: 20, dpi: 300 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+  }))
+
+  assert.deepEqual(calls, [
+    'preflight',
+    'confirm:case warning:warning:Export PNG preflight:Export PNG:Cancel',
+    'save',
+    'export',
+    'write',
+  ])
+})
+
+test('case insert cover export preserves filename, render inputs, bytes, dimensions, DPI, and success copy', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runCaseInsertPngExport(createCaseInput({
+    activeTemplatePane: 'cover',
+    dpi: 300,
+    buildPreflightSummary: (params) => {
+      calls.push(`preflight:${params.activeTemplatePane}:${params.dpi}`)
+      return { message: 'clean', hasWarnings: false, warnings: [] }
+    },
+    saveDialog: async (options) => {
+      calls.push(`save:${options.defaultPath}:${options.filters?.[0]?.extensions[0]}`)
+      return 'cover.png'
+    },
+    exportPngBytes: async (params) => {
+      calls.push(`export:${params.activeTemplatePane}:${params.dpi}`)
+      return { bytes: [4, 5, 6], width: 1414, height: 1414, dpi: 300 }
     },
     writeBinaryFileCommand: async (path, bytes) => {
       calls.push(`write:${path}:${bytes.join(',')}`)
     },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, [
+    'preflight:cover:300',
+    'save:steam-backup-cover-sheet.png:png',
+    'export:cover:300',
+    'write:cover.png:4,5,6',
+  ])
+  assert.deepEqual(statuses, [
+    'Exported Cover Sheet 1414 × 1414px PNG at 300 DPI.',
+  ])
+})
+
+test('declining case insert warnings does not choose a destination, render, or write', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runCaseInsertPngExport(createCaseInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'case warning', hasWarnings: true, warnings: ['warning'] }
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return false
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return 'case.png'
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0, dpi: 300 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'confirm'])
+  assert.deepEqual(statuses, ['Export cancelled after preflight.'])
+})
+
+test('cancelling case insert destination after clean preflight does not render or write', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runCaseInsertPngExport(createCaseInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'clean', hasWarnings: false, warnings: [] }
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return null
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return true
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0, dpi: 300 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'save'])
+  assert.deepEqual(statuses, ['Export cancelled.'])
+})
+
+test('cancelling case insert destination after accepted warnings does not render or write', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runCaseInsertPngExport(createCaseInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'warning', hasWarnings: true, warnings: ['warning'] }
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return true
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return null
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0, dpi: 300 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'confirm', 'save'])
+  assert.deepEqual(statuses, ['Export cancelled.'])
+})
+
+test('clean disc export keeps preflight and renderer inputs distinct without confirmation', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runDiscPngExport(createDiscInput({
     buildPreflightSummary: (params) => {
       calls.push(`preflight:${params.manualGameTitle}`)
-      return { message: 'disc preflight', hasWarnings: true, warnings: ['warning'] }
+      return { message: 'disc preflight', hasWarnings: false, warnings: [] }
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return true
+    },
+    saveDialog: async (options) => {
+      calls.push(`save:${options.defaultPath}:${options.filters?.[0]?.extensions[0]}`)
+      return 'disc.png'
+    },
+    getPreviewSize: () => {
+      calls.push('preview-size')
+      return 512
     },
     exportPngBytes: async (params) => {
       calls.push(`export:${params.previewSize}:${params.manualGameTitle}`)
       return { bytes: [9], width: 300, height: 300 }
     },
+    writeBinaryFileCommand: async (path, bytes) => {
+      calls.push(`write:${path}:${bytes.join(',')}`)
+    },
     announceStatus: createStatusRecorder(statuses),
-  })
+  }))
 
   assert.deepEqual(calls, [
-    'save:steam-backup-label.png',
     'preflight:Manual title for preflight',
-    'confirm:disc preflight:warning',
+    'save:steam-backup-label.png:png',
+    'preview-size',
     'export:512:Resolved title for renderer',
     'write:disc.png:9',
   ])
   assert.deepEqual(statuses, ['Exported 300 × 300px PNG at 300 DPI.'])
+})
+
+test('disc warnings receive exactly one confirmation before destination and rendering', async () => {
+  const calls: string[] = []
+
+  await runDiscPngExport(createDiscInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'disc warning', hasWarnings: true, warnings: ['warning'] }
+    },
+    confirmDialog: async (message, options) => {
+      calls.push(`confirm:${message}:${options.kind}`)
+      return true
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return 'disc.png'
+    },
+    getPreviewSize: () => {
+      calls.push('preview-size')
+      return 512
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [9], width: 300, height: 300 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+  }))
+
+  assert.deepEqual(calls, [
+    'preflight',
+    'confirm:disc warning:warning',
+    'save',
+    'preview-size',
+    'export',
+    'write',
+  ])
+})
+
+test('declining disc warnings does not choose a destination, measure, render, or write', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runDiscPngExport(createDiscInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'disc warning', hasWarnings: true, warnings: ['warning'] }
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return false
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return 'disc.png'
+    },
+    getPreviewSize: () => {
+      calls.push('preview-size')
+      return 512
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'confirm'])
+  assert.deepEqual(statuses, ['Export cancelled after preflight.'])
+})
+
+test('cancelling disc destination after accepted warnings defers preview measurement and rendering', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runDiscPngExport(createDiscInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'disc warning', hasWarnings: true, warnings: ['warning'] }
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return true
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return null
+    },
+    getPreviewSize: () => {
+      calls.push('preview-size')
+      return 512
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'confirm', 'save'])
+  assert.deepEqual(statuses, ['Export cancelled.'])
+})
+
+test('cancelling disc destination after clean preflight skips confirmation and preview measurement', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runDiscPngExport(createDiscInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'clean', hasWarnings: false, warnings: [] }
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return true
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return null
+    },
+    getPreviewSize: () => {
+      calls.push('preview-size')
+      return 512
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'save'])
+  assert.deepEqual(statuses, ['Export cancelled.'])
+})
+
+test('preflight failure is terminal and prevents every dialog and side effect', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runDiscPngExport(createDiscInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      throw new Error('preflight unavailable')
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      return true
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return 'disc.png'
+    },
+    getPreviewSize: () => {
+      calls.push('preview-size')
+      return 512
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight'])
+  assert.deepEqual(statuses, ['Export failed: Error: preflight unavailable'])
+})
+
+test('warning confirmation failure is terminal and prevents destination selection', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runCaseInsertPngExport(createCaseInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'warning', hasWarnings: true, warnings: ['warning'] }
+    },
+    confirmDialog: async () => {
+      calls.push('confirm')
+      throw new Error('confirmation unavailable')
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return 'case.png'
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0, dpi: 300 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'confirm'])
+  assert.deepEqual(statuses, ['Export failed: Error: confirmation unavailable'])
+})
+
+test('destination failure is terminal and prevents rendering and writing', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runCaseInsertPngExport(createCaseInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'clean', hasWarnings: false, warnings: [] }
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      throw new Error('destination unavailable')
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [], width: 0, height: 0, dpi: 300 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'save'])
+  assert.deepEqual(statuses, ['Export failed: Error: destination unavailable'])
+})
+
+test('render failure is terminal and prevents writing', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runDiscPngExport(createDiscInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'clean', hasWarnings: false, warnings: [] }
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return 'disc.png'
+    },
+    getPreviewSize: () => {
+      calls.push('preview-size')
+      return 512
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      throw new Error('render unavailable')
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, ['preflight', 'save', 'preview-size', 'export'])
+  assert.deepEqual(statuses, ['Export failed: Error: render unavailable'])
+})
+
+test('write failure emits one failure status and no success status', async () => {
+  const calls: string[] = []
+  const statuses: string[] = []
+
+  await runDiscPngExport(createDiscInput({
+    buildPreflightSummary: () => {
+      calls.push('preflight')
+      return { message: 'clean', hasWarnings: false, warnings: [] }
+    },
+    saveDialog: async () => {
+      calls.push('save')
+      return 'disc.png'
+    },
+    getPreviewSize: () => {
+      calls.push('preview-size')
+      return 512
+    },
+    exportPngBytes: async () => {
+      calls.push('export')
+      return { bytes: [9], width: 300, height: 300 }
+    },
+    writeBinaryFileCommand: async () => {
+      calls.push('write')
+      throw new Error('write unavailable')
+    },
+    announceStatus: createStatusRecorder(statuses),
+  }))
+
+  assert.deepEqual(calls, [
+    'preflight',
+    'save',
+    'preview-size',
+    'export',
+    'write',
+  ])
+  assert.deepEqual(statuses, ['Export failed: Error: write unavailable'])
 })

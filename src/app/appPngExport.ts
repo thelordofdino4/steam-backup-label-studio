@@ -73,10 +73,10 @@ const PNG_FILTERS: DialogFilter[] = [
   },
 ]
 
-function getPreflightConfirmOptions(hasWarnings: boolean) {
+function getPreflightWarningConfirmOptions() {
   return {
     title: 'Export PNG preflight',
-    kind: hasWarnings ? 'warning' : 'info',
+    kind: 'warning',
     okLabel: 'Export PNG',
     cancelLabel: 'Cancel',
   } as const
@@ -99,6 +99,25 @@ export async function runCaseInsertPngExport({
     const activePaneFileSlug = activeTemplatePane === 'tray'
       ? 'tray-card'
       : 'cover-sheet'
+    const preflight = buildPreflightSummary({
+      caseInsert,
+      activeTemplatePane,
+      brandingSources,
+      dpi,
+    })
+
+    if (preflight.hasWarnings) {
+      const shouldExport = await confirmDialog(
+        preflight.message,
+        getPreflightWarningConfirmOptions(),
+      )
+
+      if (!shouldExport) {
+        announceStatus('Export cancelled after preflight.')
+        return
+      }
+    }
+
     const path = await saveDialog({
       defaultPath: `steam-backup-${activePaneFileSlug}.png`,
       filters: PNG_FILTERS,
@@ -106,22 +125,6 @@ export async function runCaseInsertPngExport({
 
     if (!path) {
       announceStatus('Export cancelled.')
-      return
-    }
-
-    const preflight = buildPreflightSummary({
-      caseInsert,
-      activeTemplatePane,
-      brandingSources,
-      dpi,
-    })
-    const shouldExport = await confirmDialog(
-      preflight.message,
-      getPreflightConfirmOptions(preflight.hasWarnings),
-    )
-
-    if (!shouldExport) {
-      announceStatus('Export cancelled after preflight.')
       return
     }
 
@@ -154,6 +157,20 @@ export async function runDiscPngExport({
   announceStatus,
 }: RunDiscPngExportParams) {
   try {
+    const preflightSummary = buildPreflightSummary(preflight)
+
+    if (preflightSummary.hasWarnings) {
+      const shouldExport = await confirmDialog(
+        preflightSummary.message,
+        getPreflightWarningConfirmOptions(),
+      )
+
+      if (!shouldExport) {
+        announceStatus('Export cancelled after preflight.')
+        return
+      }
+    }
+
     const path = await saveDialog({
       defaultPath: 'steam-backup-label.png',
       filters: PNG_FILTERS,
@@ -161,17 +178,6 @@ export async function runDiscPngExport({
 
     if (!path) {
       announceStatus('Export cancelled.')
-      return
-    }
-
-    const preflightSummary = buildPreflightSummary(preflight)
-    const shouldExport = await confirmDialog(
-      preflightSummary.message,
-      getPreflightConfirmOptions(preflightSummary.hasWarnings),
-    )
-
-    if (!shouldExport) {
-      announceStatus('Export cancelled after preflight.')
       return
     }
 

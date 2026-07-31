@@ -2117,16 +2117,20 @@ Export reads current runtime project state and template geometry. Layer order po
 ### 16.4 Render/Edit/Export Paths
 
 - Export starts in `App.tsx`.
-- The native destination chooser opens first.
-- After a destination is selected, a preflight summary is built.
-- User confirmation is always requested; clean summaries use an information dialog and warning summaries use a warning dialog.
+- A preflight summary is built before any destination chooser opens.
+- Clean summaries proceed without confirmation. Existing advisory warnings use
+  one aggregated warning confirmation; decline opens no destination chooser.
+- After preflight permits export, the native destination chooser opens.
+- Destination cancellation stops before rendering or writing. Disc preview
+  measurement remains deferred until rendering is about to begin.
 - Canvas export builds PNG bytes.
 - Tauri writes binary PNG bytes directly to the selected path.
 
-The draft target workflow intentionally differs: [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md)
-requires one immutable request, preflight before dialogs, confirmation only for
-aggregated actionable warnings, then destination selection, render/encode, and
-safe write/commit.
+This issue #302 checkpoint implements the contract's ordering and conditional
+warning decision using the current string-based preflight summaries. The
+remaining target in [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md)
+still requires one immutable request, typed diagnostics/results, central
+command/busy/feedback ownership, and safe destination write/commit.
 
 ### 16.5 Invariants And Future-Change Rules
 
