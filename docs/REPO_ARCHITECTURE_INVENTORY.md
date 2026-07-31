@@ -258,9 +258,12 @@ Source-of-truth state:
   `src/main.tsx` mounts that runtime through `ApplicationMenuBoundary`.
   `src-tauri/src/application_menu.rs` constructs the descriptor-driven native
   hierarchy, applies exact-window generation-ordered enabled/checked/label state, forwards typed
-  activation envelopes, and owns bridge-scoped teardown. Semantic command
-  routing, workflow hosts, native window actions, and sidebar migration remain
-  disconnected; the production projection keeps every item disabled.
+  activation envelopes, and owns bridge-scoped teardown. A focused
+  descriptor-driven ingress routes the seven implemented File lifecycle
+  commands through the existing lifecycle root after committed React feedback
+  dependencies make the boundary ready. Export, Close/termination, workflow
+  hosts, Edit, native window actions, Help, and sidebar migration remain
+  disconnected and disabled.
 
 Render path:
 
@@ -1680,8 +1683,9 @@ Current `npm run test` covers these broad areas:
   command feedback, dependency freshness, and current lifecycle-control
   routing; plus the runtime-connected application-menu descriptor transport,
   native construction, conservative capability projection, typed event ingress,
-  generation/identity validation, and teardown boundary. Semantic menu dispatch
-  remains intentionally disconnected.
+  generation/identity validation, seven-command File lifecycle dispatch,
+  exactly-once shared feedback handoff, and teardown boundary. All other menu
+  semantics remain intentionally disconnected.
 - The dormant binary project-file TypeScript port's raw-byte transport,
   canonical path header, exact byte cap, structured error preservation, and
   negative production-wiring boundary.

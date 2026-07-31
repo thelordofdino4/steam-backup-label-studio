@@ -9,6 +9,7 @@
 > Focused lifecycle/navigation facts reviewed after PR #328 merged at `5e320e8b620bf8184db3e5723d0d26f034195c6e`; the subsequent #298/#309 source checkpoint is recorded without claiming native-menu implementation.
 > Focused lifecycle checkpoint: PR #327 merged at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172`; the later current-project synchronization, shared New/Open replacement guard, Home Return/Resume, exact route retention, and shared feedback boundary are recorded below without claiming native-menu implementation.
 > Focused native-runtime checkpoint: current worktree on 2026-07-30 implements descriptor-driven native construction, conservative state projection, a typed activation bridge, and bridge-scoped teardown without semantic command wiring.
+> Focused File-routing checkpoint: current worktree on 2026-07-30 connects the seven implemented File lifecycle targets through the existing lifecycle root and shared feedback owner; Export, Close/termination, Edit, Tools, Window, and Help remain disconnected.
 
 ## 1. Status, scope, and authority
 
@@ -18,9 +19,11 @@ and first native runtime adapter now exist. The native adapter constructs the
 platform hierarchy from the TypeScript-owned descriptor, installs every item
 disabled and unchecked, applies validated generation-ordered enabled, checked,
 and dynamic-label presentation state, and forwards typed activations to a
-non-dispatching frontend ingress. Semantic menu command
-wiring, rich workflow hosts, application history, and Help surfaces remain
-unimplemented.
+frontend ingress. That ingress now resolves the seven implemented File
+lifecycle commands from their descriptor semantic targets, dispatches through
+the existing lifecycle root, and publishes terminal results through the shared
+feedback owner. Export, Close/termination, rich workflow hosts, Edit, Window,
+application history, and Help surfaces remain unimplemented.
 
 **TARGET REQUIREMENT —** This contract owns:
 
@@ -123,18 +126,18 @@ verification performed against the evidence baseline.
 
 | Claim | Concern | Verified current state | Required target state |
 | --- | --- | --- | --- |
-| CURRENT FACT / TARGET REQUIREMENT | Native application menu | `src-tauri/src/application_menu.rs` constructs the native hierarchy from the TypeScript-owned platform descriptor, retains checkable native item handles, applies enabled/checked/label presentation state, and registers one process-level menu-event handler. All first-slice items remain conservatively disabled and unchecked. | Rust continues to own only presentation/native-window adaptation. |
+| CURRENT FACT / TARGET REQUIREMENT | Native application menu | `src-tauri/src/application_menu.rs` constructs the native hierarchy from the TypeScript-owned platform descriptor, retains checkable native item handles, applies enabled/checked/label presentation state, and registers one process-level menu-event handler. Only the seven lifecycle-routed File items may become enabled; all other items remain conservatively disabled and unchecked. | Rust continues to own only presentation/native-window adaptation. |
 | CURRENT FACT / TARGET REQUIREMENT | Custom React application menu | No React menubar, `role="menubar"`, or application-menu component exists. Home “menu cards” are ordinary buttons, not an application menu. | No production React imitation is introduced; the native menu is the default target. |
-| CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | One bridge-instance-scoped adapter listens before installation, validates window/bridge/item/invocation identity, rejects duplicate invocations, and forwards typed native envelopes to a frontend ingress. That ingress deliberately does not dispatch semantic commands in this slice. | Later command wiring consumes the same ingress without adding a second native registry or callback path. |
+| CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | One bridge-instance-scoped adapter listens before installation, validates window/bridge/item/invocation identity, rejects duplicate invocations, and forwards typed native envelopes to a frontend ingress. The ingress additionally rechecks bridge/window/projection generation and resolves only the seven connected File lifecycle targets through the authoritative descriptor. | Later domain/workflow wiring consumes the same ingress pattern without adding a second native registry or callback path. |
 | CURRENT FACT / TARGET REQUIREMENT | Command registry/dispatcher | One application lifecycle root owns a typed registry/dispatcher. Home and current Project File lifecycle controls dispatch `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `workspace.return-home`, or `project.resume` through one feedback adapter; other workflows are not yet unified. | Menu, Home, sidebar compatibility adapters, buttons, shortcuts, and native close events share the lifecycle/domain dispatcher. |
-| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | The runtime projects current lifecycle/window state through the pure model, but an explicit `application-menu.semantic-routing-unavailable` boundary keeps routed items disabled; other unavailable owners retain their own reasons. Export, workflow launcher, focused-edit, window-action, and Help execution capabilities remain unwired. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
+| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | A committed React-owned ingress connection enables only the lifecycle capability boundary. The seven File items consume the lifecycle root's exact capability projection and recheck it at dispatch; the unavailable boundary returns during teardown. Export, workflow launcher, focused-edit, window-action, Help, and unimplemented Close/termination capabilities remain disabled. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
 | CURRENT FACT / TARGET REQUIREMENT | Home | `HomeScreen.tsx` exposes Resume only when one lifecycle session is retained on Home, plus Open, New Disc, and New Case Insert. Its Resume copy projects kind, display name, dirty/clean state, and exact route from the session; its live status surface receives shared command feedback. | Future File items dispatch these same commands and consume the same capabilities; the native menu must not copy Home callbacks. |
 | CURRENT FACT / TARGET REQUIREMENT | Disc Project File | `ProjectPanel.tsx` exposes Main Menu, New Disc, Save Project, Load Project, Export PNG, and New Case Insert. | Those application-level actions move to File; the panel remains until replacement parity is proven. |
 | CURRENT FACT / TARGET REQUIREMENT | Case Project File | `CaseInsertEditorShell.tsx` duplicates Main Menu, New Case Insert, New Disc, Save, Load, and Export PNG. | The same File adapters serve Disc and Case; no Case-only command copies remain. |
 | CURRENT FACT / TARGET REQUIREMENT | Save | `project.save` now writes directly only for a truthful package-v1 session at an eligible `.sbls` path; pathless, legacy-format, and wrong-suffix sessions use Save As. Save captures lifecycle-owned `R`, and post-commit adoption preserves a newer current `R+1` as dirty without editor recapture. | Menu adapters dispatch these same owners; `project.save-as` always chooses an eligible package destination. |
 | CURRENT FACT / TARGET REQUIREMENT | New/Open replacement | `project.new-disc`, `project.new-case`, and `project.open` are production owners. No-session and clean replacement proceed without a prompt; dirty/baseline-less replacement uses one accessible Save/Discard Changes/Cancel guard bound to session ID/revision. | File/Home/sidebar adapters continue sharing these owners; Close Project and native Close Window/Quit remain later lifecycle work. |
 | CURRENT FACT / TARGET REQUIREMENT | Return Home / Resume | `workspace.return-home` and `project.resume` are production owners. Return Home uses no replacement guard and retains the exact session; Resume performs no read/restore and returns to Disc or the exact Case Front/Back/Spine route. Route synchronization is session-only and does not change project revision or dirty state. | Future File adapters dispatch these owners; Close Project separately retires the session. |
-| CURRENT FACT / TARGET REQUIREMENT | Command feedback | New, Open, Save, Return Home, and Resume presentation controls use one `ApplicationCommandDispatchResult`/`ApplicationCommandFeedbackIntent` adapter. Active deduplication keys prevent double publication; accepted messages reach editor toasts and the Home live status surface. | Native menu events must reuse the same boundary and cannot publish a second result. |
+| CURRENT FACT / TARGET REQUIREMENT | Command feedback | Home/sidebar controls and the seven connected File items use one `ApplicationCommandDispatchResult`/`ApplicationCommandFeedbackIntent` owner. The menu runtime publishes each dispatcher result once through the React-committed adapter; active deduplication keys prevent duplicate visible publication, and accepted messages reach editor toasts and the Home live status surface. | Later menu events reuse the same boundary and cannot publish a second result. |
 | CURRENT FACT / TARGET REQUIREMENT | Export | Disc and Case Project File buttons call a shared callback that branches on active workspace; destination currently precedes preflight. | File `Export PNG…` dispatches `export.png`; Tools `Export Options…` only reveals owner-backed configuration. |
 | CURRENT FACT / TARGET REQUIREMENT | Game | `GamePanel.tsx` combines query, Search, immediate result-import activation, metadata fields, candidate discovery/application, and feedback. | Tools `Game…` opens the rich Game host; explicit selection, immutable planning, review, and owner apply replace immediate target behavior. |
 | CURRENT FACT / TARGET REQUIREMENT | Disc Template | `TemplatePanel.tsx` selects and immediately changes built-in/custom Disc geometry; custom fields are direct controlled inputs. | Tools `Disc Template…` opens the Disc geometry owner and its choose/draft/plan/review/apply flow. |
@@ -930,12 +933,13 @@ later step must not bypass an incomplete earlier semantic owner.
 12. Run focused automated coverage and real native Tauri acceptance on supported
     platforms before claiming the menu implemented.
 
-**TARGET REQUIREMENT —** The smallest safe next implementation slice is File
-command routing for the already-implemented lifecycle owners through the typed
-ingress, with dispatch-time capability rechecks and shared feedback. Export PNG
-must remain disabled until issue #302 supplies its conforming command owner;
-Close Project, Close Window, and Quit remain disabled until their guarded
-owners exist. This proceeds without sidebar removal.
+**CURRENT FACT / TARGET REQUIREMENT —** File command routing for the seven
+implemented lifecycle owners now uses the typed ingress, dispatch-time
+capability rechecks, and shared feedback. The next safe slice is issue #302's
+focused Export ordering work; only after that owner passes source and native
+verification may `menu.file.export-png` connect. Close Project, Close Window,
+and Quit remain disabled until their guarded owners exist. No sidebar removal
+has begun.
 
 ## 14. Issue mapping, migration boundaries, non-goals, and evidence index
 
@@ -1003,14 +1007,14 @@ current functionality.
 
 | Claim | Area | Classification | Consequence for menu work |
 | --- | --- | --- | --- |
-| CURRENT FACT | Tauri 2.11 desktop shell, one window, dialog/file invoke ports, native menu adapter | Implemented dependency/runtime slice | The TypeScript descriptor drives native construction and generation-ordered presentation state; semantic actions remain disabled. |
+| CURRENT FACT | Tauri 2.11 desktop shell, one window, dialog/file invoke ports, native menu adapter | Implemented dependency/runtime slice | The TypeScript descriptor drives native construction and generation-ordered presentation state; the seven implemented File lifecycle actions are connected. |
 | CURRENT FACT | Home New/Load, Disc/Case Project buttons, Export Options, Game, Disc Template, Disc presets | Implemented compatibility presentations | Preserve until replacement adapters pass parity gates. |
 | CURRENT FACT | Contextual ribbon, preview viewport, Design Check, Guide Legend | Implemented separate systems | Do not relocate or redefine. |
 | CURRENT FACT / TARGET REQUIREMENT | Session aggregate, dispatcher, capabilities, dirty/baseline, Save/Save As, Return Home/Resume | Implemented dependency | File menu behavior may consume these semantic owners; Close Project and guarded close/Quit remain unimplemented under #308. |
 | CURRENT FACT / TARGET REQUIREMENT | Atomic byte writer plus package-safe binary project adapters | Primitive implemented; adapters required | Reuse the merged #312 writer and add bounded binary read/structured atomic binary write before package-aware target Save is accepted. |
 | CURRENT FACT / TARGET REQUIREMENT | Shared result/feedback/focus and modal/shortcut prerequisites | Feedback, Home/editor navigation focus, preview-Space ownership, and shared image-candidate-picker focus lifecycle implemented | #298/#309 focused source prerequisites are present. Native/assistive-technology acceptance and any broader modal or global-shortcut owner remain separate. |
 | TARGET REQUIREMENT | Export, Game, geometry, preset target workflows | Required dependency for full migration | Menu launchers consume them; they do not make them exist. |
-| CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection, native bridge, and workflow host | Descriptor/projection and native runtime bridge implemented; semantic routing/host work required | Native construction, projection, typed ingress, and teardown are connected; the workflow host and command routing are not implemented. |
+| CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection, native bridge, and workflow host | Descriptor/projection, native runtime bridge, and seven-command File lifecycle routing implemented; workflow host work required | Native construction, projection, typed ingress, lifecycle dispatch, shared feedback, and teardown are connected. Export and all non-lifecycle semantic owners remain disconnected. |
 | TARGET REQUIREMENT | Help and About informational owners | Menu implementation work | IDs and sources are decided here; surfaces remain unimplemented. |
 | FUTURE EXTENSION | Application project Undo/Redo | Future owner | Edit placement reserved; history binding omitted until designed/implemented. |
 | FUTURE EXTENSION | Report an Issue | Future configured resource | Item omitted until trusted target and external-navigation policy exist. |

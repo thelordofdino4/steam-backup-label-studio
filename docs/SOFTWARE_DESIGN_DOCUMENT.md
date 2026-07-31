@@ -279,7 +279,7 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
-The frontend contains runtime-connected lifecycle and native application-menu presentation foundations. `src/main.tsx` constructs one application lifecycle runtime and one menu runtime outside React Strict Mode; their focused boundaries own idempotent disposal, while a dependency-ref hook updates committed React lifecycle adapters without recreating the root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, native transport validation, frontend ingress, and runtime lifecycle. Rust constructs the native hierarchy from that descriptor, applies bridge/window/item-set/generation-validated state, and forwards typed activation envelopes. The runtime deliberately projects an unavailable semantic-routing boundary, so all menu actions remain disabled and no menu command is executable in this slice. No custom React menubar exists.
+The frontend contains runtime-connected lifecycle and native application-menu foundations. `src/main.tsx` constructs one application lifecycle runtime and one menu runtime outside React Strict Mode; their focused boundaries own idempotent disposal, while dependency-ref hooks update committed React lifecycle and menu-feedback adapters without recreating either root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, native transport validation, frontend ingress, and runtime lifecycle. Rust constructs the native hierarchy from that descriptor, applies bridge/window/item-set/generation-validated state, and forwards typed activation envelopes. A committed React-owned ingress connection enables only the lifecycle capability boundary; the seven supported File presentation IDs resolve through their descriptor targets and dispatch through the existing lifecycle root. Export, Close/termination, Edit, Tools, Window, and Help remain disabled. No custom React menubar exists.
 
 ### 5.2 Key Files
 
@@ -290,7 +290,9 @@ The frontend contains runtime-connected lifecycle and native application-menu pr
 - `src/app/ApplicationMenuBoundary.tsx`
 - `src/app/applicationLifecycleRuntime.ts`
 - `src/app/applicationLifecycleRuntimeContext.ts`
+- `src/app/applicationMenuRuntimeContext.ts`
 - `src/app/useApplicationLifecycleRoot.ts`
+- `src/app/useApplicationMenuLifecycleIngress.ts`
 - `src/app/appProjectNewCommand.ts`
 - `src/app/appProjectNewEditorApply.ts`
 - `src/app/appProjectOpenCommand.ts`
@@ -325,6 +327,7 @@ The frontend contains runtime-connected lifecycle and native application-menu pr
 - `src/applicationMenu/applicationMenuRegistry.ts`
 - `src/applicationMenu/applicationMenuProjection.ts`
 - `src/applicationMenu/applicationMenuLifecycleCapabilities.ts`
+- `src/applicationMenu/applicationMenuLifecycleRouting.ts`
 - `src/applicationMenu/inMemoryApplicationMenuPort.ts`
 - `src/applicationMenu/nativeApplicationMenuTransport.ts`
 - `src/applicationMenu/nativeApplicationMenuPort.ts`
@@ -355,7 +358,7 @@ callers; the picker helper is not a general application-modal framework.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
-Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not execute targets or reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. Its frontend ingress is intentionally non-dispatching, and a semantic-routing-unavailable capability boundary keeps every native action disabled until the next bounded wiring slice.
+Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. The application ingress performs a second bridge/window/projection-generation check, resolves the seven connected File items through the authoritative descriptor, and lets the lifecycle dispatcher recheck current capability and busy state. A React layout-effect adapter makes that boundary ready only after current lifecycle and shared-feedback dependencies commit, and returns it to unavailable on disconnect. Every resulting dispatch outcome is passed once to the existing feedback selector/publisher; active deduplication keys own visible duplicate suppression and Home mirroring. All other semantic boundaries remain unavailable.
 
 ### 5.4 Render, Edit, And Export Paths
 
@@ -363,7 +366,7 @@ Application-menu presentation IDs are separate from semantic command and owner I
 - Vite entry: `index.html` provides the root element and loads `/src/main.tsx`.
 - Tauri dev/build entry: `src-tauri/tauri.conf.json` points dev to Vite and packaged frontend output to `dist`.
 - UI routing: `App.tsx` renders `HomeScreen`, disc editor panels plus `DiscPreview`, or `CaseInsertEditorShell`.
-- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects conservative state, and listens for typed native activation envelopes without dispatching them.
+- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects owner capabilities, and routes the seven implemented File lifecycle envelopes through the existing composition root. All excluded menu targets stay disabled and disconnected.
 - Open: every current Home, Disc, and Case Load control dispatches
   `project.open`; the owner stages dialog/read/schema/restore work before one
   dirty-aware replacement decision and one batched lifecycle-and-editor commit.
