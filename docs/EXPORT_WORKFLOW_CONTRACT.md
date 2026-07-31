@@ -4,7 +4,18 @@
 > Purpose: Define one shared PNG export command, its state and ownership boundaries, preflight and dialog order, immutable snapshot, adapters, results, feedback, focus, concurrency, and destination-write safety.
 > Read when: Export controls, preflight, PNG rendering/writing, exported guides, export feedback, export dialogs, export shortcuts, or Disc/Case export adapters are designed or changed.
 > Authoritative source: This document for target application-level PNG export execution semantics; current source and focused tests for as-built behavior until this contract is implemented.
-> Evidence baseline: `main` at `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`, reviewed 2026-07-25.
+> Evidence baseline: the original audit at `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`, plus the focused issue #302 source checkpoint based on `main` at `05b5af1e201a21a10859b6f28a44a4a287fdfd29`, reviewed 2026-07-30.
+
+Implementation checkpoint, 2026-07-30: the existing Disc and Case Insert PNG
+orchestrators now run preflight before destination selection. Clean preflight
+opens no confirmation; one or more existing advisory warnings open exactly one
+confirmation using the established copy and options; warning decline opens no
+destination chooser. After preflight permits export, destination cancellation
+still terminates before rendering or writing. Disc preview measurement remains
+deferred until rendering is about to start. This checkpoint does not implement
+the target immutable normalized request, typed diagnostics/blockers/results,
+central command/busy/feedback ownership, safe destination replacement, or File
+menu connection defined by the remainder of this contract.
 
 ## 1. Status, purpose, authority, and related documents
 
@@ -76,15 +87,15 @@ canvas exporters, `canvasImage.ts`, the Tauri dialog plugin, and
 
 | Current fact | Evidence and consequence |
 | --- | --- |
-| Disc Project File and Case Project File each expose an `Export PNG` button; Home exposes no export activation. | `ProjectPanel.tsx`, `CaseInsertEditorShell.tsx`, `HomeScreen.tsx`. Both buttons receive `handleExportPng`; there is no semantic command registry. |
+| Disc Project File and Case Project File each expose an `Export PNG` button; Home exposes no export activation. | `ProjectPanel.tsx`, `CaseInsertEditorShell.tsx`, `HomeScreen.tsx`. Both buttons receive `handleExportPng`; the native File `Export PNG…` descriptor remains disabled and is not connected to this callback. |
 | `handleExportPng` selects Case only when `activeWorkspace === 'caseInsert'`; its fallback is Disc. | `App.tsx`. Mounted buttons make the current route work, but renderer selection is presentation/orchestration branching rather than centralized capability/target resolution. |
-| Both routes execute **destination chooser -> preflight -> confirmation -> render/encode -> direct write -> status**. | `appPngExport.ts` and `appPngExport.test.ts`. Destination cancellation occurs before preflight. |
-| Confirmation is unconditional. | `getPreflightConfirmOptions` chooses `info` for a clean summary and `warning` for warnings, but both routes call `confirmDialog` in either case. Clean preflight does not currently skip confirmation. |
-| Current confirmation uses title `Export PNG preflight`, OK label `Export PNG`, Cancel label `Cancel`, and a message ending `Continue with export?`. | Clean summaries use dialog kind `info`; warning summaries append a `Warnings:` list and use kind `warning`. There is no blocker presentation. |
+| Both routes execute **preflight -> optional warning confirmation -> destination chooser -> render/encode -> direct write -> status**. | `appPngExport.ts` and `appPngExport.test.ts`. A clean summary skips confirmation; warning decline and destination cancellation both occur before render/write. |
+| Confirmation is conditional on the existing `hasWarnings` result. | Clean preflight proceeds directly to destination selection. Any current advisory warnings produce exactly one aggregated confirmation before the destination chooser. |
+| Current warning confirmation uses title `Export PNG preflight`, kind `warning`, OK label `Export PNG`, Cancel label `Cancel`, and a message ending `Continue with export?`. | Warning summaries append one `Warnings:` list. Clean summaries open no information dialog, and there is still no blocker presentation. |
 | Preflight returns `{ message, hasWarnings, warnings: string[] }`. | `exportPreflight.ts` and `caseInsertExportPreflight.ts`. There are no typed diagnostic IDs, severities, blockers, targets, or focus destinations. |
 | All implemented findings are advisory strings. | Even inconsistent custom Disc dimensions, missing images/content, blank Case regions, unresolved text boxes, layout clamps, low-resolution/fit risks, exported guides, and safe-edge/readability risks only set `hasWarnings`. |
 | Disc preflight and render receive separate object shapes. | `appPngExportInputs.ts` and its orchestration test deliberately preserve distinct manual/resolved title inputs. They are not one normalized request identity. |
-| Disc preview width is read after the dialogs, immediately before rendering. | `App.tsx` calls `discPreviewRef.current?.getBoundingClientRect().width`; `exportPng.ts` uses it to scale background offsets. This live DOM measurement is a current presentation-geometry coupling and prevents a complete invocation-time immutable snapshot. Preview zoom/pan themselves are not passed. |
+| Disc preview width is read after permitted preflight and destination selection, immediately before rendering. | `App.tsx` calls `discPreviewRef.current?.getBoundingClientRect().width`; `exportPng.ts` uses it to scale background offsets. It is not read after preflight failure, warning decline, or destination cancellation/failure. This live DOM measurement remains a current presentation-geometry coupling and prevents a complete invocation-time immutable snapshot. Preview zoom/pan themselves are not passed. |
 | Case target is the coarse active pane: `cover` or `tray`. | `getCaseInsertTemplatePaneConfig` maps Cover Sheet to front and Tray Card to back; Tray rendering includes both spine strips. Current Front/Back/combined-Spine navigation maps to those two panes, not four PNGs. |
 | Disc render is one circular output; Case render is one rectangular active-pane output. | `exportPng.ts`, `exportCaseInsertPng.ts`, `templateSurfaces.ts`, and `TEMPLATE_SPEC.md`. |
 | Disc guide output reads four booleans; Case guide output reads selected guide IDs. | `drawExportGuides.ts` and `drawCaseInsertGuides.ts`. Both draw selected exported guides after normal content. |
@@ -97,12 +108,12 @@ canvas exporters, `canvasImage.ts`, the Tauri dialog plugin, and
 | There is no export busy/reentrancy owner. | Buttons are not disabled by an export capability and repeated calls can reach overlapping native dialogs/writes. |
 | Rendering and PNG encoding complete in memory before native writing begins. | Both exporters await `canvasToPngBytes`; `canvasImage.ts` creates a Blob, ArrayBuffer, and `number[]` before invoking Rust. Render/encode failure therefore occurs before the current write call. |
 | Native PNG writing is a direct `std::fs::write(path, bytes)`. | `src-tauri/src/commands/files.rs`. An existing file can be truncated before a later write failure; no same-directory temporary file, flush policy, atomic replace, rollback, or Windows replacement guarantee exists. |
-| Export execution does not call project save/snapshot adapters or update a path/baseline. | The current app has no authoritative session path/baseline/dirty model; the export route only chooses a PNG destination, renders, writes, and announces status. |
+| Export execution does not call project save/snapshot adapters or update lifecycle path, baseline, format, revision, or dirty state. | The export route only assesses the current editor inputs, chooses a PNG destination after permitted preflight, renders, writes, and announces status. |
 
-The accepted Phase 2 description is therefore confirmed with two important
-precision points: the confirmation is currently unconditional, and live Disc
-preview width is currently an export input even though zoom, pan, selection,
-focus, ribbon/sidebar state, toasts, and Guide Legend state are not.
+The issue #302 checkpoint corrects the original Phase 2 ordering and
+unconditional-confirmation findings. Live Disc preview width remains an export
+input even though zoom, pan, selection, focus, ribbon/sidebar state, toasts,
+and Guide Legend state are not.
 
 ## 4. Export scope, semantic owners, and application-command boundary
 
@@ -653,8 +664,10 @@ Required validation layers are separate:
 
 Unit/integration tests cannot prove native Windows replacement semantics, native
 dialog focus behavior, or visual PNG acceptance. Browser-only evidence cannot
-establish native Tauri acceptance. No tests or runtime acceptance are performed
-by this documentation task.
+establish native Tauri acceptance. The issue #302 checkpoint adds focused Disc
+and Case orchestration tests for clean, warning-accepted, warning-declined,
+destination-cancelled, and failure ordering; native acceptance remains a
+separate required result.
 
 ## 18. Issue/dependency mapping, exclusions, and unresolved questions
 
@@ -662,7 +675,7 @@ by this documentation task.
 
 | Issue/dependency | Relationship to this contract |
 | --- | --- |
-| [#302](https://github.com/thelordofdino4/steam-backup-label-studio/issues/302) | Focused implementation owner for preflight-before-destination ordering. Its earlier unconditional-confirmation acceptance must be reconciled with this stricter target: clean preflight skips confirmation; warnings get one decision. |
+| [#302](https://github.com/thelordofdino4/steam-backup-label-studio/issues/302) | Focused implementation owner for preflight-before-destination ordering. The 2026-07-30 source checkpoint reconciles its earlier unconditional-confirmation wording with this stricter contract: clean preflight skips confirmation and warnings get one decision. Publication and acceptance remain separate from this unstaged checkpoint. |
 | [#300](https://github.com/thelordofdino4/steam-backup-label-studio/issues/300) | Current Home feedback gap and shared global-feedback dependency; export must not rely on a preview-only toast host. |
 | [#305](https://github.com/thelordofdino4/steam-backup-label-studio/issues/305) | Focused canvas helper exact-uncropped-bounds regression. It is renderer/helper correctness, not workflow ordering or write safety. |
 | [#306](https://github.com/thelordofdino4/steam-backup-label-studio/issues/306) | Case Front/Back/Spine navigation discoverability and authoritative route context; does not create four physical PNG outputs. |

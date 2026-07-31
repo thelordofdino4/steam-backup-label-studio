@@ -307,9 +307,11 @@ Save/Open path:
 
 Export path:
 
-- `App.tsx` calls app PNG export helpers, which build preflight inputs, confirm
-  warnings, run disc or case-insert PNG export helpers, and write bytes through
-  Tauri.
+- `App.tsx` calls app PNG export helpers, which build preflight before any
+  destination chooser, skip confirmation for clean summaries, confirm existing
+  advisory warnings exactly once, then choose a destination, run the Disc or
+  Case Insert PNG exporter, and write bytes through Tauri. Cancellation or
+  failure before rendering produces no write.
 
 Tests:
 
@@ -1565,7 +1567,8 @@ Render path:
 Edit/interaction path:
 
 - Sidebar export/guide controls update guide settings.
-- Export flow presents preflight warnings through a Tauri dialog confirm.
+- Export flow assesses preflight first. Clean summaries open no confirmation;
+  warnings use one Tauri dialog confirmation before destination selection.
 
 Save/load path:
 
@@ -1626,7 +1629,9 @@ Render path:
 
 Edit/interaction path:
 
-- Export is initiated from `App.tsx` after optional preflight confirmation.
+- Export is initiated from `App.tsx` after clean preflight or one accepted
+  warning confirmation, then destination selection. Disc preview measurement
+  is deferred until rendering is about to begin.
 
 Save/load path:
 
