@@ -260,10 +260,18 @@ Source-of-truth state:
   hierarchy, applies exact-window generation-ordered enabled/checked/label state, forwards typed
   activation envelopes, and owns bridge-scoped teardown. A focused
   descriptor-driven ingress routes the seven implemented File lifecycle
-  commands through the existing lifecycle root after committed React feedback
-  dependencies make the boundary ready. Export, Close/termination, workflow
-  hosts, Edit, native window actions, Help, and sidebar migration remain
-  disconnected and disabled.
+  commands and `export.png` through the existing application root after
+  committed React feedback dependencies make each boundary ready. Native item
+  clicks are production-connected. In the real Windows WebView2 window, the
+  declared Ctrl accelerators do not reach the menu-event handler, matching open
+  upstream Tauri #6981 and Wry #451. The focused
+  `windowsWebviewApplicationMenuAccelerators.ts` fallback therefore derives
+  application/domain-command chords from the same descriptor, consumes only
+  latest-projected-enabled items after earlier keyboard/modal owners, routes
+  them into the same runtime ingress, deduplicates cross-source activation, and
+  tears down with the runtime. It is window-local, not a system-global shortcut
+  owner. Close/termination, workflow hosts, Edit, native window actions, Help,
+  and sidebar migration remain disconnected and disabled.
 
 Render path:
 
@@ -307,18 +315,21 @@ Save/Open path:
 
 Export path:
 
-- `App.tsx` calls app PNG export helpers, which build preflight before any
-  destination chooser, skip confirmation for clean summaries, confirm existing
-  advisory warnings exactly once, then choose a destination, run the Disc or
-  Case Insert PNG exporter, and write bytes through Tauri. Cancellation or
-  failure before rendering produces no write.
+- Disc and Case buttons plus native File `Export PNG…` dispatch one registered
+  `export.png` command through the existing application registry/dispatcher.
+  `appPngExportCommand.ts` centrally resolves the physical target, captures one
+  matching adapter invocation, and uses the shared busy coordinator. The
+  adapters build preflight before destination, confirm existing warnings once,
+  render the current Disc/Cover/complete Tray output, write through Tauri, and
+  return typed feedback without local publication.
 
 Tests:
 
 - App-owned orchestration helpers have focused tests under `src/app/*.test.ts`.
   Full `App.tsx` integration coverage remains limited.
 - Pure lifecycle tests cover command registration, busy scopes, dispatch
-  outcomes, and lifecycle capabilities. Pure application-menu tests cover the
+  outcomes, lifecycle capabilities, and the separate application-command
+  catalog containing `export.png`. Pure application-menu tests cover the
   exact hierarchy, semantic mapping, platform placement/accelerators,
   H0/H1/Disc/Case capability projection, dynamic labels, and per-window stale
   generation rejection.
@@ -1609,6 +1620,8 @@ Key files:
 - `src/export/caseInsertPngText.ts`
 - `src/export/canvasImage.ts`
 - `src/export/draw*.ts`
+- `src/app/appPngExportCommand.ts`
+- `src/app/appPngExport.ts`
 - `src/editor/layerOrder.ts`
 - `src/templates/templateModel.ts`
 - `src/layout/*`
@@ -1616,7 +1629,8 @@ Key files:
 
 Source-of-truth state:
 
-- Export reads the same runtime state used by preview, passed from `App.tsx`.
+- Export captures one Disc or Case adapter input behind the registered command;
+  those inputs still originate in the same runtime state used by preview.
 - Export dimensions are derived from template geometry and export DPI helpers.
 
 Render path:
@@ -1629,9 +1643,10 @@ Render path:
 
 Edit/interaction path:
 
-- Export is initiated from `App.tsx` after clean preflight or one accepted
-  warning confirmation, then destination selection. Disc preview measurement
-  is deferred until rendering is about to begin.
+- Export is initiated by `export.png`. Its shared root scope prevents a second
+  export and conflicts with lifecycle transitions/navigation; child scopes own
+  warning, destination, and direct PNG write phases. Disc preview measurement
+  remains deferred until rendering is about to begin.
 
 Save/load path:
 

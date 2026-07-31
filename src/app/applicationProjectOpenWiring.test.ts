@@ -45,6 +45,13 @@ test('production mounts one lifecycle runtime and current lifecycle surfaces sha
     /dispatchApplicationCommand\('workspace\.return-home'\)/,
   )
   assert.match(appSource, /dispatchApplicationCommand\('project\.resume'\)/)
+  assert.equal(
+    (appSource.match(/dispatchApplicationCommand\('export\.png'\)/g) ?? [])
+      .length,
+    1,
+  )
+  assert.equal(appSource.includes('runDiscPngExport('), false)
+  assert.equal(appSource.includes('runCaseInsertPngExport('), false)
   assert.match(appSource, /publishApplicationCommandFeedback\(result,/)
   assert.match(appSource, /synchronizeCurrentEditorRoute\(/)
   assert.match(appSource, /getElementById\('home-resume-project'\)/)
@@ -59,9 +66,17 @@ test('production mounts one lifecycle runtime and current lifecycle surfaces sha
   assert.match(discSource, /onClick=\{handleLoadProject\}/)
   assert.match(discSource, /onClick=\{handleNewProject\}/)
   assert.match(discSource, /onClick=\{handleNewCaseInsert\}/)
+  assert.match(
+    discSource,
+    /disabled=\{exportPngDisabled\}[\s\S]*onClick=\{handleExportPng\}/,
+  )
   assert.match(caseSource, /onClick=\{onLoadProject\}/)
   assert.match(caseSource, /onClick=\{onNewDisc\}/)
   assert.match(caseSource, /onClick=\{onNewCaseInsert\}/)
+  assert.match(
+    caseSource,
+    /disabled=\{exportPngDisabled\}[\s\S]*onClick=\{onExportPng\}/,
+  )
   assert.match(caseSource, /id="case-insert-editor-heading" tabIndex=\{-1\}/)
   assert.equal(appSource.includes("dispatch('menu."), false)
 })

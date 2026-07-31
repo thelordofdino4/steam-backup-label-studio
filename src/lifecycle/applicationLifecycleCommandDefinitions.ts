@@ -5,6 +5,7 @@ import {
   type ApplicationCommandDefinition,
   type ApplicationCommandFeedbackPolicy,
   type ApplicationCommandId,
+  type ApplicationLifecycleCommandId,
   type ApplicationCommandResult,
   type CommandBusyScope,
 } from './applicationCommandTypes.ts'
@@ -12,6 +13,7 @@ import type {
   ApplicationLifecycleCommandContext,
   ApplicationLifecycleCommandPorts,
 } from './applicationLifecycleCommandPorts.ts'
+import type { CommandBusyState } from './commandBusyScopes.ts'
 import { canSaveProjectSessionDirectly } from './projectSession.ts'
 
 const RETURN_ONLY_FEEDBACK = Object.freeze({
@@ -52,7 +54,7 @@ const TERMINATION_SCOPES = Object.freeze([
 ] as const satisfies readonly CommandBusyScope[])
 
 function unavailableOwnerResult(
-  commandId: ApplicationCommandId,
+  commandId: ApplicationLifecycleCommandId,
 ): ApplicationCommandResult<never> {
   return commandFailed({
     code: 'application.command-owner-not-executable',
@@ -63,6 +65,7 @@ function unavailableOwnerResult(
 }
 
 type DefinitionContext = ApplicationLifecycleCommandContext & Readonly<{
+  busy: CommandBusyState
   capabilities: Readonly<Record<ApplicationCommandId, ApplicationCommandCapability>>
 }>
 
@@ -75,7 +78,7 @@ type RootLifecycleCommandDefinition = ApplicationCommandDefinition<
 >
 
 function rootDefinition(
-  id: ApplicationCommandId,
+  id: ApplicationLifecycleCommandId,
   acquireScopes: RootLifecycleCommandDefinition['acquireScopes'],
   execute: RootLifecycleCommandDefinition['execute'],
 ): RootLifecycleCommandDefinition {
@@ -90,7 +93,7 @@ function rootDefinition(
 }
 
 function executeUnavailable(
-  commandId: ApplicationCommandId,
+  commandId: ApplicationLifecycleCommandId,
 ) {
   return unavailableOwnerResult(commandId)
 }
@@ -99,7 +102,7 @@ export function createApplicationLifecycleCommandDefinitions(
   ports: ApplicationLifecycleCommandPorts,
 ): readonly RootLifecycleCommandDefinition[] {
   const definitionsById: Readonly<Record<
-    ApplicationCommandId,
+    ApplicationLifecycleCommandId,
     RootLifecycleCommandDefinition
   >> = Object.freeze({
     'project.new-disc': rootDefinition(

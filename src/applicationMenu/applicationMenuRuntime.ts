@@ -9,7 +9,7 @@ import type {
   ApplicationCommandDispatchResult,
 } from '../lifecycle/applicationCommandTypes.ts'
 import {
-  dispatchApplicationMenuLifecycleCommand,
+  dispatchApplicationMenuCommand,
 } from './applicationMenuLifecycleRouting.ts'
 import { projectApplicationMenuCapabilities } from './applicationMenuProjection.ts'
 import {
@@ -22,6 +22,7 @@ import {
   type ApplicationMenuNativeWindowOperationId,
   type ApplicationMenuOwnerCapabilities,
   type ApplicationMenuPhysicalProjectTarget,
+  type ApplicationMenuProjection,
   type ApplicationMenuWindowState,
   type ApplicationMenuWorkflowId,
   type ApplicationMenuWorkspace,
@@ -32,6 +33,10 @@ import {
   type NativeApplicationMenuDiagnostic,
   type NativeApplicationMenuPort,
 } from './nativeApplicationMenuPort.ts'
+import {
+  installWindowsWebviewApplicationMenuAccelerators,
+  type WindowsWebviewApplicationMenuAcceleratorInstaller,
+} from './windowsWebviewApplicationMenuAccelerators.ts'
 
 const SEMANTIC_ROUTING_UNAVAILABLE = Object.freeze({
   canExecute: false,
@@ -43,6 +48,7 @@ const ENABLED_CAPABILITY = Object.freeze({
 } as const satisfies ApplicationCommandCapability)
 
 const MAX_REMEMBERED_RUNTIME_INVOCATIONS = 512
+const CROSS_SOURCE_ACCELERATOR_DEDUPLICATION_MS = 100
 
 const OWNER_UNAVAILABLE = Object.freeze({
   canExecute: false,
@@ -81,12 +87,15 @@ export type ApplicationMenuRuntimeDependencies = Readonly<{
   subscribeWindowState?: (
     listener: () => void,
   ) => Promise<() => void>
+  installWindowsWebviewAccelerators?:
+    WindowsWebviewApplicationMenuAcceleratorInstaller
+  now?: () => number
   onDiagnostic?: (diagnostic: ApplicationMenuRuntimeDiagnostic) => void
 }>
 
-export type ApplicationMenuLifecycleIngressDependencies = Readonly<{
+export type ApplicationMenuCommandIngressDependencies = Readonly<{
   publishFeedback(
-    dispatch: ApplicationCommandDispatchResult<void>,
+    dispatch: ApplicationCommandDispatchResult<unknown>,
   ): void
 }>
 
@@ -98,8 +107,8 @@ export type ApplicationMenuRuntimeStartResult =
 
 export type ApplicationMenuRuntime = Readonly<{
   start(): Promise<ApplicationMenuRuntimeStartResult>
-  connectLifecycleIngress(
-    dependencies: ApplicationMenuLifecycleIngressDependencies,
+  connectCommandIngress(
+    dependencies: ApplicationMenuCommandIngressDependencies,
   ): () => void
   dispose(): Promise<void>
 }>
@@ -115,11 +124,11 @@ function mappedCapabilities<Key extends string>(
 
 function productionOwnerCapabilities(
   lifecycle: ApplicationLifecycleCompositionSnapshot['capabilities'],
-  lifecycleIngressReady: boolean,
+  commandIngressReady: boolean,
 ): ApplicationMenuOwnerCapabilities {
   return Object.freeze({
     lifecycle,
-    exportPng: OWNER_UNAVAILABLE,
+    exportPng: lifecycle['export.png'],
     workflowNavigation: mappedCapabilities<ApplicationMenuWorkflowId>(
       WORKFLOW_IDS,
       OWNER_UNAVAILABLE,
@@ -137,10 +146,12 @@ function productionOwnerCapabilities(
       OWNER_UNAVAILABLE,
     ),
     exclusiveBoundaries: Object.freeze({
-      lifecycle: lifecycleIngressReady
+      lifecycle: commandIngressReady
         ? ENABLED_CAPABILITY
         : SEMANTIC_ROUTING_UNAVAILABLE,
-      export: SEMANTIC_ROUTING_UNAVAILABLE,
+      export: commandIngressReady
+        ? ENABLED_CAPABILITY
+        : SEMANTIC_ROUTING_UNAVAILABLE,
       'workflow-navigation': SEMANTIC_ROUTING_UNAVAILABLE,
       'focused-edit': SEMANTIC_ROUTING_UNAVAILABLE,
       'native-window': SEMANTIC_ROUTING_UNAVAILABLE,
@@ -226,19 +237,32 @@ export function createApplicationMenuRuntime(
     captureProductionWindowState
   const subscribeWindowState = dependencies.subscribeWindowState ??
     subscribeProductionWindowState
+  const installWindowsWebviewAccelerators =
+    dependencies.installWindowsWebviewAccelerators ??
+    ((descriptor, activate) =>
+      installWindowsWebviewApplicationMenuAccelerators(descriptor, activate))
+  const now = dependencies.now ?? Date.now
 
   let startPromise: Promise<ApplicationMenuRuntimeStartResult> | null = null
   let nativePort: NativeApplicationMenuPort | null = null
   let unsubscribeLifecycle: (() => void) | null = null
   let unsubscribeWindow: (() => void) | null = null
+  let uninstallWindowsWebviewAccelerators: (() => void) | null = null
   let disposed = false
   let nextGeneration = 0
   let appliedProjectionGeneration: number | null = null
-  let lifecycleIngress: Readonly<{
+  let appliedProjection: ApplicationMenuProjection | null = null
+  let commandIngress: Readonly<{
     connectionId: number
-    dependencies: ApplicationMenuLifecycleIngressDependencies
+    dependencies: ApplicationMenuCommandIngressDependencies
   }> | null = null
   let nextConnectionId = 1
+  let nextWebviewInvocationId = 1
+  let latestPresentationActivation: Readonly<{
+    at: number
+    itemId: ApplicationMenuInvocation['itemId']
+    source: 'native' | 'windows-webview'
+  }> | null = null
   const rememberedRuntimeInvocations = new Set<string>()
   const runtimeInvocationOrder: string[] = []
 
@@ -267,38 +291,62 @@ export function createApplicationMenuRuntime(
     return true
   }
 
-  function handleInvocation(invocation: ApplicationMenuInvocation) {
+  function handleInvocation(
+    invocation: ApplicationMenuInvocation,
+    source: 'native' | 'windows-webview' = 'native',
+  ): boolean {
     const port = nativePort
     if (disposed || !port) {
       rejectInvocation('runtime-not-live')
-      return
+      return false
     }
     if (
       invocation.bridgeInstanceId !== port.bridgeInstanceId ||
       invocation.windowLabel !== port.windowLabel
     ) {
       rejectInvocation('bridge-or-window-mismatch')
-      return
+      return false
     }
     if (!rememberRuntimeInvocation(invocation.invocationId)) {
       onDiagnostic({ code: 'application-menu.invocation-duplicate' })
-      return
+      return false
     }
     if (
       appliedProjectionGeneration === null ||
       invocation.projectionGeneration !== appliedProjectionGeneration
     ) {
       rejectInvocation('stale-projection')
-      return
+      return false
     }
 
-    const ingress = lifecycleIngress
+    const ingress = commandIngress
     if (!ingress) {
-      rejectInvocation('lifecycle-ingress-not-ready')
-      return
+      rejectInvocation('command-ingress-not-ready')
+      return false
     }
 
-    void dispatchApplicationMenuLifecycleCommand(invocation.itemId, lifecycle)
+    const activation = Object.freeze({
+      at: now(),
+      itemId: invocation.itemId,
+      source,
+    })
+    if (
+      latestPresentationActivation !== null &&
+      latestPresentationActivation.source !== source &&
+      latestPresentationActivation.itemId === activation.itemId &&
+      activation.at - latestPresentationActivation.at >= 0 &&
+      activation.at - latestPresentationActivation.at <=
+        CROSS_SOURCE_ACCELERATOR_DEDUPLICATION_MS
+    ) {
+      onDiagnostic({
+        code: 'application-menu.invocation-duplicate',
+        detail: 'cross-source-accelerator',
+      })
+      return true
+    }
+    latestPresentationActivation = activation
+
+    void dispatchApplicationMenuCommand(invocation.itemId, lifecycle)
       .then((result) => {
         if (result.status === 'rejected') {
           rejectInvocation(result.reason)
@@ -306,9 +354,9 @@ export function createApplicationMenuRuntime(
         }
         if (
           disposed ||
-          lifecycleIngress?.connectionId !== ingress.connectionId
+          commandIngress?.connectionId !== ingress.connectionId
         ) {
-          rejectInvocation('lifecycle-ingress-replaced')
+          rejectInvocation('command-ingress-replaced')
           return
         }
         try {
@@ -328,6 +376,35 @@ export function createApplicationMenuRuntime(
           })
         }
       })
+    return true
+  }
+
+  function handleWindowsWebviewAccelerator(
+    itemId: ApplicationMenuInvocation['itemId'],
+  ): boolean {
+    const port = nativePort
+    const projection = appliedProjection
+    if (
+      disposed ||
+      !port ||
+      !commandIngress ||
+      port.platformDescriptor.platform !== 'windows' ||
+      projection === null ||
+      projection.generation !== appliedProjectionGeneration ||
+      projection.items.find((item) => item.itemId === itemId)?.enabled !== true
+    ) {
+      return false
+    }
+
+    const invocationId = `windows-webview-${nextWebviewInvocationId}`
+    nextWebviewInvocationId += 1
+    return handleInvocation(Object.freeze({
+      invocationId,
+      bridgeInstanceId: port.bridgeInstanceId,
+      itemId,
+      windowLabel: port.windowLabel,
+      projectionGeneration: projection.generation,
+    }), 'windows-webview')
   }
 
   function projectLatestSnapshot() {
@@ -350,20 +427,24 @@ export function createApplicationMenuRuntime(
           physicalProjectTarget: physicalTargetFor(snapshot),
           capabilities: productionOwnerCapabilities(
             snapshot.capabilities,
-            lifecycleIngress !== null,
+            commandIngress !== null,
           ),
         },
       ))
-      .then((projection) => disposed
-        ? undefined
-        : port.applyProjection(projection))
-      .then((result) => {
+      .then(async (projection) => ({
+        projection,
+        result: disposed
+          ? undefined
+          : await port.applyProjection(projection),
+      }))
+      .then(({ projection, result }) => {
         if (
           !disposed &&
           nativePort === port &&
           result?.status === 'applied'
         ) {
           appliedProjectionGeneration = result.generation
+          appliedProjection = projection
         }
       })
       .catch((error) => {
@@ -375,13 +456,23 @@ export function createApplicationMenuRuntime(
     if (disposed) return 'disposed'
     if (!nativeAvailable()) return 'unavailable'
     try {
-      const port = await createNativePort(handleInvocation)
+      const port = await createNativePort((invocation) => {
+        handleInvocation(invocation, 'native')
+      })
       if (disposed) {
         await port.dispose()
         return 'disposed'
       }
       nativePort = port
       appliedProjectionGeneration = null
+      appliedProjection = null
+      if (port.platformDescriptor.platform === 'windows') {
+        uninstallWindowsWebviewAccelerators =
+          installWindowsWebviewAccelerators(
+            port.platformDescriptor,
+            handleWindowsWebviewAccelerator,
+          )
+      }
       unsubscribeLifecycle = lifecycle.subscribe(projectLatestSnapshot)
       unsubscribeWindow = await subscribeWindowState(projectLatestSnapshot)
       if (disposed) {
@@ -389,9 +480,12 @@ export function createApplicationMenuRuntime(
         unsubscribeWindow = null
         unsubscribeLifecycle()
         unsubscribeLifecycle = null
+        uninstallWindowsWebviewAccelerators?.()
+        uninstallWindowsWebviewAccelerators = null
         await port.dispose()
         nativePort = null
         appliedProjectionGeneration = null
+        appliedProjection = null
         return 'disposed'
       }
       projectLatestSnapshot()
@@ -401,9 +495,12 @@ export function createApplicationMenuRuntime(
       unsubscribeWindow = null
       unsubscribeLifecycle?.()
       unsubscribeLifecycle = null
+      uninstallWindowsWebviewAccelerators?.()
+      uninstallWindowsWebviewAccelerators = null
       const port = nativePort
       nativePort = null
       appliedProjectionGeneration = null
+      appliedProjection = null
       if (port) {
         try {
           await port.dispose()
@@ -424,7 +521,7 @@ export function createApplicationMenuRuntime(
       startPromise ??= start()
       return startPromise
     },
-    connectLifecycleIngress(ingressDependencies) {
+    connectCommandIngress(ingressDependencies) {
       if (disposed) {
         throw new Error('The application menu runtime is disposed.')
       }
@@ -433,25 +530,28 @@ export function createApplicationMenuRuntime(
         dependencies: ingressDependencies,
       })
       nextConnectionId += 1
-      lifecycleIngress = connection
+      commandIngress = connection
       projectLatestSnapshot()
       return () => {
-        if (lifecycleIngress !== connection) return
-        lifecycleIngress = null
+        if (commandIngress !== connection) return
+        commandIngress = null
         projectLatestSnapshot()
       }
     },
     async dispose() {
       if (disposed) return
       disposed = true
-      lifecycleIngress = null
+      commandIngress = null
       unsubscribeLifecycle?.()
       unsubscribeLifecycle = null
       unsubscribeWindow?.()
       unsubscribeWindow = null
+      uninstallWindowsWebviewAccelerators?.()
+      uninstallWindowsWebviewAccelerators = null
       const port = nativePort
       nativePort = null
       appliedProjectionGeneration = null
+      appliedProjection = null
       if (port) {
         try {
           await port.dispose()

@@ -12,6 +12,10 @@ const BUSY_SCOPE_ORDER: Readonly<Record<CommandBusyScope, number>> = Object.free
   'persistence.read': 50,
   'persistence.write': 60,
   'application.termination': 70,
+  'export.execution': 80,
+  'dialog.export-warning': 90,
+  'dialog.export-destination': 100,
+  'persistence.export-write': 110,
 })
 
 const CHILD_LIFECYCLE_SCOPES = new Set<CommandBusyScope>([
@@ -20,6 +24,12 @@ const CHILD_LIFECYCLE_SCOPES = new Set<CommandBusyScope>([
   'persistence.read',
   'persistence.write',
   'application.termination',
+])
+
+const CHILD_EXPORT_SCOPES = new Set<CommandBusyScope>([
+  'dialog.export-warning',
+  'dialog.export-destination',
+  'persistence.export-write',
 ])
 
 export type CommandBusyState = Readonly<{
@@ -78,7 +88,14 @@ export function doBusyScopesConflict(
     return true
   }
   if (first === 'workspace.navigation' || second === 'workspace.navigation') {
-    return first === 'workspace.navigation' && second === 'workspace.navigation'
+    return (
+      (first === 'workspace.navigation' && second === 'workspace.navigation') ||
+      first === 'export.execution' ||
+      second === 'export.execution'
+    )
+  }
+  if (first === 'export.execution' || second === 'export.execution') {
+    return first === 'export.execution' && second === 'export.execution'
   }
   return (
     (first === 'persistence.read' && second === 'persistence.write') ||
@@ -196,6 +213,12 @@ export class CommandBusyScopeCoordinator {
 
     if (scopes.some((scope) => CHILD_LIFECYCLE_SCOPES.has(scope)) && !willOwnLifecycle) {
       throw new Error('Lifecycle child scopes require lifecycle.transition ownership.')
+    }
+
+    const willOwnExport = record.ownedScopes.has('export.execution') ||
+      scopes.includes('export.execution')
+    if (scopes.some((scope) => CHILD_EXPORT_SCOPES.has(scope)) && !willOwnExport) {
+      throw new Error('Export child scopes require export.execution ownership.')
     }
 
     const conflictingScopes = orderScopes(scopes.filter((requested) =>

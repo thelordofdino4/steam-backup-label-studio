@@ -2,6 +2,7 @@ import {
   APPLICATION_LIFECYCLE_COMMAND_IDS,
   type ApplicationCommandDispatchResult,
   type ApplicationCommandId,
+  type ApplicationLifecycleCommandId,
 } from '../lifecycle/applicationCommandTypes.ts'
 import type {
   ApplicationLifecycleCompositionRoot,
@@ -23,22 +24,27 @@ export const CONNECTED_FILE_LIFECYCLE_COMMAND_IDS = Object.freeze([
   'project.save-as',
   'workspace.return-home',
   'project.resume',
+] as const satisfies readonly ApplicationLifecycleCommandId[])
+
+export const CONNECTED_FILE_APPLICATION_COMMAND_IDS = Object.freeze([
+  ...CONNECTED_FILE_LIFECYCLE_COMMAND_IDS,
+  'export.png',
 ] as const satisfies readonly ApplicationCommandId[])
 
-type ConnectedFileLifecycleCommandId =
-  typeof CONNECTED_FILE_LIFECYCLE_COMMAND_IDS[number]
+type ConnectedFileApplicationCommandId =
+  typeof CONNECTED_FILE_APPLICATION_COMMAND_IDS[number]
 
 const connectedCommandIds = new Set<string>(
-  CONNECTED_FILE_LIFECYCLE_COMMAND_IDS,
+  CONNECTED_FILE_APPLICATION_COMMAND_IDS,
 )
 const lifecycleCommandIds = new Set<string>(APPLICATION_LIFECYCLE_COMMAND_IDS)
 const reservedItemIds = new Set<string>(APPLICATION_MENU_RESERVED_ITEM_IDS)
 
-export type ApplicationMenuLifecycleResolution =
+export type ApplicationMenuCommandResolution =
   | Readonly<{
       status: 'resolved'
       itemId: ApplicationMenuItemId
-      commandId: ConnectedFileLifecycleCommandId
+      commandId: ConnectedFileApplicationCommandId
     }>
   | Readonly<{
       status: 'rejected'
@@ -62,11 +68,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Resolves presentation input through the authoritative descriptor. The
  * connected command list bounds this slice; it is not an item-to-command map.
  */
-export function resolveApplicationMenuLifecycleCommand(
+export function resolveApplicationMenuCommand(
   itemId: unknown,
   registry: ApplicationMenuDescriptorRegistry =
     APPLICATION_MENU_DESCRIPTOR_REGISTRY,
-): ApplicationMenuLifecycleResolution {
+): ApplicationMenuCommandResolution {
   if (typeof itemId !== 'string' || itemId.length === 0) {
     return Object.freeze({ status: 'rejected', reason: 'invalid-item-id' })
   }
@@ -84,18 +90,32 @@ export function resolveApplicationMenuLifecycleCommand(
   if (descriptor.parentMenuId !== 'menu.file') {
     return Object.freeze({ status: 'rejected', reason: 'non-file-item' })
   }
-  if (descriptor.eventRoutingOwner !== 'application-command-dispatcher') {
-    return Object.freeze({ status: 'rejected', reason: 'wrong-routing-owner' })
+  if (!isRecord(descriptor.semanticTarget)) {
+    return Object.freeze({ status: 'rejected', reason: 'non-lifecycle-target' })
   }
   if (
-    !isRecord(descriptor.semanticTarget) ||
-    descriptor.semanticTarget.kind !== 'lifecycle-command'
+    descriptor.semanticTarget.kind !== 'lifecycle-command' &&
+    descriptor.semanticTarget.kind !== 'domain-command'
   ) {
     return Object.freeze({ status: 'rejected', reason: 'non-lifecycle-target' })
   }
 
+  const isLifecycle =
+    descriptor.eventRoutingOwner === 'application-command-dispatcher' &&
+    descriptor.semanticTarget.kind === 'lifecycle-command'
+  const isExport =
+    descriptor.eventRoutingOwner === 'domain-command-dispatcher' &&
+    descriptor.semanticTarget.kind === 'domain-command' &&
+    descriptor.semanticTarget.commandId === 'export.png'
+  if (!isLifecycle && !isExport) {
+    return Object.freeze({ status: 'rejected', reason: 'wrong-routing-owner' })
+  }
+
   const commandId = descriptor.semanticTarget.commandId
-  if (typeof commandId !== 'string' || !lifecycleCommandIds.has(commandId)) {
+  if (
+    typeof commandId !== 'string' ||
+    (commandId !== 'export.png' && !lifecycleCommandIds.has(commandId))
+  ) {
     return Object.freeze({
       status: 'rejected',
       reason: 'unknown-lifecycle-command',
@@ -111,28 +131,28 @@ export function resolveApplicationMenuLifecycleCommand(
   return Object.freeze({
     status: 'resolved',
     itemId: descriptor.id,
-    commandId: commandId as ConnectedFileLifecycleCommandId,
+    commandId: commandId as ConnectedFileApplicationCommandId,
   })
 }
 
-export type ApplicationMenuLifecycleDispatchResult =
-  | Extract<ApplicationMenuLifecycleResolution, { status: 'rejected' }>
+export type ApplicationMenuCommandDispatchResult =
+  | Extract<ApplicationMenuCommandResolution, { status: 'rejected' }>
   | Readonly<{
       status: 'dispatched'
       itemId: ApplicationMenuItemId
-      commandId: ConnectedFileLifecycleCommandId
-      dispatch: ApplicationCommandDispatchResult<void>
+      commandId: ConnectedFileApplicationCommandId
+      dispatch: ApplicationCommandDispatchResult<unknown>
     }>
 
 /** Dispatches exactly once through the supplied lifecycle root. */
-export async function dispatchApplicationMenuLifecycleCommand(
+export async function dispatchApplicationMenuCommand(
   itemId: unknown,
   lifecycle: Pick<ApplicationLifecycleCompositionRoot, 'dispatch'>,
-): Promise<ApplicationMenuLifecycleDispatchResult> {
-  const resolution = resolveApplicationMenuLifecycleCommand(itemId)
+): Promise<ApplicationMenuCommandDispatchResult> {
+  const resolution = resolveApplicationMenuCommand(itemId)
   if (resolution.status === 'rejected') return resolution
 
-  const dispatch = await lifecycle.dispatch(resolution.commandId)
+  const dispatch = await lifecycle.dispatch<unknown>(resolution.commandId)
   return Object.freeze({
     status: 'dispatched',
     itemId: resolution.itemId,

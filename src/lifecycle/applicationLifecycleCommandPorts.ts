@@ -12,7 +12,7 @@ import type {
   ApplicationCommandOwnerAvailability,
 } from './lifecycleCommandCapabilities.ts'
 
-export type ApplicationLifecycleCommandContext = Readonly<{
+export type ApplicationCommandContext = Readonly<{
   commandId: ApplicationCommandId
   stateSnapshot: ApplicationLifecycleStateSnapshot
   getCurrentStateSnapshot: () => ApplicationLifecycleStateSnapshot
@@ -22,6 +22,8 @@ export type ApplicationLifecycleCommandContext = Readonly<{
   ) => ApplicationLifecycleStateCommitResult
   createSessionId: () => string
 }>
+
+export type ApplicationLifecycleCommandContext = ApplicationCommandContext
 
 type InactiveCommandOwner = Readonly<{
   availability: 'unavailable' | 'unimplemented'

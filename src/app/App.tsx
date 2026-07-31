@@ -1,5 +1,11 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { unstable_batchedUpdates } from 'react-dom'
 import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
 import {
@@ -197,10 +203,6 @@ import {
   type SteamLogoPlacement,
 } from '../discText/index'
 import {
-  runCaseInsertPngExport,
-  runDiscPngExport,
-} from './appPngExport'
-import {
   createCaseInsertPngExportInput,
   createDiscPngExportInput,
 } from './appPngExportInputs'
@@ -232,8 +234,11 @@ import {
   useApplicationLifecycleRoot,
 } from './useApplicationLifecycleRoot'
 import {
-  useApplicationMenuLifecycleIngress,
+  useApplicationMenuCommandIngress,
 } from './useApplicationMenuLifecycleIngress'
+import {
+  useApplicationDocumentSelectionOwnership,
+} from './applicationDocumentSelectionOwnership'
 import {
   applyDiscRolePresetToOwners,
 } from './appDiscRolePresetApplication'
@@ -1852,11 +1857,96 @@ function App() {
           },
         }, destination),
     },
+    exportPng: {
+      getCaseInsertAdapter: () => activeWorkspace === 'caseInsert'
+        ? Object.freeze({
+            kind: 'caseInsert',
+            physicalTarget: activeCaseInsertTemplatePane === 'cover'
+              ? 'case-cover-sheet'
+              : 'case-tray-card',
+            captureInvocation: () => ({
+              ...createCaseInsertPngExportInput({
+                caseInsert: projectJewelCase,
+                activeTemplatePane: activeCaseInsertTemplatePane,
+                projectMetadata,
+                projectLogoAssets,
+                projectRatingBadge,
+                projectMediaMark,
+                projectPlatformMarks,
+                projectTechnicalMarks,
+              }),
+              saveDialog: save,
+              confirmDialog: confirm,
+              writeBinaryFileCommand: writeBinaryFile,
+              buildPreflightSummary: buildCaseInsertExportPreflightSummary,
+              exportPngBytes: exportCaseInsertPngBytes,
+            }),
+          })
+        : null,
+      getDiscAdapter: () => activeWorkspace === 'disc'
+        ? Object.freeze({
+          kind: 'disc',
+          physicalTarget: 'disc-label',
+          captureInvocation: () => ({
+            ...createDiscPngExportInput({
+              selectedDiscTemplateId,
+              selectedDiscTemplate,
+              backgroundImageUrl: effectiveBackgroundImageUrl,
+              backgroundImageSize: effectiveBackgroundImageSize,
+              selectedSteamGame,
+              manualGameTitle,
+              steamLogoPlacement,
+              steamBannerUseTextFallback,
+              steamBannerFallbackText,
+              steamBannerLockupImageUrl,
+              discTextSettings,
+              projectLogoAssets,
+              projectTitleArtwork,
+              projectMetadata,
+              projectRatingBadge,
+              projectMediaMark,
+              projectPlatformMarks,
+              projectTechnicalMarks,
+              exportGuides,
+              resolvedDiscTextTitle,
+              backgroundScale,
+              backgroundOffset,
+              steamBannerColors,
+              steamBannerLockupImageSize,
+              steamBannerLockupLayout,
+              projectDiscNumberArtwork,
+              projectAdditionalArtwork,
+              discTextValues,
+              discTextValueSources,
+              discTextHtmlSources,
+              discTextStyles,
+              discTextLayout,
+            }),
+            getPreviewSize: () =>
+              discPreviewRef.current?.getBoundingClientRect().width ??
+              discExportPreviewFallbackSize,
+            saveDialog: save,
+            confirmDialog: confirm,
+            writeBinaryFileCommand: writeBinaryFile,
+            buildPreflightSummary: buildExportPreflightSummary,
+            exportPngBytes: exportDiscLabelPngBytes,
+          }),
+        })
+        : null,
+    },
   })
-  useApplicationMenuLifecycleIngress({
+  const applicationCommandSnapshot = useSyncExternalStore(
+    applicationLifecycleRoot.subscribe,
+    applicationLifecycleRoot.getSnapshot,
+    applicationLifecycleRoot.getSnapshot,
+  )
+  const exportPngDisabled =
+    !applicationCommandSnapshot.capabilities['export.png'].canExecute
+  useApplicationMenuCommandIngress({
     announceStatus,
     setHomeStatusMessage,
   })
+  useApplicationDocumentSelectionOwnership()
 
   useLayoutEffect(() => {
     if (activeWorkspace === 'home') return
@@ -1906,73 +1996,7 @@ function App() {
   }
 
   async function handleExportPng() {
-    if (activeWorkspace === 'caseInsert') {
-      await runCaseInsertPngExport({
-        ...createCaseInsertPngExportInput({
-          caseInsert: projectJewelCase,
-          activeTemplatePane: activeCaseInsertTemplatePane,
-          projectMetadata,
-          projectLogoAssets,
-          projectRatingBadge,
-          projectMediaMark,
-          projectPlatformMarks,
-          projectTechnicalMarks,
-        }),
-        saveDialog: save,
-        confirmDialog: confirm,
-        writeBinaryFileCommand: writeBinaryFile,
-        buildPreflightSummary: buildCaseInsertExportPreflightSummary,
-        exportPngBytes: exportCaseInsertPngBytes,
-        announceStatus,
-      })
-      return
-    }
-
-    await runDiscPngExport({
-      ...createDiscPngExportInput({
-        selectedDiscTemplateId,
-        selectedDiscTemplate,
-        backgroundImageUrl: effectiveBackgroundImageUrl,
-        backgroundImageSize: effectiveBackgroundImageSize,
-        selectedSteamGame,
-        manualGameTitle,
-        steamLogoPlacement,
-        steamBannerUseTextFallback,
-        steamBannerFallbackText,
-        steamBannerLockupImageUrl,
-        discTextSettings,
-        projectLogoAssets,
-        projectTitleArtwork,
-        projectMetadata,
-        projectRatingBadge,
-        projectMediaMark,
-        projectPlatformMarks,
-        projectTechnicalMarks,
-        exportGuides,
-        resolvedDiscTextTitle,
-        backgroundScale,
-        backgroundOffset,
-        steamBannerColors,
-        steamBannerLockupImageSize,
-        steamBannerLockupLayout,
-        projectDiscNumberArtwork,
-        projectAdditionalArtwork,
-        discTextValues,
-        discTextValueSources,
-        discTextHtmlSources,
-        discTextStyles,
-        discTextLayout,
-      }),
-      getPreviewSize: () =>
-        discPreviewRef.current?.getBoundingClientRect().width ??
-        discExportPreviewFallbackSize,
-      saveDialog: save,
-      confirmDialog: confirm,
-      writeBinaryFileCommand: writeBinaryFile,
-      buildPreflightSummary: buildExportPreflightSummary,
-      exportPngBytes: exportDiscLabelPngBytes,
-      announceStatus,
-    })
+    await dispatchApplicationCommand('export.png')
   }
 
   const gamePanelProps: GamePanelProps = {
@@ -2241,6 +2265,7 @@ function App() {
         onSaveProject={handleSaveProject}
         onLoadProject={handleLoadProject}
         onExportPng={handleExportPng}
+        exportPngDisabled={exportPngDisabled}
         onExportGuideToggle={handleCaseInsertExportGuideToggle}
         onNavigationSurfaceChange={handleCaseInsertNavigationSurfaceChange}
         onActiveTemplatePaneChange={handleActiveCaseInsertTemplatePaneChange}
@@ -2291,6 +2316,7 @@ function App() {
           handleSaveProject={handleSaveProject}
           handleLoadProject={handleLoadProject}
           handleExportPng={handleExportPng}
+          exportPngDisabled={exportPngDisabled}
           handleMainMenu={handleReturnToHome}
           handleNewCaseInsert={handleSwitchToCaseInsertFromDisc}
         />

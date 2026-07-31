@@ -1,4 +1,6 @@
-import type { ApplicationCommandId } from '../lifecycle/applicationCommandTypes.ts'
+import type {
+  ApplicationLifecycleCommandId,
+} from '../lifecycle/applicationCommandTypes.ts'
 import {
   APPLICATION_MENU_ITEM_IDS,
   APPLICATION_MENU_RESERVED_ITEM_IDS,
@@ -53,7 +55,7 @@ function accelerators(
 const NO_ACCELERATORS = accelerators(null, null, null)
 
 function lifecycleTarget(
-  commandId: ApplicationCommandId,
+  commandId: ApplicationLifecycleCommandId,
 ): Extract<ApplicationMenuSemanticTarget, { kind: 'lifecycle-command' }> {
   return Object.freeze({ kind: 'lifecycle-command', commandId })
 }

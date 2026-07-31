@@ -4,7 +4,7 @@
 > Purpose: Define one shared PNG export command, its state and ownership boundaries, preflight and dialog order, immutable snapshot, adapters, results, feedback, focus, concurrency, and destination-write safety.
 > Read when: Export controls, preflight, PNG rendering/writing, exported guides, export feedback, export dialogs, export shortcuts, or Disc/Case export adapters are designed or changed.
 > Authoritative source: This document for target application-level PNG export execution semantics; current source and focused tests for as-built behavior until this contract is implemented.
-> Evidence baseline: the original audit at `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`, plus the focused issue #302 source checkpoint based on `main` at `05b5af1e201a21a10859b6f28a44a4a287fdfd29`, reviewed 2026-07-30.
+> Evidence baseline: the original audit at `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`, merged issue #302 ordering in PR #332 at `98f6153b8386fa0b91dadbf86d1769337a6ac8b9`, and the shared-command source checkpoint reviewed 2026-07-31.
 
 Implementation checkpoint, 2026-07-30: the existing Disc and Case Insert PNG
 orchestrators now run preflight before destination selection. Clean preflight
@@ -80,15 +80,15 @@ Terms used here:
 
 ## 3. Evidence-backed current-state baseline
 
-The complete current route is implemented by `App.tsx`,
-`appPngExportInputs.ts`, `appPngExport.ts`, the two preflight builders, the two
-canvas exporters, `canvasImage.ts`, the Tauri dialog plugin, and
-`write_binary_file`.
+The complete current route is implemented by the shared application-command
+root, `appPngExportCommand.ts`, `appPngExportInputs.ts`, `appPngExport.ts`, the
+two preflight builders, the two canvas exporters, `canvasImage.ts`, the native
+menu ingress, the Tauri dialog plugin, and `write_binary_file`.
 
 | Current fact | Evidence and consequence |
 | --- | --- |
-| Disc Project File and Case Project File each expose an `Export PNG` button; Home exposes no export activation. | `ProjectPanel.tsx`, `CaseInsertEditorShell.tsx`, `HomeScreen.tsx`. Both buttons receive `handleExportPng`; the native File `Export PNG…` descriptor remains disabled and is not connected to this callback. |
-| `handleExportPng` selects Case only when `activeWorkspace === 'caseInsert'`; its fallback is Disc. | `App.tsx`. Mounted buttons make the current route work, but renderer selection is presentation/orchestration branching rather than centralized capability/target resolution. |
+| Disc Project File and Case Project File each expose an `Export PNG` button; Home exposes no export activation. | `ProjectPanel.tsx`, `CaseInsertEditorShell.tsx`, and `HomeScreen.tsx`. Both buttons project the central capability and dispatch `export.png`; the native File `Export PNG…` item resolves the same command from its authoritative descriptor. |
+| `handleExportPng` only dispatches `export.png`; the registered command owner resolves Disc Label, Case Cover Sheet, or complete Case Tray Card and captures the matching adapter input once. | `App.tsx`, `appPngExportCommand.ts`. Current combined Case Spine navigation resolves to the complete Tray Card, never a spine-only PNG. |
 | Both routes execute **preflight -> optional warning confirmation -> destination chooser -> render/encode -> direct write -> status**. | `appPngExport.ts` and `appPngExport.test.ts`. A clean summary skips confirmation; warning decline and destination cancellation both occur before render/write. |
 | Confirmation is conditional on the existing `hasWarnings` result. | Clean preflight proceeds directly to destination selection. Any current advisory warnings produce exactly one aggregated confirmation before the destination chooser. |
 | Current warning confirmation uses title `Export PNG preflight`, kind `warning`, OK label `Export PNG`, Cancel label `Cancel`, and a message ending `Continue with export?`. | Warning summaries append one `Warnings:` list. Clean summaries open no information dialog, and there is still no blocker presentation. |
@@ -102,10 +102,9 @@ canvas exporters, `canvasImage.ts`, the Tauri dialog plugin, and
 | Preview guides are separate from exported-guide selection. | `DiscGuideOverlay.tsx` always uses template geometry; `CaseInsertGuideOverlay.tsx` renders the active layout's guides. Neither reads exported-guide configuration. |
 | Guide Legend is preview-local and starts collapsed in both editors. | `DiscPreview.tsx` and `CaseInsertPreview.tsx` initialize local `isGuideLegendOpen` to `false`. Its static/derived content is not passed to either exporter. |
 | Disc guide booleans and Case `guideIds` are serialized. Case `export.surfaces` is also serialized but is not consulted by the current execution/render path. | `projectTypes.ts`, project snapshot/restore adapters, Case normalization/defaults, and parity tests. Repository search finds no current export decision reading `caseInsert.export.surfaces`. |
-| Export returns no typed result. | Orchestrators return `void`; cancellation and decline are status strings, and all caught technical failures become `Export failed: ${String(error)}`. |
-| Current status copy distinguishes destination cancellation, preflight decline, and success only as messages. | The routes announce `Export cancelled.`, `Export cancelled after preflight.`, or an `Exported ...` message. Case success names Cover Sheet/Tray Card; Disc success omits target and both success forms omit the destination path. |
-| Feedback is preview-oriented. | `useStatusToasts.ts` stores a project status plus preview toasts; `PreviewToastStack` is mounted in editors, not Home. Export result feedback is not yet an application-global result projection. |
-| There is no export busy/reentrancy owner. | Buttons are not disabled by an export capability and repeated calls can reach overlapping native dialogs/writes. |
+| Export returns the shared typed command result. | Success, destination cancellation, warning decline, and stage-specific failures carry stable result kinds/codes plus the existing user-facing copy. The Disc and Case workflow adapters publish no status themselves. |
+| Feedback is application-owned and published once. | Button and native-menu dispatch outcomes pass through `appApplicationCommandFeedback.ts`; accepted messages use the shared toast owner, deduplication keys, and Home live-status mirror. |
+| One central export capability and the shared busy coordinator arbitrate execution. | Home/no-session/unresolved/missing-adapter states are disabled. `export.execution` plus focused warning, destination, and write child scopes prevent duplicate dialogs/renders/writes and conflict with lifecycle transitions/navigation. |
 | Rendering and PNG encoding complete in memory before native writing begins. | Both exporters await `canvasToPngBytes`; `canvasImage.ts` creates a Blob, ArrayBuffer, and `number[]` before invoking Rust. Render/encode failure therefore occurs before the current write call. |
 | Native PNG writing is a direct `std::fs::write(path, bytes)`. | `src-tauri/src/commands/files.rs`. An existing file can be truncated before a later write failure; no same-directory temporary file, flush policy, atomic replace, rollback, or Windows replacement guarantee exists. |
 | Export execution does not call project save/snapshot adapters or update lifecycle path, baseline, format, revision, or dirty state. | The export route only assesses the current editor inputs, chooses a PNG destination after permitted preflight, renders, writes, and announces status. |
@@ -128,15 +127,15 @@ contract owns the export sequence.
 
 | Surface/control | Current owner/class | Target semantic owner | Adapter responsibility | Must not own |
 | --- | --- | --- | --- | --- |
-| Disc `Export PNG` | `App.tsx` callback plus Disc branch; domain workflow | `owner.export.workflow`, command `export.png` | Dispatch exact command ID and present central capability | Renderer choice, preflight, dialogs, busy state, or feedback |
-| Case `Export PNG` | Same callback plus Case branch; domain workflow | `owner.export.workflow`, command `export.png` | Same | Pane-to-renderer branching or a Case-only workflow copy |
+| Disc `Export PNG` | Presentation adapter over the shared command | `owner.export.workflow`, command `export.png` | Dispatch exact command ID and present central capability | Renderer choice, preflight, dialogs, busy state, or feedback |
+| Case `Export PNG` | Presentation adapter over the same shared command | `owner.export.workflow`, command `export.png` | Same | Pane-to-renderer branching or a Case-only workflow copy |
 | Future Home export affordance | None | Same command, only if retained target resolves truthfully | Dispatch or show central disabled reason | Guess a target from a label or stale route |
-| Future menu/shortcut/palette item | None | Same command | Supply presentation copy/placement/accelerator | Eligibility, target resolution, confirmation, destination, or results |
+| Native File menu/accelerator | Native item click is connected as `menu.file.export-png`; Ctrl/Cmd+E remains descriptor-owned. Because the pinned WebView2/Wry native path does not deliver Windows Ctrl+E, the bounded Windows WebView adapter forwards it only while the latest projection enables this same item. | Same command | Resolve the descriptor and dispatch through the committed application-command ingress; preserve earlier keyboard/modal owners and cross-source deduplication; do not add a private export shortcut callback | Eligibility, target resolution, confirmation, destination, or results |
 | Disc Export Options | `useDiscExportGuides` plus `ExportOptionsPanel`; project configuration | `owner.export.disc-guides` | Submit typed guide-setting intents | Execute export or own command predicates |
 | Case Export Options | Case export state plus `exportGuideOptions.ts`; project configuration | `owner.export.case-guides` | Submit typed guide-setting intents | Execute export or create surface-local duplicates |
 | Guide Legend | Preview-local informational overlay | `owner.preview-guide-legend` | Explain preview guide vocabulary | Configure pixels or execute export |
 | Preview guide overlays | Preview renderer adapters | Disc/Case preview guide domains | Render editing aids | Read exported-guide settings as implicit permission |
-| Result/status presentation | Current preview toast/project-status hook | Shared application feedback boundary | Project one returned result once | Reinterpret thrown strings independently per surface |
+| Result/status presentation | Shared application feedback boundary | Shared application feedback boundary | Project one returned result once | Reinterpret thrown strings independently per surface |
 
 Export configuration navigation reuses `area.export`, the matching guide owner,
 and the exact control IDs in the ownership reference. Focusing
@@ -664,9 +663,9 @@ Required validation layers are separate:
 
 Unit/integration tests cannot prove native Windows replacement semantics, native
 dialog focus behavior, or visual PNG acceptance. Browser-only evidence cannot
-establish native Tauri acceptance. The issue #302 checkpoint adds focused Disc
-and Case orchestration tests for clean, warning-accepted, warning-declined,
-destination-cancelled, and failure ordering; native acceptance remains a
+establish native Tauri acceptance. The merged issue #302 checkpoint and this
+shared-command checkpoint add focused Disc/Case sequencing, capability, busy,
+typed-result, menu-routing, and feedback coverage; native acceptance remains a
 separate required result.
 
 ## 18. Issue/dependency mapping, exclusions, and unresolved questions
@@ -675,7 +674,7 @@ separate required result.
 
 | Issue/dependency | Relationship to this contract |
 | --- | --- |
-| [#302](https://github.com/thelordofdino4/steam-backup-label-studio/issues/302) | Focused implementation owner for preflight-before-destination ordering. The 2026-07-30 source checkpoint reconciles its earlier unconditional-confirmation wording with this stricter contract: clean preflight skips confirmation and warnings get one decision. Publication and acceptance remain separate from this unstaged checkpoint. |
+| [#302](https://github.com/thelordofdino4/steam-backup-label-studio/issues/302) | Closed after PR #332 merged the required preflight-before-destination ordering. Clean preflight skips confirmation and warnings receive one decision. |
 | [#300](https://github.com/thelordofdino4/steam-backup-label-studio/issues/300) | Current Home feedback gap and shared global-feedback dependency; export must not rely on a preview-only toast host. |
 | [#305](https://github.com/thelordofdino4/steam-backup-label-studio/issues/305) | Focused canvas helper exact-uncropped-bounds regression. It is renderer/helper correctness, not workflow ordering or write safety. |
 | [#306](https://github.com/thelordofdino4/steam-backup-label-studio/issues/306) | Case Front/Back/Spine navigation discoverability and authoritative route context; does not create four physical PNG outputs. |
@@ -698,10 +697,10 @@ issue is mapped above rather than misclassified as an export implementation.
 
 This contract does not implement or decide:
 
-- source, tests, Rust commands, native dialogs, or runtime behavior;
+- additional source/runtime work beyond the bounded shared-command checkpoint;
 - final File/Export menu hierarchy, visual placement, label, icon, platform role,
   or keyboard shortcut;
-- command-registry, global-feedback UI, or modal component implementation;
+- new feedback UI or modal component implementation;
 - native dialog queue-versus-reject mechanics beyond one-owner/no-overlap
   semantics;
 - project Save/Save As atomic replacement details under #312;

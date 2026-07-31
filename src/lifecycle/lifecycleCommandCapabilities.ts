@@ -1,7 +1,7 @@
 import type { ApplicationLifecycleState } from './projectSession.ts'
 import {
   type ApplicationCommandCapability,
-  type ApplicationCommandId,
+  type ApplicationLifecycleCommandId,
   type CommandBusyScope,
 } from './applicationCommandTypes.ts'
 import {
@@ -31,7 +31,7 @@ export type ApplicationCommandOwnerAvailabilityState =
   | 'unimplemented'
 
 export type ApplicationCommandOwnerAvailability = Readonly<Record<
-  ApplicationCommandId,
+  ApplicationLifecycleCommandId,
   ApplicationCommandOwnerAvailabilityState
 >>
 
@@ -99,7 +99,7 @@ function terminationCapability(
 
 export function getLifecycleCommandCapability(
   context: LifecycleCommandCapabilityContext,
-  commandId: ApplicationCommandId,
+  commandId: ApplicationLifecycleCommandId,
 ): ApplicationCommandCapability {
   switch (commandId) {
     case 'project.new-disc':
@@ -136,7 +136,7 @@ export function getLifecycleCommandCapability(
 
 export function projectLifecycleCommandCapabilities(
   context: LifecycleCommandCapabilityContext,
-): Readonly<Record<ApplicationCommandId, ApplicationCommandCapability>> {
+): Readonly<Record<ApplicationLifecycleCommandId, ApplicationCommandCapability>> {
   return Object.freeze({
     'project.new-disc': getLifecycleCommandCapability(context, 'project.new-disc'),
     'project.new-case': getLifecycleCommandCapability(context, 'project.new-case'),
@@ -172,7 +172,7 @@ function ownerCapability(
 
 export function getExecutableLifecycleCommandCapability(
   context: ExecutableLifecycleCommandCapabilityContext,
-  commandId: ApplicationCommandId,
+  commandId: ApplicationLifecycleCommandId,
 ): ApplicationCommandCapability {
   const lifecycleCapability = getLifecycleCommandCapability(context, commandId)
   if (!lifecycleCapability.canExecute) return lifecycleCapability
@@ -181,7 +181,7 @@ export function getExecutableLifecycleCommandCapability(
 
 export function executableProjectLifecycleCommandCapabilities(
   context: ExecutableLifecycleCommandCapabilityContext,
-): Readonly<Record<ApplicationCommandId, ApplicationCommandCapability>> {
+): Readonly<Record<ApplicationLifecycleCommandId, ApplicationCommandCapability>> {
   return Object.freeze({
     'project.new-disc': getExecutableLifecycleCommandCapability(
       context,

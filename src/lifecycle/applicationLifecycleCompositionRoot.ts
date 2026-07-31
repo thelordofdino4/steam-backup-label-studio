@@ -2,6 +2,7 @@ import {
   type ApplicationCommandCapability,
   type ApplicationCommandDispatchResult,
   type ApplicationCommandId,
+  type ApplicationLifecycleCommandId,
 } from './applicationCommandTypes.ts'
 import {
   ApplicationCommandDispatcher,
@@ -11,6 +12,11 @@ import {
   createApplicationLifecycleCommandDefinitions,
   type ApplicationLifecycleDefinitionContext,
 } from './applicationLifecycleCommandDefinitions.ts'
+import {
+  createApplicationPngExportCommandDefinition,
+  getApplicationPngExportCapability,
+  type ApplicationPngExportCommandOwner,
+} from './applicationPngExportCommand.ts'
 import {
   getApplicationLifecycleCommandOwnerAvailability,
   type ApplicationLifecycleCommandContext,
@@ -65,6 +71,7 @@ export type ApplicationLifecycleCompositionSubscriber = (
 export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   initialState?: ApplicationLifecycleState
   ports?: ApplicationLifecycleCommandPorts
+  exportPng?: ApplicationPngExportCommandOwner
   termination?: ApplicationTerminationCapabilities
   createOperationId?: () => string
   createSessionId?: () => string
@@ -76,14 +83,18 @@ export interface ApplicationLifecycleCompositionRoot {
   getStateSnapshot(): ApplicationLifecycleStateSnapshot
   getBusyState(): CommandBusyState
   getLifecycleCommandCapabilities(): Readonly<Record<
+    ApplicationLifecycleCommandId,
+    ApplicationCommandCapability
+  >>
+  getApplicationCommandCapabilities(): Readonly<Record<
     ApplicationCommandId,
     ApplicationCommandCapability
   >>
   getSnapshot(): ApplicationLifecycleCompositionSnapshot
-  dispatch(
+  dispatch<Value = void>(
     commandId: ApplicationCommandId,
-  ): Promise<ApplicationCommandDispatchResult<void>>
-  dispatch(commandId: string): Promise<ApplicationCommandDispatchResult<void>>
+  ): Promise<ApplicationCommandDispatchResult<Value>>
+  dispatch<Value = void>(commandId: string): Promise<ApplicationCommandDispatchResult<Value>>
   synchronizeCurrentProject(input: Readonly<{
     sessionId: ProjectSessionId
     kind: EditorProjectType
@@ -96,6 +107,7 @@ export interface ApplicationLifecycleCompositionRoot {
   }>): 'synchronized' | 'no-op' | 'stale-session' | 'wrong-kind' | 'invalid'
   subscribe(subscriber: ApplicationLifecycleCompositionSubscriber): () => void
   listRegisteredCommandIds(): readonly ApplicationCommandId[]
+  refreshCommandCapabilities(): void
   dispose(): void
 }
 
@@ -148,6 +160,20 @@ export function createApplicationLifecycleCompositionRoot(
   let disposed = false
 
   function capabilitiesFor(
+    stateSnapshot: ApplicationLifecycleStateSnapshot,
+    busy: CommandBusyState,
+  ) {
+    const lifecycleCapabilities = lifecycleCapabilitiesFor(stateSnapshot, busy)
+    return Object.freeze({
+      ...lifecycleCapabilities,
+      'export.png': getApplicationPngExportCapability(options.exportPng, {
+        stateSnapshot,
+        busy,
+      }),
+    })
+  }
+
+  function lifecycleCapabilitiesFor(
     stateSnapshot: ApplicationLifecycleStateSnapshot,
     busy: CommandBusyState,
   ) {
@@ -210,6 +236,7 @@ export function createApplicationLifecycleCompositionRoot(
   for (const definition of createApplicationLifecycleCommandDefinitions(ports)) {
     registry.register(definition)
   }
+  registry.register(createApplicationPngExportCommandDefinition(options.exportPng))
 
   function createCommandContext(
     commandId: ApplicationCommandId,
@@ -227,6 +254,7 @@ export function createApplicationLifecycleCompositionRoot(
 
     return Object.freeze({
       ...baseContext,
+      busy,
       capabilities: capabilitiesFor(stateSnapshot, busy),
     })
   }
@@ -236,6 +264,13 @@ export function createApplicationLifecycleCompositionRoot(
     getStateSnapshot: () => stateStore.getSnapshot(),
     getBusyState: () => busyCoordinator.getState(),
     getLifecycleCommandCapabilities: () => {
+      const stateSnapshot = stateStore.getSnapshot()
+      return lifecycleCapabilitiesFor(
+        stateSnapshot,
+        busyCoordinator.getState(),
+      )
+    },
+    getApplicationCommandCapabilities: () => {
       const stateSnapshot = stateStore.getSnapshot()
       return capabilitiesFor(stateSnapshot, busyCoordinator.getState())
     },
@@ -252,7 +287,7 @@ export function createApplicationLifecycleCompositionRoot(
           commandId,
         })
       }
-      return dispatcher.dispatch<void>(
+      return dispatcher.dispatch(
         commandId,
         createCommandContext(definition.id),
         undefined,
@@ -324,6 +359,10 @@ export function createApplicationLifecycleCompositionRoot(
       return () => subscribers.delete(subscriber)
     },
     listRegisteredCommandIds: () => registry.listIds(),
+    refreshCommandCapabilities() {
+      if (disposed) return
+      notifySubscribers()
+    },
     dispose() {
       if (disposed) return
       disposed = true

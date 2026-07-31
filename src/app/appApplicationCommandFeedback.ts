@@ -32,6 +32,8 @@ function commandLabel(commandId: string): string {
       return 'Return Home'
     case 'project.resume':
       return 'Resume Project'
+    case 'export.png':
+      return 'Export PNG'
     default:
       return 'The command'
   }
@@ -55,7 +57,7 @@ function declineMessage(commandId: string): string {
 
 /** Maps every terminal dispatcher result to at most one presentation intent. */
 export function selectApplicationCommandFeedback(
-  dispatch: ApplicationCommandDispatchResult<void>,
+  dispatch: ApplicationCommandDispatchResult<unknown>,
 ): ApplicationCommandFeedbackIntent | null {
   if (dispatch.disposition === 'not-executed') {
     const message = dispatch.userMessage ??
@@ -111,7 +113,7 @@ function statusToastKind(
  * status owner, so duplicate adapters cannot double-publish.
  */
 export function publishApplicationCommandFeedback(
-  dispatch: ApplicationCommandDispatchResult<void>,
+  dispatch: ApplicationCommandDispatchResult<unknown>,
   dependencies: ApplicationCommandFeedbackPublicationDependencies,
 ): ApplicationCommandFeedbackIntent | null {
   const feedback = selectApplicationCommandFeedback(dispatch)

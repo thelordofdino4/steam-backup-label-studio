@@ -1,6 +1,6 @@
 import type {
   ApplicationCommandCapability,
-  ApplicationCommandId,
+  ApplicationLifecycleCommandId,
 } from '../lifecycle/applicationCommandTypes.ts'
 
 export const APPLICATION_MENU_PLATFORMS = Object.freeze([
@@ -157,7 +157,7 @@ export type ApplicationMenuInformationalOperationId =
 export type ApplicationMenuSemanticTarget =
   | Readonly<{
       kind: 'lifecycle-command'
-      commandId: ApplicationCommandId
+      commandId: ApplicationLifecycleCommandId
     }>
   | Readonly<{
       kind: 'domain-command'
@@ -372,7 +372,7 @@ export type ApplicationMenuWindowState = Readonly<{
 
 export type ApplicationMenuOwnerCapabilities = Readonly<{
   lifecycle: Readonly<Record<
-    ApplicationCommandId,
+    ApplicationLifecycleCommandId,
     ApplicationCommandCapability
   >>
   exportPng: ApplicationCommandCapability
