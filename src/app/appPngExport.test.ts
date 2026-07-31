@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  runCaseInsertPngExport,
-  runDiscPngExport,
+  runCaseInsertPngExport as runCaseInsertPngExportAdapter,
+  runDiscPngExport as runDiscPngExportAdapter,
   type RunCaseInsertPngExportParams,
   type RunDiscPngExportParams,
 } from './appPngExport.ts'
@@ -11,9 +11,31 @@ function createStatusRecorder(statuses: string[]) {
   return (message: string) => statuses.push(message)
 }
 
+type TestCaseExportParams = RunCaseInsertPngExportParams & Readonly<{
+  announceStatus?: (message: string) => void
+}>
+
+type TestDiscExportParams = RunDiscPngExportParams & Readonly<{
+  announceStatus?: (message: string) => void
+}>
+
+async function runCaseInsertPngExport(params: TestCaseExportParams) {
+  const { announceStatus, ...adapterParams } = params
+  const result = await runCaseInsertPngExportAdapter(adapterParams)
+  if (result.feedback) announceStatus?.(result.feedback.message)
+  return result
+}
+
+async function runDiscPngExport(params: TestDiscExportParams) {
+  const { announceStatus, ...adapterParams } = params
+  const result = await runDiscPngExportAdapter(adapterParams)
+  if (result.feedback) announceStatus?.(result.feedback.message)
+  return result
+}
+
 function createCaseInput(
-  overrides: Partial<RunCaseInsertPngExportParams> = {},
-): RunCaseInsertPngExportParams {
+  overrides: Partial<TestCaseExportParams> = {},
+): TestCaseExportParams {
   return {
     caseInsert: {} as RunCaseInsertPngExportParams['caseInsert'],
     activeTemplatePane: 'cover',
@@ -32,14 +54,13 @@ function createCaseInput(
       height: 200,
       dpi: 300,
     }),
-    announceStatus: () => undefined,
     ...overrides,
   }
 }
 
 function createDiscInput(
-  overrides: Partial<RunDiscPngExportParams> = {},
-): RunDiscPngExportParams {
+  overrides: Partial<TestDiscExportParams> = {},
+): TestDiscExportParams {
   return {
     preflight: {
       manualGameTitle: 'Manual title for preflight',
@@ -61,7 +82,6 @@ function createDiscInput(
       width: 300,
       height: 300,
     }),
-    announceStatus: () => undefined,
     ...overrides,
   }
 }
@@ -615,4 +635,33 @@ test('write failure emits one failure status and no success status', async () =>
     'write',
   ])
   assert.deepEqual(statuses, ['Export failed: Error: write unavailable'])
+})
+
+test('workflow adapters return typed cancellation and stage-specific failure results', async () => {
+  const cancelled = await runDiscPngExportAdapter(createDiscInput({
+    saveDialog: async () => null,
+  }))
+  assert.deepEqual(cancelled, {
+    status: 'cancelled',
+    reason: 'file-dialog-dismissed',
+    feedback: {
+      kind: 'warning',
+      message: 'Export cancelled.',
+      deduplicationKey: 'export.png:cancelled:destination',
+    },
+  })
+
+  const failure = await runDiscPngExportAdapter(createDiscInput({
+    buildPreflightSummary: () => {
+      throw new Error('preflight unavailable')
+    },
+  }))
+  assert.equal(failure.status, 'failure')
+  if (failure.status === 'failure') {
+    assert.equal(failure.error.code, 'export.preflight-failed')
+    assert.equal(
+      failure.feedback?.message,
+      'Export failed: Error: preflight unavailable',
+    )
+  }
 })

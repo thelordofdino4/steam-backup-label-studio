@@ -11,8 +11,15 @@ export const APPLICATION_LIFECYCLE_COMMAND_IDS = Object.freeze([
   'application.quit',
 ] as const)
 
-export type ApplicationCommandId =
+export type ApplicationLifecycleCommandId =
   typeof APPLICATION_LIFECYCLE_COMMAND_IDS[number]
+
+export const APPLICATION_COMMAND_IDS = Object.freeze([
+  ...APPLICATION_LIFECYCLE_COMMAND_IDS,
+  'export.png',
+] as const)
+
+export type ApplicationCommandId = typeof APPLICATION_COMMAND_IDS[number]
 
 export type ApplicationCommandCancellationReason =
   | 'file-dialog-dismissed'
@@ -89,6 +96,10 @@ export const COMMAND_BUSY_SCOPES = Object.freeze([
   'persistence.read',
   'persistence.write',
   'application.termination',
+  'export.execution',
+  'dialog.export-warning',
+  'dialog.export-destination',
+  'persistence.export-write',
 ] as const)
 
 export type CommandBusyScope = typeof COMMAND_BUSY_SCOPES[number]

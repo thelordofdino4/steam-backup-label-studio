@@ -2,14 +2,14 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import type {
-  ApplicationMenuLifecycleIngressDependencies,
+  ApplicationMenuCommandIngressDependencies,
 } from '../applicationMenu/applicationMenuRuntime.ts'
 import {
-  connectApplicationMenuLifecycleIngress,
+  connectApplicationMenuCommandIngress,
 } from './useApplicationMenuLifecycleIngress.ts'
 
 test('menu lifecycle feedback uses the shared publisher and Home mirror', () => {
-  let ingress: ApplicationMenuLifecycleIngressDependencies | null = null
+  let ingress: ApplicationMenuCommandIngressDependencies | null = null
   let disconnects = 0
   const announcements: Readonly<{
     message: string
@@ -17,8 +17,8 @@ test('menu lifecycle feedback uses the shared publisher and Home mirror', () => 
   }>[] = []
   const homeMessages: string[] = []
   const activeKeys = new Set<string>()
-  const disconnect = connectApplicationMenuLifecycleIngress({
-    connectLifecycleIngress(dependencies) {
+  const disconnect = connectApplicationMenuCommandIngress({
+    connectCommandIngress(dependencies) {
       ingress = dependencies
       return () => { disconnects += 1 }
     },

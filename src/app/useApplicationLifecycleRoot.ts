@@ -20,6 +20,9 @@ import type {
 import {
   ApplicationLifecycleRuntimeContext,
 } from './applicationLifecycleRuntimeContext.ts'
+import type {
+  ApplicationPngExportRuntimeDependencies,
+} from './appPngExportCommand.ts'
 
 /**
  * Supplies committed-render dependencies through a ref owned outside React.
@@ -33,6 +36,7 @@ export function useApplicationLifecycleRoot(
     replacement: ApplicationProjectReplacementRuntimeDependencies
     newProject: ApplicationProjectNewRuntimeDependencies
     workspaceNavigation: ApplicationWorkspaceNavigationRuntimeDependencies
+    exportPng: ApplicationPngExportRuntimeDependencies
   }>,
 ): ApplicationLifecycleCompositionRoot {
   const runtime = useContext(ApplicationLifecycleRuntimeContext)
@@ -48,6 +52,7 @@ export function useApplicationLifecycleRoot(
     runtime.updateWorkspaceNavigationDependencies(
       dependencies.workspaceNavigation,
     )
+    runtime.updatePngExportDependencies(dependencies.exportPng)
   }, [dependencies, runtime])
 
   return runtime.root

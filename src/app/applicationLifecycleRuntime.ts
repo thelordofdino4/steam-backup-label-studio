@@ -23,6 +23,10 @@ import {
   createApplicationWorkspaceNavigationCommandOwners,
   type ApplicationWorkspaceNavigationRuntimeDependencies,
 } from './appWorkspaceNavigationCommand.ts'
+import {
+  createApplicationPngExportCommandOwner,
+  type ApplicationPngExportRuntimeDependencies,
+} from './appPngExportCommand.ts'
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
@@ -40,6 +44,9 @@ export type ApplicationLifecycleRuntime = Readonly<{
   ): void
   updateWorkspaceNavigationDependencies(
     dependencies: ApplicationWorkspaceNavigationRuntimeDependencies,
+  ): void
+  updatePngExportDependencies(
+    dependencies: ApplicationPngExportRuntimeDependencies,
   ): void
   dispose(): void
 }>
@@ -66,6 +73,7 @@ export function createApplicationLifecycleRuntime(
   let projectNewDependencies: ApplicationProjectNewRuntimeDependencies | null = null
   let workspaceNavigationDependencies:
     ApplicationWorkspaceNavigationRuntimeDependencies | null = null
+  let pngExportDependencies: ApplicationPngExportRuntimeDependencies | null = null
   let disposed = false
   const createRoot = options.createRoot ??
     createApplicationLifecycleCompositionRoot
@@ -84,6 +92,9 @@ export function createApplicationLifecycleRuntime(
     createApplicationWorkspaceNavigationCommandOwners(
       () => workspaceNavigationDependencies,
     )
+  const pngExportOwner = createApplicationPngExportCommandOwner(
+    () => pngExportDependencies,
+  )
   const root = createRoot({
     ports: {
       newDisc: newOwners.newDisc,
@@ -97,6 +108,7 @@ export function createApplicationLifecycleRuntime(
       returnHome: workspaceNavigationOwners.returnHome,
       resumeProject: workspaceNavigationOwners.resumeProject,
     },
+    exportPng: pngExportOwner,
   })
 
   return Object.freeze({
@@ -131,6 +143,22 @@ export function createApplicationLifecycleRuntime(
       }
       workspaceNavigationDependencies = dependencies
     },
+    updatePngExportDependencies(dependencies) {
+      if (disposed) {
+        throw new Error('The application lifecycle runtime is disposed.')
+      }
+      const before = root.getApplicationCommandCapabilities()['export.png']
+      pngExportDependencies = dependencies
+      const after = root.getApplicationCommandCapabilities()['export.png']
+      if (
+        before.canExecute !== after.canExecute ||
+        (!before.canExecute && !after.canExecute &&
+          (before.reasonCode !== after.reasonCode ||
+            before.userMessage !== after.userMessage))
+      ) {
+        root.refreshCommandCapabilities()
+      }
+    },
     dispose() {
       if (disposed) return
       disposed = true
@@ -139,6 +167,7 @@ export function createApplicationLifecycleRuntime(
       projectReplacementDependencies = null
       projectNewDependencies = null
       workspaceNavigationDependencies = null
+      pngExportDependencies = null
       root.dispose()
     },
   })

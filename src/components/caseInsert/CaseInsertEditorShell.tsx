@@ -148,6 +148,7 @@ export type CaseInsertEditorShellProps = {
   onSaveProject: () => void
   onLoadProject: () => void
   onExportPng: () => void
+  exportPngDisabled: boolean
   onExportGuideToggle: (
     guideIds: readonly JewelCaseGuideId[],
     checked: boolean,
@@ -200,6 +201,7 @@ function CaseInsertProjectPanel({
   onSaveProject,
   onLoadProject,
   onExportPng,
+  exportPngDisabled,
 }: Omit<
   CaseInsertEditorShellProps,
   | 'caseInsert'
@@ -243,7 +245,12 @@ function CaseInsertProjectPanel({
           <button className="secondary-button" type="button" onClick={onLoadProject}>
             Load Project
           </button>
-          <button className="secondary-button" type="button" onClick={onExportPng}>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={exportPngDisabled}
+            onClick={onExportPng}
+          >
             Export PNG
           </button>
         </div>
@@ -406,6 +413,7 @@ export function CaseInsertEditorShell({
   onSaveProject,
   onLoadProject,
   onExportPng,
+  exportPngDisabled,
   onExportGuideToggle,
   onNavigationSurfaceChange,
   onActiveTemplatePaneChange,
@@ -435,6 +443,7 @@ export function CaseInsertEditorShell({
             onSaveProject={onSaveProject}
             onLoadProject={onLoadProject}
             onExportPng={onExportPng}
+            exportPngDisabled={exportPngDisabled}
           />
         )
       case 'exportOptions':

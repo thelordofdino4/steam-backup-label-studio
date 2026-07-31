@@ -6,6 +6,7 @@ export type ProjectPanelProps = {
   handleSaveProject: () => void
   handleLoadProject: () => void
   handleExportPng: () => void
+  exportPngDisabled: boolean
   handleMainMenu: () => void
   handleNewCaseInsert: () => void
 }
@@ -16,6 +17,7 @@ export function ProjectPanel({
   handleSaveProject,
   handleLoadProject,
   handleExportPng,
+  exportPngDisabled,
   handleMainMenu,
   handleNewCaseInsert,
 }: ProjectPanelProps) {
@@ -34,7 +36,12 @@ export function ProjectPanel({
           <button className="secondary-button" type="button" onClick={handleLoadProject}>
             Load Project
           </button>
-          <button className="secondary-button" type="button" onClick={handleExportPng}>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={exportPngDisabled}
+            onClick={handleExportPng}
+          >
             Export PNG
           </button>
           <button className="secondary-button" type="button" onClick={handleNewCaseInsert}>

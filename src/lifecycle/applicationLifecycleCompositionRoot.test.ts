@@ -3,6 +3,7 @@ import test from 'node:test'
 import { createCaseInsertProjectSnapshot } from '../project/caseInsertProjectAdapters.ts'
 import type { SavedDiscProject } from '../project/projectTypes.ts'
 import {
+  APPLICATION_COMMAND_IDS,
   APPLICATION_LIFECYCLE_COMMAND_IDS,
   commandSucceeded,
   type ApplicationCommandId,
@@ -147,7 +148,7 @@ test('one root registers the exact catalog and separate roots own isolated state
 
   assert.deepEqual(
     first.listRegisteredCommandIds(),
-    APPLICATION_LIFECYCLE_COMMAND_IDS,
+    APPLICATION_COMMAND_IDS,
   )
   assert.equal(
     first.listRegisteredCommandIds().some((id) => id.startsWith('menu.')),

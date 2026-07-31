@@ -129,6 +129,14 @@ test('separate application runtimes isolate the production New and Open owners',
   assert.equal(capabilities['project.new-disc'].canExecute, true)
   assert.equal(capabilities['project.new-case'].canExecute, true)
   for (const id of first.root.listRegisteredCommandIds()) {
+    if (id === 'export.png') {
+      assert.equal(
+        first.root.getApplicationCommandCapabilities()[id].canExecute,
+        false,
+        id,
+      )
+      continue
+    }
     if (!['project.open', 'project.new-disc', 'project.new-case'].includes(id)) {
       assert.equal(capabilities[id].canExecute, false, id)
     }

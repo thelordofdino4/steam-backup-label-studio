@@ -11,11 +11,11 @@ import type {
   ApplicationMenuRuntime,
 } from '../applicationMenu/applicationMenuRuntime.ts'
 
-export function connectApplicationMenuLifecycleIngress(
-  runtime: Pick<ApplicationMenuRuntime, 'connectLifecycleIngress'>,
+export function connectApplicationMenuCommandIngress(
+  runtime: Pick<ApplicationMenuRuntime, 'connectCommandIngress'>,
   dependencies: ApplicationCommandFeedbackPublicationDependencies,
 ): () => void {
-  return runtime.connectLifecycleIngress({
+  return runtime.connectCommandIngress({
     publishFeedback(dispatch) {
       publishApplicationCommandFeedback(dispatch, dependencies)
     },
@@ -27,7 +27,7 @@ export function connectApplicationMenuLifecycleIngress(
  * dependencies have committed. Lifecycle behavior remains in the composition
  * root; this hook only publishes its terminal result through the shared owner.
  */
-export function useApplicationMenuLifecycleIngress(
+export function useApplicationMenuCommandIngress(
   dependencies: ApplicationCommandFeedbackPublicationDependencies,
 ): void {
   const runtime = useContext(ApplicationMenuRuntimeContext)
@@ -36,7 +36,7 @@ export function useApplicationMenuLifecycleIngress(
   }
   const { announceStatus, setHomeStatusMessage } = dependencies
 
-  useLayoutEffect(() => connectApplicationMenuLifecycleIngress(runtime, {
+  useLayoutEffect(() => connectApplicationMenuCommandIngress(runtime, {
     announceStatus,
     setHomeStatusMessage,
   }), [

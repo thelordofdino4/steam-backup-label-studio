@@ -347,7 +347,7 @@ The frontend contains runtime-connected lifecycle and native application-menu fo
 
 ### 5.3 Source-Of-Truth State
 
-`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production lifecycle root. After committed React updates, focused adapters supply the complete normalized Disc or Case aggregate and exact Disc or Case Front/Back/Spine route to the root; canonical content equality and route equality are lifecycle no-ops. Route changes are session-only and do not change project revision or dirty state. New Disc, New Case, and Open prepare one complete immutable candidate, use the shared dirty-aware replacement guard when required, and apply lifecycle plus editor/route state atomically after a final session/revision check. Save and Save As capture immutable snapshot `R` from the lifecycle-owned current project, delegate package planning/writing to focused modules, and adopt `R` as baseline after commit without a second editor capture; a newer current `R+1` remains current and dirty. Return Home and Resume use focused semantic owners and one lifecycle/React batch; they do not capture, restore, reload, guard, or mutate project content. One application-command feedback adapter projects typed terminal results once to the shared editor status owner and Home live status surface. Other focused app-owned helpers own PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
+`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production command registry, dispatcher, busy coordinator, and lifecycle root. After committed React updates, focused adapters supply the complete normalized Disc or Case aggregate and exact Disc or Case Front/Back/Spine route to the root; canonical content equality and route equality are lifecycle no-ops. Route changes are session-only and do not change project revision or dirty state. New Disc, New Case, and Open prepare one complete immutable candidate, use the shared dirty-aware replacement guard when required, and apply lifecycle plus editor/route state atomically after a final session/revision check. Save and Save As capture immutable snapshot `R` from the lifecycle-owned current project, delegate package planning/writing to focused modules, and adopt `R` as baseline after commit without a second editor capture; a newer current `R+1` remains current and dirty. Return Home and Resume use focused semantic owners and one lifecycle/React batch; they do not capture, restore, reload, guard, or mutate project content. The non-lifecycle `export.png` command uses that same registry, dispatcher, busy coordinator, typed-result model, and shared feedback adapter; its Disc/Case owner captures one invocation adapter and does not mutate lifecycle state. One application-command feedback adapter projects typed terminal results once to the shared editor status owner and Home live status surface. Other focused app-owned helpers own Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
 
 The shared image-candidate picker owns only its accessible dialog mechanics:
 selected-or-first usable initial focus, dynamic Tab/Shift+Tab containment, idle
@@ -358,7 +358,7 @@ callers; the picker helper is not a general application-modal framework.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
-Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. The application ingress performs a second bridge/window/projection-generation check, resolves the seven connected File items through the authoritative descriptor, and lets the lifecycle dispatcher recheck current capability and busy state. A React layout-effect adapter makes that boundary ready only after current lifecycle and shared-feedback dependencies commit, and returns it to unavailable on disconnect. Every resulting dispatch outcome is passed once to the existing feedback selector/publisher; active deduplication keys own visible duplicate suppression and Home mirroring. All other semantic boundaries remain unavailable.
+Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. The application ingress performs a second bridge/window/projection-generation check and resolves seven lifecycle File items plus `menu.file.export-png` through the authoritative descriptor. The shared dispatcher rechecks current capability and busy state. A React layout-effect adapter makes lifecycle and export boundaries ready only after current adapters and shared-feedback dependencies commit, and returns them to unavailable on disconnect. Every resulting dispatch outcome is passed once to the existing feedback selector/publisher; active deduplication keys own visible duplicate suppression and Home mirroring. Close/termination and all Edit, Tools, Window, and Help semantic boundaries remain unavailable.
 
 ### 5.4 Render, Edit, And Export Paths
 
@@ -366,7 +366,7 @@ Application-menu presentation IDs are separate from semantic command and owner I
 - Vite entry: `index.html` provides the root element and loads `/src/main.tsx`.
 - Tauri dev/build entry: `src-tauri/tauri.conf.json` points dev to Vite and packaged frontend output to `dist`.
 - UI routing: `App.tsx` renders `HomeScreen`, disc editor panels plus `DiscPreview`, or `CaseInsertEditorShell`.
-- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects owner capabilities, and routes the seven implemented File lifecycle envelopes through the existing composition root. All excluded menu targets stay disabled and disconnected.
+- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects owner capabilities, and routes seven File lifecycle commands plus `export.png` through the existing application root. Because the pinned Windows WebView2/Wry path does not emit native Ctrl accelerator events, one bounded window-local adapter derives command-owned chords from the same descriptor and routes only latest-projected-enabled activations through the same ingress with modal/key-owner precedence and cross-source deduplication. All excluded menu targets stay disabled and disconnected.
 - Open: every current Home, Disc, and Case Load control dispatches
   `project.open`; the owner stages dialog/read/schema/restore work before one
   dirty-aware replacement decision and one batched lifecycle-and-editor commit.
@@ -2116,7 +2116,7 @@ Export reads current runtime project state and template geometry. Layer order po
 
 ### 16.4 Render/Edit/Export Paths
 
-- Export starts in `App.tsx`.
+- Export starts when a button or native File item dispatches `export.png`.
 - A preflight summary is built before any destination chooser opens.
 - Clean summaries proceed without confirmation. Existing advisory warnings use
   one aggregated warning confirmation; decline opens no destination chooser.
@@ -2126,11 +2126,13 @@ Export reads current runtime project state and template geometry. Layer order po
 - Canvas export builds PNG bytes.
 - Tauri writes binary PNG bytes directly to the selected path.
 
-This issue #302 checkpoint implements the contract's ordering and conditional
-warning decision using the current string-based preflight summaries. The
-remaining target in [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md)
-still requires one immutable request, typed diagnostics/results, central
-command/busy/feedback ownership, and safe destination write/commit.
+The merged issue #302 checkpoint and shared-command checkpoint implement the
+ordering, conditional warning decision, central capability/busy arbitration,
+typed terminal results, and exact-once feedback using the current string-based
+preflight summaries. The remaining target in
+[`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) still requires a
+fully immutable normalized request, typed diagnostics/blockers, Disc DOM-size
+independence, a final filename policy, and safe destination replacement.
 
 ### 16.5 Invariants And Future-Change Rules
 
