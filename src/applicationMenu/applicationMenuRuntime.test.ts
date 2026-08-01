@@ -22,9 +22,35 @@ import type {
   ApplicationMenuWindowState,
 } from './applicationMenuTypes.ts'
 import type { NativeApplicationMenuPort } from './nativeApplicationMenuPort.ts'
+import {
+  EDITOR_WORKFLOW_IDS,
+  type EditorNavigationIntent,
+  type EditorWorkflowNavigationPort,
+} from '../editor/editorNavigationRouter.ts'
 
 function flush() {
   return new Promise<void>((resolve) => setImmediate(resolve))
+}
+
+function fakeWorkflowNavigation(
+  onNavigate: (intent: EditorNavigationIntent) => void = () => {},
+): EditorWorkflowNavigationPort {
+  return Object.freeze({
+    getCapabilities: () => Object.freeze(Object.fromEntries(
+      EDITOR_WORKFLOW_IDS.map((workflowId) => [
+        workflowId,
+        Object.freeze({ canExecute: true }),
+      ]),
+    )) as ReturnType<EditorWorkflowNavigationPort['getCapabilities']>,
+    navigate: async (intent) => {
+      onNavigate(intent)
+      return Object.freeze({
+        status: 'completed',
+        destination: intent.destination,
+        focus: 'focused',
+      })
+    },
+  })
 }
 
 function fakeLifecycle(
@@ -69,6 +95,30 @@ function fakeLifecycle(
     subscribe: () => () => {},
     dispatch,
   } as unknown as ApplicationLifecycleCompositionRoot
+}
+
+function fakeDiscLifecycle(
+  dispatch: (
+    commandId: string,
+  ) => Promise<ApplicationCommandDispatchResult<void>>,
+): ApplicationLifecycleCompositionRoot {
+  const base = fakeLifecycle(dispatch)
+  const baseSnapshot = base.getSnapshot()
+  const snapshot = Object.freeze({
+    ...baseSnapshot,
+    lifecycle: Object.freeze({
+      activeSession: Object.freeze({
+        id: 'disc-session',
+        kind: 'disc',
+        lastEditorRoute: Object.freeze({ workspace: 'disc' }),
+      }),
+      visibleWorkspace: 'disc',
+    }),
+  }) as ApplicationLifecycleCompositionSnapshot
+  return {
+    ...base,
+    getSnapshot: () => snapshot,
+  } as ApplicationLifecycleCompositionRoot
 }
 
 function fakePort(
@@ -256,6 +306,7 @@ test('lifecycle readiness enables only authoritative connected capabilities and 
 
   const firstDisconnect = runtime.connectCommandIngress({
     publishFeedback: () => {},
+    workflowNavigation: fakeWorkflowNavigation(),
   })
   await flush()
   const ready = projections.at(-1)!
@@ -281,6 +332,7 @@ test('lifecycle readiness enables only authoritative connected capabilities and 
 
   const secondDisconnect = runtime.connectCommandIngress({
     publishFeedback: () => {},
+    workflowNavigation: fakeWorkflowNavigation(),
   })
   await flush()
   const projectionCount = projections.length
@@ -343,6 +395,7 @@ test('native lifecycle ingress dispatches once, rechecks results, publishes once
   })
   runtime.connectCommandIngress({
     publishFeedback: (dispatch) => publications.push(dispatch),
+    workflowNavigation: fakeWorkflowNavigation(),
   })
   assert.equal(await runtime.start(), 'started')
   await flush()
@@ -434,6 +487,67 @@ test('native lifecycle ingress dispatches once, rechecks results, publishes once
   await runtime.dispose()
 })
 
+test('native Tools ingress resolves descriptors and navigates once without lifecycle dispatch or feedback', async () => {
+  const projections: ApplicationMenuProjection[] = []
+  const diagnostics: ApplicationMenuRuntimeDiagnostic[] = []
+  const commandIds: string[] = []
+  const navigations: EditorNavigationIntent[] = []
+  const publications: ApplicationCommandDispatchResult<unknown>[] = []
+  let invocationIngress: ((invocation: ApplicationMenuInvocation) => void) | null = null
+  const lifecycle = fakeDiscLifecycle(async (commandId) => {
+    commandIds.push(commandId)
+    return {
+      disposition: 'executed',
+      commandId: commandId as 'project.open',
+      result: { status: 'success', value: undefined },
+    }
+  })
+  const runtime = createApplicationMenuRuntime(lifecycle, {
+    nativeAvailable: () => true,
+    createNativePort: async (ingress) => {
+      invocationIngress = ingress
+      return fakePort(projections, () => {})
+    },
+    captureWindowState: async () => ({
+      windowLabel: 'main', live: true, maximized: false, fullscreen: false,
+    }),
+    subscribeWindowState: async () => () => {},
+    onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+  })
+  runtime.connectCommandIngress({
+    publishFeedback: (dispatch) => publications.push(dispatch),
+    workflowNavigation: fakeWorkflowNavigation((intent) => {
+      navigations.push(intent)
+    }),
+  })
+  assert.equal(await runtime.start(), 'started')
+  await flush()
+  const projection = projections.at(-1)!
+  assert.ok([
+    'menu.tools.game',
+    'menu.tools.disc-template',
+    'menu.tools.disc-layout-presets',
+    'menu.tools.export-options',
+  ].every((itemId) => projection.items.find((item) =>
+    item.itemId === itemId)?.enabled))
+
+  ;(invocationIngress as ((invocation: ApplicationMenuInvocation) => void))({
+    invocationId: 'tools-game',
+    bridgeInstanceId: 'bridge-1',
+    itemId: 'menu.tools.game',
+    windowLabel: 'main',
+    projectionGeneration: projection.generation,
+  })
+  await flush()
+  assert.equal(navigations.length, 1)
+  assert.equal(navigations[0].workflowId, 'workflow.game')
+  assert.equal(navigations[0].destination.controlId, 'control.game.query')
+  assert.deepEqual(commandIds, [])
+  assert.deepEqual(publications, [])
+  assert.deepEqual(diagnostics, [])
+  await runtime.dispose()
+})
+
 test('Windows WebView accelerators use the applied projection, shared ingress, cross-source deduplication, and owned teardown', async () => {
   const projections: ApplicationMenuProjection[] = []
   const diagnostics: ApplicationMenuRuntimeDiagnostic[] = []
@@ -470,6 +584,7 @@ test('Windows WebView accelerators use the applied projection, shared ingress, c
   })
   runtime.connectCommandIngress({
     publishFeedback: (dispatch) => publications.push(dispatch),
+    workflowNavigation: fakeWorkflowNavigation(),
   })
 
   assert.equal(await runtime.start(), 'started')

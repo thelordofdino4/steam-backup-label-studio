@@ -9,7 +9,9 @@
 > Focused lifecycle/navigation facts reviewed after PR #328 merged at `5e320e8b620bf8184db3e5723d0d26f034195c6e`; the subsequent #298/#309 source checkpoint is recorded without claiming native-menu implementation.
 > Focused lifecycle checkpoint: PR #327 merged at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172`; the later current-project synchronization, shared New/Open replacement guard, Home Return/Resume, exact route retention, and shared feedback boundary are recorded below without claiming native-menu implementation.
 > Focused native-runtime checkpoint: current worktree on 2026-07-30 implements descriptor-driven native construction, conservative state projection, a typed activation bridge, and bridge-scoped teardown without semantic command wiring.
-> Focused File-routing checkpoint: current worktree on 2026-07-30 connects the seven implemented File lifecycle targets through the existing lifecycle root and shared feedback owner; Export, Close/termination, Edit, Tools, Window, and Help remain disconnected.
+> Focused File/Export-routing checkpoint: PR #335 merged at `1619ef00e3913bb944e1d2c27b4459c55f411c20`, connecting seven implemented File lifecycle targets plus `export.png` through the existing application root and shared feedback owner; Close/termination, Edit, Tools, Window, and Help were still disconnected at that checkpoint.
+> Focused Tools-routing checkpoint: current worktree on 2026-07-31 connects the four descriptor-owned Tools launchers to one typed editor-navigation router and one shared nonmodal workflow host; launchers reveal/focus existing owners only, and sidebar compatibility presentations remain.
+> Focused Windows acceptance checkpoint: on 2026-07-31 the user completed the real native-Tauri manual checklist and reported all Tools-host, focus, input-ownership, modal, sidebar, File/Export regression, and representative responsive checks passing. This does not establish Linux or macOS acceptance.
 
 ## 1. Status, scope, and authority
 
@@ -19,11 +21,13 @@ and first native runtime adapter now exist. The native adapter constructs the
 platform hierarchy from the TypeScript-owned descriptor, installs every item
 disabled and unchecked, applies validated generation-ordered enabled, checked,
 and dynamic-label presentation state, and forwards typed activations to a
-frontend ingress. That ingress now resolves the seven implemented File
-lifecycle commands from their descriptor semantic targets, dispatches through
-the existing lifecycle root, and publishes terminal results through the shared
-feedback owner. Export, Close/termination, rich workflow hosts, Edit, Window,
-application history, and Help surfaces remain unimplemented.
+frontend ingress. That ingress resolves the seven implemented File lifecycle
+commands plus `export.png` from their descriptor semantic targets and routes
+the four Tools descriptors through one typed editor-navigation router. One
+shared nonmodal host temporarily presents the existing Game, Disc Template,
+Disc Layout Presets, or Export Options controls and focuses their registered
+control after commit. Close/termination, Edit, Window, application history,
+and Help surfaces remain unimplemented.
 
 **TARGET REQUIREMENT —** This contract owns:
 
@@ -126,12 +130,13 @@ verification performed against the evidence baseline.
 
 | Claim | Concern | Verified current state | Required target state |
 | --- | --- | --- | --- |
-| CURRENT FACT / TARGET REQUIREMENT | Native application menu | `src-tauri/src/application_menu.rs` constructs the native hierarchy from the TypeScript-owned platform descriptor, retains checkable native item handles, applies enabled/checked/label presentation state, and registers one process-level menu-event handler. Seven lifecycle-routed File items plus `Export PNG…` may become enabled from their owner capabilities; all other items remain conservatively disabled and unchecked. | Rust continues to own only presentation/native-window adaptation. |
+| CURRENT FACT / TARGET REQUIREMENT | Native application menu | `src-tauri/src/application_menu.rs` constructs the native hierarchy from the TypeScript-owned platform descriptor, retains checkable native item handles, applies enabled/checked/label presentation state, and registers one process-level menu-event handler. Seven lifecycle-routed File items, `Export PNG…`, and the compatible Tools launchers may become enabled from their owner capabilities; all other items remain conservatively disabled and unchecked. | Rust continues to own only presentation/native-window adaptation. |
 | CURRENT FACT / TARGET REQUIREMENT | Windows accelerator delivery | In the real Windows Tauri window, native Ctrl accelerators do not produce menu events even though clicking the same enabled File items reaches the shared ingress. This matches open upstream Tauri #6981 and Wry #451: WebView2 consumes the key message before the Win32 menu accelerator path. A bounded Windows WebView fallback now derives command-owned chords from the authoritative descriptor, consumes only the latest projected-enabled item after earlier key owners, and enters the same validated ingress with cross-source deduplication. | Keep the native menu as presentation authority. Until upstream delivery is fixed and accepted, the Windows fallback must remain descriptor-derived, window-local, capability-rechecked, modal/default/repeat/composition aware, deduplicated against native events, and disconnected on teardown. It must never become a parallel semantic callback registry or system-global shortcut owner. |
 | CURRENT FACT / TARGET REQUIREMENT | Custom React application menu | No React menubar, `role="menubar"`, or application-menu component exists. Home “menu cards” are ordinary buttons, not an application menu. | No production React imitation is introduced; the native menu is the default target. |
-| CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | One bridge-instance-scoped adapter listens before installation, validates window/bridge/item/invocation identity, rejects duplicate invocations, and forwards typed native envelopes to a frontend ingress. The ingress additionally rechecks bridge/window/projection generation and resolves seven lifecycle targets plus descriptor-owned `export.png`. | Later workflow wiring consumes the same ingress without adding a second native registry or callback path. |
+| CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | One bridge-instance-scoped adapter listens before installation, validates window/bridge/item/invocation identity, rejects duplicate invocations, and forwards typed native envelopes to a frontend ingress. The ingress additionally rechecks bridge/window/projection generation, resolves seven lifecycle targets plus descriptor-owned `export.png`, and resolves Tools navigation from the same authoritative descriptors. | Later semantic owners consume the same ingress without adding a second native registry or callback path. |
+| CURRENT FACT / TARGET REQUIREMENT | Workflow host and navigation router | `applicationWorkflowNavigationStore.ts`, `editorNavigationRouter.ts`, and `ApplicationWorkflowHost.tsx` provide one typed router, committed owner registration, one nonmodal named host, exact post-commit focus, close restoration, and fail-closed modal/readiness behavior. Stable portal containers move each existing owner presentation between its original sidebar slot and the host, so there is one live control/ID and owner state is preserved. | Launchers remain reveal/focus-only adapters; later sidebar removal still requires the migration parity gates. |
 | CURRENT FACT / TARGET REQUIREMENT | Command registry/dispatcher | One application root owns a typed registry/dispatcher and busy coordinator. The lifecycle-only subset stays distinct while `export.png` is registered in the same application catalog. Home, Project File controls, and connected native File items dispatch through one feedback adapter. | Menu, Home, sidebar compatibility adapters, buttons, shortcuts, and native close events share the lifecycle/domain dispatcher. |
-| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | A committed React-owned ingress enables the lifecycle and export boundaries only after their dependencies are ready. Seven lifecycle File items and `Export PNG…` consume owner capabilities and recheck at dispatch; unavailable boundaries return during teardown. Workflow launchers, focused edit, native window, Help, Close, and termination remain disabled. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
+| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | A committed React-owned ingress enables lifecycle, export, and workflow-navigation boundaries only after their dependencies are ready. Seven lifecycle File items, `Export PNG…`, and compatible Tools items consume owner capabilities and recheck at dispatch/navigation; Home, missing host/owner/router, lifecycle transition, application modal, teardown, and remount gaps fail closed. Focused edit, native window, Help, Close, and termination remain disabled. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
 | CURRENT FACT / TARGET REQUIREMENT | Home | `HomeScreen.tsx` exposes Resume only when one lifecycle session is retained on Home, plus Open, New Disc, and New Case Insert. Its Resume copy projects kind, display name, dirty/clean state, and exact route from the session; its live status surface receives shared command feedback. | Future File items dispatch these same commands and consume the same capabilities; the native menu must not copy Home callbacks. |
 | CURRENT FACT / TARGET REQUIREMENT | Disc Project File | `ProjectPanel.tsx` exposes Main Menu, New Disc, Save Project, Load Project, Export PNG, and New Case Insert. | Those application-level actions move to File; the panel remains until replacement parity is proven. |
 | CURRENT FACT / TARGET REQUIREMENT | Case Project File | `CaseInsertEditorShell.tsx` duplicates Main Menu, New Case Insert, New Disc, Save, Load, and Export PNG. | The same File adapters serve Disc and Case; no Case-only command copies remain. |
@@ -417,10 +422,10 @@ accelerator.
 | TARGET REQUIREMENT | `menu.edit.copy` | Copy | Edit 50 | edit-transfer | Focused-edit role | `focused-edit.copy` | Ctrl+C | Command+C | Edit all platforms | Native item present but disabled; focused-edit routing not implemented |
 | TARGET REQUIREMENT | `menu.edit.paste` | Paste | Edit 60 | edit-transfer | Focused-edit role | `focused-edit.paste` | Ctrl+V | Command+V | Edit all platforms | Native item present but disabled; focused-edit routing not implemented |
 | TARGET REQUIREMENT | `menu.edit.select-all` | Select All | Edit 70 | edit-transfer | Focused-edit role | `focused-edit.select-all` | Ctrl+A | Command+A | Edit all platforms | Native item present but disabled; focused-edit routing not implemented |
-| TARGET REQUIREMENT | `menu.tools.game` | Game… | Tools 10 | tools-game | Rich workflow launcher | `area.game` / `owner.game.search` / `control.game.query` | — | — | Tools all platforms | Native item present but disabled; current sidebar exists; target workflow host not implemented |
-| TARGET REQUIREMENT | `menu.tools.disc-template` | Disc Template… | Tools 30 | tools-disc | Rich workflow launcher | `area.template.disc` / `owner.disc-template` / `control.disc-template.selector` | — | — | Tools all platforms | Native item present but disabled; current sidebar exists; target workflow host not implemented |
-| TARGET REQUIREMENT | `menu.tools.disc-layout-presets` | Disc Layout Presets… | Tools 40 | tools-disc | Rich workflow launcher | `area.layout-presets.disc` / `owner.disc-layout-presets` / `control.disc-layout-presets.selector` | — | — | Tools all platforms | Native item present but disabled; current sidebar exists; target workflow host not implemented |
-| TARGET REQUIREMENT | `menu.tools.export-options` | Export Options… | Tools 60 | tools-export | Rich workflow launcher | Disc: `area.export` / `owner.export.disc-guides` / `control.export.disc.center-hole`; Case Cover: `owner.export.case-guides` / `control.export.case.cover-trim`; Case Tray/Back/Spine: same owner / `control.export.case.tray-trim` | — | — | Tools all platforms | Native item present but disabled; current sidebar controls exist; target workflow host not implemented |
+| CURRENT FACT / TARGET REQUIREMENT | `menu.tools.game` | Game… | Tools 10 | tools-game | Rich workflow launcher | `area.game` / `owner.game.search` / `control.game.query` | — | — | Tools all platforms | Connected reveal/focus-only in Disc and Case; existing sidebar presentation retained; current immediate-import semantics unchanged |
+| CURRENT FACT / TARGET REQUIREMENT | `menu.tools.disc-template` | Disc Template… | Tools 30 | tools-disc | Rich workflow launcher | `area.template.disc` / `owner.disc-template` / `control.disc-template.selector` | — | — | Tools all platforms | Connected reveal/focus-only in Disc; disabled/incompatible in Case; existing sidebar presentation retained |
+| CURRENT FACT / TARGET REQUIREMENT | `menu.tools.disc-layout-presets` | Disc Layout Presets… | Tools 40 | tools-disc | Rich workflow launcher | `area.layout-presets.disc` / `owner.disc-layout-presets` / `control.disc-layout-presets.selector` | — | — | Tools all platforms | Connected reveal/focus-only in Disc; disabled/incompatible in Case; selection and Guided state remain owner-controlled |
+| CURRENT FACT / TARGET REQUIREMENT | `menu.tools.export-options` | Export Options… | Tools 60 | tools-export | Rich workflow launcher | Disc: `area.export` / `owner.export.disc-guides` / `control.export.disc.center-hole`; Case Cover: `owner.export.case-guides` / `control.export.case.cover-trim`; Case Tray/Back/Spine: same owner / `control.export.case.tray-trim` | — | — | Tools all platforms | Connected reveal/focus-only in Disc and Case; combined Spine safely resolves equivalent side descriptors to complete Tray controls; never executes `export.png` |
 | TARGET REQUIREMENT | `menu.window.minimize` | Minimize | Window 10 | window-size | Native-window operation | `native.window.minimize` | — | Command+M | Window all platforms | Native item present but disabled; window action not wired |
 | TARGET REQUIREMENT | `menu.window.toggle-maximize` | Maximize or Restore; Zoom on macOS | Window 20 | window-size | Native-window operation | `native.window.toggle-maximize` | — | — | Window all platforms | Native dynamic label present but disabled; window action not wired |
 | TARGET REQUIREMENT | `menu.window.toggle-fullscreen` | Enter Full Screen or Exit Full Screen | Window 40 | window-fullscreen | Native-window operation | `native.window.toggle-fullscreen` | F11 | Control+Command+F | Window all platforms | Native dynamic label present but disabled; window action not wired |
@@ -554,9 +559,23 @@ is designed here.
 
 ## 8. Tools menu
 
+**CURRENT FACT —** The four descriptor-owned launchers now use one typed
+editor-navigation ingress and one shared nonmodal host. The host moves the
+single existing owner presentation between its original sidebar slot and the
+host, focuses the exact registered control after commit, restores valid focus
+on close, and performs no Search, Import, Export, template selection, preset
+operation, or other project mutation. Sidebar removal has not begun.
+
 **TARGET REQUIREMENT —** Tools contains exactly four rich workflow launchers in
 this order: `Game…`, separator, `Disc Template…`, `Disc Layout Presets…`,
 separator, `Export Options…`. They have no accelerators in the first release.
+
+**FUTURE EXTENSION —** The user-requested follow-up is to give the Disc and
+Case editors separate editor-specific Template and Layout Presets launchers,
+with only the active editor's pair available. Exact Case owners, operations,
+presentation IDs, labels, and migration rules require a dedicated contract and
+implementation slice; this checkpoint does not reinterpret the current Disc-
+only launchers or the existing Case surface selector.
 
 **TARGET REQUIREMENT —** All four launchers reveal one nonmodal application
 workflow host in persistent app-shell space outside the main editor sidebar,
@@ -845,6 +864,11 @@ window from the primary checkout under `AGENTS.md`. Browser-only menu rendering,
 synthetic events, or screenshots cannot establish native accelerator,
 placement, focus, role, or close/Quit acceptance.
 
+**CURRENT FACT —** The user reported the complete Windows native manual
+checklist passing on 2026-07-31. That evidence covers this Tools-host slice and
+its File/Export regressions only; issues #333 and #334 remain the independent
+Linux and macOS acceptance owners.
+
 ## 13. Acceptance criteria and implementation order
 
 ### Implementation-ready acceptance criteria
@@ -963,7 +987,8 @@ rechecks, shared busy arbitration, and exact-once feedback. `export.png`
 preserves PR #332's ordering; Home export, full immutable snapshot isolation,
 typed diagnostics/blockers, Disc DOM-size independence, filename policy, and
 safe PNG replacement remain future work. Close Project, Close Window, Quit,
-and all non-File sections remain disabled. No sidebar removal has begun.
+Edit, Window, and Help remain disabled.
+Compatible Tools launchers are connected; no sidebar removal has begun.
 
 ## 14. Issue mapping, migration boundaries, non-goals, and evidence index
 
@@ -988,6 +1013,8 @@ separate preview context-menu proposal and is not an application-menu owner.
 | CURRENT FACT / TARGET REQUIREMENT | [#307](https://github.com/thelordofdino4/steam-backup-label-studio/issues/307) | Open | Disc custom-dimension draft/error dependency retained inside geometry workflow. |
 | CURRENT FACT / TARGET REQUIREMENT | [#311](https://github.com/thelordofdino4/steam-backup-label-studio/issues/311) | Open | Disc template impact/recovery dependency retained inside geometry workflow. |
 | CURRENT FACT / TARGET REQUIREMENT | [#168](https://github.com/thelordofdino4/steam-backup-label-studio/issues/168) | Open | Layout-preset product parent; menu launcher consumes the focused preset contract. |
+| CURRENT FACT | [#333](https://github.com/thelordofdino4/steam-backup-label-studio/issues/333) | Open | Linux native-menu verification remains separate; Windows evidence cannot close it. |
+| CURRENT FACT | [#334](https://github.com/thelordofdino4/steam-backup-label-studio/issues/334) | Open | macOS native-menu verification remains separate; Windows evidence cannot close it. |
 | CURRENT FACT / TARGET REQUIREMENT | [#175](https://github.com/thelordofdino4/steam-backup-label-studio/issues/175) | Open | Adjacent typed navigation consumer; it must use the same owner/destination registry, not menu item IDs. |
 | CURRENT FACT | [#176](https://github.com/thelordofdino4/steam-backup-label-studio/issues/176) | Open | Preview context menu only; explicitly outside this application-menu design. |
 | TARGET REQUIREMENT | Lifecycle contract | Draft normative | Owns application commands/capabilities/results/guards/history boundary. |
@@ -1037,8 +1064,8 @@ current functionality.
 | CURRENT FACT / TARGET REQUIREMENT | Session aggregate, dispatcher, capabilities, dirty/baseline, Save/Save As, Return Home/Resume | Implemented dependency | File menu behavior may consume these semantic owners; Close Project and guarded close/Quit remain unimplemented under #308. |
 | CURRENT FACT / TARGET REQUIREMENT | Atomic byte writer plus package-safe binary project adapters | Primitive implemented; adapters required | Reuse the merged #312 writer and add bounded binary read/structured atomic binary write before package-aware target Save is accepted. |
 | CURRENT FACT / TARGET REQUIREMENT | Shared result/feedback/focus and modal/shortcut prerequisites | Feedback, Home/editor navigation focus, preview-Space ownership, shared image-candidate-picker focus lifecycle, and bounded Windows command-accelerator fallback implemented | #298/#309 focused source prerequisites are present. Native/assistive-technology acceptance and any broader modal or shortcut owner remain separate. |
-| TARGET REQUIREMENT | Export, Game, geometry, preset target workflows | Required dependency for full migration | Menu launchers consume them; they do not make them exist. |
-| CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection, native bridge, and workflow host | Descriptor/projection, native runtime bridge, eight-command File routing, and Windows WebView accelerator fallback implemented; workflow host work required | Native construction, projection, typed ingress, lifecycle/export dispatch, shared feedback, accelerator deduplication, and teardown are connected. Non-File semantic owners remain disconnected. |
+| CURRENT FACT / TARGET REQUIREMENT | Export, Game, geometry, preset target workflows | Existing compatibility owners are host-connected; target workflow redesigns remain dependencies for full migration | Launchers reveal/focus existing owners only; they do not claim the future plan/review/apply workflows exist. |
+| CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection, native bridge, and workflow host | Descriptor/projection, native runtime bridge, eight-command File routing, Windows WebView accelerator fallback, typed Tools routing, and shared nonmodal host implemented | Native construction, projection, typed ingress, lifecycle/export dispatch, Tools navigation, shared feedback, deduplication, readiness, and teardown are connected. Edit, native-window, Help, Close, and termination owners remain disconnected. |
 | TARGET REQUIREMENT | Help and About informational owners | Menu implementation work | IDs and sources are decided here; surfaces remain unimplemented. |
 | FUTURE EXTENSION | Application project Undo/Redo | Future owner | Edit placement reserved; history binding omitted until designed/implemented. |
 | FUTURE EXTENSION | Report an Issue | Future configured resource | Item omitted until trusted target and external-navigation policy exist. |

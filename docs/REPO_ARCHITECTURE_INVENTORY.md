@@ -270,14 +270,30 @@ Source-of-truth state:
   latest-projected-enabled items after earlier keyboard/modal owners, routes
   them into the same runtime ingress, deduplicates cross-source activation, and
   tears down with the runtime. It is window-local, not a system-global shortcut
-  owner. Close/termination, workflow hosts, Edit, native window actions, Help,
-  and sidebar migration remain disconnected and disabled.
+  owner. `applicationMenuWorkflowRouting.ts` now resolves the four Tools items
+  only through those descriptors into `editorNavigationRouter.ts` and the
+  shared `applicationWorkflowNavigationStore.ts`; the focused
+  `applicationEditorFocusAdapter.ts` restores native WebView focus before the
+  registered control receives focus. One nonmodal
+  `ApplicationWorkflowHost` moves each single existing owner presentation
+  between its sidebar slot and the host, registers the exact focus control,
+  and leaves all domain operations untouched. Game and Export Options are
+  available for compatible Disc/Case contexts; Disc Template and Disc Layout
+  Presets are Disc-only. Combined Spine resolves only equivalent left/right
+  area/owner/control entries and retains the combined Spine route. Sidebar
+  migration has not begun. Close/termination, Edit, native window actions,
+  and Help remain disconnected and disabled. The user reported the complete
+  focused Windows native-Tauri manual checklist passing on 2026-07-31; Linux
+  and macOS remain separately unverified.
 
 Render path:
 
 - Home workspace renders `HomeScreen`.
 - Disc workspace renders sidebar panels and `DiscPreview`.
 - Case insert workspace renders `CaseInsertEditorShell`.
+- Active Disc/Case workspaces also render one fixed nonmodal workflow host;
+  only the selected existing setup panel is moved into it, so the preview grid
+  is not resized and no duplicate live controls are mounted.
 
 Edit/interaction path:
 

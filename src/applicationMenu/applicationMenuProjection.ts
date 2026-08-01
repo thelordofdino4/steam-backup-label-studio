@@ -104,11 +104,11 @@ function projectedCapability(
   item: ApplicationMenuPlatformItemDescriptor,
   context: ApplicationMenuProjectionContext,
 ): ApplicationCommandCapability {
-  const ownerCapability = injectedOwnerCapability(item, context.capabilities)
-  if (!ownerCapability.canExecute) return ownerCapability
-
   const workflowCapability = workflowCompatibilityCapability(item, context)
   if (!workflowCapability.canExecute) return workflowCapability
+
+  const ownerCapability = injectedOwnerCapability(item, context.capabilities)
+  if (!ownerCapability.canExecute) return ownerCapability
 
   const windowCapability = liveWindowCapability(item, context)
   if (!windowCapability.canExecute) return windowCapability

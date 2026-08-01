@@ -45,6 +45,14 @@ import {
   EditorRoleFocusProvider,
 } from '../components/editor/EditorRoleFocusProvider'
 import {
+  ApplicationWorkflowHostBoundary,
+  WorkflowPresentationOutlet,
+} from '../components/editor/ApplicationWorkflowHost'
+import {
+  useApplicationWorkflowNavigationRouter,
+} from '../components/editor/applicationWorkflowNavigation'
+import { focusApplicationEditorSurface } from '../editor/applicationEditorFocusAdapter'
+import {
   getEditorNavigationShellRoleSectionItems,
 } from '../components/editor/editorNavigationShellViewModel'
 import { HomeScreen } from '../components/home/HomeScreen'
@@ -239,6 +247,7 @@ import {
 import {
   useApplicationDocumentSelectionOwnership,
 } from './applicationDocumentSelectionOwnership'
+import { useApplicationModalPresence } from './useApplicationModalPresence'
 import {
   applyDiscRolePresetToOwners,
 } from './appDiscRolePresetApplication'
@@ -280,8 +289,11 @@ function App() {
   }, [])
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const replacementPrompt = useProjectReplacementPrompt()
+  const applicationModalActive = useApplicationModalPresence()
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const caseInsertPreviewRef = useRef<HTMLDivElement | null>(null)
+  const discEditorHeadingRef = useRef<HTMLHeadingElement | null>(null)
+  const caseEditorHeadingRef = useRef<HTMLHeadingElement | null>(null)
   const workspaceFocusRequestRef =
     useRef<ApplicationWorkspaceDestination | null>(null)
   const discPreviewSize = useDiscPreviewSize({
@@ -1942,9 +1954,43 @@ function App() {
   )
   const exportPngDisabled =
     !applicationCommandSnapshot.capabilities['export.png'].canExecute
+  const getWorkflowFallbackFocus = useCallback(() => {
+    if (activeWorkspace === 'disc') return discEditorHeadingRef.current
+    if (activeWorkspace === 'caseInsert') return caseEditorHeadingRef.current
+    return document.getElementById('home-title')
+  }, [activeWorkspace])
+  const workflowNavigationRouter = useApplicationWorkflowNavigationRouter({
+    environment: {
+      sessionId: applicationCommandSnapshot.lifecycle.activeSession?.id ?? null,
+      workspaceId: activeWorkspace === 'disc'
+        ? 'workspace.disc'
+        : activeWorkspace === 'caseInsert'
+          ? 'workspace.case'
+          : null,
+      surfaceId: activeWorkspace === 'disc'
+        ? 'surface.disc'
+        : activeWorkspace === 'caseInsert'
+          ? activeCaseInsertNavigationSurface === 'front'
+            ? 'surface.case.front'
+            : activeCaseInsertNavigationSurface === 'back'
+              ? 'surface.case.back'
+              : 'surface.case.spine'
+          : null,
+      lifecycleTransitionActive:
+        applicationCommandSnapshot.busy.occupiedScopes.includes(
+          'lifecycle.transition',
+        ),
+      applicationModalActive,
+    },
+    getFallbackFocus: getWorkflowFallbackFocus,
+    focusApplicationSurface: focusApplicationEditorSurface,
+    onCapabilitiesChanged:
+      applicationLifecycleRoot.refreshCommandCapabilities,
+  })
   useApplicationMenuCommandIngress({
     announceStatus,
     setHomeStatusMessage,
+    workflowNavigation: workflowNavigationRouter.menuPort,
   })
   useApplicationDocumentSelectionOwnership()
 
@@ -2223,7 +2269,12 @@ function App() {
   if (activeWorkspace === 'caseInsert') {
     return (
       <>
+        <ApplicationWorkflowHostBoundary
+          controller={workflowNavigationRouter.controller}
+          hostContentRef={workflowNavigationRouter.hostContentRef}
+        >
         <CaseInsertEditorShell
+        editorHeadingRef={caseEditorHeadingRef}
         caseInsert={projectJewelCase}
         activeTemplatePane={activeCaseInsertTemplatePane}
         activeNavigationSurface={activeCaseInsertNavigationSurface}
@@ -2292,6 +2343,7 @@ function App() {
           onUseMetadataValue: handleCaseInsertPreviewTextUseMetadataValue,
         }}
         />
+        </ApplicationWorkflowHostBoundary>
         <ProjectReplacementDialog
           onDecision={replacementPrompt.decide}
           open={replacementPrompt.open}
@@ -2303,9 +2355,13 @@ function App() {
   return (
     <>
       <EditorRoleFocusProvider>
+      <ApplicationWorkflowHostBoundary
+        controller={workflowNavigationRouter.controller}
+        hostContentRef={workflowNavigationRouter.hostContentRef}
+      >
       <main className="app-shell">
       <aside className="sidebar">
-        <h1 id="disc-editor-heading" tabIndex={-1}>
+        <h1 id="disc-editor-heading" ref={discEditorHeadingRef} tabIndex={-1}>
           Steam Backup Label Studio
         </h1>
         <p className="muted">Alpha disc label editor</p>
@@ -2321,33 +2377,41 @@ function App() {
           handleNewCaseInsert={handleSwitchToCaseInsertFromDisc}
         />
 
-        <ExportOptionsPanel
-          exportGuides={exportGuides}
-          handleExportGuideToggle={handleExportGuideToggle}
-        />
+        <WorkflowPresentationOutlet workflowId="workflow.export-options">
+          <ExportOptionsPanel
+            exportGuides={exportGuides}
+            handleExportGuideToggle={handleExportGuideToggle}
+          />
+        </WorkflowPresentationOutlet>
 
-        <TemplatePanel
-          selectedDiscTemplateId={selectedDiscTemplateId}
-          selectedDiscTemplate={selectedDiscTemplate}
-          isCustomDiscTemplate={isCustomDiscTemplate}
-          customDiscTemplate={customDiscTemplate}
-          discTemplateOptions={discTemplateOptions}
-          customOuterDiameterMaxMm={customOuterDiameterMaxMm}
-          handleTemplateChange={handleTemplateChange}
-          handleCustomDimensionChange={handleCustomDimensionChange}
-        />
+        <WorkflowPresentationOutlet workflowId="workflow.disc-template">
+          <TemplatePanel
+            selectedDiscTemplateId={selectedDiscTemplateId}
+            selectedDiscTemplate={selectedDiscTemplate}
+            isCustomDiscTemplate={isCustomDiscTemplate}
+            customDiscTemplate={customDiscTemplate}
+            discTemplateOptions={discTemplateOptions}
+            customOuterDiameterMaxMm={customOuterDiameterMaxMm}
+            handleTemplateChange={handleTemplateChange}
+            handleCustomDimensionChange={handleCustomDimensionChange}
+          />
+        </WorkflowPresentationOutlet>
 
-        <GamePanel {...gamePanelProps} />
+        <WorkflowPresentationOutlet workflowId="workflow.game">
+          <GamePanel {...gamePanelProps} />
+        </WorkflowPresentationOutlet>
 
         <DiscSteamBrandingControls {...brandingPanelProps} />
 
-        <DiscLayoutPresetsPanel
-          guidedProgress={discGuidedPlaceholderPreview.progressItems}
-          onApplyPreset={handleApplyDiscRolePreset}
-          onIncludeGuidedSlot={discGuidedPlaceholderPreview.includeSlot}
-          onShowGuidedSlotAgain={discGuidedPlaceholderPreview.showSlotAgain}
-          onResetGuidedProgress={discGuidedPlaceholderPreview.resetProgress}
-        />
+        <WorkflowPresentationOutlet workflowId="workflow.disc-layout-presets">
+          <DiscLayoutPresetsPanel
+            guidedProgress={discGuidedPlaceholderPreview.progressItems}
+            onApplyPreset={handleApplyDiscRolePreset}
+            onIncludeGuidedSlot={discGuidedPlaceholderPreview.includeSlot}
+            onShowGuidedSlotAgain={discGuidedPlaceholderPreview.showSlotAgain}
+            onResetGuidedProgress={discGuidedPlaceholderPreview.resetProgress}
+          />
+        </WorkflowPresentationOutlet>
 
         {discRoleSectionItems.map((section) => (
           <DiscEditorNavigationRolePanel
@@ -2458,6 +2522,7 @@ function App() {
         }}
       />
       </main>
+      </ApplicationWorkflowHostBoundary>
       </EditorRoleFocusProvider>
       <ProjectReplacementDialog
         onDecision={replacementPrompt.decide}

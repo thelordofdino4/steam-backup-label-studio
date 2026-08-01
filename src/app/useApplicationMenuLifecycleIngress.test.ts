@@ -7,6 +7,9 @@ import type {
 import {
   connectApplicationMenuCommandIngress,
 } from './useApplicationMenuLifecycleIngress.ts'
+import type {
+  EditorWorkflowNavigationPort,
+} from '../editor/editorNavigationRouter.ts'
 
 test('menu lifecycle feedback uses the shared publisher and Home mirror', () => {
   let ingress: ApplicationMenuCommandIngressDependencies | null = null
@@ -17,6 +20,13 @@ test('menu lifecycle feedback uses the shared publisher and Home mirror', () => 
   }>[] = []
   const homeMessages: string[] = []
   const activeKeys = new Set<string>()
+  const workflowNavigation = Object.freeze({
+    getCapabilities: () => Object.freeze({}),
+    navigate: async () => Object.freeze({
+      status: 'invalid',
+      reason: 'unknown-destination',
+    }),
+  }) as unknown as EditorWorkflowNavigationPort
   const disconnect = connectApplicationMenuCommandIngress({
     connectCommandIngress(dependencies) {
       ingress = dependencies
@@ -36,7 +46,10 @@ test('menu lifecycle feedback uses the shared publisher and Home mirror', () => 
     setHomeStatusMessage(message) {
       homeMessages.push(message)
     },
+    workflowNavigation,
   })
+
+  assert.equal(ingress!.workflowNavigation, workflowNavigation)
 
   ingress!.publishFeedback({
     disposition: 'executed',

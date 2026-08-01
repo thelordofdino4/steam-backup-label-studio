@@ -276,6 +276,20 @@ test('workflow targets resolve exact owner-backed destinations without mutation 
     )?.controlId,
     'control.export.case.tray-trim',
   )
+  assert.equal(
+    resolveApplicationMenuWorkflowDestination(
+      game,
+      'case-spine',
+    )?.controlId,
+    'control.game.query',
+  )
+  assert.equal(
+    resolveApplicationMenuWorkflowDestination(
+      exportOptions,
+      'case-spine',
+    )?.controlId,
+    'control.export.case.tray-trim',
+  )
   assert.doesNotMatch(
     JSON.stringify([game, discTemplate, presets, exportOptions]),
     /control\.[^"]*\.apply|control\.game\.search|control\.game\.results|export\.png/,

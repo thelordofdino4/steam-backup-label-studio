@@ -63,7 +63,7 @@ test('EditorFeaturePanel forwards the controlled and ref contract', () => {
   assert.match(source, /summaryRef=\{summaryRef\}/)
 })
 
-test('only navigation-owned panels use the controlled contract', () => {
+test('only navigation-owned panels use controlled or registered-ref contracts', () => {
   const componentFiles = globSync('src/components/**/*.tsx', { cwd: repoRoot })
     .map((path) => path.replaceAll('\\', '/'))
     .filter((path) => !path.includes('/testing/'))
@@ -155,6 +155,17 @@ test('only navigation-owned panels use the controlled contract', () => {
           /onOpenChange=\{onLocalFilePanelOpenChange\}/,
         )
         assert.doesNotMatch(panelTag, /\b(?:detailsRef|summaryRef)=/)
+        continue
+      }
+
+      if (
+        callerSource.includes('useRegisteredWorkflowNavigationControl') &&
+        panelTag.includes('detailsRef={detailsRef}')
+      ) {
+        assert.doesNotMatch(
+          panelTag,
+          /\b(?:open|onOpenChange|summaryRef)=/,
+        )
         continue
       }
 
