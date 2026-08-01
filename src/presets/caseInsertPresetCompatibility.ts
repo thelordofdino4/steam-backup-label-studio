@@ -27,6 +27,7 @@ export type CaseInsertPresetCompatibilityReasonCode =
 export type CaseInsertPresetCompatibilityReason = Readonly<{
   code: CaseInsertPresetCompatibilityReasonCode
   path: string
+  severity: 'warning' | 'error'
 }>
 
 export type CaseInsertPresetCompatibilityStatus =
@@ -68,7 +69,11 @@ function reason(
   code: CaseInsertPresetCompatibilityReasonCode,
   path: string,
 ): CaseInsertPresetCompatibilityReason {
-  return Object.freeze({ code, path })
+  return Object.freeze({
+    code,
+    path,
+    severity: code === 'repeated-object-unavailable' ? 'warning' : 'error',
+  })
 }
 
 function finish(
@@ -77,7 +82,11 @@ function finish(
   requestedScope: CaseInsertPresetApplicationScope | null,
 ): CaseInsertPresetCompatibilityResult {
   return Object.freeze({
-    status: reasons.length === 0 ? 'compatible' : 'incompatible',
+    status: reasons.some(({ severity }) => severity === 'error')
+      ? 'incompatible'
+      : reasons.length > 0
+        ? 'compatible-with-warnings'
+        : 'compatible',
     reasons: Object.freeze(reasons),
     definition,
     requestedScope,

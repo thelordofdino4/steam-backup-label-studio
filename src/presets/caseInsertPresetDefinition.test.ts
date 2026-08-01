@@ -342,6 +342,18 @@ test('rejects malformed, unknown-field, wrong-surface, and future definitions', 
     { kind: 'region', region: 'right-spine' },
   ]
   expectFailure(unsupportedScope, 'unsupported-scope')
+
+  const missingTargetPresence = createMinimalCaseInsertPresetDefinition()
+  delete assignmentsOf(slotsOf(missingTargetPresence)[0]!)[0]!.targetPresence
+  expectFailure(missingTargetPresence, 'invalid-target-presence')
+
+  for (const targetPresence of [true, 'create', 'warning']) {
+    const invalidTargetPresence = createMinimalCaseInsertPresetDefinition()
+    assignmentsOf(
+      slotsOf(invalidTargetPresence)[0]!,
+    )[0]!.targetPresence = targetPresence
+    expectFailure(invalidTargetPresence, 'invalid-target-presence')
+  }
 })
 
 test('definition source remains declarative, pure, and owner-mutation free', () => {

@@ -149,10 +149,21 @@ Select/Plan/Review/Apply/Reapply/Detach contract is not fully implemented.
 
 **CURRENT FACT —** Case Insert now has a pure coordinated definition format,
 strict parser, empty user-ready catalog, canonical exact-revision and
-alias-boundary resolution, and a pure compatibility evaluator. It has no
-starter definitions, immutable planner, owner-resolution adapters, application
-transaction, applied configuration, workflow presentation, menu launcher,
-Reapply, or Detach behavior.
+alias-boundary resolution, a pure compatibility evaluator, and pure stable
+assignment resolution against one detached normalized Case snapshot. The
+resolver expands explicit scopes into concrete regions, binds fixed synthetic
+and repeated stable object identities, and distinguishes resolved, disabled,
+missing optional, missing required, ambiguous, stale, incompatible, invalid,
+and unsupported states. It has no starter definitions, immutable planner,
+application transaction, applied configuration, workflow presentation, menu
+launcher, Reapply, or Detach behavior.
+
+**CURRENT FACT —** Assignment definitions explicitly classify target presence
+as `required` or `optional`. This is a resolution fact only: it does not choose
+`skip`, `warn`, `block`, `create`, enablement, replacement, or consent policy.
+Repeated-object absence remains a compatibility warning so the resolver can
+report the exact typed missing state; unsupported owners, regions, coordinate
+bases, project kinds, templates, and scopes remain incompatible.
 
 ### Current-versus-target matrix
 
@@ -161,6 +172,7 @@ Reapply, or Detach behavior.
 | CURRENT FACT / TARGET REQUIREMENT | Preset entry | None | Reveal/focus a Case-specific rich workflow; launcher does not mutate |
 | CURRENT FACT / TARGET REQUIREMENT | Surface model | Two physical outputs, Front/Back/Spine editor grouping, and four owner containers coexist | Preserve all three levels and bind every assignment to a concrete region |
 | CURRENT FACT / TARGET REQUIREMENT | Coordinates | Current owners use explicit template regions and safe bounds | Every normalized preset region declares its compatible coordinate basis |
+| CURRENT FACT / TARGET REQUIREMENT | Resolution | Pure scope expansion and exact owner/object binding exist against one lifecycle-detached normalized Case snapshot; no layout action is proposed | The immutable planner consumes this resolution and proposes every affected action without resolving targets again |
 | CURRENT FACT / TARGET REQUIREMENT | Application | Individual controls call focused owner transitions; no coordinated Case preset apply | Build one complete immutable next Case aggregate and commit once |
 | CURRENT FACT / TARGET REQUIREMENT | Mirroring | Editing actions may fan out according to `spine.mirrored` | Preset plans remain explicit per side and fan out only when review says so |
 | CURRENT FACT / TARGET REQUIREMENT | Persistence | Owner values save; no Case preset association saves | Continue saving owner values; future association requires explicit schema work |
@@ -373,6 +385,7 @@ the preset definition/plan and any future applied configuration.
 | TARGET REQUIREMENT | Slot | Stable preset slot ID unique within the exact definition/revision |
 | TARGET REQUIREMENT | Owner | Closed trusted feature-owner identity, never a parsed project object path |
 | TARGET REQUIREMENT | Object | Stable current object ID for repeated objects, or a canonical synthetic ID for fixed primary owners |
+| TARGET REQUIREMENT | Target presence | Explicit `required` or `optional` existence classification; it does not authorize creation, enablement, warning policy, or mutation |
 | TARGET REQUIREMENT | Coordinates | Explicit compatible template/owner-derived basis plus normalized content/action regions |
 | TARGET REQUIREMENT | Actions | Allowlisted placement, fitting, enablement/material/loss, and event-scoped response policy |
 
@@ -796,8 +809,11 @@ criteria.
    owner mutation.
 2. Add pure template/owner compatibility and stable assignment-resolution
    registries, including repeated-ID and synthetic fixed-owner identity.
-3. Add immutable scope resolution and complete plan construction against one
-   normalized Case snapshot.
+   **Implemented:** the resolver consumes one detached normalized Case snapshot,
+   expands the accepted scope, rechecks compatibility, and returns immutable
+   exact binding facts without planning or mutation.
+3. Add complete immutable plan construction against the resolver output and
+   the same normalized Case snapshot.
 4. Add trusted Front, Tray, Back Panel, left-spine, and right-spine owner
    adapters that return typed candidate updates without mutating React state.
 5. Add owner-derived placement/fitting/clamp/reflow services and content-loss
@@ -814,10 +830,11 @@ criteria.
 10. Run focused source/integration/save-load/preview-export/accessibility tests
     and real native Tauri acceptance before claiming the workflow implemented.
 
-**TARGET REQUIREMENT —** The smallest safe first implementation slice is step
-1 only: pure definition/catalog plus concrete-section and coordinate-region
-validation. It must not begin with UI, direct owner mutation, schema, Game, or
-menu work.
+**TARGET REQUIREMENT —** The smallest safe next implementation slice is step 3
+only: an immutable Case planner that consumes the stable resolution and
+describes field-level actions, preservation decisions, warnings, blockers, and
+material-consent requirements. It must not commit owner state, add UI or schema,
+or begin Game or menu integration.
 
 ## 18. Issue mapping, non-goals, open questions, and evidence index
 
@@ -844,8 +861,8 @@ mutated.
 not implement or change:
 
 - React, Rust, manifests, dependencies, Tauri, runtime, or generated artifacts;
-- starter Case definitions, a planner, application engine, owner-resolution or
-  mutation adapters, UI, or workflow-host connection;
+- starter Case definitions, a planner, application engine, owner-mutation
+  adapters, UI, or workflow-host connection;
 - Case Template, menu descriptors/routing, current Disc items, sidebar panels,
   current Case surface selection, or final visual design;
 - project schema, migrations, package format, Save, Open, dirty state, history,
@@ -882,8 +899,8 @@ and optional modal presentation require focused contracts/implementation.
 
 | Claim class | Evidence | Supports |
 | --- | --- | --- |
-| CURRENT FACT | `src/presets/caseInsertPresetDefinition.ts`, `caseInsertPresetCatalog.ts`, `caseInsertPresetCompatibility.ts`, and their focused tests | Pure canonical definition parsing, exact catalog identity/alias boundaries, five concrete regions, coordinate-basis validation, stable owner/object bindings, explicit scopes, immutable compatibility results, and absence of owner mutation |
-| CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, snapshot/restore, and current no-preset schema |
+| CURRENT FACT | `src/presets/caseInsertPresetDefinition.ts`, `caseInsertPresetCatalog.ts`, `caseInsertPresetCompatibility.ts`, `caseInsertPresetAssignmentResolution.ts`, and their focused tests | Pure canonical definition parsing, exact catalog identity/alias boundaries, five concrete regions, coordinate-basis validation, explicit target presence/scopes, immutable compatibility, deterministic scope expansion, and typed exact owner/object resolution without planning or mutation |
+| CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/caseInsert/presetAssignmentSnapshot.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, lifecycle-detached assignment snapshot, exact fixed/repeated binding adapters, snapshot/restore, and current no-preset schema |
 | CURRENT FACT | `src/templates/caseInsertTemplates.ts`, `src/layout/jewelCaseLayout.ts`, `jewelCaseFrontLayout.ts`, `jewelCaseBackLayout.ts`, `jewelCaseSpineLayout.ts` | Two physical surfaces, explicit regions/safe bases, Back Panel versus complete Tray, deterministic owner geometry |
 | CURRENT FACT | `src/caseInsert/templateSurfaceTransitions.ts`, `src/caseInsert/jewelCaseTransitions.ts`, `src/hooks/useCaseInsertTemplateEditor.ts`, `src/hooks/useJewelCaseSpineEditor.ts` | Focused Cover/Tray and side-specific/mirrored editing transitions |
 | CURRENT FACT | `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`, `CaseInsertSpinePreviewLayer.tsx`, `CaseInsertPreview.tsx`, `src/export/caseInsertTemplateExportLayers.ts`, `exportCaseInsertPng.ts` | Preview/export owner separation, one complete Tray composition, and no standalone Spine PNG |

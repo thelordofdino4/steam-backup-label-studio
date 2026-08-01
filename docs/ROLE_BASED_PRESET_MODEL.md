@@ -900,9 +900,14 @@ Case Front, Case Back, and Spine preset planning/application remains deferred.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
-validation, and compatibility foundation now exist. Starter designs, stable
-assignment resolution against a Case snapshot, planning, owner adapters,
-persistence, UI, and runtime application remain future work.
+validation, compatibility foundation, lifecycle-detached normalized Case
+snapshot adapter, and stable exact assignment resolution now exist. The
+resolver expands region/Front/Back/Spine/complete scopes, preserves complete
+Tray versus Back Panel and left/right identity, and distinguishes disabled,
+missing optional/required, ambiguous, stale, incompatible, invalid, and
+unsupported bindings without proposing an action. Starter designs, immutable
+planning, owner mutation adapters, persistence, UI, and runtime application
+remain future work.
 
 Deferred areas:
 

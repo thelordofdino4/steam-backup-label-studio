@@ -56,6 +56,7 @@ export function createCaseInsertPresetAssignment(
     coordinateBasis,
     ownerId: defaults.ownerId,
     object: { ...defaults.object },
+    targetPresence: 'required',
     contentRegion: {
       centerXPercent: 50,
       centerYPercent: 50,

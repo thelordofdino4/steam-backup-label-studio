@@ -918,8 +918,9 @@ The target Case preset coordination boundary is documented in
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
 It defines future explicit Front Cover, complete Tray Card, Back Panel, and
 left/right-spine assignment and atomic workflow semantics. The pure definition,
-catalog, and compatibility foundation is implemented; no planner, project-owner
-adapter, application transaction, schema, UI, or menu connection exists.
+catalog, compatibility, normalized snapshot, and stable assignment-resolution
+foundation is implemented; no planner, project-owner mutation adapter,
+application transaction, schema, UI, or menu connection exists.
 
 Key files:
 
@@ -958,6 +959,8 @@ Key files:
 - `src/presets/caseInsertPresetDefinition.ts`
 - `src/presets/caseInsertPresetCatalog.ts`
 - `src/presets/caseInsertPresetCompatibility.ts`
+- `src/presets/caseInsertPresetAssignmentResolution.ts`
+- `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
@@ -1046,10 +1049,12 @@ Risks:
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 - Issue `#168` and the Case preset workflow contract retain future Case preset
-  starter definitions, owner resolution, planning, application, persistence,
-  and presentation work. Pure definition/catalog/compatibility owners now
-  reject malformed or ambiguous definitions before those future boundaries;
-  no coordinated Case preset mutation owner exists in current source.
+  starter definitions, planning, application, persistence, and presentation
+  work. Pure definition/catalog/compatibility owners reject malformed
+  definitions; the pure snapshot/resolution boundary now fails closed on stale,
+  missing, disabled, ambiguous, incompatible, and unsupported exact bindings
+  without planning or mutation. No coordinated Case preset mutation owner exists
+  in current source.
 
 ## Text Systems
 

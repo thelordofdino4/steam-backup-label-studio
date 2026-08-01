@@ -167,6 +167,8 @@ test('checks trusted owner and repeated-object availability by stable ID', () =>
     createCompatibilityContext(),
   )
   assert.deepEqual(reasonCodes(unavailable), ['repeated-object-unavailable'])
+  assert.equal(unavailable.status, 'compatible-with-warnings')
+  assert.equal(unavailable.reasons[0]?.severity, 'warning')
 
   const available = evaluateCaseInsertPresetCompatibility(
     repeated,
