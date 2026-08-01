@@ -914,6 +914,12 @@ Risks:
 
 Purpose: build jewel case cover, tray, and spine artwork/text/branding layouts with PNG export.
 
+The target Case preset coordination boundary is documented in
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
+It defines future explicit Front Cover, complete Tray Card, Back Panel, and
+left/right-spine assignment and atomic workflow semantics; it does not describe
+an implemented Case preset module, schema, UI, or menu connection.
+
 Key files:
 
 - `src/components/caseInsert/CaseInsertEditorShell.tsx`
@@ -1035,6 +1041,9 @@ Risks:
 - `exportCaseInsertPng.ts` is around 332 lines after delegating template layer,
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
+- Issue `#168` and the Case preset workflow contract retain future Case preset
+  definition/catalog, planning, application, persistence, and presentation
+  work; no coordinated Case preset owner exists in current source.
 
 ## Text Systems
 

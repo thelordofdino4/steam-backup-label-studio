@@ -1439,6 +1439,15 @@ It is not current implementation. The generic preset definition, resolution,
 fitting, and targeted-application modules below remain focused inputs to that
 workflow rather than a second session, schema, geometry, or renderer owner.
 
+The proposed Case-specific sibling workflow is documented in
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
+It preserves the same Select/Plan/Review/Apply/Reapply/Detach protocol while
+binding every assignment to an explicit Front Cover, complete Tray Card, Back
+Panel, left-spine, or right-spine region and owner-derived coordinate basis.
+It is target design only: no Case preset engine, catalog, applied
+configuration, schema, workflow presentation, menu routing, or runtime behavior
+exists because of that contract.
+
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
 revision-scoped recovery is documented in

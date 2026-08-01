@@ -572,10 +572,18 @@ separator, `Export Options…`. They have no accelerators in the first release.
 
 **FUTURE EXTENSION —** The user-requested follow-up is to give the Disc and
 Case editors separate editor-specific Template and Layout Presets launchers,
-with only the active editor's pair available. Exact Case owners, operations,
-presentation IDs, labels, and migration rules require a dedicated contract and
-implementation slice; this checkpoint does not reinterpret the current Disc-
-only launchers or the existing Case surface selector.
+with only the active editor's pair available. The Case Layout Preset operation
+and navigation identities are now reserved by
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md):
+`case.layoutPreset.select`, `case.layoutPreset.plan`,
+`case.layoutPreset.apply`, `case.layoutPreset.reapply`,
+`case.layoutPreset.detach`,
+`workflow.case-layout-presets`, `area.layout-presets.case`,
+`owner.case-layout-presets`, and
+`control.case-layout-presets.selector`. Case Template ownership, final menu
+presentation IDs/labels, descriptor changes, migration, and implementation
+remain future work; the current Disc-only launchers and Case surface selector
+remain unchanged.
 
 **TARGET REQUIREMENT —** All four launchers reveal one nonmodal application
 workflow host in persistent app-shell space outside the main editor sidebar,

@@ -19,6 +19,7 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - `docs/TEXT_EDITOR_CONTRACT.md` for text-editor behavior, formatting, selection, source editing, or contextual controls
    - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` before browser automation or text-editor runtime smoke work
    - `docs/REPO_ARCHITECTURE_INVENTORY.md` for ownership lookup, repo mapping, refactors, or architecture-sensitive edits
+   - `docs/CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` before Case Insert layout preset definitions, catalogs, planning/application, persistence, Game/Guided composition, or Case preset workflow presentation
    - `docs/ARTWORK_FRAME_MATERIAL_CONTRACT.md` before artwork-frame material rendering, steel/metal frame rendering, material texture generation, preview/export material parity, or issue #165 restart work
 
 2. Review open GitHub issues before starting work.
