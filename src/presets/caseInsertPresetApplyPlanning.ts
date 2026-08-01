@@ -26,6 +26,10 @@ import {
   type CaseInsertPresetOwnerId,
   type CaseInsertPresetRoleId,
 } from './caseInsertPresetDefinition.ts'
+import {
+  createCaseInsertPresetApplyPlanReviewIdentity,
+  createCaseInsertPresetMaterialConsentRequirementId,
+} from './caseInsertPresetApplyReviewIdentity.ts'
 
 export const CASE_INSERT_PRESET_APPLY_PLAN_KIND =
   'sbls/case-insert-preset-apply-plan' as const
@@ -186,6 +190,7 @@ export type CaseInsertPresetUnsupportedAction = Readonly<{
 }>
 
 export type CaseInsertPresetMaterialConsentRequirement = Readonly<{
+  id: `case:preset-consent:${string}`
   kind: 'multiple-concrete-regions'
   regions: readonly CaseInsertPresetConcreteRegionId[]
   assignmentIds: readonly `case:preset-assignment:${string}`[]
@@ -229,7 +234,13 @@ export type CaseInsertPresetApplyPlan = Readonly<{
     region: CaseInsertPresetConcreteRegionId
     ownerId: CaseInsertPresetOwnerId
     objectId: string
+    object: Readonly<{
+      bindingKind: CaseInsertPresetObjectBinding['kind']
+      bindingId: string
+      runtimeId: string | null
+    }>
     bindingStatus: ResolvedCaseInsertPresetAssignment['bindingStatus']
+    expectedEnablement: ResolvedCaseInsertPresetAssignment['enablement']
     fieldActionIds: readonly string[]
     preservationDecisionIds: readonly string[]
     skip: CaseInsertPresetPlanSkip | null
@@ -258,6 +269,7 @@ export type CaseInsertPresetApplyPlan = Readonly<{
     resolvedRegions: readonly CaseInsertPresetConcreteRegionId[]
   }>
   fieldFootprint: readonly CaseInsertPresetPlanFieldFootprint[]
+  reviewIdentity: string
 }>
 
 export type PlanCaseInsertPresetFirstApplyInput = Readonly<{
@@ -325,7 +337,7 @@ export type CaseInsertPresetApplyPlanningResult =
       >[]
     }>
 
-type OwnerPlanningRule = Readonly<{
+export type CaseInsertPresetPlanOwnerRule = Readonly<{
   region: CaseInsertPresetConcreteRegionId
   ownerBasis: CaseInsertPresetCoordinateBasis
   fieldMode: 'background' | 'image' | 'text' | 'text-list'
@@ -371,7 +383,7 @@ const OWNER_RULES = Object.freeze({
   'case.spine.right.text-blocks': ownerRule('right-spine', 'rightSpineSafe', 'text'),
   'case.spine.right.logo-slots': ownerRule('right-spine', 'rightSpineSafe', 'image'),
   'case.spine.right.mark-slots': ownerRule('right-spine', 'rightSpineSafe', 'image'),
-} satisfies Readonly<Record<CaseInsertPresetOwnerId, OwnerPlanningRule>>)
+} satisfies Readonly<Record<CaseInsertPresetOwnerId, CaseInsertPresetPlanOwnerRule>>)
 
 const FIELD_ORDER = new Map<CaseInsertPresetPlanFieldId, number>([
   ['layout-x', 0],
@@ -383,9 +395,17 @@ const FIELD_ORDER = new Map<CaseInsertPresetPlanFieldId, number>([
 function ownerRule(
   region: CaseInsertPresetConcreteRegionId,
   ownerBasis: CaseInsertPresetCoordinateBasis,
-  fieldMode: OwnerPlanningRule['fieldMode'],
-): OwnerPlanningRule {
+  fieldMode: CaseInsertPresetPlanOwnerRule['fieldMode'],
+): CaseInsertPresetPlanOwnerRule {
   return Object.freeze({ region, ownerBasis, fieldMode })
+}
+
+export function getCaseInsertPresetPlanOwnerRule(
+  ownerId: unknown,
+): CaseInsertPresetPlanOwnerRule | null {
+  return typeof ownerId === 'string' && OWNER_ID_SET.has(ownerId)
+    ? OWNER_RULES[ownerId as CaseInsertPresetOwnerId]
+    : null
 }
 
 function deepFreeze<T>(value: T): T {
@@ -959,7 +979,15 @@ function buildAssignmentSummaries(
       region: assignment.region,
       ownerId: assignment.ownerId,
       objectId: assignment.object.id,
+      object: {
+        bindingKind: assignment.object.kind,
+        bindingId: assignment.object.id,
+        runtimeId: assignment.currentState?.id ?? null,
+      },
       bindingStatus: assignment.bindingStatus,
+      expectedEnablement: assignment.enablement
+        ? { ...assignment.enablement }
+        : null,
       fieldActionIds: actionIds,
       preservationDecisionIds,
       skip,
@@ -1067,18 +1095,22 @@ export function planCaseInsertPresetFirstApply(
     ({ semanticNoOp }) => !semanticNoOp,
   ).length
   const aggregateNoOp = changedFieldActionCount === 0
-  const materialConsentRequirements = value.resolvedRegions.length > 1 &&
-      changedFieldActionCount > 0
-    ? [{
-        kind: 'multiple-concrete-regions' as const,
-        regions: [...value.resolvedRegions],
-        assignmentIds: assignments
-          .filter(({ bindingStatus }) =>
-            bindingStatus === 'resolved' ||
-            bindingStatus === 'resolved-disabled')
-          .map(({ assignmentId }) => assignmentId),
-      }]
-    : []
+  const materialConsentRequirements: CaseInsertPresetMaterialConsentRequirement[] = []
+  if (value.resolvedRegions.length > 1 && changedFieldActionCount > 0) {
+    const requirement = {
+      kind: 'multiple-concrete-regions' as const,
+      regions: [...value.resolvedRegions],
+      assignmentIds: assignments
+        .filter(({ bindingStatus }) =>
+          bindingStatus === 'resolved' ||
+          bindingStatus === 'resolved-disabled')
+        .map(({ assignmentId }) => assignmentId),
+    }
+    materialConsentRequirements.push({
+      id: createCaseInsertPresetMaterialConsentRequirementId(requirement),
+      ...requirement,
+    })
+  }
   const requestedScope = parseCaseInsertPresetApplicationScope(
     value.requestedScope,
   )
@@ -1091,7 +1123,7 @@ export function planCaseInsertPresetFirstApply(
     acceptedValueCandidate: action.proposedValue,
     sourceAssignmentIds: action.sources.map(({ assignmentId }) => assignmentId),
   }))
-  const plan: CaseInsertPresetApplyPlan = deepFreeze({
+  const planContent: Omit<CaseInsertPresetApplyPlan, 'reviewIdentity'> = {
     kind: CASE_INSERT_PRESET_APPLY_PLAN_KIND,
     formatVersion: CASE_INSERT_PRESET_APPLY_PLAN_FORMAT_VERSION,
     identity: {
@@ -1142,7 +1174,11 @@ export function planCaseInsertPresetFirstApply(
       resolvedRegions: [...value.resolvedRegions],
     },
     fieldFootprint,
-  }) as CaseInsertPresetApplyPlan
+  }
+  const plan: CaseInsertPresetApplyPlan = deepFreeze({
+    ...planContent,
+    reviewIdentity: createCaseInsertPresetApplyPlanReviewIdentity(planContent),
+  })
 
   return deepFreeze({
     ok: true,

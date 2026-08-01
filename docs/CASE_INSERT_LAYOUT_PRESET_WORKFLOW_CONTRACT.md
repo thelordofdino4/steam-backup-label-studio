@@ -1,10 +1,10 @@
 # Case Insert Layout Preset Workflow Contract
 
-> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, and first-time Apply-planning checkpoints.
+> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, first-time Apply-planning, and atomic transition checkpoints.
 > Purpose: Define the presentation-neutral Case Insert Layout Preset Select, Plan, Review, Apply, Reapply, and Detach workflow across Front Cover, complete Tray Card, Back Panel, and explicit left/right spine regions.
 > Read when: Designing or implementing Case preset definitions, catalogs, planning, owner adapters, application scopes, persistence, Game/import composition, future Case workflow presentation, or Case preset acceptance.
 > Authoritative source: This contract for target Case preset workflow semantics; current implementation facts defer to source and tests; physical geometry defers to the Case template and layout owners; serialized fields defer to `PROJECT_FILE_SPEC.md`.
-> Last reviewed against commit: `50eee067dd73cfdebe9d456d1a5504a39d889128`.
+> Last reviewed against commit: `8c88ee279bcbef4c6995fcf57d06e74d9f0bedbd`.
 
 Last refreshed: 2026-08-01.
 
@@ -16,16 +16,22 @@ must satisfy.
 
 **CURRENT FACT —** The pure v1 definition parser, canonical catalog boundary,
 concrete-region/coordinate-basis registry, compatibility evaluator, stable
-assignment resolver, and immutable first-time Apply planner now exist under
+assignment resolver, immutable first-time Apply planner, deterministic review
+identity, and pure atomic first-time Apply transition now exist under
 `src/presets/`, with the lifecycle-detached normalized snapshot adapter under
 `src/caseInsert/`. The planner consumes only one successful exact resolver
 result, converts declared normalized regions into deterministic typed
 `layout-x`, `layout-y`, `layout-scale`, and `layout-width` proposals supported
 by current owner fields, and records preservation, skips, warnings, blockers,
 material-consent requirements, commit preconditions, and a deterministic field
-footprint. It neither re-resolves targets nor reads or mutates a live Case
-project. No starter definition, atomic application transition, applied
-configuration, workflow presentation, menu item, or persistence schema exists.
+footprint. The transition consumes only that deeply frozen plan plus exact
+review, material-consent, source, and unattached assertions; preflights every
+stable target/current value; and returns either one detached normalized Case
+aggregate plus an immutable uninstalled configuration candidate or a typed
+failure containing neither. It never reruns resolution/planning or mutates a
+live Case project. No starter definition, authoritative installed applied
+configuration, customization detector, workflow presentation, menu item, or
+persistence schema exists.
 
 **TARGET REQUIREMENT —** This contract owns the Case-specific form of the
 shared preset protocol: stable identity and catalog consumption, compatibility,
@@ -165,9 +171,20 @@ field actions, preservation decisions, optional-target skips, required-target
 blockers, disabled-target warnings, aggregate and field no-op state,
 multi-region consent, exact stale/identity preconditions, and a future
 customization footprint. Unsupported action-region or text-fitting work fails
-closed; #181 remains unresolved. There are no starter definitions, atomic
-application transaction, applied configuration, workflow presentation, menu
-launcher, Reapply, or Detach behavior.
+closed; #181 remains unresolved.
+
+**CURRENT FACT —** The pure first-time Apply transition validates the reviewed
+plan's format, operation, action/footprint/provenance coherence, exact
+content-bound review identity, every stable material-consent requirement,
+snapshot/template/preset/scope preconditions, target presence/ambiguity,
+enablement, and current semantic field values before producing output. It
+executes only `layout-x`, `layout-y`, `layout-scale`, and `layout-width` through
+exact owner/object/field addresses, preserves all untargeted and disabled
+payload data, and returns a deeply frozen detached aggregate and uninstalled
+configuration candidate. Semantic no-op Apply can still return the candidate.
+There are no starter definitions, authoritative installed configuration,
+customization detector, workflow presentation, menu launcher, Reapply, or
+Detach behavior.
 
 **CURRENT FACT —** Assignment definitions explicitly classify target presence
 as `required` or `optional`. This is a resolution fact only: it does not choose
@@ -185,7 +202,7 @@ bases, project kinds, templates, and scopes remain incompatible.
 | CURRENT FACT / TARGET REQUIREMENT | Coordinates | Current owners use explicit template regions and safe bounds | Every normalized preset region declares its compatible coordinate basis |
 | CURRENT FACT / TARGET REQUIREMENT | Resolution | Pure scope expansion and exact owner/object binding exist against one lifecycle-detached normalized Case snapshot | Continue treating this resolver output as the sole target/current-state binding authority |
 | CURRENT FACT / TARGET REQUIREMENT | Planning | Pure first-time Apply planning emits deterministic direct layout-field actions, preservation decisions, skips, warnings, blockers, material-consent requirements, preconditions, and field footprints; unsupported fitting fails closed | Extend through separately authorized action vocabularies and later Reapply/Detach planning without re-resolving targets |
-| CURRENT FACT / TARGET REQUIREMENT | Application | Individual controls call focused owner transitions; no coordinated Case preset apply | Build one complete immutable next Case aggregate and commit once |
+| CURRENT FACT / TARGET REQUIREMENT | Application | A pure reviewed first-time Apply transition constructs one complete detached immutable Case aggregate and uninstalled configuration candidate, or neither on failure; no runtime commit exists | Install the accepted aggregate/configuration once through the future lifecycle boundary |
 | CURRENT FACT / TARGET REQUIREMENT | Mirroring | Editing actions may fan out according to `spine.mirrored` | Preset plans remain explicit per side and fan out only when review says so |
 | CURRENT FACT / TARGET REQUIREMENT | Persistence | Owner values save; no Case preset association saves | Continue saving owner values; future association requires explicit schema work |
 | CURRENT FACT / TARGET REQUIREMENT | Recovery | Normalization restores explicit owner values | Restore values first; never infer or silently reapply a preset from coordinates |
@@ -355,16 +372,17 @@ requires a fresh plan.
 current revision, project kind, template identity, preset reference, plan
 identity, scope, and current configuration immediately before commit.
 
-**CURRENT FACT —** The implemented first-time Apply planner produces typed
-field proposals and preconditions only. It does not construct or mutate a
-`ProjectJewelCaseState` or applied configuration.
+**CURRENT FACT —** The implemented pure atomic first-time Apply transition
+consumes one reviewed, consent-complete, still-current immutable plan and
+produces one complete normalized detached `ProjectJewelCaseState` plus one
+deeply immutable, explicitly uninstalled applied-configuration candidate. It
+preflights all actions before returning either output and returns neither on a
+typed failure. It does not install the candidate or touch lifecycle state.
 
-**TARGET REQUIREMENT —** A later pure atomic transition consumes one reviewed,
-consent-complete, still-current plan and produces one complete normalized
-candidate `ProjectJewelCaseState` plus future applied-configuration candidate.
-The eventual commit replaces the Case aggregate/configuration once through the
-lifecycle project-mutation boundary. Calling individual React setters or owner
-callbacks in a fallible sequence is prohibited.
+**TARGET REQUIREMENT —** The eventual runtime commit replaces the Case
+aggregate/configuration once through the lifecycle project-mutation boundary.
+Calling individual React setters or owner callbacks in a fallible sequence is
+prohibited.
 
 **TARGET REQUIREMENT —** Multi-region Apply/Reapply/Detach is all-or-nothing.
 There is no partial success status that leaves Front changed while Back or a
@@ -858,25 +876,32 @@ criteria.
    Back Panel, left-spine, and right-spine owner adapters that consume one
    reviewed, consent-complete, still-current plan and return a new Case
    aggregate plus applied-configuration candidate without mutating inputs.
-5. Add owner-derived placement/fitting/clamp/reflow services and content-loss
+   **Implemented:** the transition validates the complete reviewed plan and all
+   current preconditions, uses exact stable addresses without re-resolution,
+   applies only supported layout fields to a detached draft, verifies the
+   complete result, and returns a deeply frozen aggregate/candidate pair or no
+   actionable output.
+5. Establish the authoritative applied-configuration domain and pure
+   customization-detection rules consumed later by Reapply and Detach, while
+   keeping the candidate session-only and unpersisted.
+6. Add owner-derived placement/fitting/clamp/reflow services and content-loss
    policy, including #181 integration only when its own decisions are ready.
-6. Add one lifecycle-owned atomic Case aggregate/configuration commit with
+7. Add one lifecycle-owned atomic Case aggregate/configuration commit with
    revision, dirty, busy, no-op, stale, cleanup, and future history boundaries.
-7. Approve and implement applied-configuration schema/migration through
+8. Approve and implement applied-configuration schema/migration through
    `PROJECT_FILE_SPEC.md`, including exact-version recovery and Detach.
-8. Add accessible Case workflow presentation and typed navigation IDs; then
+9. Add accessible Case workflow presentation and typed navigation IDs; then
    integrate the active-editor Tools pair without starting operations from menu
    activation.
-9. Integrate reviewed Game/#149 composition and any separately contracted Case
+10. Integrate reviewed Game/#149 composition and any separately contracted Case
    Guided consumer.
-10. Run focused source/integration/save-load/preview-export/accessibility tests
+11. Run focused source/integration/save-load/preview-export/accessibility tests
     and real native Tauri acceptance before claiming the workflow implemented.
 
-**TARGET REQUIREMENT —** The smallest safe next implementation slice is step 4
-only: the pure atomic first-time Apply transition. It consumes one reviewed,
-consent-complete, still-current plan and returns a new Case aggregate plus an
-applied-configuration candidate without mutating inputs or connecting to
-React, stores, UI, lifecycle persistence, schema, Game, or menu integration.
+**TARGET REQUIREMENT —** The smallest safe next implementation slice is step 5
+only: establish the authoritative applied-configuration domain and pure
+customization-detection rules required by future Reapply and Detach. Persistence
+and schema migration remain a separate later slice, as do UI and runtime commit.
 
 ## 18. Issue mapping, non-goals, open questions, and evidence index
 
@@ -891,12 +916,14 @@ React, stores, UI, lifecycle persistence, schema, Game, or menu integration.
 | TARGET REQUIREMENT | Disc preset contract | Shared application protocol; Disc-specific geometry and owners remain separate |
 | TARGET REQUIREMENT | Game workflow contract | Future immutable import composition and one atomic accepted commit |
 | CURRENT FACT | PR #336 | Merged shared Tools workflow host and typed editor-navigation router; no Case preset destination or presentation was added |
+| CURRENT FACT | PR #340 | Merged immutable first-time Apply planner and deterministic executable footprint; no runtime application or persistence was added |
 
-**CURRENT FACT —** Read-only review at this checkpoint confirmed PR #339 merged
-the exact assignment resolver into `main` and found no open pull request or
-newer focused Case Insert Layout Preset planner owner. Issues #168, #149, #181,
-and #305 remain open. No issue or pull request was created, edited, closed,
-labeled, commented on, or otherwise mutated.
+**CURRENT FACT —** Read-only review at this checkpoint confirmed PR #340 merged
+the exact immutable first-time Apply planner into `main` at
+`8c88ee279bcbef4c6995fcf57d06e74d9f0bedbd` and found no open pull request or
+newer focused atomic Case Apply transition owner. Issues #168, #149, #181, and
+#305 remain open. No issue or pull request was created, edited, closed, labeled,
+commented on, or otherwise mutated.
 
 ### Non-goals
 
@@ -904,8 +931,9 @@ labeled, commented on, or otherwise mutated.
 not implement or change:
 
 - React, Rust, manifests, dependencies, Tauri, runtime, or generated artifacts;
-- starter Case definitions, atomic Apply transition/application engine,
-  owner-mutation adapters, UI, or workflow-host connection;
+- starter Case definitions, runtime Apply application/commit engine,
+  authoritative installed configuration/customization detection, UI, or
+  workflow-host connection;
 - Case Template, menu descriptors/routing, current Disc items, sidebar panels,
   current Case surface selection, or final visual design;
 - project schema, migrations, package format, Save, Open, dirty state, history,
@@ -944,13 +972,14 @@ and optional modal presentation require focused contracts/implementation.
 | --- | --- | --- |
 | CURRENT FACT | `src/presets/caseInsertPresetDefinition.ts`, `caseInsertPresetCatalog.ts`, `caseInsertPresetCompatibility.ts`, `caseInsertPresetAssignmentResolution.ts`, and their focused tests | Pure canonical definition parsing, exact catalog identity/alias boundaries, five concrete regions, coordinate-basis validation, explicit target presence/scopes, immutable compatibility, deterministic scope expansion, and typed exact owner/object resolution without planning or mutation |
 | CURRENT FACT | `src/presets/caseInsertPresetApplyPlanning.ts` and `caseInsertPresetApplyPlanning.test.ts` | Pure deeply immutable first-time Apply planning from exact resolver output; deterministic typed direct layout-field proposals, preservation, optional skips, required blockers, disabled/no-op/conflict/stale/unsupported distinctions, multi-region consent, later-commit preconditions, and field footprints without owner/project mutation |
+| CURRENT FACT | `src/presets/caseInsertPresetApplyReviewIdentity.ts`, `caseInsertPresetApplyTransition.ts`, and `caseInsertPresetApplyTransition.test.ts` | Deterministic content-bound review and consent identities; pure aggregate-atomic first-time Apply through exact stable addresses; exhaustive supported layout-field writes; complete preflight, preservation, semantic no-op, immutable detached output, and uninstalled configuration candidate without resolver/planner/runtime/persistence access |
 | CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/caseInsert/presetAssignmentSnapshot.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, lifecycle-detached assignment snapshot, exact fixed/repeated binding adapters, snapshot/restore, and current no-preset schema |
 | CURRENT FACT | `src/templates/caseInsertTemplates.ts`, `src/layout/jewelCaseLayout.ts`, `jewelCaseFrontLayout.ts`, `jewelCaseBackLayout.ts`, `jewelCaseSpineLayout.ts` | Two physical surfaces, explicit regions/safe bases, Back Panel versus complete Tray, deterministic owner geometry |
 | CURRENT FACT | `src/caseInsert/templateSurfaceTransitions.ts`, `src/caseInsert/jewelCaseTransitions.ts`, `src/hooks/useCaseInsertTemplateEditor.ts`, `src/hooks/useJewelCaseSpineEditor.ts` | Focused Cover/Tray and side-specific/mirrored editing transitions |
 | CURRENT FACT | `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`, `CaseInsertSpinePreviewLayer.tsx`, `CaseInsertPreview.tsx`, `src/export/caseInsertTemplateExportLayers.ts`, `exportCaseInsertPng.ts` | Preview/export owner separation, one complete Tray composition, and no standalone Spine PNG |
 | CURRENT FACT | `src/caseInsert/brandingMarkTargetSources.ts`, `brandingMarkSlots.ts`, `brandingLogoSlots.ts`, `src/editor/repeatedArtwork.ts` | Branding family projection and repeated object identity |
-| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; Case planning/application remains separate and unimplemented |
+| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; Case runtime application, attachment, Reapply, and Detach remain separate and unimplemented |
 | CURRENT FACT | `src/editor/editorNavigationRouter.ts`, `src/applicationMenu/applicationMenuRegistry.ts`, `src/components/editor/ApplicationWorkflowHost.tsx` | Current four Tools workflows and absence of Case Template/Layout Preset identities |
 | TARGET REQUIREMENT | [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md), [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md) | Shared workflow invariants, roles, preservation, and application vocabulary |
 | TARGET REQUIREMENT | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md), [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md), [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md) | Persistence, composed Game apply, and Guided boundaries |
-| CURRENT FACT | Issues #168, #149, #181, #281 and merged PR #336, reviewed read-only on 2026-08-01 | Scope, open dependencies, shared workflow-host baseline, and absence of a newer exact owner |
+| CURRENT FACT | Issues #168, #149, #181, #281 and merged PRs #336/#340, reviewed read-only on 2026-08-01 | Scope, open dependencies, shared workflow-host/planner baselines, and absence of a newer exact atomic-transition owner |

@@ -3,7 +3,7 @@
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against commit: `c2bfaeed02915ee2b757cdd4a9a560b5305b6436`.
+> Last reviewed against commit: `8c88ee279bcbef4c6995fcf57d06e74d9f0bedbd`.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
@@ -21,8 +21,10 @@ The Case-specific target sibling in
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
 now settles the future Case section, concrete-region, coordinate-basis,
 left/right-spine, multi-region atomicity, preservation, and recovery semantics.
-It does not add a Case implementation or schema. This document remains the
-neutral/Disc-first model and current implementation record.
+Pure Case definition, resolution, planning, review/consent identity, and atomic
+first-time Apply transition foundations now exist, but they add no runtime Case
+workflow or schema. This document remains the neutral/Disc-first model and
+current implementation record.
 
 ## 1. Purpose And Scope
 
@@ -894,27 +896,31 @@ changes are persisted through existing project fields, preview/export parity
 tests where practical, and manual Tauri verification for user-visible editor
 behavior when UI is added.
 
-## 17. Case/Spine Planning Checkpoint And Deferred Application Work
+## 17. Case/Spine Pure Apply Checkpoint And Deferred Runtime Work
 
-Case Front, Case Back, and Spine preset application remains deferred. Pure
-first-time Apply planning is now implemented.
+Runtime Case Front, Case Back, and Spine preset application remains deferred.
+Pure first-time Apply planning and its atomic detached transition are now
+implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
 validation, compatibility foundation, lifecycle-detached normalized Case
-snapshot adapter, stable exact assignment resolution, and immutable planner now
-exist. The
+snapshot adapter, stable exact assignment resolution, immutable planner,
+content-bound review/consent identity, and pure atomic transition now exist. The
 resolver expands region/Front/Back/Spine/complete scopes, preserves complete
 Tray versus Back Panel and left/right identity, and distinguishes disabled,
 missing optional/required, ambiguous, stale, incompatible, invalid, and
 unsupported bindings. The planner consumes only that frozen resolution and
 emits deterministic typed direct `layout-x`, `layout-y`, `layout-scale`, and
 `layout-width` proposals plus preservation, skip, warning, blocker, consent,
-no-op, precondition, and field-footprint data. It does not resolve targets,
-construct a candidate project, accept consent, review, commit, persist, render,
-or mutate. Unsupported action-region and text-fitting work fails closed, so
-issue #181 remains authoritative. Starter designs, the pure atomic Apply
-transition, owner mutation adapters, Reapply/Detach, persistence, UI, and
+no-op, precondition, and field-footprint data. The transition consumes only one
+reviewed, consent-complete, still-current frozen plan, preflights exact stable
+addresses and current semantic values, then returns one detached deeply frozen
+Case aggregate and uninstalled configuration candidate or neither on failure.
+It does not resolve or plan again, install/commit, persist, render, or mutate
+caller input. Unsupported action-region and text-fitting work fails closed, so
+issue #181 remains authoritative. Starter designs, authoritative installed
+configuration/customization detection, Reapply/Detach, persistence, UI, and
 runtime application remain future work.
 
 Deferred areas:
