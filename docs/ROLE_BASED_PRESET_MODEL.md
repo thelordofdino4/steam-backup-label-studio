@@ -894,20 +894,28 @@ changes are persisted through existing project fields, preview/export parity
 tests where practical, and manual Tauri verification for user-visible editor
 behavior when UI is added.
 
-## 17. Deferred Case/Spine Application Work
+## 17. Case/Spine Planning Checkpoint And Deferred Application Work
 
-Case Front, Case Back, and Spine preset planning/application remains deferred.
+Case Front, Case Back, and Spine preset application remains deferred. Pure
+first-time Apply planning is now implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
 validation, compatibility foundation, lifecycle-detached normalized Case
-snapshot adapter, and stable exact assignment resolution now exist. The
+snapshot adapter, stable exact assignment resolution, and immutable planner now
+exist. The
 resolver expands region/Front/Back/Spine/complete scopes, preserves complete
 Tray versus Back Panel and left/right identity, and distinguishes disabled,
 missing optional/required, ambiguous, stale, incompatible, invalid, and
-unsupported bindings without proposing an action. Starter designs, immutable
-planning, owner mutation adapters, persistence, UI, and runtime application
-remain future work.
+unsupported bindings. The planner consumes only that frozen resolution and
+emits deterministic typed direct `layout-x`, `layout-y`, `layout-scale`, and
+`layout-width` proposals plus preservation, skip, warning, blocker, consent,
+no-op, precondition, and field-footprint data. It does not resolve targets,
+construct a candidate project, accept consent, review, commit, persist, render,
+or mutate. Unsupported action-region and text-fitting work fails closed, so
+issue #181 remains authoritative. Starter designs, the pure atomic Apply
+transition, owner mutation adapters, Reapply/Detach, persistence, UI, and
+runtime application remain future work.
 
 Deferred areas:
 

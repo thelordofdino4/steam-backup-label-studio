@@ -1454,10 +1454,19 @@ normalized Case aggregate and exposes fixed and repeated owner bindings;
 `src/presets/caseInsertPresetAssignmentResolution.ts` reuses catalog and
 compatibility authority, expands explicit scopes to concrete regions, and
 returns deterministic immutable current binding facts with typed disabled,
-missing, ambiguous, stale, incompatible, invalid, and unsupported outcomes. It
-does not provide starter definitions, planning, application, applied
-configuration, schema, workflow presentation, menu routing, or runtime
-behavior.
+missing, ambiguous, stale, incompatible, invalid, and unsupported outcomes.
+`src/presets/caseInsertPresetApplyPlanning.ts` consumes only that frozen exact
+resolution and produces a deeply immutable first-time Apply plan: direct typed
+layout-field proposals, preservation decisions, optional skips, required
+blockers, warnings, material-consent requirements, semantic no-op state,
+staleness/identity preconditions, and a deterministic future customization
+footprint. It converts template bases through authoritative Case region
+geometry, keeps complete Tray/Back Panel and left/right identity explicit,
+ignores mirror mode, coalesces only identical field writes, rejects conflicts,
+and fails closed for unsupported action-region or text-fitting work. It does
+not provide starter definitions, an atomic Case aggregate transition,
+application/commit, Reapply, Detach, applied configuration, schema, workflow
+presentation, menu routing, renderer access, or runtime behavior.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and

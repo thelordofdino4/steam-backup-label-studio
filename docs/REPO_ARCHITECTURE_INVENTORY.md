@@ -919,8 +919,12 @@ The target Case preset coordination boundary is documented in
 It defines future explicit Front Cover, complete Tray Card, Back Panel, and
 left/right-spine assignment and atomic workflow semantics. The pure definition,
 catalog, compatibility, normalized snapshot, and stable assignment-resolution
-foundation is implemented; no planner, project-owner mutation adapter,
-application transaction, schema, UI, or menu connection exists.
+foundation plus immutable first-time Apply planner are implemented. The planner
+owns deterministic typed direct layout-field proposals, preservation/skip/
+warning/blocker/consent classification, no-op and conflict detection,
+staleness/identity preconditions, and field footprints; no project-owner
+mutation adapter, atomic transition, application transaction, schema, UI, or
+menu connection exists.
 
 Key files:
 
@@ -960,6 +964,7 @@ Key files:
 - `src/presets/caseInsertPresetCatalog.ts`
 - `src/presets/caseInsertPresetCompatibility.ts`
 - `src/presets/caseInsertPresetAssignmentResolution.ts`
+- `src/presets/caseInsertPresetApplyPlanning.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
@@ -1049,12 +1054,14 @@ Risks:
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 - Issue `#168` and the Case preset workflow contract retain future Case preset
-  starter definitions, planning, application, persistence, and presentation
-  work. Pure definition/catalog/compatibility owners reject malformed
-  definitions; the pure snapshot/resolution boundary now fails closed on stale,
-  missing, disabled, ambiguous, incompatible, and unsupported exact bindings
-  without planning or mutation. No coordinated Case preset mutation owner exists
-  in current source.
+  starter definitions, atomic transition/application, persistence, and
+  presentation work. Pure definition/catalog/compatibility owners reject
+  malformed definitions; the pure snapshot/resolution boundary fails closed on
+  stale, missing, disabled, ambiguous, incompatible, and unsupported exact
+  bindings. The first-time Apply planner consumes those bindings without
+  resolving again, emits no candidate aggregate, and has no React/store,
+  renderer, filesystem, Tauri, or commit dependency. No coordinated Case preset
+  mutation owner exists in current source.
 
 ## Text Systems
 
