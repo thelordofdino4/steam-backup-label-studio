@@ -1,5 +1,8 @@
 import type { ExportGuideKey, ExportGuideSelection } from '../../export/exportGuides'
 import { EditorPanel } from '../editor/EditorPanel'
+import {
+  useRegisteredWorkflowNavigationControl,
+} from '../editor/applicationWorkflowNavigation'
 
 export type ExportOptionsPanelProps = {
   exportGuides: ExportGuideSelection
@@ -10,10 +13,16 @@ export function ExportOptionsPanel({
   exportGuides,
   handleExportGuideToggle,
 }: ExportOptionsPanelProps) {
+  const { detailsRef, controlRef } =
+    useRegisteredWorkflowNavigationControl<HTMLInputElement>({
+      workflowId: 'workflow.export-options',
+      ownerId: 'owner.export.disc-guides',
+      controlId: 'control.export.disc.center-hole',
+    })
   const enabledGuideCount = Object.values(exportGuides).filter(Boolean).length
 
   return (
-    <EditorPanel title="Export Options">
+    <EditorPanel detailsRef={detailsRef} title="Export Options">
         <p className="hint">
           Checked guide marks are drawn into the exported PNG to help verify the disc cut, printable area, and safe zone.
         </p>
@@ -24,6 +33,7 @@ export function ExportOptionsPanel({
         </p>
         <label className="checkbox-row">
           <input
+            ref={controlRef}
             type="checkbox"
             checked={exportGuides.centerHole}
             onChange={(event) => handleExportGuideToggle('centerHole', event.target.checked)}

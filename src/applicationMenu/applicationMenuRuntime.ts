@@ -8,10 +8,20 @@ import type {
   ApplicationCommandCapability,
   ApplicationCommandDispatchResult,
 } from '../lifecycle/applicationCommandTypes.ts'
+import type {
+  EditorWorkflowNavigationPort,
+} from '../editor/editorNavigationRouter.ts'
+import { EDITOR_WORKFLOW_IDS } from '../editor/editorNavigationRouter.ts'
 import {
   dispatchApplicationMenuCommand,
 } from './applicationMenuLifecycleRouting.ts'
+import {
+  resolveApplicationMenuWorkflow,
+} from './applicationMenuWorkflowRouting.ts'
 import { projectApplicationMenuCapabilities } from './applicationMenuProjection.ts'
+import {
+  getApplicationMenuItemDescriptor,
+} from './applicationMenuRegistry.ts'
 import {
   APPLICATION_MENU_FOCUSED_EDIT_OPERATION_IDS,
   APPLICATION_MENU_INFORMATIONAL_OPERATION_IDS,
@@ -55,13 +65,6 @@ const OWNER_UNAVAILABLE = Object.freeze({
   reasonCode: 'application-menu.owner-unavailable',
 } as const satisfies ApplicationCommandCapability)
 
-const WORKFLOW_IDS = Object.freeze([
-  'workflow.game',
-  'workflow.disc-template',
-  'workflow.disc-layout-presets',
-  'workflow.export-options',
-] as const satisfies readonly ApplicationMenuWorkflowId[])
-
 export type ApplicationMenuRuntimeDiagnostic =
   | NativeApplicationMenuDiagnostic
   | Readonly<{
@@ -97,6 +100,7 @@ export type ApplicationMenuCommandIngressDependencies = Readonly<{
   publishFeedback(
     dispatch: ApplicationCommandDispatchResult<unknown>,
   ): void
+  workflowNavigation: EditorWorkflowNavigationPort
 }>
 
 export type ApplicationMenuRuntimeStartResult =
@@ -124,15 +128,17 @@ function mappedCapabilities<Key extends string>(
 
 function productionOwnerCapabilities(
   lifecycle: ApplicationLifecycleCompositionSnapshot['capabilities'],
-  commandIngressReady: boolean,
+  commandIngress: ApplicationMenuCommandIngressDependencies | null,
 ): ApplicationMenuOwnerCapabilities {
+  const commandIngressReady = commandIngress !== null
   return Object.freeze({
     lifecycle,
     exportPng: lifecycle['export.png'],
-    workflowNavigation: mappedCapabilities<ApplicationMenuWorkflowId>(
-      WORKFLOW_IDS,
-      OWNER_UNAVAILABLE,
-    ),
+    workflowNavigation: commandIngress?.workflowNavigation.getCapabilities() ??
+      mappedCapabilities<ApplicationMenuWorkflowId>(
+        EDITOR_WORKFLOW_IDS,
+        OWNER_UNAVAILABLE,
+      ),
     focusedEdit: mappedCapabilities<ApplicationMenuFocusedEditOperationId>(
       APPLICATION_MENU_FOCUSED_EDIT_OPERATION_IDS,
       OWNER_UNAVAILABLE,
@@ -152,7 +158,9 @@ function productionOwnerCapabilities(
       export: commandIngressReady
         ? ENABLED_CAPABILITY
         : SEMANTIC_ROUTING_UNAVAILABLE,
-      'workflow-navigation': SEMANTIC_ROUTING_UNAVAILABLE,
+      'workflow-navigation': commandIngressReady
+        ? ENABLED_CAPABILITY
+        : SEMANTIC_ROUTING_UNAVAILABLE,
       'focused-edit': SEMANTIC_ROUTING_UNAVAILABLE,
       'native-window': SEMANTIC_ROUTING_UNAVAILABLE,
       informational: SEMANTIC_ROUTING_UNAVAILABLE,
@@ -182,9 +190,7 @@ function physicalTargetFor(
     case 'back':
       return 'case-tray'
     case 'spine':
-      // The current lifecycle route intentionally retains a combined Spine
-      // identity. Do not guess left versus right for a future workflow owner.
-      return null
+      return 'case-spine'
     default:
       return null
   }
@@ -346,6 +352,48 @@ export function createApplicationMenuRuntime(
     }
     latestPresentationActivation = activation
 
+    let descriptor
+    try {
+      descriptor = getApplicationMenuItemDescriptor(invocation.itemId)
+    } catch (error) {
+      rejectInvocation(errorDetail(error) ?? 'unknown-item')
+      return false
+    }
+
+    if (descriptor.eventRoutingOwner === 'editor-navigation-router') {
+      const resolution = resolveApplicationMenuWorkflow(
+        invocation.itemId,
+        physicalTargetFor(lifecycle.getSnapshot()),
+      )
+      if (resolution.status === 'rejected') {
+        rejectInvocation(resolution.reason)
+        return false
+      }
+      void ingress.dependencies.workflowNavigation.navigate(resolution.intent)
+        .then((result) => {
+          if (
+            disposed ||
+            commandIngress?.connectionId !== ingress.connectionId
+          ) {
+            rejectInvocation('command-ingress-replaced')
+            return
+          }
+          if (result.status === 'completed') return
+          rejectInvocation(
+            'reason' in result ? result.reason : result.status,
+          )
+        })
+        .catch((error) => {
+          if (!disposed) {
+            onDiagnostic({
+              code: 'application-menu.invocation-unexpected',
+              detail: errorDetail(error),
+            })
+          }
+        })
+      return true
+    }
+
     void dispatchApplicationMenuCommand(invocation.itemId, lifecycle)
       .then((result) => {
         if (result.status === 'rejected') {
@@ -427,7 +475,7 @@ export function createApplicationMenuRuntime(
           physicalProjectTarget: physicalTargetFor(snapshot),
           capabilities: productionOwnerCapabilities(
             snapshot.capabilities,
-            commandIngress !== null,
+            commandIngress?.dependencies ?? null,
           ),
         },
       ))

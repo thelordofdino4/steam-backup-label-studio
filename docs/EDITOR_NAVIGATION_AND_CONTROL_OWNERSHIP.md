@@ -5,10 +5,18 @@
 > Read when: Changing application/editor navigation, moving or adding controls, routing preview selections to controls, extending Disc or Case surfaces, changing contextual controls, or implementing workflow entry points.
 > Authoritative source: This document is normative for target editor-navigation and control-ownership semantics. Current as-built facts defer to source and the SDD; shared application-command IDs and lifecycle behavior defer to `APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`; final application-menu presentation and integration defer to `APPLICATION_MENU_BAR_CONTRACT.md`; focused `export.png` execution semantics defer to `EXPORT_WORKFLOW_CONTRACT.md`; serialized schema defers to `PROJECT_FILE_SPEC.md`; rich-text and source-editing behavior defers to `TEXT_EDITOR_CONTRACT.md`.
 > Last reviewed against commit: `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`.
+> Focused implementation checkpoint: current worktree on 2026-07-31, based on `main` at `1619ef00e3913bb944e1d2c27b4459c55f411c20`, implements the four Tools destinations through one typed router and one shared nonmodal host without re-baselining unrelated audit evidence.
 
 ## 1. Status, Scope, And Authority
 
-This is a draft target-state contract, not a claim that the target navigation service, destination catalog, or host categories already exist. It records verified current owners so future UI work can migrate presentation without creating parallel semantics.
+This is a draft target-state contract. One focused subset is now implemented:
+the four application-menu Tools destinations use a typed navigation router,
+registered owner controls, and one shared nonmodal workflow host. The broader
+destination catalog and other host categories remain target state. Existing
+sidebar presentations remain compatibility adapters and are not yet migrated.
+The user completed the real Windows Tauri manual checklist on 2026-07-31 and
+reported this focused Tools-host navigation, focus, input, and regression slice
+passing; Linux and macOS remain separately unverified.
 
 This document owns:
 
@@ -286,6 +294,13 @@ Disc and Case navigation identity map:
 | `workspace.case` | `surface.case.spine.right` | Combined Spine surface tab; Tray Card pane; right-side owner within preview | Current navigation retains only `spine`, while the project model has right-side content | Typed destination router preserves right physical-side identity |
 
 The current `cover`/`tray` pane model is a compatibility/rendering adapter: Front activates `cover`; Back and either spine side activate `tray`. The current combined Spine tab may continue presenting both sides, but semantic destinations and selected-owner identities must preserve which physical side was requested. Mirrored spine editing is a feature-owner operation, not navigation.
+
+**CURRENT FACT —** The Tools router represents the currently visible combined
+Spine tab as ephemeral `surface.case.spine` context only while resolving a
+descriptor. It accepts left/right destination entries only when their area,
+owner, and control are semantically equivalent, then reveals the complete Tray
+Card owner without changing pane/surface state. The combined context is not a
+serialized destination or new persistent left/right selection.
 
 Full target Case navigation is retained session state and does not become dirty. `editor.activeCaseInsertTemplatePane` remains governed by the project-file compatibility contract until a schema migration explicitly changes it; code must not infer from that legacy field that all future navigation belongs in project JSON.
 

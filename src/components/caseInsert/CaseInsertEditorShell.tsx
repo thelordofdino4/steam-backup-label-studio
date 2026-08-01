@@ -108,6 +108,12 @@ import {
 } from '../editor/editorNavigationShellViewModel'
 import { GamePanel, type GamePanelProps } from '../sidebar/GamePanel'
 import { EditorPanel } from '../editor/EditorPanel'
+import {
+  WorkflowPresentationOutlet,
+} from '../editor/ApplicationWorkflowHost'
+import {
+  useRegisteredWorkflowNavigationControl,
+} from '../editor/applicationWorkflowNavigation'
 import { MirrorIcon } from '../sidebar/PanelIcons'
 import type {
   CaseInsertPreviewPointerHandlers,
@@ -123,6 +129,7 @@ import type {
 } from '../../editor/editorNavigationShell'
 
 export type CaseInsertEditorShellProps = {
+  editorHeadingRef: RefObject<HTMLHeadingElement | null>
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
   activeNavigationSurface: CaseInsertNavigationSurfaceId
@@ -204,6 +211,7 @@ function CaseInsertProjectPanel({
   exportPngDisabled,
 }: Omit<
   CaseInsertEditorShellProps,
+  | 'editorHeadingRef'
   | 'caseInsert'
   | 'activeTemplatePane'
   | 'activeNavigationSurface'
@@ -271,6 +279,17 @@ function CaseInsertExportOptionsPanel({
     checked: boolean,
   ) => void
 }) {
+  const focusOptionId = activeTemplatePane === 'cover'
+    ? 'cover-trim'
+    : 'tray-trim'
+  const { detailsRef, controlRef } =
+    useRegisteredWorkflowNavigationControl<HTMLInputElement>({
+      workflowId: 'workflow.export-options',
+      ownerId: 'owner.export.case-guides',
+      controlId: activeTemplatePane === 'cover'
+        ? 'control.export.case.cover-trim'
+        : 'control.export.case.tray-trim',
+    })
   const selectedGuideIds = new Set(caseInsert.export.guideIds)
   const guideOptions = getCaseInsertExportGuideOptions(
     caseInsert.templateType,
@@ -282,7 +301,7 @@ function CaseInsertExportOptionsPanel({
   )
 
   return (
-    <EditorPanel title="Export Options">
+    <EditorPanel detailsRef={detailsRef} title="Export Options">
         <p className="hint">
           {enabledGuideCount > 0
             ? `${enabledGuideCount} guide ${enabledGuideCount === 1 ? 'option is' : 'options are'} on.`
@@ -292,6 +311,7 @@ function CaseInsertExportOptionsPanel({
           {guideOptions.map((option) => (
             <label className="checkbox-row" key={option.id}>
               <input
+                ref={option.id === focusOptionId ? controlRef : undefined}
                 type="checkbox"
                 checked={isCaseInsertExportGuideOptionSelected(
                   option,
@@ -391,6 +411,7 @@ function CaseInsertTemplatePanel({
 }
 
 export function CaseInsertEditorShell({
+  editorHeadingRef,
   caseInsert,
   activeTemplatePane,
   activeNavigationSurface,
@@ -448,15 +469,26 @@ export function CaseInsertEditorShell({
         )
       case 'exportOptions':
         return (
-          <CaseInsertExportOptionsPanel
+          <WorkflowPresentationOutlet
             key={panel.id}
-            caseInsert={caseInsert}
-            activeTemplatePane={activeTemplatePane}
-            onExportGuideToggle={onExportGuideToggle}
-          />
+            workflowId="workflow.export-options"
+          >
+            <CaseInsertExportOptionsPanel
+              caseInsert={caseInsert}
+              activeTemplatePane={activeTemplatePane}
+              onExportGuideToggle={onExportGuideToggle}
+            />
+          </WorkflowPresentationOutlet>
         )
       case 'game':
-        return <GamePanel key={panel.id} {...gamePanelProps} />
+        return (
+          <WorkflowPresentationOutlet
+            key={panel.id}
+            workflowId="workflow.game"
+          >
+            <GamePanel {...gamePanelProps} />
+          </WorkflowPresentationOutlet>
+        )
       case 'template':
         return (
           <CaseInsertTemplatePanel
@@ -519,7 +551,11 @@ export function CaseInsertEditorShell({
         className="sidebar case-insert-sidebar"
         data-smoke-id="case-insert-sidebar"
       >
-        <h1 id="case-insert-editor-heading" tabIndex={-1}>
+        <h1
+          id="case-insert-editor-heading"
+          ref={editorHeadingRef}
+          tabIndex={-1}
+        >
           Steam Backup Label Studio
         </h1>
         <p className="muted">{getCaseInsertSidebarStatusLabel(activeTemplatePane)}</p>

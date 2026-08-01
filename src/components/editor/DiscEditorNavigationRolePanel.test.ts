@@ -89,7 +89,7 @@ test('Disc workspace alone mounts the provider around sidebar and preview', () =
   assert.ok(caseBranchIndex >= 0 && caseBranchIndex < providerTagIndex)
   assert.match(
     appSource,
-    /<EditorRoleFocusProvider>\s*<main className="app-shell">[\s\S]*<aside className="sidebar">[\s\S]*<DiscPreview[\s\S]*<\/main>\s*<\/EditorRoleFocusProvider>/,
+    /<EditorRoleFocusProvider>\s*<ApplicationWorkflowHostBoundary[\s\S]*<main className="app-shell">[\s\S]*<aside className="sidebar">[\s\S]*<DiscPreview[\s\S]*<\/main>\s*<\/ApplicationWorkflowHostBoundary>\s*<\/EditorRoleFocusProvider>/,
   )
   assert.match(
     appSource,

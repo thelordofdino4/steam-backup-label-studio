@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type {
   DiscGuidedProgressItem,
   DiscGuidedProgressItems,
@@ -9,6 +9,9 @@ import {
   getDiscRolePreset,
 } from '../../layout/discRolePresets'
 import { EditorPanel } from '../editor/EditorPanel'
+import {
+  useRegisteredWorkflowNavigationControl,
+} from '../editor/applicationWorkflowNavigation'
 
 export type DiscLayoutPresetsPanelProps = {
   guidedProgress: DiscGuidedProgressItems
@@ -58,7 +61,17 @@ export function DiscLayoutPresetsPanel({
   onShowGuidedSlotAgain,
 }: DiscLayoutPresetsPanelProps) {
   const [selectedPresetId, setSelectedPresetId] = useState('')
+  const { detailsRef, controlRef: registerPresetSelect } =
+    useRegisteredWorkflowNavigationControl<HTMLSelectElement>({
+      workflowId: 'workflow.disc-layout-presets',
+      ownerId: 'owner.disc-layout-presets',
+      controlId: 'control.disc-layout-presets.selector',
+    })
   const presetSelectRef = useRef<HTMLSelectElement | null>(null)
+  const setPresetSelectRef = useCallback((element: HTMLSelectElement | null) => {
+    presetSelectRef.current = element
+    registerPresetSelect(element)
+  }, [registerPresetSelect])
   const progressButtonRefs = useRef(
     new Map<string, HTMLButtonElement>(),
   )
@@ -143,12 +156,12 @@ export function DiscLayoutPresetsPanel({
   }
 
   return (
-    <EditorPanel title="Layout Presets">
+    <EditorPanel detailsRef={detailsRef} title="Layout Presets">
       <label className="field-label" htmlFor="disc-layout-preset">
         Preset
       </label>
       <select
-        ref={presetSelectRef}
+        ref={setPresetSelectRef}
         id="disc-layout-preset"
         data-smoke-id="disc-layout-preset-select"
         value={selectedPresetId}

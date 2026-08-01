@@ -10,12 +10,21 @@ import { ApplicationMenuRuntimeContext } from './applicationMenuRuntimeContext.t
 import type {
   ApplicationMenuRuntime,
 } from '../applicationMenu/applicationMenuRuntime.ts'
+import type {
+  EditorWorkflowNavigationPort,
+} from '../editor/editorNavigationRouter.ts'
+
+type ApplicationMenuIngressDependencies =
+  ApplicationCommandFeedbackPublicationDependencies & Readonly<{
+    workflowNavigation: EditorWorkflowNavigationPort
+  }>
 
 export function connectApplicationMenuCommandIngress(
   runtime: Pick<ApplicationMenuRuntime, 'connectCommandIngress'>,
-  dependencies: ApplicationCommandFeedbackPublicationDependencies,
+  dependencies: ApplicationMenuIngressDependencies,
 ): () => void {
   return runtime.connectCommandIngress({
+    workflowNavigation: dependencies.workflowNavigation,
     publishFeedback(dispatch) {
       publishApplicationCommandFeedback(dispatch, dependencies)
     },
@@ -28,20 +37,26 @@ export function connectApplicationMenuCommandIngress(
  * root; this hook only publishes its terminal result through the shared owner.
  */
 export function useApplicationMenuCommandIngress(
-  dependencies: ApplicationCommandFeedbackPublicationDependencies,
+  dependencies: ApplicationMenuIngressDependencies,
 ): void {
   const runtime = useContext(ApplicationMenuRuntimeContext)
   if (!runtime) {
     throw new Error('ApplicationMenuBoundary is required.')
   }
-  const { announceStatus, setHomeStatusMessage } = dependencies
+  const {
+    announceStatus,
+    setHomeStatusMessage,
+    workflowNavigation,
+  } = dependencies
 
   useLayoutEffect(() => connectApplicationMenuCommandIngress(runtime, {
     announceStatus,
     setHomeStatusMessage,
+    workflowNavigation,
   }), [
     announceStatus,
     runtime,
     setHomeStatusMessage,
+    workflowNavigation,
   ])
 }

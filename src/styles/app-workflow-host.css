@@ -1,0 +1,69 @@
+.application-workflow-host {
+  position: fixed;
+  z-index: 900;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  border: 1px solid #3b4250;
+  border-radius: 16px;
+  background: #101218;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 52%);
+  color: #f3f4f6;
+  text-align: left;
+}
+
+.application-workflow-host[hidden] {
+  display: none;
+}
+
+.application-workflow-host-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #2a2e38;
+}
+
+.application-workflow-host-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.application-workflow-host-close {
+  flex: 0 0 auto;
+}
+
+.application-workflow-host-content {
+  min-height: 0;
+  padding: 0 16px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.application-workflow-host-content >
+  .workflow-presentation-container >
+  .collapsible-panel {
+  margin-top: 16px;
+}
+
+.sidebar >
+  .workflow-presentation-sidebar-slot >
+  .workflow-presentation-container >
+  .collapsible-panel >
+  .panel-summary {
+  scroll-margin-block-start: var(--editor-role-scroll-inset);
+}
+
+@media (max-width: 640px) {
+  .application-workflow-host {
+    top: 8px;
+    right: 8px;
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+  }
+}

@@ -816,6 +816,29 @@ export function resolveApplicationMenuWorkflowDestination(
   physicalProjectTarget: ApplicationMenuPhysicalProjectTarget | null,
 ): ApplicationMenuEditorDestination | null {
   if (physicalProjectTarget === null) return null
+  if (physicalProjectTarget === 'case-spine') {
+    const left = target.destinations['case-spine-left']
+    const right = target.destinations['case-spine-right']
+    if (
+      !left ||
+      !right ||
+      left.workspaceId !== 'workspace.case' ||
+      right.workspaceId !== 'workspace.case' ||
+      left.surfaceId !== 'surface.case.spine.left' ||
+      right.surfaceId !== 'surface.case.spine.right' ||
+      left.workspaceId !== right.workspaceId ||
+      left.areaId !== right.areaId ||
+      left.ownerId !== right.ownerId ||
+      left.controlId !== right.controlId
+    ) {
+      return null
+    }
+
+    // The current editor exposes one combined Spine route. Choosing the left
+    // descriptor is presentation-only and safe because both side descriptors
+    // resolve to the same owner and registered control.
+    return left
+  }
   return target.destinations[physicalProjectTarget] ?? null
 }
 

@@ -2,6 +2,12 @@ import type {
   ApplicationCommandCapability,
   ApplicationLifecycleCommandId,
 } from '../lifecycle/applicationCommandTypes.ts'
+import type {
+  EditorDestination,
+  EditorDestinationSurfaceId,
+  EditorWorkflowId,
+  EditorWorkspaceId,
+} from '../editor/editorNavigationRouter.ts'
 
 export const APPLICATION_MENU_PLATFORMS = Object.freeze([
   'windows',
@@ -67,6 +73,7 @@ export const APPLICATION_MENU_PHYSICAL_PROJECT_TARGETS = Object.freeze([
   'disc',
   'case-cover',
   'case-tray',
+  'case-spine',
   'case-spine-left',
   'case-spine-right',
 ] as const)
@@ -74,46 +81,13 @@ export const APPLICATION_MENU_PHYSICAL_PROJECT_TARGETS = Object.freeze([
 export type ApplicationMenuPhysicalProjectTarget =
   typeof APPLICATION_MENU_PHYSICAL_PROJECT_TARGETS[number]
 
-export type ApplicationMenuEditorWorkspaceId =
-  | 'workspace.disc'
-  | 'workspace.case'
+export type ApplicationMenuEditorWorkspaceId = EditorWorkspaceId
 
-export type ApplicationMenuEditorSurfaceId =
-  | 'surface.disc'
-  | 'surface.case.front'
-  | 'surface.case.back'
-  | 'surface.case.spine.left'
-  | 'surface.case.spine.right'
+export type ApplicationMenuEditorSurfaceId = EditorDestinationSurfaceId
 
-export type ApplicationMenuWorkflowId =
-  | 'workflow.game'
-  | 'workflow.disc-template'
-  | 'workflow.disc-layout-presets'
-  | 'workflow.export-options'
+export type ApplicationMenuWorkflowId = EditorWorkflowId
 
-export type ApplicationMenuEditorDestination = Readonly<{
-  kind: 'domain-area'
-  workspaceId: ApplicationMenuEditorWorkspaceId
-  surfaceId: ApplicationMenuEditorSurfaceId
-  areaId:
-    | 'area.game'
-    | 'area.template.disc'
-    | 'area.layout-presets.disc'
-    | 'area.export'
-  ownerId:
-    | 'owner.game.search'
-    | 'owner.disc-template'
-    | 'owner.disc-layout-presets'
-    | 'owner.export.disc-guides'
-    | 'owner.export.case-guides'
-  controlId:
-    | 'control.game.query'
-    | 'control.disc-template.selector'
-    | 'control.disc-layout-presets.selector'
-    | 'control.export.disc.center-hole'
-    | 'control.export.case.cover-trim'
-    | 'control.export.case.tray-trim'
-}>
+export type ApplicationMenuEditorDestination = EditorDestination
 
 export type ApplicationMenuWorkflowNavigationTarget = Readonly<{
   kind: 'workflow-navigation'

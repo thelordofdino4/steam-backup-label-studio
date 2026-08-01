@@ -8,6 +8,9 @@ import type { SteamMetadataAssistanceState } from '../../hooks/useSteamMetadataA
 import type { SteamImportedGame, SteamSearchResult } from '../../steam/steamApi'
 import type { LegalTextCandidate, RatingBoardCandidate } from '../../steam/steamMetadataCandidates'
 import { EditorFeaturePanel, EditorPanel } from '../editor/EditorPanel'
+import {
+  useRegisteredWorkflowNavigationControl,
+} from '../editor/applicationWorkflowNavigation'
 import { MetadataAssistanceControls } from './MetadataAssistanceControls'
 
 export type GamePanelProps = {
@@ -56,6 +59,12 @@ export function GamePanel({
   handleApplyLegalCandidate,
   handleCopyLegalCandidate,
 }: GamePanelProps) {
+  const { detailsRef, controlRef } =
+    useRegisteredWorkflowNavigationControl<HTMLInputElement>({
+      workflowId: 'workflow.game',
+      ownerId: 'owner.game.search',
+      controlId: 'control.game.query',
+    })
   const getSuggestedRatingForSystem = (system: GameRatingSystem) =>
     metadataAssistance.ratingCandidates.find(
       (candidate) =>
@@ -65,7 +74,7 @@ export function GamePanel({
     )
 
   return (
-    <EditorPanel title="Game">
+    <EditorPanel detailsRef={detailsRef} title="Game">
       <label className="field-label spacing-top" htmlFor="game-search">
         Steam search
       </label>
@@ -73,6 +82,7 @@ export function GamePanel({
         Selecting a Steam game imports available Steam metadata and artwork where possible. Imported details may still need manual review.
       </p>
       <input
+        ref={controlRef}
         id="game-search"
         type="search"
         placeholder="Search by title or App ID"

@@ -29,7 +29,10 @@ function assertSourceOrder(source: string, snippets: readonly string[]) {
 
 test('Disc Layout Presets uses the workflow panel shell and explicit apply', () => {
   assert.match(panelSource, /import \{ EditorPanel \}/)
-  assert.match(panelSource, /<EditorPanel title="Layout Presets">/)
+  assert.match(
+    panelSource,
+    /<EditorPanel detailsRef=\{detailsRef\} title="Layout Presets">/,
+  )
   assert.match(panelSource, /useState\(''\)/)
   assert.match(panelSource, /<option value="">Choose a preset<\/option>/)
   assert.match(panelSource, /value=\{selectedPresetId\}/)

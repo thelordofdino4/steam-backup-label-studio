@@ -2,6 +2,9 @@ import type { DiscTemplate } from '../../types/template'
 import type { SelectedDiscTemplateId } from '../../project/projectTypes'
 import type { CustomDiscDimensionKey } from '../../templates/discTemplateStateModel'
 import { EditorPanel } from '../editor/EditorPanel'
+import {
+  useRegisteredWorkflowNavigationControl,
+} from '../editor/applicationWorkflowNavigation'
 
 type TemplatePanelProps = {
   selectedDiscTemplateId: SelectedDiscTemplateId
@@ -24,12 +27,20 @@ export function TemplatePanel({
   handleTemplateChange,
   handleCustomDimensionChange,
 }: TemplatePanelProps) {
+  const { detailsRef, controlRef } =
+    useRegisteredWorkflowNavigationControl<HTMLSelectElement>({
+      workflowId: 'workflow.disc-template',
+      ownerId: 'owner.disc-template',
+      controlId: 'control.disc-template.selector',
+    })
+
   return (
-    <EditorPanel title="Template">
+    <EditorPanel detailsRef={detailsRef} title="Template">
         <label className="field-label" htmlFor="disc-template">
           Disc type
         </label>
         <select
+          ref={controlRef}
           id="disc-template"
           value={selectedDiscTemplateId}
           onChange={(event) =>

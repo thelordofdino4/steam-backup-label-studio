@@ -55,7 +55,10 @@ test('production mounts one lifecycle runtime and current lifecycle surfaces sha
   assert.match(appSource, /publishApplicationCommandFeedback\(result,/)
   assert.match(appSource, /synchronizeCurrentEditorRoute\(/)
   assert.match(appSource, /getElementById\('home-resume-project'\)/)
-  assert.match(appSource, /id="disc-editor-heading" tabIndex=\{-1\}/)
+  assert.match(
+    appSource,
+    /id="disc-editor-heading"[^>]*tabIndex=\{-1\}/,
+  )
   assert.equal(appSource.includes('Return to the main menu?'), false)
   assert.match(homeSource, /onClick=\{onLoadProject\}/)
   assert.match(homeSource, /onClick=\{onNewDisc\}/)
@@ -77,6 +80,9 @@ test('production mounts one lifecycle runtime and current lifecycle surfaces sha
     caseSource,
     /disabled=\{exportPngDisabled\}[\s\S]*onClick=\{onExportPng\}/,
   )
-  assert.match(caseSource, /id="case-insert-editor-heading" tabIndex=\{-1\}/)
+  assert.match(
+    caseSource,
+    /id="case-insert-editor-heading"[^>]*tabIndex=\{-1\}/,
+  )
   assert.equal(appSource.includes("dispatch('menu."), false)
 })
