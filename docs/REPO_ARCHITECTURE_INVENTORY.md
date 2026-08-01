@@ -919,12 +919,15 @@ The target Case preset coordination boundary is documented in
 It defines future explicit Front Cover, complete Tray Card, Back Panel, and
 left/right-spine assignment and atomic workflow semantics. The pure definition,
 catalog, compatibility, normalized snapshot, and stable assignment-resolution
-foundation plus immutable first-time Apply planner are implemented. The planner
-owns deterministic typed direct layout-field proposals, preservation/skip/
-warning/blocker/consent classification, no-op and conflict detection,
-staleness/identity preconditions, and field footprints; no project-owner
-mutation adapter, atomic transition, application transaction, schema, UI, or
-menu connection exists.
+foundation, immutable first-time Apply planner, content-bound review/consent
+identity, and pure atomic transition are implemented. The planner owns
+deterministic typed direct layout-field proposals, preservation/skip/warning/
+blocker/consent classification, no-op and conflict detection,
+staleness/identity preconditions, and field footprints. The transition validates
+and preflights those exact stable addresses and returns either one detached
+deeply frozen Case aggregate plus an uninstalled configuration candidate or no
+actionable output. No installed-configuration owner, lifecycle application
+transaction, schema, UI, or menu connection exists.
 
 Key files:
 
@@ -965,6 +968,8 @@ Key files:
 - `src/presets/caseInsertPresetCompatibility.ts`
 - `src/presets/caseInsertPresetAssignmentResolution.ts`
 - `src/presets/caseInsertPresetApplyPlanning.ts`
+- `src/presets/caseInsertPresetApplyReviewIdentity.ts`
+- `src/presets/caseInsertPresetApplyTransition.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
@@ -1054,14 +1059,17 @@ Risks:
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 - Issue `#168` and the Case preset workflow contract retain future Case preset
-  starter definitions, atomic transition/application, persistence, and
+  starter definitions, installed configuration/customization detection,
+  runtime application, persistence, and
   presentation work. Pure definition/catalog/compatibility owners reject
   malformed definitions; the pure snapshot/resolution boundary fails closed on
   stale, missing, disabled, ambiguous, incompatible, and unsupported exact
   bindings. The first-time Apply planner consumes those bindings without
-  resolving again, emits no candidate aggregate, and has no React/store,
-  renderer, filesystem, Tauri, or commit dependency. No coordinated Case preset
-  mutation owner exists in current source.
+  resolving again. The pure transition consumes that reviewed plan without
+  resolving or planning again, preflights every action, and emits one complete
+  detached aggregate/candidate pair or neither. It has no React/store, renderer,
+  filesystem, Tauri, persistence, or commit dependency. No runtime Case preset
+  mutation/attachment owner exists in current source.
 
 ## Text Systems
 

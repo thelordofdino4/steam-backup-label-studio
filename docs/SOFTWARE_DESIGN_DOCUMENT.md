@@ -1463,10 +1463,20 @@ staleness/identity preconditions, and a deterministic future customization
 footprint. It converts template bases through authoritative Case region
 geometry, keeps complete Tray/Back Panel and left/right identity explicit,
 ignores mirror mode, coalesces only identical field writes, rejects conflicts,
-and fails closed for unsupported action-region or text-fitting work. It does
-not provide starter definitions, an atomic Case aggregate transition,
-application/commit, Reapply, Detach, applied configuration, schema, workflow
-presentation, menu routing, renderer access, or runtime behavior.
+and fails closed for unsupported action-region or text-fitting work.
+`src/presets/caseInsertPresetApplyReviewIdentity.ts` binds review and exact
+material consent deterministically to plan contents.
+`src/presets/caseInsertPresetApplyTransition.ts` consumes only one deeply frozen
+planned/no-op result, its exact review and consent records, a normalized current
+Case aggregate, current snapshot/preset/scope identity, and an explicit
+unattached assertion. It defensively validates and preflights all exact stable
+addresses/current values before applying the exhaustive supported layout-field
+actions to a detached draft. Success is one deeply frozen aggregate plus an
+immutable uninstalled configuration candidate; every typed failure returns
+neither. It does not rerun resolution or planning. No starter definitions,
+authoritative installed configuration/customization detector,
+application/lifecycle commit, Reapply, Detach, schema, workflow presentation,
+menu routing, renderer access, or runtime behavior is provided.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
