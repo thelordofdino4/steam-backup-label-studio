@@ -125,6 +125,8 @@ export type CaseInsertPresetObjectBinding =
       id: string
     }>
 
+export type CaseInsertPresetTargetPresence = 'required' | 'optional'
+
 export type CaseInsertPresetApplicationScope =
   | Readonly<{
       kind: 'region'
@@ -142,6 +144,7 @@ export type CaseInsertPresetAssignmentDefinitionV1 = Readonly<{
   coordinateBasis: CaseInsertPresetCoordinateBasis
   ownerId: CaseInsertPresetOwnerId
   object: CaseInsertPresetObjectBinding
+  targetPresence: CaseInsertPresetTargetPresence
   contentRegion: CaseInsertPresetNormalizedRegion
   actionRegion?: CaseInsertPresetNormalizedRegion
 }>
@@ -193,6 +196,7 @@ export type CaseInsertPresetDefinitionParseErrorCode =
   | 'unsupported-owner'
   | 'owner-region-mismatch'
   | 'invalid-object-binding'
+  | 'invalid-target-presence'
   | 'owner-role-mismatch'
   | 'duplicate-owner-object-binding'
 
@@ -256,6 +260,7 @@ const ASSIGNMENT_FIELDS = new Set([
   'coordinateBasis',
   'ownerId',
   'object',
+  'targetPresence',
   'contentRegion',
   'actionRegion',
 ])
@@ -732,6 +737,10 @@ function parseAssignment(
     return failure('invalid-object-binding', `${path}.object`)
   }
 
+  if (value.targetPresence !== 'required' && value.targetPresence !== 'optional') {
+    return failure('invalid-target-presence', `${path}.targetPresence`)
+  }
+
   if (ownerRule.bindingKind === 'fixed') {
     if (ownerRule.objects[object.id] !== roleId) {
       return failure(
@@ -767,6 +776,7 @@ function parseAssignment(
     coordinateBasis: value.coordinateBasis,
     ownerId,
     object,
+    targetPresence: value.targetPresence,
     contentRegion,
     ...(actionRegion ? { actionRegion } : {}),
   })

@@ -1448,9 +1448,15 @@ Its pure foundation under `src/presets/` now strictly parses and freezes the v1
 definition shape, resolves canonical exact revisions and boundary-only aliases
 through an empty user-ready catalog, validates the five concrete-region/basis
 pairings and trusted owner/object identities, and evaluates supplied template,
-scope, owner, and repeated-object capabilities without project mutation. It
-does not provide starter definitions, owner resolution, planning, application,
-applied configuration, schema, workflow presentation, menu routing, or runtime
+scope, owner, and repeated-object capabilities without project mutation.
+`src/caseInsert/presetAssignmentSnapshot.ts` detaches the lifecycle-owned
+normalized Case aggregate and exposes fixed and repeated owner bindings;
+`src/presets/caseInsertPresetAssignmentResolution.ts` reuses catalog and
+compatibility authority, expands explicit scopes to concrete regions, and
+returns deterministic immutable current binding facts with typed disabled,
+missing, ambiguous, stale, incompatible, invalid, and unsupported outcomes. It
+does not provide starter definitions, planning, application, applied
+configuration, schema, workflow presentation, menu routing, or runtime
 behavior.
 
 The proposed target application workflow for Disc template choice, raw custom
