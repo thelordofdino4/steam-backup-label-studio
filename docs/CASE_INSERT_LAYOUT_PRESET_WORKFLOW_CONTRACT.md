@@ -1,6 +1,6 @@
 # Case Insert Layout Preset Workflow Contract
 
-> Status: Draft target-state normative contract.
+> Status: Draft target-state normative contract with an implemented pure definition, catalog, and compatibility foundation checkpoint.
 > Purpose: Define the presentation-neutral Case Insert Layout Preset Select, Plan, Review, Apply, Reapply, and Detach workflow across Front Cover, complete Tray Card, Back Panel, and explicit left/right spine regions.
 > Read when: Designing or implementing Case preset definitions, catalogs, planning, owner adapters, application scopes, persistence, Game/import composition, future Case workflow presentation, or Case preset acceptance.
 > Authoritative source: This contract for target Case preset workflow semantics; current implementation facts defer to source and tests; physical geometry defers to the Case template and layout owners; serialized fields defer to `PROJECT_FILE_SPEC.md`.
@@ -11,8 +11,14 @@ Last refreshed: 2026-08-01.
 ## 1. Status, scope, and authority
 
 **TARGET REQUIREMENT —** This is a **draft target-state normative contract**.
-It defines behavior that a future Case Insert Layout Preset implementation must
-satisfy. It does not claim that a Case preset parser, catalog, planner,
+It defines behavior that the complete Case Insert Layout Preset implementation
+must satisfy.
+
+**CURRENT FACT —** The pure v1 definition parser, canonical catalog boundary,
+concrete-region/coordinate-basis registry, and compatibility evaluator now
+exist under `src/presets/`. They reconstruct immutable allowlisted definitions,
+keep aliases at the catalog boundary, and report incompatibility without
+reading or mutating a live Case project. No starter definition, planner,
 application engine, applied configuration, workflow presentation, menu item,
 or persistence schema exists.
 
@@ -141,10 +147,12 @@ an Apply button, generic Disc definition/registry/resolution/application
 modules, and transient active-preset behavior. The target Disc
 Select/Plan/Review/Apply/Reapply/Detach contract is not fully implemented.
 
-**CURRENT FACT —** Case Insert has no coordinated Case Layout Preset
-definition format, catalog, compatibility evaluator, immutable planner,
-application transaction, applied configuration, workflow presentation, menu
-launcher, Reapply, or Detach behavior.
+**CURRENT FACT —** Case Insert now has a pure coordinated definition format,
+strict parser, empty user-ready catalog, canonical exact-revision and
+alias-boundary resolution, and a pure compatibility evaluator. It has no
+starter definitions, immutable planner, owner-resolution adapters, application
+transaction, applied configuration, workflow presentation, menu launcher,
+Reapply, or Detach behavior.
 
 ### Current-versus-target matrix
 
@@ -832,12 +840,12 @@ mutated.
 
 ### Non-goals
 
-**TARGET REQUIREMENT —** This contract does not implement or change:
+**TARGET REQUIREMENT —** This contract and the implemented pure foundation do
+not implement or change:
 
-- TypeScript, React, Rust, tests, manifests, dependencies, Tauri, runtime, or
-  generated artifacts;
-- a Case preset parser, registry, catalog, starter definitions, planner,
-  application engine, adapters, UI, or workflow-host connection;
+- React, Rust, manifests, dependencies, Tauri, runtime, or generated artifacts;
+- starter Case definitions, a planner, application engine, owner-resolution or
+  mutation adapters, UI, or workflow-host connection;
 - Case Template, menu descriptors/routing, current Disc items, sidebar panels,
   current Case surface selection, or final visual design;
 - project schema, migrations, package format, Save, Open, dirty state, history,
@@ -852,8 +860,8 @@ mutated.
 ### Open questions
 
 **OPEN QUESTION —** #168 or a focused starter-preset issue must define the
-first Case preset catalog, user-facing names, exact role participation, and
-whether any preset may create a missing repeated object.
+first populated Case preset catalog, user-facing names, exact role
+participation, and whether any preset may create a missing repeated object.
 
 **OPEN QUESTION —** Steam branding on Front and Spine must be classified as a
 preset role or retained as setup-owned visible output before a Case definition
@@ -874,12 +882,13 @@ and optional modal presentation require focused contracts/implementation.
 
 | Claim class | Evidence | Supports |
 | --- | --- | --- |
+| CURRENT FACT | `src/presets/caseInsertPresetDefinition.ts`, `caseInsertPresetCatalog.ts`, `caseInsertPresetCompatibility.ts`, and their focused tests | Pure canonical definition parsing, exact catalog identity/alias boundaries, five concrete regions, coordinate-basis validation, stable owner/object bindings, explicit scopes, immutable compatibility results, and absence of owner mutation |
 | CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, snapshot/restore, and current no-preset schema |
 | CURRENT FACT | `src/templates/caseInsertTemplates.ts`, `src/layout/jewelCaseLayout.ts`, `jewelCaseFrontLayout.ts`, `jewelCaseBackLayout.ts`, `jewelCaseSpineLayout.ts` | Two physical surfaces, explicit regions/safe bases, Back Panel versus complete Tray, deterministic owner geometry |
 | CURRENT FACT | `src/caseInsert/templateSurfaceTransitions.ts`, `src/caseInsert/jewelCaseTransitions.ts`, `src/hooks/useCaseInsertTemplateEditor.ts`, `src/hooks/useJewelCaseSpineEditor.ts` | Focused Cover/Tray and side-specific/mirrored editing transitions |
 | CURRENT FACT | `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`, `CaseInsertSpinePreviewLayer.tsx`, `CaseInsertPreview.tsx`, `src/export/caseInsertTemplateExportLayers.ts`, `exportCaseInsertPng.ts` | Preview/export owner separation, one complete Tray composition, and no standalone Spine PNG |
 | CURRENT FACT | `src/caseInsert/brandingMarkTargetSources.ts`, `brandingMarkSlots.ts`, `brandingLogoSlots.ts`, `src/editor/repeatedArtwork.ts` | Branding family projection and repeated object identity |
-| CURRENT FACT | `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence without Case implementation |
+| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; Case planning/application remains separate and unimplemented |
 | CURRENT FACT | `src/editor/editorNavigationRouter.ts`, `src/applicationMenu/applicationMenuRegistry.ts`, `src/components/editor/ApplicationWorkflowHost.tsx` | Current four Tools workflows and absence of Case Template/Layout Preset identities |
 | TARGET REQUIREMENT | [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md), [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md) | Shared workflow invariants, roles, preservation, and application vocabulary |
 | TARGET REQUIREMENT | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md), [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md), [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md) | Persistence, composed Game apply, and Guided boundaries |

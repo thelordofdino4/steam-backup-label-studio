@@ -894,13 +894,15 @@ changes are persisted through existing project fields, preview/export parity
 tests where practical, and manual Tauri verification for user-visible editor
 behavior when UI is added.
 
-## 17. Deferred Case/Spine Work
+## 17. Deferred Case/Spine Application Work
 
-Case Front, Case Back, and Spine implementation remains deferred. Their target
-workflow and ownership boundary is now defined by
+Case Front, Case Back, and Spine preset planning/application remains deferred.
+Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
-while starter designs, parser/catalog, adapters, persistence, UI, and runtime
-application remain future work.
+and its pure definition/parser, empty user-ready catalog, concrete-region/basis
+validation, and compatibility foundation now exist. Starter designs, stable
+assignment resolution against a Case snapshot, planning, owner adapters,
+persistence, UI, and runtime application remain future work.
 
 Deferred areas:
 

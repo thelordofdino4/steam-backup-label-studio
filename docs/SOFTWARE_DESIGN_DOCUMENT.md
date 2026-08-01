@@ -1444,9 +1444,14 @@ The proposed Case-specific sibling workflow is documented in
 It preserves the same Select/Plan/Review/Apply/Reapply/Detach protocol while
 binding every assignment to an explicit Front Cover, complete Tray Card, Back
 Panel, left-spine, or right-spine region and owner-derived coordinate basis.
-It is target design only: no Case preset engine, catalog, applied
-configuration, schema, workflow presentation, menu routing, or runtime behavior
-exists because of that contract.
+Its pure foundation under `src/presets/` now strictly parses and freezes the v1
+definition shape, resolves canonical exact revisions and boundary-only aliases
+through an empty user-ready catalog, validates the five concrete-region/basis
+pairings and trusted owner/object identities, and evaluates supplied template,
+scope, owner, and repeated-object capabilities without project mutation. It
+does not provide starter definitions, owner resolution, planning, application,
+applied configuration, schema, workflow presentation, menu routing, or runtime
+behavior.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
