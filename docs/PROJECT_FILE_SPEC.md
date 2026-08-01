@@ -65,6 +65,15 @@ shape, schema version, validation, normalization, and migration. No such
 generic preset configuration is present in schema `0.2.0`, and a migration must
 never infer it from owner coordinates or Guided progress.
 
+The Case-specific target sibling,
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
+defines future exact preset references, explicit Front Cover/complete Tray/Back
+Panel/left/right-spine assignments, accepted scopes, stable owner/object
+bindings, and attached/customized/detached semantics. Schema `0.2.0` contains
+none of that configuration. Loading must restore explicit Case owner values
+first and must not infer or reapply a preset from coordinates, mirror state,
+navigation, or current content.
+
 ## Current Format
 
 Production Save and Save As now write ZIP-compatible package-v1 bytes only to
@@ -443,7 +452,7 @@ package v1 authorizes no such union.
 
 ## Future Schema Work
 
-- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), the role-based preset definition/model vocabulary is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md), and target application-level configuration semantics are documented in [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md). Schema `0.2.0` adds only the focused Disc guided-workflow identity plus omission/completion metadata described above; broader role, preset, or role-layout persistence still requires explicit schema and migration work in this spec.
+- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), the role-based preset definition/model vocabulary is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md), and target application-level configuration semantics are documented in the editor-specific [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md) and [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md). Schema `0.2.0` adds only the focused Disc guided-workflow identity plus omission/completion metadata described above; broader Disc or Case role/preset persistence still requires explicit schema and migration work in this spec.
 - Register focused project schema migrations in `src/project/projectSchema.ts`
   before changing saved-project semantics.
 - Keep migrations one version step at a time and make each migration produce the

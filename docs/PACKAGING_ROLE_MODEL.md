@@ -2,7 +2,7 @@
 > Status: Implementation design note for issue #267.
 > Purpose: Define the semantic packaging role taxonomy and object-role model for current role panels and future role-based layout presets.
 > Read when: Working on role hierarchy, role-panel semantics, layout preset modeling, or packaging-surface object ownership.
-> Authoritative source: Current source for implemented behavior; `docs/SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts; `docs/DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for target application-level Disc preset workflow semantics; `docs/PROJECT_FILE_SPEC.md` for saved-project schema.
+> Authoritative source: Current source for implemented behavior; `docs/SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts; `docs/DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `docs/CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level preset workflow semantics; `docs/PROJECT_FILE_SPEC.md` for saved-project schema.
 > Last reviewed against commit: `4c44a9456d4c74039a2d2a343fd5757c9a3c45a9`.
 
 This document records the semantic role model for GitHub issue #267. It is a
@@ -266,7 +266,12 @@ documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md), and
 #270 owns the implemented starter Disc presets. Target application-level
 selection, immutable planning, atomic apply/reapply/detach, configuration, and
 customization semantics are owned by
-[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
+[`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
+for Disc and
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
+for Case. The Case contract adds explicit Front Cover, complete Tray Card, Back
+Panel, left/right-spine, coordinate-basis, and multi-region rules without
+changing this taxonomy or current object owners.
 
 ## 13. Compatibility And Invariants
 
@@ -288,6 +293,7 @@ Related documents:
 - `docs/GUIDED_PRESET_SLOT_MODEL.md`
 - `docs/ISSUE_271_ROLE_NAVIGATION_SHELL.md`
 - `docs/ROLE_BASED_PRESET_MODEL.md`
+- `docs/CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`
 - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
 - `docs/PRD.md`
 - `docs/PROJECT_FILE_SPEC.md`

@@ -614,14 +614,17 @@ Blank Project remains available without a preset or Guided checklist.
 **TARGET REQUIREMENT —** This contract is Disc-only. Case Front, Case Back/Tray,
 left spine, and right spine have distinct rectangular geometry, roles, fitting,
 text, save/load, preview, and export owners. No Disc preset may target or mutate
-Case state, and no Disc compatibility result implies Case support.
+Case state, and no Disc compatibility result implies Case support. The
+Case-specific sibling protocol and its explicit design-region/coordinate-basis
+rules are owned by
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
 
 ### Disc/Case and presentation-adapter matrix
 
 | Claim class | Concern | Shared infrastructure allowed | Editor-specific authority required |
 | --- | --- | --- | --- |
-| **TARGET REQUIREMENT** | Operation/result envelope | Neutral dispatch, capability, diagnostics, feedback primitives | Disc operation registration and preset semantics here; future Case contract separately |
-| **TARGET REQUIREMENT** | Catalog primitives | Stable identity/version parsing and storage-neutral registry interfaces | Disc definition vocabulary/adapters; future Case catalog/roles |
+| **TARGET REQUIREMENT** | Operation/result envelope | Neutral dispatch, capability, diagnostics, feedback primitives | Disc operation registration and preset semantics here; Case semantics in the Case sibling contract |
+| **TARGET REQUIREMENT** | Catalog primitives | Stable identity/version parsing and storage-neutral registry interfaces | Disc definition vocabulary/adapters here; Case catalog/roles in the Case sibling contract |
 | **TARGET REQUIREMENT** | Numeric helpers | Neutral immutable math | Circular Disc versus rectangular/Spine coordinates, bounds, fitting, clamp/reflow |
 | **TARGET REQUIREMENT** | Presentation shell | Accessible select/review/modal/menu building blocks | Typed Disc destinations and impact copy |
 | **TARGET REQUIREMENT** | Feature owners | Existing shared asset/text domains where already authoritative | Surface-specific layout/render/export adapters |

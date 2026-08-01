@@ -2,7 +2,7 @@
 > Status: Current architecture and extension contract for GitHub issues #269, #270, #289, #292, #293, and #296.
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
-> Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for target application-level Select/Plan/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
+> Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
 > Last reviewed against commit: `c2bfaeed02915ee2b757cdd4a9a560b5305b6436`.
 
 This document began as the design output for #269 and now records both that
@@ -16,6 +16,13 @@ consumes this definition/role/placement vocabulary. It supersedes this
 document only for future application-level selection, immutable review
 planning, atomic commit, applied/customized/detached configuration, Reapply,
 and Detach semantics; implemented behavior remains described here and in source.
+
+The Case-specific target sibling in
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
+now settles the future Case section, concrete-region, coordinate-basis,
+left/right-spine, multi-region atomicity, preservation, and recovery semantics.
+It does not add a Case implementation or schema. This document remains the
+neutral/Disc-first model and current implementation record.
 
 ## 1. Purpose And Scope
 
@@ -889,8 +896,11 @@ behavior when UI is added.
 
 ## 17. Deferred Case/Spine Work
 
-Case Front, Case Back, and Spine should wait for later work because their
-object-role boundaries are still less settled than the Disc Label surface.
+Case Front, Case Back, and Spine implementation remains deferred. Their target
+workflow and ownership boundary is now defined by
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
+while starter designs, parser/catalog, adapters, persistence, UI, and runtime
+application remain future work.
 
 Deferred areas:
 
@@ -970,6 +980,7 @@ Related issues:
 Related documents:
 
 - `PACKAGING_ROLE_MODEL.md`
+- `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`
 - `GUIDED_PRESET_SLOT_MODEL.md`
 - `ISSUE_271_ROLE_NAVIGATION_SHELL.md`
 - `SOFTWARE_DESIGN_DOCUMENT.md`
