@@ -5,6 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
+> Case preset ownership refresh: PR #344 merge commit `f662d81555fa16e36220c63854709b62fb46bd7a` plus the focused pure Detach-planning checkpoint on 2026-08-02.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -1520,7 +1521,27 @@ overwrite adopts selected value/provenance; a new claim may be configuration-
 only; retirement never writes; and movement remains retirement plus new claim.
 Back Panel/complete Tray and left/right-spine addresses remain distinct, while
 mirror mode has no execution effect. Installation, persistence/project schema,
-Detach, UI, lifecycle/store commit, and runtime application remain absent.
+Detach execution, UI, lifecycle/store commit, and runtime application remain
+absent.
+
+`src/presets/caseInsertPresetDetachIdentity.ts` and
+`src/presets/caseInsertPresetDetachPlanning.ts` form the pure Detach-planning
+boundary. The planner consumes one validated authoritative applied-preset
+configuration and one exact still-current normalized Case aggregate/snapshot/
+session/revision/template context. It performs direct stable-address lookup for
+every configuration-owned `layout-x`, `layout-y`, `layout-scale`, and
+`layout-width` field, validates the exact target, enablement, and current
+semantic value, and returns the complete canonically ordered release footprint
+plus one exact aggregate-preservation fact per address. Its single deterministic
+warning, complete future compare-and-swap preconditions, and content-bound
+review/plan identities describe an ownership-only operation: zero aggregate
+writes and a non-authoritative projection that no applied-preset ownership would
+remain. Clean and customized values are treated identically; no detector,
+selected definition/revision, catalog, resolver, compatibility evaluator,
+overwrite/preserve policy, review/consent acceptance, or successor configuration
+participates. The planner does not execute Detach or install/remove, persist,
+serialize, render, commit, or mutate lifecycle/store/runtime state. The
+production Case catalog remains empty.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
