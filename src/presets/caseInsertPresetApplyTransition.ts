@@ -7,12 +7,7 @@ import {
   type CaseInsertPresetSnapshotObjectState,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
-import type {
-  ProjectCaseInsertImageSlot,
-  ProjectCaseInsertTextBlock,
-  ProjectCaseInsertTextList,
-  ProjectJewelCaseState,
-} from '../project/projectTypes.ts'
+import type { ProjectJewelCaseState } from '../project/projectTypes.ts'
 import { caseInsertTemplates } from '../templates/caseInsertTemplates.ts'
 import {
   CASE_INSERT_PRESET_CONCRETE_REGION_IDS,
@@ -41,6 +36,10 @@ import {
   createCaseInsertPresetMaterialConsentRequirementId,
   createCaseInsertPresetPlanWarningIdentity,
 } from './caseInsertPresetApplyReviewIdentity.ts'
+import {
+  applyCaseInsertPresetAggregateLayoutWrites,
+  type CaseInsertPresetAggregateLayoutWrite,
+} from './caseInsertPresetAggregateFieldTransition.ts'
 
 export const CASE_INSERT_PRESET_APPLY_REVIEW_APPROVAL_KIND =
   'sbls/case-insert-preset-apply-review-approval' as const
@@ -158,11 +157,6 @@ export type CaseInsertPresetApplyTransitionResult =
       configurationCandidate: CaseInsertPresetAppliedConfigurationCandidate
     }>
   | FailureCode
-
-type CaseInsertPresetMutableObject =
-  | ProjectCaseInsertImageSlot
-  | ProjectCaseInsertTextBlock
-  | ProjectCaseInsertTextList
 
 const REGION_SET = new Set<string>(CASE_INSERT_PRESET_CONCRETE_REGION_IDS)
 const OWNER_SET = new Set<string>(CASE_INSERT_PRESET_OWNER_IDS)
@@ -724,41 +718,6 @@ function validateConsent(
     : null
 }
 
-function getMutableOwnerItems(
-  aggregate: ProjectJewelCaseState,
-  ownerId: CaseInsertPresetOwnerId,
-): CaseInsertPresetMutableObject[] {
-  const { cover, tray } = aggregate.templates
-  const { left, right } = aggregate.spine
-  switch (ownerId) {
-    case 'case.cover.background': return [cover.background]
-    case 'case.cover.title-artwork': return [cover.titleArtwork]
-    case 'case.cover.text-blocks': return cover.textBlocks
-    case 'case.cover.artwork-slots': return cover.artworkSlots
-    case 'case.cover.logo-slots': return cover.logoSlots
-    case 'case.cover.mark-slots': return cover.markSlots
-    case 'case.tray.background': return [tray.background]
-    case 'case.tray.title-artwork': return [tray.titleArtwork]
-    case 'case.tray.text-blocks': return tray.textBlocks
-    case 'case.tray.text-lists': return tray.textLists
-    case 'case.tray.artwork-slots': return tray.artworkSlots
-    case 'case.tray.logo-slots': return tray.logoSlots
-    case 'case.tray.mark-slots': return tray.markSlots
-    case 'case.spine.left.background': return [left.background]
-    case 'case.spine.left.title-artwork': return [left.titleArtwork]
-    case 'case.spine.left.title-text': return [left.title]
-    case 'case.spine.left.text-blocks': return left.textBlocks
-    case 'case.spine.left.logo-slots': return left.logoSlots
-    case 'case.spine.left.mark-slots': return left.markSlots
-    case 'case.spine.right.background': return [right.background]
-    case 'case.spine.right.title-artwork': return [right.titleArtwork]
-    case 'case.spine.right.title-text': return [right.title]
-    case 'case.spine.right.text-blocks': return right.textBlocks
-    case 'case.spine.right.logo-slots': return right.logoSlots
-    case 'case.spine.right.mark-slots': return right.markSlots
-  }
-}
-
 function currentFieldValue(
   target: CaseInsertPresetSnapshotObjectState,
   fieldId: CaseInsertPresetPlanFieldId,
@@ -768,18 +727,6 @@ function currentFieldValue(
     case 'layout-y': return target.layout.y
     case 'layout-scale': return target.layout.scale
     case 'layout-width': return target.layout.width ?? null
-  }
-}
-
-function writeField(
-  target: CaseInsertPresetMutableObject,
-  action: CaseInsertPresetPlanFieldAction,
-) {
-  switch (action.kind) {
-    case 'set-layout-x': target.layout.x = action.proposedValue; return
-    case 'set-layout-y': target.layout.y = action.proposedValue; return
-    case 'set-layout-scale': target.layout.scale = action.proposedValue; return
-    case 'set-layout-width': target.layout.width = action.proposedValue; return
   }
 }
 
@@ -1014,39 +961,35 @@ export function applyCaseInsertPresetFirstTime(
   const targetFailure = preflightTargets(plan, snapshot)
   if (targetFailure) return targetFailure
 
-  const draft = cloneMutable(normalized)
-  for (const action of plan.fieldActions) {
-    const matches = getMutableOwnerItems(draft, action.featureOwnerId)
-      .filter(({ id }) => id === action.object.runtimeId)
-    if (matches.length !== 1) {
-      return failure(
-        matches.length > 1 ? 'target-ambiguous' : 'target-missing',
-        'draft-target-unavailable',
-        { actionId: action.id },
-      )
-    }
-    writeField(matches[0]!, action)
+  const writes: CaseInsertPresetAggregateLayoutWrite[] = plan.fieldActions
+    .map((action) => ({
+      id: action.id,
+      kind: action.kind,
+      featureOwnerId: action.featureOwnerId,
+      bindingKind: action.object.bindingKind,
+      bindingId: action.object.bindingId,
+      runtimeObjectId: action.object.runtimeId,
+      fieldId: action.fieldId,
+      currentValuePrecondition: action.currentValue,
+      proposedValue: action.proposedValue,
+    }))
+  const fieldTransition = applyCaseInsertPresetAggregateLayoutWrites(
+    normalized,
+    writes,
+  )
+  if (!fieldTransition.ok) {
+    const status = fieldTransition.status === 'target-missing' ||
+        fieldTransition.status === 'target-ambiguous'
+      ? fieldTransition.status
+      : fieldTransition.status === 'unsupported-action' ||
+          fieldTransition.status === 'unsupported-owned-field'
+        ? 'unsupported-action'
+        : 'transition-conflict'
+    return failure(status, fieldTransition.code, {
+      actionId: fieldTransition.writeId,
+    })
   }
-
-  let normalizedResult: ProjectJewelCaseState
-  try {
-    normalizedResult = normalizeProjectJewelCaseState(draft)
-  } catch {
-    return failure('invalid-plan', 'result-normalization-failed')
-  }
-  if (!sameValue(draft, normalizedResult)) {
-    return failure('invalid-plan', 'result-not-canonically-normalized')
-  }
-  for (const action of plan.fieldActions) {
-    const matches = getMutableOwnerItems(normalizedResult, action.featureOwnerId)
-      .filter(({ id }) => id === action.object.runtimeId)
-    if (matches.length !== 1 ||
-        currentFieldValue(matches[0]!, action.fieldId) !== action.proposedValue) {
-      return failure('transition-conflict', 'result-verification-failed', {
-        actionId: action.id,
-      })
-    }
-  }
+  const normalizedResult = fieldTransition.aggregate as ProjectJewelCaseState
 
   const acceptedConsentIds = plan.materialConsentRequirements.map(({ id }) => id)
   const configurationCandidate = buildConfigurationCandidate(

@@ -1484,9 +1484,9 @@ clean/customized from missing, ambiguous, unsupported, invalid, incompatible,
 or attachment-context failures. It shares direct address semantics with
 `presetAssignmentSnapshot.ts` and does not execute resolution, planning,
 catalog, geometry, renderer, persistence, or UI behavior. No starter
-definitions, installed attachment, application/lifecycle commit, Reapply
-execution, Detach, schema, workflow presentation, menu routing, renderer access,
-or runtime behavior is provided.
+definitions, installed attachment, application/lifecycle commit, Detach,
+schema, workflow presentation, menu routing, renderer access, or runtime
+behavior is provided.
 `src/presets/caseInsertPresetReapplyPlanning.ts` is the pure next consumer. It
 validates the authoritative configuration and still-current report against one
 exact normalized aggregate/snapshot/context, resolves only a directly supplied
@@ -1501,6 +1501,26 @@ non-authoritative uninstalled footprint projection. It performs no aggregate
 write, review/consent acceptance, transition, installation, persistence,
 schema, UI, renderer, store, or runtime work. The production Case catalog
 remains empty.
+`src/presets/caseInsertPresetReapplyIdentity.ts` and
+`src/presets/caseInsertPresetReapplyTransition.ts` form the pure atomic
+execution boundary. They canonicalize order-independent plan evidence, require
+one exact plan-bound review acceptance and exact set equality for every declared
+material-consent acceptance, validate the named authoritative configuration and
+still-current report, and recheck the session/revision/template plus every exact
+target, enablement, and semantic field value. They do not rerun the planner,
+detector, compatibility evaluator, assignment resolver, catalog, geometry, or
+renderer. Only reviewed `layout-x`, `layout-y`, `layout-scale`, and
+`layout-width` writes reach the narrow shared immutable aggregate-field owner in
+`caseInsertPresetAggregateFieldTransition.ts`, which first-time Apply also uses.
+Success returns one deeply frozen detached aggregate plus a validated
+authoritative domain configuration version `2` whose attachment status remains
+`detached-uninstalled`; failure returns neither. Preserve keeps current value,
+ownership, prior last-applied value, and historical provenance; accepted
+overwrite adopts selected value/provenance; a new claim may be configuration-
+only; retirement never writes; and movement remains retirement plus new claim.
+Back Panel/complete Tray and left/right-spine addresses remain distinct, while
+mirror mode has no execution effect. Installation, persistence/project schema,
+Detach, UI, lifecycle/store commit, and runtime application remain absent.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and

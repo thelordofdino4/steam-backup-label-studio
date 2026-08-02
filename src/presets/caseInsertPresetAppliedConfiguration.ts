@@ -27,10 +27,18 @@ import {
   CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION,
   type CaseInsertPresetApplyTransitionResult,
 } from './caseInsertPresetApplyTransition.ts'
+import {
+  CASE_INSERT_PRESET_REAPPLY_CONSENT_IDENTITY_PREFIX,
+  CASE_INSERT_PRESET_REAPPLY_REVIEW_ACCEPTANCE_IDENTITY_PREFIX,
+  CASE_INSERT_PRESET_REAPPLY_REVIEW_IDENTITY_PREFIX,
+  CASE_INSERT_PRESET_REAPPLY_TRANSITION_IDENTITY_PREFIX,
+  CASE_INSERT_PRESET_REAPPLY_WARNING_IDENTITY_PREFIX,
+} from './caseInsertPresetReapplyIdentity.ts'
 
 export const CASE_INSERT_APPLIED_PRESET_CONFIGURATION_KIND =
   'sbls/case-insert-applied-preset-configuration' as const
 export const CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION = 1 as const
+export const CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION = 2 as const
 export const CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_KIND =
   'sbls/case-insert-preset-customization-report' as const
 export const CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_VERSION = 1 as const
@@ -73,9 +81,8 @@ export type CaseInsertAppliedPresetOwnedField = Readonly<{
   sources: readonly CaseInsertPresetPlanSourceAssignment[]
 }>
 
-export type CaseInsertAppliedPresetConfiguration = Readonly<{
+type CaseInsertAppliedPresetConfigurationBase = Readonly<{
   kind: typeof CASE_INSERT_APPLIED_PRESET_CONFIGURATION_KIND
-  formatVersion: typeof CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION
   domainStatus: 'validated-authoritative'
   attachmentStatus: 'detached-uninstalled'
   configurationIdentity: string
@@ -99,8 +106,34 @@ export type CaseInsertAppliedPresetConfiguration = Readonly<{
   ownedFields: readonly CaseInsertAppliedPresetOwnedField[]
   reviewedWarningIds: readonly string[]
   acceptedMaterialConsentRequirementIds:
-    readonly `case:preset-consent:${string}`[]
+    readonly string[]
 }>
+
+export type CaseInsertFirstAppliedPresetConfiguration =
+  CaseInsertAppliedPresetConfigurationBase & Readonly<{
+    formatVersion: typeof CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION
+  }>
+
+export type CaseInsertReappliedPresetConfiguration =
+  CaseInsertAppliedPresetConfigurationBase & Readonly<{
+    formatVersion: typeof CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION
+    reapply: Readonly<{
+      operation: 'reapply'
+      transitionStatus:
+        | 'reapplied'
+        | 'reapplied-aggregate-semantic-no-op'
+        | 'reapplied-semantic-no-op'
+      transitionIdentity: string
+      sourceConfigurationIdentity: string
+      sourceCustomizationReportIdentity: string
+      reviewAcceptanceIdentity: string
+      previousPresetRevision: number
+    }>
+  }>
+
+export type CaseInsertAppliedPresetConfiguration =
+  | CaseInsertFirstAppliedPresetConfiguration
+  | CaseInsertReappliedPresetConfiguration
 
 export type CaseInsertAppliedPresetConfigurationValidationResult =
   | Readonly<{
@@ -671,10 +704,9 @@ function sourceIdentity(source: CaseInsertPresetPlanSourceAssignment) {
   ])
 }
 
-type ConfigurationIdentityInput = Omit<
-  CaseInsertAppliedPresetConfiguration,
-  'configurationIdentity'
->
+type ConfigurationIdentityInput =
+  | Omit<CaseInsertFirstAppliedPresetConfiguration, 'configurationIdentity'>
+  | Omit<CaseInsertReappliedPresetConfiguration, 'configurationIdentity'>
 
 function createConfigurationIdentity(
   configuration: ConfigurationIdentityInput,
@@ -691,7 +723,7 @@ function createConfigurationIdentity(
     primitiveTuple('last-applied-value', [field.lastAppliedValue]),
     tuple('sources', field.sources.map(sourceIdentity)),
   ]))
-  const payload = tuple('case-applied-preset-configuration', [
+  const payloadParts = [
     primitiveTuple('format', [
       configuration.kind,
       configuration.formatVersion,
@@ -702,6 +734,18 @@ function createConfigurationIdentity(
       configuration.firstApply.operation,
       configuration.firstApply.transitionStatus,
     ]),
+    ...(configuration.formatVersion ===
+        CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION
+      ? [primitiveTuple('reapply', [
+          configuration.reapply.operation,
+          configuration.reapply.transitionStatus,
+          configuration.reapply.transitionIdentity,
+          configuration.reapply.sourceConfigurationIdentity,
+          configuration.reapply.sourceCustomizationReportIdentity,
+          configuration.reapply.reviewAcceptanceIdentity,
+          configuration.reapply.previousPresetRevision,
+        ])]
+      : []),
     primitiveTuple('preset', [
       configuration.preset.id,
       configuration.preset.revision,
@@ -729,8 +773,15 @@ function createConfigurationIdentity(
       'accepted-consents',
       configuration.acceptedMaterialConsentRequirementIds,
     ),
-  ])
+  ]
+  const payload = tuple('case-applied-preset-configuration', payloadParts)
   return `${CONFIGURATION_IDENTITY_PREFIX}${payload}`
+}
+
+export function createCaseInsertAppliedPresetConfigurationIdentity(
+  configuration: ConfigurationIdentityInput,
+) {
+  return createConfigurationIdentity(configuration)
 }
 
 function rebuildConfiguration(value: unknown): Readonly<{
@@ -741,14 +792,17 @@ function rebuildConfiguration(value: unknown): Readonly<{
     return { ok: false, status: 'invalid-configuration', code: 'root-invalid' }
   }
   if (value.kind === CASE_INSERT_APPLIED_PRESET_CONFIGURATION_KIND &&
-      value.formatVersion !== CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION) {
+      value.formatVersion !== CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION &&
+      value.formatVersion !== CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION) {
     return {
       ok: false,
       status: 'unsupported-configuration-version',
       code: 'configuration-version-unsupported',
     }
   }
-  if (!isDeeplyFrozen(value) || !hasExactKeys(value, [
+  const isReapplied = value.formatVersion ===
+    CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION
+  const expectedKeys = [
     'kind',
     'formatVersion',
     'domainStatus',
@@ -764,8 +818,12 @@ function rebuildConfiguration(value: unknown): Readonly<{
     'ownedFields',
     'reviewedWarningIds',
     'acceptedMaterialConsentRequirementIds',
-  ]) || value.kind !== CASE_INSERT_APPLIED_PRESET_CONFIGURATION_KIND ||
-      value.formatVersion !== CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION ||
+    ...(isReapplied ? ['reapply'] : []),
+  ]
+  if (!isDeeplyFrozen(value) || !hasExactKeys(value, expectedKeys) ||
+      value.kind !== CASE_INSERT_APPLIED_PRESET_CONFIGURATION_KIND ||
+      (value.formatVersion !== CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION &&
+        value.formatVersion !== CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION) ||
       value.domainStatus !== 'validated-authoritative' ||
       value.attachmentStatus !== 'detached-uninstalled' ||
       typeof value.configurationIdentity !== 'string' ||
@@ -778,6 +836,39 @@ function rebuildConfiguration(value: unknown): Readonly<{
       !isCanonicalPreset(value.preset)) {
     return { ok: false, status: 'invalid-configuration', code: 'shape-invalid' }
   }
+  if (isReapplied && (!isRecord(value.reapply) ||
+      !hasExactKeys(value.reapply, [
+        'operation',
+        'transitionStatus',
+        'transitionIdentity',
+        'sourceConfigurationIdentity',
+        'sourceCustomizationReportIdentity',
+        'reviewAcceptanceIdentity',
+        'previousPresetRevision',
+      ]) || value.reapply.operation !== 'reapply' ||
+      (value.reapply.transitionStatus !== 'reapplied' &&
+        value.reapply.transitionStatus !==
+          'reapplied-aggregate-semantic-no-op' &&
+        value.reapply.transitionStatus !== 'reapplied-semantic-no-op') ||
+      typeof value.reapply.transitionIdentity !== 'string' ||
+      !value.reapply.transitionIdentity.startsWith(
+        CASE_INSERT_PRESET_REAPPLY_TRANSITION_IDENTITY_PREFIX,
+      ) || typeof value.reapply.sourceConfigurationIdentity !== 'string' ||
+      !value.reapply.sourceConfigurationIdentity.startsWith(
+        CONFIGURATION_IDENTITY_PREFIX,
+      ) || typeof value.reapply.sourceCustomizationReportIdentity !== 'string' ||
+      !value.reapply.sourceCustomizationReportIdentity.startsWith(
+        CUSTOMIZATION_REPORT_IDENTITY_PREFIX,
+      ) || typeof value.reapply.reviewAcceptanceIdentity !== 'string' ||
+      !value.reapply.reviewAcceptanceIdentity.startsWith(
+        CASE_INSERT_PRESET_REAPPLY_REVIEW_ACCEPTANCE_IDENTITY_PREFIX,
+      ) || !isPositiveSafeInteger(value.reapply.previousPresetRevision))) {
+    return {
+      ok: false,
+      status: 'invalid-configuration',
+      code: 'reapply-evidence-invalid',
+    }
+  }
   const scope = parseCaseInsertPresetApplicationScope(value.requestedScope)
   const regions = parseCanonicalRegions(value.resolvedRegions)
   if (!scope.ok || !regions || !scopeMatchesRegions(scope.value, regions) ||
@@ -786,7 +877,11 @@ function rebuildConfiguration(value: unknown): Readonly<{
       typeof value.template.id !== 'string' || value.template.revision !== null ||
       !caseInsertTemplates[value.template.id as keyof typeof caseInsertTemplates] ||
       typeof value.reviewedPlanIdentity !== 'string' ||
-      !value.reviewedPlanIdentity.startsWith(REVIEW_IDENTITY_PREFIX) ||
+      !value.reviewedPlanIdentity.startsWith(
+        isReapplied
+          ? CASE_INSERT_PRESET_REAPPLY_REVIEW_IDENTITY_PREFIX
+          : REVIEW_IDENTITY_PREFIX,
+      ) ||
       !isRecord(value.source) ||
       !hasExactKeys(value.source, ['projectKind', 'snapshotIdentity']) ||
       value.source.projectKind !== 'caseInsert' ||
@@ -846,23 +941,27 @@ function rebuildConfiguration(value: unknown): Readonly<{
   }
   const warningIds = parseUniqueIdentityList(
     value.reviewedWarningIds,
-    WARNING_IDENTITY_PREFIX,
+    isReapplied
+      ? CASE_INSERT_PRESET_REAPPLY_WARNING_IDENTITY_PREFIX
+      : WARNING_IDENTITY_PREFIX,
   )
   const consentIds = parseUniqueIdentityList(
     value.acceptedMaterialConsentRequirementIds,
-    CONSENT_IDENTITY_PREFIX,
+    isReapplied
+      ? CASE_INSERT_PRESET_REAPPLY_CONSENT_IDENTITY_PREFIX
+      : CONSENT_IDENTITY_PREFIX,
   )
   if (!warningIds || !consentIds) {
     return { ok: false, status: 'invalid-configuration', code: 'evidence-invalid' }
   }
-  const content: ConfigurationIdentityInput = {
+  const common = {
     kind: CASE_INSERT_APPLIED_PRESET_CONFIGURATION_KIND,
-    formatVersion: CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION,
-    domainStatus: 'validated-authoritative',
-    attachmentStatus: 'detached-uninstalled',
+    domainStatus: 'validated-authoritative' as const,
+    attachmentStatus: 'detached-uninstalled' as const,
     firstApply: {
-      operation: 'apply',
-      transitionStatus: value.firstApply.transitionStatus,
+      operation: 'apply' as const,
+      transitionStatus: value.firstApply.transitionStatus as
+        CaseInsertAppliedPresetConfiguration['firstApply']['transitionStatus'],
     },
     preset: { ...value.preset },
     requestedScope: cloneMutable(scope.value),
@@ -870,14 +969,26 @@ function rebuildConfiguration(value: unknown): Readonly<{
     template: { id: value.template.id, revision: null },
     reviewedPlanIdentity: value.reviewedPlanIdentity,
     source: {
-      projectKind: 'caseInsert',
+      projectKind: 'caseInsert' as const,
       snapshotIdentity: cloneMutable(value.source.snapshotIdentity),
     },
     ownedFields: parsedFields.fields.map((field) => cloneMutable(field)),
     reviewedWarningIds: [...warningIds],
     acceptedMaterialConsentRequirementIds:
-      [...consentIds] as `case:preset-consent:${string}`[],
+      [...consentIds],
   }
+  const content: ConfigurationIdentityInput = isReapplied
+    ? {
+        ...common,
+        formatVersion: CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION,
+        reapply: cloneMutable(
+          value.reapply as CaseInsertReappliedPresetConfiguration['reapply'],
+        ),
+      }
+    : {
+        ...common,
+        formatVersion: CASE_INSERT_APPLIED_PRESET_CONFIGURATION_VERSION,
+      }
   const identity = createConfigurationIdentity(content)
   if (value.configurationIdentity !== identity) {
     return { ok: false, status: 'invalid-configuration', code: 'identity-invalid' }
