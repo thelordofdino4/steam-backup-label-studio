@@ -1565,6 +1565,35 @@ stable-ID lookup. Configuration attachment/removal adoption, persistence,
 schema, UI, and runtime integration remain absent. The production Case catalog
 remains empty.
 
+`src/presets/caseInsertPresetConfigurationAdoptionModel.ts` now defines the
+pure session-only model preceding that absent runtime boundary. One canonical
+`unattached` wrapper and one exact-one `attached` wrapper leave the validated
+configuration's identity-bound `detached-uninstalled` field unchanged. One
+application snapshot pairs the complete normalized Case assignment snapshot
+with that wrapper, and future success/result types expose only one coherent
+successor snapshot rather than separate aggregate and configuration commits.
+Operation-discriminated result/receipt types prevent an Apply, Reapply, or
+Detach success from naming the wrong attachment action or attachment-state
+shape, and a private coherence proof keeps future success structurally
+uninhabitable until the whole-success validator and executor exist. The module
+also defines legal attach/replace/release relationships, a
+pure fail-closed attachment-edge classifier, future receipt/identity vocabulary,
+strict hostile-input validation, and no executor.
+
+Its evidence audit deliberately blocks the next transition. Current Apply has
+no transition identity or retained source-attachment edge; Reapply does not
+bind its complete source/result aggregates or final configuration identity in
+its transition identity; and Detach discards the complete checked source
+snapshot while its release/transition identity does not bind the separately
+cloned aggregate. The assignment snapshot identity itself names only session,
+project revision, and template, not aggregate content. All current transition
+successes therefore classify as `aggregate-evidence-insufficient`. Before an
+application-adoption transition is safe, the transition owners must expose
+content-complete source/result aggregate identities, exact configuration
+endpoints, one outer bundle identity, and public whole-success validators.
+No store, lifecycle, schema, persistence, save/load, UI, catalog, or runtime
+state changed at this checkpoint.
+
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
 revision-scoped recovery is documented in

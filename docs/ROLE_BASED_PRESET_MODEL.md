@@ -976,6 +976,30 @@ resolve by exact stable ID. Configuration attachment/removal adoption,
 persistence/schema, UI, lifecycle/store commit, and runtime application remain
 future work. The production Case catalog remains empty.
 
+The pure configuration-attachment/application-adoption model is now also
+implemented. It wraps the unchanged validated configuration in exactly one
+application-level `attached` state or represents authoritative absence with one
+canonical `unattached` state. `detached-uninstalled` remains configuration
+artifact provenance and is not overloaded as installed state or a Detach
+tombstone. One Case assignment snapshot and one attachment wrapper form the
+future atomic application unit; raw plans, reviews, configurations, and release
+records are not adoption authority. The legal state edges are absence to exact
+Apply configuration, exact Reapply source to exact successor configuration, and
+exact Detach source to absence. A pure classifier rejects missing, different-
+source, replayed, or tombstone attachment edges, while operation-discriminated
+future results and receipts prevent an operation from naming the wrong
+attachment action or successor-state shape.
+
+No current transition success is independently adoptable yet. Its identities
+do not bind both complete source and result Case aggregates, and no public
+whole-success validator exists. The model therefore exposes no executor and
+fails Apply, Reapply, and Detach evidence candidates as aggregate-evidence
+insufficient. A narrow antecedent evidence amendment must add content-complete
+source/result aggregate identities, exact configuration endpoints, one outer
+bundle identity, and strict whole-success validators before the pure atomic
+application-adoption transition can be implemented. Persistence, schema,
+save/load, store, UI, catalog entries, and runtime remain later work.
+
 Deferred areas:
 
 - Case Front presets for cover background, title, logos, legal info,
