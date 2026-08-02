@@ -1484,9 +1484,23 @@ clean/customized from missing, ambiguous, unsupported, invalid, incompatible,
 or attachment-context failures. It shares direct address semantics with
 `presetAssignmentSnapshot.ts` and does not execute resolution, planning,
 catalog, geometry, renderer, persistence, or UI behavior. No starter
-definitions, installed attachment, application/lifecycle commit, Reapply,
-Detach, schema, workflow presentation, menu routing, renderer access, or runtime
-behavior is provided.
+definitions, installed attachment, application/lifecycle commit, Reapply
+execution, Detach, schema, workflow presentation, menu routing, renderer access,
+or runtime behavior is provided.
+`src/presets/caseInsertPresetReapplyPlanning.ts` is the pure next consumer. It
+validates the authoritative configuration and still-current report against one
+exact normalized aggregate/snapshot/context, resolves only a directly supplied
+same-canonical-ID definition revision through the shared compatibility/resolver
+owner, and reuses the shared resolved-layout proposal without invoking the
+first-time Apply planner or detector. It requires explicit overwrite/preserve
+policy for every retained customized address; keeps retained clean,
+customized-overwrite, customized-preserve, new, retired, and moved addresses
+distinct; and emits deterministic exact writes, preservation facts, warnings,
+material-consent requirements, complete preconditions, review identity, and a
+non-authoritative uninstalled footprint projection. It performs no aggregate
+write, review/consent acceptance, transition, installation, persistence,
+schema, UI, renderer, store, or runtime work. The production Case catalog
+remains empty.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
