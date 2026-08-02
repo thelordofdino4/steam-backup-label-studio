@@ -172,6 +172,26 @@ export type CaseInsertPresetCustomizationDetectionResult =
       dimensions?: readonly string[]
     }>
 
+export type CaseInsertPresetCustomizationReport = Extract<
+  CaseInsertPresetCustomizationDetectionResult,
+  Readonly<{ ok: true }>
+>
+
+export type CaseInsertPresetCustomizationReportValidationResult =
+  | Readonly<{
+      ok: true
+      status: 'validated'
+      report: CaseInsertPresetCustomizationReport
+    }>
+  | Readonly<{
+      ok: false
+      status:
+        | 'invalid-customization-report'
+        | 'unsupported-report-version'
+        | 'report-mismatch'
+      code: string
+    }>
+
 type ValidationFailure = Extract<
   CaseInsertAppliedPresetConfigurationValidationResult,
   Readonly<{ ok: false }>
@@ -340,7 +360,7 @@ function scopeMatchesRegions(
   return regions.length > 0 && regions.every((region) => allowed.has(region))
 }
 
-function isValidSemanticValue(
+export function isCaseInsertPresetOwnedFieldSemanticValue(
   fieldId: CaseInsertPresetPlanFieldId,
   value: unknown,
 ): value is number {
@@ -361,7 +381,7 @@ function ownerAllowsField(
       fieldId === 'layout-width'
 }
 
-function currentFieldValue(
+export function getCaseInsertPresetOwnedFieldCurrentValue(
   target: CaseInsertPresetSnapshotObjectState,
   fieldId: CaseInsertPresetPlanFieldId,
 ): unknown {
@@ -392,6 +412,19 @@ function ownedFieldSort(
     left.address.featureOwnerId.localeCompare(right.address.featureOwnerId) ||
     left.address.runtimeObjectId.localeCompare(right.address.runtimeObjectId) ||
     FIELD_ORDER.get(left.address.fieldId)! - FIELD_ORDER.get(right.address.fieldId)!
+}
+
+function ownedFieldAddressKey(
+  address: CaseInsertAppliedPresetOwnedFieldAddress,
+) {
+  return [
+    address.region,
+    address.featureOwnerId,
+    address.bindingKind,
+    address.bindingId,
+    address.runtimeObjectId,
+    address.fieldId,
+  ].join('\u0000')
 }
 
 function sameOrder<T>(
@@ -494,7 +527,10 @@ function parseCandidateOwnedFields(
     if (!ownerRule || !ownerAllowsField(ownerId, fieldId)) {
       return { ok: false, code: 'owned-field-unsupported' }
     }
-    if (!isValidSemanticValue(fieldId, rawField.lastAppliedValue) ||
+    if (!isCaseInsertPresetOwnedFieldSemanticValue(
+      fieldId,
+      rawField.lastAppliedValue,
+    ) ||
         !Array.isArray(rawField.sources) || rawField.sources.length === 0) {
       return { ok: false, code: 'owned-field-value-or-provenance-invalid' }
     }
@@ -555,7 +591,10 @@ function parseCandidateOwnedFields(
       }
       if (binding.status !== 'found' ||
           binding.currentState.id !== address.runtimeObjectId ||
-          currentFieldValue(binding.currentState, fieldId) !==
+          getCaseInsertPresetOwnedFieldCurrentValue(
+            binding.currentState,
+            fieldId,
+          ) !==
             rawField.lastAppliedValue) {
         return { ok: false, code: 'candidate-aggregate-incoherent' }
       }
@@ -849,6 +888,25 @@ function rebuildConfiguration(value: unknown): Readonly<{
   }
 }
 
+export function validateCaseInsertAppliedPresetConfiguration(
+  value: unknown,
+): CaseInsertAppliedPresetConfigurationValidationResult {
+  if (hasUnsupportedConfigurationField(value)) {
+    return validationFailure(
+      'invalid-configuration',
+      'configuration-owned-field-unsupported',
+    )
+  }
+  const rebuilt = rebuildConfiguration(value)
+  return rebuilt.ok
+    ? deepFreeze({
+        ok: true,
+        status: 'validated',
+        configuration: rebuilt.configuration,
+      })
+    : validationFailure(rebuilt.status, rebuilt.code)
+}
+
 export function validateCaseInsertAppliedPresetConfigurationCandidate(
   transitionResult: CaseInsertPresetApplyTransitionResult,
 ): CaseInsertAppliedPresetConfigurationValidationResult {
@@ -1035,6 +1093,214 @@ function createCustomizationReportIdentity(input: Readonly<{
   return `${CUSTOMIZATION_REPORT_IDENTITY_PREFIX}${payload}`
 }
 
+function reportValidationFailure(
+  status: Extract<
+    CaseInsertPresetCustomizationReportValidationResult,
+    { ok: false }
+  >['status'],
+  code: string,
+): CaseInsertPresetCustomizationReportValidationResult {
+  return Object.freeze({ ok: false, status, code })
+}
+
+export function validateCaseInsertPresetCustomizationReport(
+  value: unknown,
+  authoritativeConfiguration: unknown,
+): CaseInsertPresetCustomizationReportValidationResult {
+  const validatedConfiguration = validateCaseInsertAppliedPresetConfiguration(
+    authoritativeConfiguration,
+  )
+  if (!validatedConfiguration.ok) {
+    return reportValidationFailure(
+      'report-mismatch',
+      'authoritative-configuration-invalid',
+    )
+  }
+  const configuration = validatedConfiguration.configuration
+  if (isRecord(value) &&
+      value.kind === CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_KIND &&
+      value.formatVersion !== CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_VERSION) {
+    return reportValidationFailure(
+      'unsupported-report-version',
+      'report-version-unsupported',
+    )
+  }
+  if (!isRecord(value) || !isDeeplyFrozen(value) || !hasExactKeys(value, [
+    'ok',
+    'status',
+    'kind',
+    'formatVersion',
+    'reportIdentity',
+    'configurationIdentity',
+    'current',
+    'fields',
+    'summary',
+  ]) || value.ok !== true ||
+      (value.status !== 'clean' && value.status !== 'customized') ||
+      value.kind !== CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_KIND ||
+      value.formatVersion !== CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_VERSION ||
+      typeof value.reportIdentity !== 'string' ||
+      typeof value.configurationIdentity !== 'string' ||
+      !isRecord(value.current) || !hasExactKeys(value.current, [
+        'projectKind',
+        'sessionId',
+        'projectRevision',
+        'template',
+      ]) || value.current.projectKind !== 'caseInsert' ||
+      typeof value.current.sessionId !== 'string' ||
+      value.current.sessionId.trim().length === 0 ||
+      !isNonNegativeSafeInteger(value.current.projectRevision) ||
+      !isRecord(value.current.template) ||
+      !hasExactKeys(value.current.template, ['id', 'revision']) ||
+      typeof value.current.template.id !== 'string' ||
+      value.current.template.revision !== null ||
+      !Array.isArray(value.fields) || !isRecord(value.summary) ||
+      !hasExactKeys(value.summary, [
+        'fieldCount',
+        'unchangedFieldCount',
+        'customizedFieldCount',
+      ])) {
+    return reportValidationFailure(
+      'invalid-customization-report',
+      'report-shape-invalid',
+    )
+  }
+  if (value.configurationIdentity !== configuration.configurationIdentity) {
+    return reportValidationFailure(
+      'report-mismatch',
+      'configuration-identity-mismatch',
+    )
+  }
+
+  const fieldsByAddress = new Map<string, Record<string, unknown>>()
+  for (const rawField of value.fields) {
+    if (!isRecord(rawField) || !hasExactKeys(rawField, [
+      'address',
+      'lastAppliedValue',
+      'currentValue',
+      'fieldStatus',
+      'sources',
+    ]) || !isRecord(rawField.address) || !hasExactKeys(rawField.address, [
+      'region',
+      'featureOwnerId',
+      'bindingKind',
+      'bindingId',
+      'runtimeObjectId',
+      'fieldId',
+    ])) {
+      return reportValidationFailure(
+        'invalid-customization-report',
+        'report-field-shape-invalid',
+      )
+    }
+    const key = ownedFieldAddressKey(
+      rawField.address as CaseInsertAppliedPresetOwnedFieldAddress,
+    )
+    if (fieldsByAddress.has(key)) {
+      return reportValidationFailure(
+        'invalid-customization-report',
+        'report-field-duplicate',
+      )
+    }
+    fieldsByAddress.set(key, rawField)
+  }
+  if (fieldsByAddress.size !== configuration.ownedFields.length) {
+    return reportValidationFailure(
+      'report-mismatch',
+      'report-footprint-mismatch',
+    )
+  }
+
+  const fields: CaseInsertPresetCustomizationFieldRecord[] = []
+  for (const ownedField of configuration.ownedFields) {
+    const rawField = fieldsByAddress.get(
+      ownedFieldAddressKey(ownedField.address),
+    )
+    if (!rawField || !sameValue(rawField.address, ownedField.address) ||
+        rawField.lastAppliedValue !== ownedField.lastAppliedValue ||
+        !sameValue(rawField.sources, ownedField.sources) ||
+        !isCaseInsertPresetOwnedFieldSemanticValue(
+          ownedField.address.fieldId,
+          rawField.currentValue,
+        )) {
+      return reportValidationFailure(
+        'report-mismatch',
+        'report-field-mismatch',
+      )
+    }
+    const expectedStatus = rawField.currentValue === ownedField.lastAppliedValue
+      ? 'unchanged'
+      : 'value-diverged'
+    if (rawField.fieldStatus !== expectedStatus) {
+      return reportValidationFailure(
+        'invalid-customization-report',
+        'report-field-classification-invalid',
+      )
+    }
+    fields.push({
+      address: cloneMutable(ownedField.address),
+      lastAppliedValue: ownedField.lastAppliedValue,
+      currentValue: rawField.currentValue as number,
+      fieldStatus: expectedStatus,
+      sources: ownedField.sources.map((source) => cloneMutable(source)),
+    })
+  }
+
+  const customizedFieldCount = fields.filter(
+    ({ fieldStatus }) => fieldStatus === 'value-diverged',
+  ).length
+  const expectedStatus = customizedFieldCount === 0 ? 'clean' : 'customized'
+  if (value.status !== expectedStatus ||
+      value.summary.fieldCount !== fields.length ||
+      value.summary.unchangedFieldCount !== fields.length - customizedFieldCount ||
+      value.summary.customizedFieldCount !== customizedFieldCount) {
+    return reportValidationFailure(
+      'invalid-customization-report',
+      'report-summary-invalid',
+    )
+  }
+  const current = {
+    projectKind: 'caseInsert' as const,
+    sessionId: value.current.sessionId,
+    projectRevision: value.current.projectRevision as number,
+    template: {
+      id: value.current.template.id as string,
+      revision: null,
+    },
+  }
+  const reportIdentity = createCustomizationReportIdentity({
+    status: expectedStatus,
+    configurationIdentity: configuration.configurationIdentity,
+    current,
+    fields,
+  })
+  if (value.reportIdentity !== reportIdentity) {
+    return reportValidationFailure(
+      'invalid-customization-report',
+      'report-identity-invalid',
+    )
+  }
+  return deepFreeze({
+    ok: true,
+    status: 'validated',
+    report: {
+      ok: true,
+      status: expectedStatus,
+      kind: CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_KIND,
+      formatVersion: CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_VERSION,
+      reportIdentity,
+      configurationIdentity: configuration.configurationIdentity,
+      current,
+      fields,
+      summary: {
+        fieldCount: fields.length,
+        unchangedFieldCount: fields.length - customizedFieldCount,
+        customizedFieldCount,
+      },
+    },
+  })
+}
+
 export function detectCaseInsertPresetCustomization(
   input: DetectCaseInsertPresetCustomizationInput,
 ): CaseInsertPresetCustomizationDetectionResult {
@@ -1130,11 +1396,14 @@ export function detectCaseInsertPresetCustomization(
         { address: ownedField.address },
       )
     }
-    const value = currentFieldValue(
+    const value = getCaseInsertPresetOwnedFieldCurrentValue(
       binding.currentState,
       ownedField.address.fieldId,
     )
-    if (!isValidSemanticValue(ownedField.address.fieldId, value)) {
+    if (!isCaseInsertPresetOwnedFieldSemanticValue(
+      ownedField.address.fieldId,
+      value,
+    )) {
       return detectionFailure(
         'invalid-current-value',
         'owned-target-current-value-invalid',

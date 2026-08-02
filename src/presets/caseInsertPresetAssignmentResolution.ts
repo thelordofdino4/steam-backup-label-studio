@@ -20,10 +20,13 @@ import {
 } from './caseInsertPresetCompatibility.ts'
 import {
   CASE_INSERT_PRESET_CONCRETE_REGION_IDS,
+  isBuiltInCaseInsertPresetId,
+  parseCaseInsertPresetDefinition,
   type CaseInsertPresetApplicationScope,
   type CaseInsertPresetAssignmentDefinitionV1,
   type CaseInsertPresetConcreteRegionId,
   type CaseInsertPresetCoordinateBasis,
+  type CaseInsertPresetDefinitionV1,
   type CaseInsertPresetId,
   type CaseInsertPresetNormalizedRegion,
   type CaseInsertPresetObjectBinding,
@@ -131,6 +134,13 @@ export type CaseInsertPresetAssignmentResolutionResult =
 export type ResolveCaseInsertPresetAssignmentsInput = Readonly<{
   catalog: CaseInsertPresetCatalog
   reference: CaseInsertPresetReference
+  requestedScope: unknown
+  snapshot: CaseInsertPresetAssignmentSnapshot
+  expectedSnapshotIdentity: CaseInsertPresetAssignmentSnapshotIdentity
+}>
+
+export type ResolveCaseInsertPresetAssignmentsForDefinitionInput = Readonly<{
+  definition: unknown
   requestedScope: unknown
   snapshot: CaseInsertPresetAssignmentSnapshot
   expectedSnapshotIdentity: CaseInsertPresetAssignmentSnapshotIdentity
@@ -302,38 +312,13 @@ function createResolvedAssignment(
   })
 }
 
-export function resolveCaseInsertPresetAssignments(
-  input: ResolveCaseInsertPresetAssignmentsInput,
-): CaseInsertPresetAssignmentResolutionResult {
-  if (!isExactPositiveRevision(input.reference)) {
-    return invalidReference(
-      'invalid-reference',
-      typeof input.reference?.id === 'string' ? input.reference.id : '',
-      typeof input.reference?.revision === 'number'
-        ? input.reference.revision
-        : null,
-    )
-  }
-
-  const catalogResolution = input.catalog.resolve(input.reference)
-  if (!catalogResolution.ok) {
-    return invalidReference(
-      catalogResolution.error.code,
-      catalogResolution.error.id,
-      catalogResolution.error.revision,
-    )
-  }
-  const catalogValue = catalogResolution.value
-  if (catalogValue.canonicalReference.id !== catalogValue.definition.id ||
-      catalogValue.canonicalReference.revision !== catalogValue.definition.revision ||
-      catalogValue.canonicalReference.revision !== input.reference.revision) {
-    return Object.freeze({
-      ok: false,
-      status: 'invalid-definition',
-      reasons: Object.freeze([]),
-    })
-  }
-
+function resolveDefinitionAssignments(input: Readonly<{
+  definition: CaseInsertPresetDefinitionV1
+  source: CaseInsertPresetCatalogSource
+  requestedScope: unknown
+  snapshot: CaseInsertPresetAssignmentSnapshot
+  expectedSnapshotIdentity: CaseInsertPresetAssignmentSnapshotIdentity
+}>): CaseInsertPresetAssignmentResolutionResult {
   if (!isCaseInsertPresetAssignmentSnapshot(input.snapshot) ||
       !isExpectedIdentitySupported(input.expectedSnapshotIdentity)) {
     return Object.freeze({ ok: false, status: 'unsupported-snapshot' })
@@ -356,7 +341,7 @@ export function resolveCaseInsertPresetAssignments(
     return Object.freeze({ ok: false, status: 'unsupported-template' })
   }
   const compatibility = evaluateCaseInsertPresetCompatibility(
-    catalogValue.definition,
+    input.definition,
     {
       projectKind: 'caseInsert',
       templateId: input.snapshot.identity.template.id,
@@ -444,7 +429,7 @@ export function resolveCaseInsertPresetAssignments(
     preset: Object.freeze({
       id: definition.id,
       revision: definition.revision,
-      source: catalogValue.source,
+      source: input.source,
     }),
     snapshotIdentity: frozenIdentity(input.snapshot.identity),
     requestedScope: Object.freeze({ ...requestedScope }) as
@@ -462,5 +447,71 @@ export function resolveCaseInsertPresetAssignments(
     ok: true,
     status: hasMissingTargets ? 'resolved-with-missing-targets' : 'resolved',
     value,
+  })
+}
+
+export function resolveCaseInsertPresetAssignmentsForDefinition(
+  input: ResolveCaseInsertPresetAssignmentsForDefinitionInput,
+): CaseInsertPresetAssignmentResolutionResult {
+  const parsed = parseCaseInsertPresetDefinition(input.definition)
+  if (!parsed.ok) {
+    return Object.freeze({
+      ok: false,
+      status: 'invalid-definition',
+      reasons: Object.freeze([Object.freeze({
+        code: 'definition-invalid' as const,
+        path: `definition.${parsed.error.path}`,
+        severity: 'error' as const,
+      })]),
+    })
+  }
+
+  return resolveDefinitionAssignments({
+    definition: parsed.value,
+    source: isBuiltInCaseInsertPresetId(parsed.value.id) ? 'builtin' : 'user',
+    requestedScope: input.requestedScope,
+    snapshot: input.snapshot,
+    expectedSnapshotIdentity: input.expectedSnapshotIdentity,
+  })
+}
+
+export function resolveCaseInsertPresetAssignments(
+  input: ResolveCaseInsertPresetAssignmentsInput,
+): CaseInsertPresetAssignmentResolutionResult {
+  if (!isExactPositiveRevision(input.reference)) {
+    return invalidReference(
+      'invalid-reference',
+      typeof input.reference?.id === 'string' ? input.reference.id : '',
+      typeof input.reference?.revision === 'number'
+        ? input.reference.revision
+        : null,
+    )
+  }
+
+  const catalogResolution = input.catalog.resolve(input.reference)
+  if (!catalogResolution.ok) {
+    return invalidReference(
+      catalogResolution.error.code,
+      catalogResolution.error.id,
+      catalogResolution.error.revision,
+    )
+  }
+  const catalogValue = catalogResolution.value
+  if (catalogValue.canonicalReference.id !== catalogValue.definition.id ||
+      catalogValue.canonicalReference.revision !== catalogValue.definition.revision ||
+      catalogValue.canonicalReference.revision !== input.reference.revision) {
+    return Object.freeze({
+      ok: false,
+      status: 'invalid-definition',
+      reasons: Object.freeze([]),
+    })
+  }
+
+  return resolveDefinitionAssignments({
+    definition: catalogValue.definition,
+    source: catalogValue.source,
+    requestedScope: input.requestedScope,
+    snapshot: input.snapshot,
+    expectedSnapshotIdentity: input.expectedSnapshotIdentity,
   })
 }

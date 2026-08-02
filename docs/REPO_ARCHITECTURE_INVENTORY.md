@@ -921,7 +921,8 @@ left/right-spine assignment and atomic workflow semantics. The pure definition,
 catalog, compatibility, normalized snapshot, and stable assignment-resolution
 foundation, immutable first-time Apply planner, content-bound review/consent
 identity, pure atomic transition, authoritative detached applied-configuration
-domain, and pure customization detector are implemented. The planner owns
+domain, pure customization detector, and pure same-ID Reapply planner are
+implemented. The first-time planner owns
 deterministic typed direct layout-field proposals, preservation/skip/warning/
 blocker/consent classification, no-op and conflict detection,
 staleness/identity preconditions, and field footprints. The transition validates
@@ -930,8 +931,13 @@ deeply frozen Case aggregate plus an uninstalled configuration candidate or no
 actionable output. The applied-configuration boundary validates that complete
 pair, derives a deterministic detached configuration identity, and compares
 only its exact owned-field footprint against later normalized Case state through
-shared direct stable-address lookup. No installed attachment, lifecycle
-application transaction, Reapply/Detach, schema, UI, or menu connection exists.
+shared direct stable-address lookup. The Reapply planner validates the complete
+configuration/report/current snapshot chain, resolves only a directly supplied
+same-canonical-ID exact definition revision, requires explicit overwrite or
+preserve policy for retained customized fields, and returns review-bound intent
+plus a non-authoritative footprint projection without executing. No installed
+attachment, lifecycle application transaction, Reapply transition, Detach,
+schema, UI, or menu connection exists.
 
 Key files:
 
@@ -975,6 +981,7 @@ Key files:
 - `src/presets/caseInsertPresetApplyReviewIdentity.ts`
 - `src/presets/caseInsertPresetApplyTransition.ts`
 - `src/presets/caseInsertPresetAppliedConfiguration.ts`
+- `src/presets/caseInsertPresetReapplyPlanning.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
@@ -1064,7 +1071,7 @@ Risks:
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 - Issue `#168` and the Case preset workflow contract retain future Case preset
-  starter definitions, installed attachment, Reapply/Detach, runtime
+  starter definitions, installed attachment, Reapply execution/Detach, runtime
   application, persistence, and
   presentation work. Pure definition/catalog/compatibility owners reject
   malformed definitions; the pure snapshot/resolution boundary fails closed on
@@ -1074,9 +1081,16 @@ Risks:
   resolving or planning again, preflights every action, and emits one complete
   detached aggregate/candidate pair or neither. The applied-configuration owner
   then validates only that successful pair and performs deterministic direct
-  footprint comparison without re-resolving. These pure owners have no
+  footprint comparison without re-resolving. The Reapply planner validates that
+  configuration plus a still-current report/current snapshot, resolves only a
+  directly supplied same-ID exact definition through the shared direct resolver,
+  and emits explicit overwrite/preserve policy effects, retained/new/retired/
+  moved footprint classifications, consent requirements, exact preconditions,
+  deterministic review identity, and a non-authoritative projection without
+  calling the first-time Apply planner or detector. These pure owners have no
   React/store, renderer, filesystem, Tauri, persistence, or commit dependency.
-  No runtime Case preset mutation/attachment owner exists in current source.
+  No Reapply transition or runtime Case preset mutation/attachment owner exists
+  in current source. The production Case catalog remains empty.
 
 ## Text Systems
 
@@ -1751,6 +1765,12 @@ Current `npm run test` covers these broad areas:
   rectangle-authoritative Classic placement, retained legacy
   safe-annulus/inner-hole geometry, semantic targeted refits, centered OS
   fixed-gap common-scale grouping, and template-aware Title/Legal text fitting.
+- The pure Case preset pipeline from definition/catalog/compatibility through
+  stable assignment resolution, first-time Apply planning/transition,
+  authoritative configuration/customization detection, and same-ID exact-
+  revision Reapply planning, including explicit overwrite/preserve policies,
+  exact field preconditions, retained/new/retired/moved footprint effects,
+  repeated-ID determinism, and typed fail-closed outcomes.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
 - The runtime-connected application lifecycle composition root, state store,
   command registry/dispatcher, busy coordinator, typed command ports,

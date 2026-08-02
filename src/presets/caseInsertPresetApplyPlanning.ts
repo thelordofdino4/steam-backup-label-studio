@@ -337,6 +337,31 @@ export type CaseInsertPresetApplyPlanningResult =
       >[]
     }>
 
+type CaseInsertPresetApplyPlanningFailure = Exclude<
+  CaseInsertPresetApplyPlanningResult,
+  Readonly<{ ok: true }>
+>
+
+export type CreateCaseInsertPresetResolvedLayoutProposalInput = Readonly<{
+  resolution: CaseInsertPresetAssignmentResolutionResult
+  expected: PlanCaseInsertPresetFirstApplyInput['expected']
+}>
+
+export type CaseInsertPresetResolvedLayoutProposalResult =
+  | Readonly<{
+      ok: true
+      value: ResolvedCaseInsertPresetAssignments
+      assignments: readonly ResolvedCaseInsertPresetAssignment[]
+      fieldActions: readonly CaseInsertPresetPlanFieldAction[]
+      preservationDecisions:
+        readonly CaseInsertPresetPlanPreservationDecision[]
+      skips: readonly CaseInsertPresetPlanSkip[]
+      warnings: readonly CaseInsertPresetPlanWarning[]
+      materialConsentRequirements:
+        readonly CaseInsertPresetMaterialConsentRequirement[]
+    }>
+  | CaseInsertPresetApplyPlanningFailure
+
 export type CaseInsertPresetPlanOwnerRule = Readonly<{
   region: CaseInsertPresetConcreteRegionId
   ownerBasis: CaseInsertPresetCoordinateBasis
@@ -473,13 +498,13 @@ function staleDimensions(
   return dimensions
 }
 
-function invalid(code: string): CaseInsertPresetApplyPlanningResult {
+function invalid(code: string): CaseInsertPresetApplyPlanningFailure {
   return deepFreeze({ ok: false, status: 'invalid-resolution', code })
 }
 
 function mapResolutionFailure(
   resolution: Extract<CaseInsertPresetAssignmentResolutionResult, { ok: false }>,
-): CaseInsertPresetApplyPlanningResult {
+): CaseInsertPresetApplyPlanningFailure {
   if (resolution.status === 'stale-snapshot') {
     return deepFreeze({
       ok: false,
@@ -553,7 +578,7 @@ function isResolvedAssignmentStructurallyValid(
 function validateResolvedValue(
   value: ResolvedCaseInsertPresetAssignments,
   input: PlanCaseInsertPresetFirstApplyInput,
-): CaseInsertPresetApplyPlanningResult | null {
+): CaseInsertPresetApplyPlanningFailure | null {
   if (!isDeeplyFrozen(input.resolution) ||
       !isCaseInsertPresetId(value.preset.id) ||
       !Number.isSafeInteger(value.preset.revision) ||
@@ -1008,11 +1033,117 @@ export function planCaseInsertPresetFirstApply(
       operation: typeof input.operation === 'string' ? input.operation : null,
     })
   }
+  const proposal = createCaseInsertPresetResolvedLayoutProposal({
+    resolution: input.resolution,
+    expected: input.expected,
+  })
+  if (!proposal.ok) return proposal
+
+  const {
+    value,
+    assignments,
+    fieldActions,
+    preservationDecisions,
+    skips,
+    warnings,
+    materialConsentRequirements,
+  } = proposal
+  const changedFieldActionCount = fieldActions.filter(
+    ({ semanticNoOp }) => !semanticNoOp,
+  ).length
+  const aggregateNoOp = changedFieldActionCount === 0
+  const requestedScope = parseCaseInsertPresetApplicationScope(
+    value.requestedScope,
+  )
+  if (!requestedScope.ok) return invalid('resolved-scope-invalid')
+  const scopeKey = getCaseInsertPresetApplicationScopeKey(requestedScope.value)
+  const fieldFootprint = fieldActions.map((action) => ({
+    featureOwnerId: action.featureOwnerId,
+    runtimeObjectId: action.object.runtimeId,
+    fieldId: action.fieldId,
+    acceptedValueCandidate: action.proposedValue,
+    sourceAssignmentIds: action.sources.map(({ assignmentId }) => assignmentId),
+  }))
+  const planContent: Omit<CaseInsertPresetApplyPlan, 'reviewIdentity'> = {
+    kind: CASE_INSERT_PRESET_APPLY_PLAN_KIND,
+    formatVersion: CASE_INSERT_PRESET_APPLY_PLAN_FORMAT_VERSION,
+    identity: {
+      operation: 'apply',
+      presetId: value.preset.id,
+      presetRevision: value.preset.revision,
+      sessionId: value.snapshotIdentity.sessionId,
+      projectRevision: value.snapshotIdentity.projectRevision,
+      scopeKey,
+    },
+    operation: 'apply',
+    preset: { ...value.preset },
+    requestedScope: { ...requestedScope.value } as CaseInsertPresetApplicationScope,
+    resolvedRegions: [...value.resolvedRegions],
+    source: {
+      projectKind: 'caseInsert',
+      snapshotIdentity: {
+        sessionId: value.snapshotIdentity.sessionId,
+        projectRevision: value.snapshotIdentity.projectRevision,
+        template: { ...value.snapshotIdentity.template },
+      },
+    },
+    assignments: buildAssignmentSummaries(
+      assignments,
+      fieldActions,
+      preservationDecisions,
+      skips,
+    ),
+    fieldActions,
+    preservationDecisions,
+    skips,
+    warnings,
+    blockers: [],
+    materialConsentRequirements,
+    semanticNoOp: {
+      aggregate: aggregateNoOp,
+      fieldActionCount: fieldActions.length,
+      changedFieldActionCount,
+      noOpFieldActionCount: fieldActions.length - changedFieldActionCount,
+    },
+    preconditions: {
+      sessionId: value.snapshotIdentity.sessionId,
+      projectRevision: value.snapshotIdentity.projectRevision,
+      projectKind: 'caseInsert',
+      template: { ...value.snapshotIdentity.template },
+      preset: { id: value.preset.id, revision: value.preset.revision },
+      scopeKey,
+      resolvedRegions: [...value.resolvedRegions],
+    },
+    fieldFootprint,
+  }
+  const plan: CaseInsertPresetApplyPlan = deepFreeze({
+    ...planContent,
+    reviewIdentity: createCaseInsertPresetApplyPlanReviewIdentity(planContent),
+  })
+
+  return deepFreeze({
+    ok: true,
+    status: aggregateNoOp ? 'semantic-no-op' : 'planned',
+    plan,
+  })
+}
+
+export function createCaseInsertPresetResolvedLayoutProposal(
+  input: CreateCaseInsertPresetResolvedLayoutProposalInput,
+): CaseInsertPresetResolvedLayoutProposalResult {
   if (!input.resolution.ok) return mapResolutionFailure(input.resolution)
 
   const value = input.resolution.value
-  const invalidResult = validateResolvedValue(value, input)
-  if (invalidResult) return invalidResult
+  const invalidResult = validateResolvedValue(value, {
+    operation: 'apply',
+    resolution: input.resolution,
+    expected: input.expected,
+  })
+  if (invalidResult) return invalidResult as Exclude<
+    CaseInsertPresetApplyPlanningResult,
+    Readonly<{ ok: true }> |
+    Readonly<{ ok: false; status: 'unsupported-operation' }>
+  >
 
   const assignments = [...value.assignments].sort(assignmentSort)
   const blockers: CaseInsertPresetPlanBlocker[] = []
@@ -1094,7 +1225,6 @@ export function planCaseInsertPresetFirstApply(
   const changedFieldActionCount = fieldActions.filter(
     ({ semanticNoOp }) => !semanticNoOp,
   ).length
-  const aggregateNoOp = changedFieldActionCount === 0
   const materialConsentRequirements: CaseInsertPresetMaterialConsentRequirement[] = []
   if (value.resolvedRegions.length > 1 && changedFieldActionCount > 0) {
     const requirement = {
@@ -1111,78 +1241,14 @@ export function planCaseInsertPresetFirstApply(
       ...requirement,
     })
   }
-  const requestedScope = parseCaseInsertPresetApplicationScope(
-    value.requestedScope,
-  )
-  if (!requestedScope.ok) return invalid('resolved-scope-invalid')
-  const scopeKey = getCaseInsertPresetApplicationScopeKey(requestedScope.value)
-  const fieldFootprint = fieldActions.map((action) => ({
-    featureOwnerId: action.featureOwnerId,
-    runtimeObjectId: action.object.runtimeId,
-    fieldId: action.fieldId,
-    acceptedValueCandidate: action.proposedValue,
-    sourceAssignmentIds: action.sources.map(({ assignmentId }) => assignmentId),
-  }))
-  const planContent: Omit<CaseInsertPresetApplyPlan, 'reviewIdentity'> = {
-    kind: CASE_INSERT_PRESET_APPLY_PLAN_KIND,
-    formatVersion: CASE_INSERT_PRESET_APPLY_PLAN_FORMAT_VERSION,
-    identity: {
-      operation: 'apply',
-      presetId: value.preset.id,
-      presetRevision: value.preset.revision,
-      sessionId: value.snapshotIdentity.sessionId,
-      projectRevision: value.snapshotIdentity.projectRevision,
-      scopeKey,
-    },
-    operation: 'apply',
-    preset: { ...value.preset },
-    requestedScope: { ...requestedScope.value } as CaseInsertPresetApplicationScope,
-    resolvedRegions: [...value.resolvedRegions],
-    source: {
-      projectKind: 'caseInsert',
-      snapshotIdentity: {
-        sessionId: value.snapshotIdentity.sessionId,
-        projectRevision: value.snapshotIdentity.projectRevision,
-        template: { ...value.snapshotIdentity.template },
-      },
-    },
-    assignments: buildAssignmentSummaries(
-      assignments,
-      fieldActions,
-      preservationDecisions,
-      skips,
-    ),
+  return deepFreeze({
+    ok: true,
+    value,
+    assignments,
     fieldActions,
     preservationDecisions,
     skips,
     warnings,
-    blockers: [],
     materialConsentRequirements,
-    semanticNoOp: {
-      aggregate: aggregateNoOp,
-      fieldActionCount: fieldActions.length,
-      changedFieldActionCount,
-      noOpFieldActionCount: fieldActions.length - changedFieldActionCount,
-    },
-    preconditions: {
-      sessionId: value.snapshotIdentity.sessionId,
-      projectRevision: value.snapshotIdentity.projectRevision,
-      projectKind: 'caseInsert',
-      template: { ...value.snapshotIdentity.template },
-      preset: { id: value.preset.id, revision: value.preset.revision },
-      scopeKey,
-      resolvedRegions: [...value.resolvedRegions],
-    },
-    fieldFootprint,
-  }
-  const plan: CaseInsertPresetApplyPlan = deepFreeze({
-    ...planContent,
-    reviewIdentity: createCaseInsertPresetApplyPlanReviewIdentity(planContent),
-  })
-
-  return deepFreeze({
-    ok: true,
-    status: aggregateNoOp ? 'semantic-no-op' : 'planned',
-    plan,
   })
 }

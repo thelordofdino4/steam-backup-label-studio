@@ -896,19 +896,19 @@ changes are persisted through existing project fields, preview/export parity
 tests where practical, and manual Tauri verification for user-visible editor
 behavior when UI is added.
 
-## 17. Case/Spine Pure Apply Checkpoint And Deferred Runtime Work
+## 17. Case/Spine Pure Apply And Reapply-Planning Checkpoints
 
 Runtime Case Front, Case Back, and Spine preset application remains deferred.
 Pure first-time Apply planning, its atomic detached transition, the authoritative
-detached applied-configuration domain, and exact customization detection are now
-implemented.
+detached applied-configuration domain, exact customization detection, and pure
+same-preset Reapply planning are now implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
 validation, compatibility foundation, lifecycle-detached normalized Case
 snapshot adapter, stable exact assignment resolution, immutable planner,
 content-bound review/consent identity, pure atomic transition, candidate
-validation, and customization detector now exist. The
+validation, customization detector, and Reapply planner now exist. The
 resolver expands region/Front/Back/Spine/complete scopes, preserves complete
 Tray versus Back Panel and left/right identity, and distinguishes disabled,
 missing optional/required, ambiguous, stale, incompatible, invalid, and
@@ -926,9 +926,17 @@ transition aggregate. Customization detection later compares only that
 configuration's direct stable-address footprint, preserves ownership after
 divergence, and treats source revision as historical while guarding session and
 template continuity. Unsupported action-region and text-fitting work fails
-closed, so issue #181 remains authoritative. Starter designs, installed
-attachment, Reapply/Detach, persistence, UI, and runtime application remain
-future work.
+closed, so issue #181 remains authoritative. Reapply planning consumes the
+validated configuration and still-current report, one exact current normalized
+aggregate/snapshot/context, one directly supplied same-canonical-ID exact
+definition revision, and one explicit overwrite/preserve policy for every
+retained customized field. It reuses shared resolution/layout-proposal owners
+without invoking first-time Apply planning, rerunning detection, or consulting
+the production catalog. Overwrite is consent-gated; preserve performs no write,
+retains ownership/provenance/prior last-applied value, and stays customized.
+New, retired, and moved addresses remain explicit, and its projected next
+footprint is non-authoritative. Starter designs, installed attachment, Reapply
+execution, Detach, persistence, UI, and runtime application remain future work.
 
 Deferred areas:
 
