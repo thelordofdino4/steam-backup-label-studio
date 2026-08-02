@@ -5,6 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
+> Case preset ownership refresh: PR #344 merge commit `f662d81555fa16e36220c63854709b62fb46bd7a` plus the focused pure Detach-planning checkpoint on 2026-08-02.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -922,7 +923,8 @@ catalog, compatibility, normalized snapshot, and stable assignment-resolution
 foundation, immutable first-time Apply planner, content-bound review/consent
 identity, pure atomic transition, authoritative detached applied-configuration
 domain, pure customization detector, pure same-ID Reapply planner, and pure
-atomic Reapply transition are implemented. The first-time planner owns
+atomic Reapply transition, plus the pure Detach planner, are implemented. The
+first-time planner owns
 deterministic typed direct layout-field proposals, preservation/skip/warning/
 blocker/consent classification, no-op and conflict detection,
 staleness/identity preconditions, and field footprints. The transition validates
@@ -940,8 +942,14 @@ transition revalidates the exact plan/configuration/report/review/consent/curren
 compare-and-swap chain, preflights every exact address/value/enablement fact,
 and returns one detached deeply frozen aggregate plus one validated
 authoritative domain configuration that remains explicitly uninstalled, or
-neither. No installed attachment, lifecycle application transaction, Detach,
-schema, UI, or menu connection exists.
+neither. The Detach planner consumes only one validated authoritative
+configuration and one exact current aggregate/snapshot/context, directly
+validates its complete stable-address footprint, and emits deterministic
+ownership-release/preservation records, warning, review/plan identities, and
+future compare-and-swap preconditions. It plans zero aggregate writes and only
+a non-authoritative absence-of-ownership projection; it returns no next
+configuration. No installed attachment, lifecycle application transaction,
+Detach transition, schema, UI, or menu connection exists.
 
 Key files:
 
@@ -989,6 +997,8 @@ Key files:
 - `src/presets/caseInsertPresetReapplyIdentity.ts`
 - `src/presets/caseInsertPresetAggregateFieldTransition.ts`
 - `src/presets/caseInsertPresetReapplyTransition.ts`
+- `src/presets/caseInsertPresetDetachIdentity.ts`
+- `src/presets/caseInsertPresetDetachPlanning.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
@@ -1078,7 +1088,7 @@ Risks:
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 - Issue `#168` and the Case preset workflow contract retain future Case preset
-  starter definitions, installed attachment, Detach, runtime
+  starter definitions, installed attachment, Detach execution, runtime
   application, persistence, and
   presentation work. Pure definition/catalog/compatibility owners reject
   malformed definitions; the pure snapshot/resolution boundary fails closed on
@@ -1099,12 +1109,16 @@ Risks:
   current compare-and-swap preconditions before applying only exhaustive exact
   layout-field writes through the shared immutable aggregate-field owner. It
   returns one validated deeply frozen detached aggregate/configuration pair or
-  neither, and its domain configuration remains explicitly uninstalled. These
-  pure owners have no
+  neither, and its domain configuration remains explicitly uninstalled. The
+  Detach planner separately validates the authoritative configuration and exact
+  still-current aggregate/snapshot/context, directly preflights every owned
+  address/value/enablement fact, and returns the complete ownership-release and
+  exact-preservation review intent with zero aggregate writes and no successor
+  configuration. These pure owners have no
   React/store, renderer, filesystem, Tauri, persistence, or commit dependency.
   No runtime Case preset mutation/attachment owner exists in current source.
-  Detach, persistence/schema, UI, lifecycle/store commit, and runtime application
-  remain absent. The production Case catalog remains empty.
+  Detach execution, persistence/schema, UI, lifecycle/store commit, and runtime
+  application remain absent. The production Case catalog remains empty.
 
 ## Text Systems
 
