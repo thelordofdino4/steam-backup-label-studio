@@ -957,6 +957,23 @@ aggregate writes, returns no next configuration, and records that application
 adoption has not occurred. No installed attachment/release-adoption owner,
 lifecycle application transaction, schema, UI, or menu connection exists.
 
+`src/presets/caseInsertPresetConfigurationAdoptionModel.ts` is now the pure
+model owner for one canonical unattached wrapper, one exact validated attached
+configuration wrapper, and one immutable Case assignment-snapshot-plus-
+attachment application unit. It also records the legal Apply attach, Reapply
+replace, and Detach release edges, provides a pure fail-closed attachment-edge
+classifier, and defines operation-discriminated future result/receipt identity
+facts. It does not execute any transition or write an aggregate, attachment,
+project revision, store, lifecycle session, schema, persistence path, UI,
+catalog, or runtime.
+The model exposes no adoptable evidence type at this baseline: read-only source
+analysis proved all three current success bundles lack identities over the
+complete source and result aggregates and lack a public whole-success validator.
+Apply has additional transition/source-edge evidence gaps, while Reapply and
+Detach already prove their configuration endpoints more strongly. The next
+safe owner change belongs to the snapshot and transition evidence modules, not
+to `App.tsx`, the lifecycle store, or project schema.
+
 Key files:
 
 - `src/components/caseInsert/CaseInsertEditorShell.tsx`
@@ -1006,6 +1023,7 @@ Key files:
 - `src/presets/caseInsertPresetDetachIdentity.ts`
 - `src/presets/caseInsertPresetDetachPlanning.ts`
 - `src/presets/caseInsertPresetDetachTransition.ts`
+- `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
