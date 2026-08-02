@@ -921,8 +921,8 @@ left/right-spine assignment and atomic workflow semantics. The pure definition,
 catalog, compatibility, normalized snapshot, and stable assignment-resolution
 foundation, immutable first-time Apply planner, content-bound review/consent
 identity, pure atomic transition, authoritative detached applied-configuration
-domain, pure customization detector, and pure same-ID Reapply planner are
-implemented. The first-time planner owns
+domain, pure customization detector, pure same-ID Reapply planner, and pure
+atomic Reapply transition are implemented. The first-time planner owns
 deterministic typed direct layout-field proposals, preservation/skip/warning/
 blocker/consent classification, no-op and conflict detection,
 staleness/identity preconditions, and field footprints. The transition validates
@@ -935,8 +935,12 @@ shared direct stable-address lookup. The Reapply planner validates the complete
 configuration/report/current snapshot chain, resolves only a directly supplied
 same-canonical-ID exact definition revision, requires explicit overwrite or
 preserve policy for retained customized fields, and returns review-bound intent
-plus a non-authoritative footprint projection without executing. No installed
-attachment, lifecycle application transaction, Reapply transition, Detach,
+plus a non-authoritative footprint projection without executing. The Reapply
+transition revalidates the exact plan/configuration/report/review/consent/current
+compare-and-swap chain, preflights every exact address/value/enablement fact,
+and returns one detached deeply frozen aggregate plus one validated
+authoritative domain configuration that remains explicitly uninstalled, or
+neither. No installed attachment, lifecycle application transaction, Detach,
 schema, UI, or menu connection exists.
 
 Key files:
@@ -982,6 +986,9 @@ Key files:
 - `src/presets/caseInsertPresetApplyTransition.ts`
 - `src/presets/caseInsertPresetAppliedConfiguration.ts`
 - `src/presets/caseInsertPresetReapplyPlanning.ts`
+- `src/presets/caseInsertPresetReapplyIdentity.ts`
+- `src/presets/caseInsertPresetAggregateFieldTransition.ts`
+- `src/presets/caseInsertPresetReapplyTransition.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
@@ -1071,7 +1078,7 @@ Risks:
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 - Issue `#168` and the Case preset workflow contract retain future Case preset
-  starter definitions, installed attachment, Reapply execution/Detach, runtime
+  starter definitions, installed attachment, Detach, runtime
   application, persistence, and
   presentation work. Pure definition/catalog/compatibility owners reject
   malformed definitions; the pure snapshot/resolution boundary fails closed on
@@ -1087,10 +1094,17 @@ Risks:
   and emits explicit overwrite/preserve policy effects, retained/new/retired/
   moved footprint classifications, consent requirements, exact preconditions,
   deterministic review identity, and a non-authoritative projection without
-  calling the first-time Apply planner or detector. These pure owners have no
+  calling the first-time Apply planner or detector. The pure Reapply transition
+  then validates exact plan/review/consent/configuration/report evidence and all
+  current compare-and-swap preconditions before applying only exhaustive exact
+  layout-field writes through the shared immutable aggregate-field owner. It
+  returns one validated deeply frozen detached aggregate/configuration pair or
+  neither, and its domain configuration remains explicitly uninstalled. These
+  pure owners have no
   React/store, renderer, filesystem, Tauri, persistence, or commit dependency.
-  No Reapply transition or runtime Case preset mutation/attachment owner exists
-  in current source. The production Case catalog remains empty.
+  No runtime Case preset mutation/attachment owner exists in current source.
+  Detach, persistence/schema, UI, lifecycle/store commit, and runtime application
+  remain absent. The production Case catalog remains empty.
 
 ## Text Systems
 
@@ -1768,9 +1782,12 @@ Current `npm run test` covers these broad areas:
 - The pure Case preset pipeline from definition/catalog/compatibility through
   stable assignment resolution, first-time Apply planning/transition,
   authoritative configuration/customization detection, and same-ID exact-
-  revision Reapply planning, including explicit overwrite/preserve policies,
+  revision Reapply planning plus pure atomic execution, including explicit
+  overwrite/preserve policies,
   exact field preconditions, retained/new/retired/moved footprint effects,
-  repeated-ID determinism, and typed fail-closed outcomes.
+  repeated-ID determinism, exact review/consent acceptance, strict compare-and-
+  swap preflight, coherent detached aggregate/configuration output, and typed
+  fail-closed outcomes.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
 - The runtime-connected application lifecycle composition root, state store,
   command registry/dispatcher, busy coordinator, typed command ports,

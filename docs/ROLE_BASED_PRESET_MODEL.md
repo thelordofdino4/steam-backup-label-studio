@@ -3,7 +3,7 @@
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against commit: `8c88ee279bcbef4c6995fcf57d06e74d9f0bedbd`.
+> Last reviewed against commit: `9d0b5ce043518f10187511b6e2404fca6a6e77ea` plus the current unstaged pure atomic Case Reapply-transition slice.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
@@ -896,19 +896,20 @@ changes are persisted through existing project fields, preview/export parity
 tests where practical, and manual Tauri verification for user-visible editor
 behavior when UI is added.
 
-## 17. Case/Spine Pure Apply And Reapply-Planning Checkpoints
+## 17. Case/Spine Pure Apply And Reapply Checkpoints
 
 Runtime Case Front, Case Back, and Spine preset application remains deferred.
 Pure first-time Apply planning, its atomic detached transition, the authoritative
 detached applied-configuration domain, exact customization detection, and pure
-same-preset Reapply planning are now implemented.
+same-preset Reapply planning and atomic transition are now implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
 validation, compatibility foundation, lifecycle-detached normalized Case
 snapshot adapter, stable exact assignment resolution, immutable planner,
-content-bound review/consent identity, pure atomic transition, candidate
-validation, customization detector, and Reapply planner now exist. The
+content-bound review/consent identity, pure atomic first-Apply transition,
+candidate validation, customization detector, Reapply planner, and pure atomic
+Reapply transition now exist. The
 resolver expands region/Front/Back/Spine/complete scopes, preserves complete
 Tray versus Back Panel and left/right identity, and distinguishes disabled,
 missing optional/required, ambiguous, stale, incompatible, invalid, and
@@ -935,8 +936,21 @@ without invoking first-time Apply planning, rerunning detection, or consulting
 the production catalog. Overwrite is consent-gated; preserve performs no write,
 retains ownership/provenance/prior last-applied value, and stays customized.
 New, retired, and moved addresses remain explicit, and its projected next
-footprint is non-authoritative. Starter designs, installed attachment, Reapply
-execution, Detach, persistence, UI, and runtime application remain future work.
+footprint is non-authoritative. Reapply execution consumes only that exact
+reviewed plan plus its named configuration/report, exact review acceptance,
+every exact declared material-consent acceptance, and the still-current Case
+aggregate/context. It treats the plan as a strict compare-and-swap boundary,
+rechecks every address/value/enablement fact without planner, detector,
+compatibility, resolver, catalog, geometry, or renderer execution, and applies
+only exact `layout-x`, `layout-y`, `layout-scale`, and `layout-width` writes
+through the shared immutable aggregate-field owner. Preserve retains current
+value, ownership, prior last-applied value, and historical provenance; new
+claims may be configuration-only; retirement never writes; movement remains
+retirement plus claim. Success returns one coherent deeply immutable detached
+aggregate plus a validated authoritative domain configuration that remains
+explicitly uninstalled and unpersisted; failure returns neither. Starter
+designs, installed attachment, Detach, persistence/schema, UI, lifecycle/store
+commit, and runtime application remain future work.
 
 Deferred areas:
 

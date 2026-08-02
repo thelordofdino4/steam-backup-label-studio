@@ -35,12 +35,20 @@ import {
   type CaseInsertAppliedPresetOwnedFieldAddress,
   type CaseInsertPresetCustomizationReport,
 } from './caseInsertPresetAppliedConfiguration.ts'
+import {
+  CASE_INSERT_PRESET_REAPPLY_CONFIGURATION_PROJECTION_KIND,
+  CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION,
+  CASE_INSERT_PRESET_REAPPLY_PLAN_KIND,
+  createCaseInsertPresetReapplyConsentRequirementId,
+  createCaseInsertPresetReapplyReviewIdentity,
+  encodeCaseInsertPresetDeterministicIdentity,
+} from './caseInsertPresetReapplyIdentity.ts'
 
-export const CASE_INSERT_PRESET_REAPPLY_PLAN_KIND =
-  'sbls/case-insert-preset-reapply-plan' as const
-export const CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION = 1 as const
-export const CASE_INSERT_PRESET_REAPPLY_CONFIGURATION_PROJECTION_KIND =
-  'sbls/case-insert-preset-reapply-configuration-projection' as const
+export {
+  CASE_INSERT_PRESET_REAPPLY_CONFIGURATION_PROJECTION_KIND,
+  CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION,
+  CASE_INSERT_PRESET_REAPPLY_PLAN_KIND,
+} from './caseInsertPresetReapplyIdentity.ts'
 
 export type CaseInsertPresetCustomizedFieldPolicy =
   | 'overwrite-with-selected-preset'
@@ -385,27 +393,6 @@ function failure(
   })
 }
 
-function deterministicEncode(value: unknown): string {
-  if (value === null) return 'n0:'
-  if (typeof value === 'boolean') return `b1:${value ? '1' : '0'}`
-  if (typeof value === 'number') {
-    const encoded = Object.is(value, -0) ? '-0' : String(value)
-    return `d${encoded.length}:${encoded}`
-  }
-  if (typeof value === 'string') return `s${value.length}:${value}`
-  if (Array.isArray(value)) {
-    const encoded = value.map(deterministicEncode).join('')
-    return `a${value.length}:${encoded.length}:${encoded}`
-  }
-  if (isRecord(value)) {
-    const entries = Object.keys(value).sort().map((key) =>
-      deterministicEncode(key) + deterministicEncode(value[key]))
-    const encoded = entries.join('')
-    return `o${entries.length}:${encoded.length}:${encoded}`
-  }
-  throw new Error('Unsupported deterministic identity value.')
-}
-
 function sourceSort(
   left: CaseInsertPresetPlanSourceAssignment,
   right: CaseInsertPresetPlanSourceAssignment,
@@ -534,7 +521,7 @@ function consentRequirement(
 ) {
   const content = { kind, ...options }
   return deepFreeze({
-    id: `case:preset-reapply-consent:v1:${deterministicEncode(content)}`,
+    id: createCaseInsertPresetReapplyConsentRequirementId(content),
     ...content,
   })
 }
@@ -1212,7 +1199,9 @@ export function planCaseInsertPresetReapply(
     }),
   ].sort((left, right) =>
     left.kind.localeCompare(right.kind) ||
-    deterministicEncode(left).localeCompare(deterministicEncode(right)))
+    encodeCaseInsertPresetDeterministicIdentity(left).localeCompare(
+      encodeCaseInsertPresetDeterministicIdentity(right),
+    ))
 
   const projectedOwnedFields = effects
     .filter((effect): effect is CaseInsertPresetReapplyFieldEffect & Readonly<{
@@ -1316,8 +1305,7 @@ export function planCaseInsertPresetReapply(
   }
   const plan = deepFreeze({
     ...planContent,
-    reviewIdentity:
-      `case:preset-reapply-review:v1:${deterministicEncode(planContent)}`,
+    reviewIdentity: createCaseInsertPresetReapplyReviewIdentity(planContent),
   })
   return deepFreeze({
     ok: true,
