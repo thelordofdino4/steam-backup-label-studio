@@ -899,14 +899,16 @@ behavior when UI is added.
 ## 17. Case/Spine Pure Apply Checkpoint And Deferred Runtime Work
 
 Runtime Case Front, Case Back, and Spine preset application remains deferred.
-Pure first-time Apply planning and its atomic detached transition are now
+Pure first-time Apply planning, its atomic detached transition, the authoritative
+detached applied-configuration domain, and exact customization detection are now
 implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
 validation, compatibility foundation, lifecycle-detached normalized Case
 snapshot adapter, stable exact assignment resolution, immutable planner,
-content-bound review/consent identity, and pure atomic transition now exist. The
+content-bound review/consent identity, pure atomic transition, candidate
+validation, and customization detector now exist. The
 resolver expands region/Front/Back/Spine/complete scopes, preserves complete
 Tray versus Back Panel and left/right identity, and distinguishes disabled,
 missing optional/required, ambiguous, stale, incompatible, invalid, and
@@ -918,10 +920,15 @@ reviewed, consent-complete, still-current frozen plan, preflights exact stable
 addresses and current semantic values, then returns one detached deeply frozen
 Case aggregate and uninstalled configuration candidate or neither on failure.
 It does not resolve or plan again, install/commit, persist, render, or mutate
-caller input. Unsupported action-region and text-fitting work fails closed, so
-issue #181 remains authoritative. Starter designs, authoritative installed
-configuration/customization detection, Reapply/Detach, persistence, UI, and
-runtime application remain future work.
+caller input. Candidate validation returns one deterministic deeply immutable
+detached configuration only when its exact owned-field values agree with the
+transition aggregate. Customization detection later compares only that
+configuration's direct stable-address footprint, preserves ownership after
+divergence, and treats source revision as historical while guarding session and
+template continuity. Unsupported action-region and text-fitting work fails
+closed, so issue #181 remains authoritative. Starter designs, installed
+attachment, Reapply/Detach, persistence, UI, and runtime application remain
+future work.
 
 Deferred areas:
 

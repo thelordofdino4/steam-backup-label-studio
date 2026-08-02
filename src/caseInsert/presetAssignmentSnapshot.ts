@@ -283,11 +283,11 @@ export function getCaseInsertPresetSnapshotTemplateCapabilities(
 }
 
 function getRepeatedOwner(
-  snapshot: CaseInsertPresetAssignmentSnapshot,
+  caseInsert: DeepReadonly<ProjectJewelCaseState>,
   ownerId: CaseInsertPresetOwnerId,
 ): RepeatedOwner | null {
-  const { cover, tray } = snapshot.caseInsert.templates
-  const { left, right } = snapshot.caseInsert.spine
+  const { cover, tray } = caseInsert.templates
+  const { left, right } = caseInsert.spine
 
   switch (ownerId) {
     case 'case.cover.artwork-slots':
@@ -319,7 +319,7 @@ export function getCaseInsertPresetSnapshotOwnerCapabilities(
   snapshot: CaseInsertPresetAssignmentSnapshot,
 ): readonly CaseInsertPresetOwnerCapability[] {
   return Object.freeze(CASE_INSERT_PRESET_OWNER_IDS.map((ownerId) => {
-    const repeated = getRepeatedOwner(snapshot, ownerId)
+    const repeated = getRepeatedOwner(snapshot.caseInsert, ownerId)
     return Object.freeze({
       ownerId,
       repeatedObjectIds: Object.freeze(
@@ -372,12 +372,12 @@ function found(
 }
 
 function resolveFixedBinding(
-  snapshot: CaseInsertPresetAssignmentSnapshot,
+  caseInsert: DeepReadonly<ProjectJewelCaseState>,
   ownerId: CaseInsertPresetOwnerId,
   objectId: string,
 ): CaseInsertPresetSnapshotBindingResult {
-  const { cover, tray } = snapshot.caseInsert.templates
-  const { left, right } = snapshot.caseInsert.spine
+  const { cover, tray } = caseInsert.templates
+  const { left, right } = caseInsert.spine
 
   switch (ownerId) {
     case 'case.cover.background':
@@ -472,11 +472,19 @@ export function resolveCaseInsertPresetSnapshotBinding(
   ownerId: CaseInsertPresetOwnerId,
   object: CaseInsertPresetObjectBinding,
 ): CaseInsertPresetSnapshotBindingResult {
+  return resolveCaseInsertPresetAggregateBinding(snapshot.caseInsert, ownerId, object)
+}
+
+export function resolveCaseInsertPresetAggregateBinding(
+  caseInsert: DeepReadonly<ProjectJewelCaseState>,
+  ownerId: CaseInsertPresetOwnerId,
+  object: CaseInsertPresetObjectBinding,
+): CaseInsertPresetSnapshotBindingResult {
   if (object.kind === 'fixed') {
-    return resolveFixedBinding(snapshot, ownerId, object.id)
+    return resolveFixedBinding(caseInsert, ownerId, object.id)
   }
 
-  const repeated = getRepeatedOwner(snapshot, ownerId)
+  const repeated = getRepeatedOwner(caseInsert, ownerId)
   if (!repeated) return Object.freeze({ status: 'unsupported' })
   const matches = repeated.items.filter(({ id }) => id === object.id)
   if (matches.length === 0) return Object.freeze({ status: 'missing' })

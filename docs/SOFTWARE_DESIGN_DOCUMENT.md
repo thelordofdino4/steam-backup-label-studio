@@ -1473,10 +1473,20 @@ unattached assertion. It defensively validates and preflights all exact stable
 addresses/current values before applying the exhaustive supported layout-field
 actions to a detached draft. Success is one deeply frozen aggregate plus an
 immutable uninstalled configuration candidate; every typed failure returns
-neither. It does not rerun resolution or planning. No starter definitions,
-authoritative installed configuration/customization detector,
-application/lifecycle commit, Reapply, Detach, schema, workflow presentation,
-menu routing, renderer access, or runtime behavior is provided.
+neither. It does not rerun resolution or planning.
+`src/presets/caseInsertPresetAppliedConfiguration.ts` validates only a complete
+successful transition output into one content-identified, deeply immutable,
+detached/uninstalled authoritative configuration. Its pure detector compares
+that configuration's exact stable-address field footprint and last-applied
+values against a later normalized Case aggregate, records the current
+session/revision/template in a deterministic report identity, and distinguishes
+clean/customized from missing, ambiguous, unsupported, invalid, incompatible,
+or attachment-context failures. It shares direct address semantics with
+`presetAssignmentSnapshot.ts` and does not execute resolution, planning,
+catalog, geometry, renderer, persistence, or UI behavior. No starter
+definitions, installed attachment, application/lifecycle commit, Reapply,
+Detach, schema, workflow presentation, menu routing, renderer access, or runtime
+behavior is provided.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
