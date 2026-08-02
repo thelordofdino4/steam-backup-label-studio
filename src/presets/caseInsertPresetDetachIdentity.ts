@@ -54,6 +54,12 @@ export const CASE_INSERT_PRESET_DETACH_REVIEW_IDENTITY_PREFIX =
   'case:preset-detach-review:v1:' as const
 export const CASE_INSERT_PRESET_DETACH_PLAN_IDENTITY_PREFIX =
   'case:preset-detach-plan:v1:' as const
+export const CASE_INSERT_PRESET_DETACH_REVIEW_ACCEPTANCE_IDENTITY_PREFIX =
+  'case:preset-detach-review-acceptance:v1:' as const
+export const CASE_INSERT_PRESET_DETACH_CONSENT_ACCEPTANCE_IDENTITY_PREFIX =
+  'case:preset-detach-consent-acceptance:v1:' as const
+export const CASE_INSERT_PRESET_DETACH_TRANSITION_IDENTITY_PREFIX =
+  'case:preset-detach-transition:v1:' as const
 
 const REGION_ORDER = new Map([
   ['front-cover', 0],
@@ -202,5 +208,29 @@ export function createCaseInsertPresetDetachPlanIdentity<
       ...canonicalizeCaseInsertPresetDetachPlanContent(content),
       reviewIdentity,
     })
+  }`
+}
+
+export function createCaseInsertPresetDetachReviewAcceptanceIdentity(
+  acceptance: Readonly<Record<string, unknown>>,
+) {
+  return `${CASE_INSERT_PRESET_DETACH_REVIEW_ACCEPTANCE_IDENTITY_PREFIX}${
+    encodeCaseInsertPresetDeterministicIdentity(cloneValue(acceptance))
+  }`
+}
+
+export function createCaseInsertPresetDetachConsentAcceptanceIdentity(
+  acceptance: Readonly<Record<string, unknown>>,
+) {
+  return `${CASE_INSERT_PRESET_DETACH_CONSENT_ACCEPTANCE_IDENTITY_PREFIX}${
+    encodeCaseInsertPresetDeterministicIdentity(cloneValue(acceptance))
+  }`
+}
+
+export function createCaseInsertPresetDetachTransitionIdentity(
+  transition: Readonly<Record<string, unknown>>,
+) {
+  return `${CASE_INSERT_PRESET_DETACH_TRANSITION_IDENTITY_PREFIX}${
+    encodeCaseInsertPresetDeterministicIdentity(cloneValue(transition))
   }`
 }

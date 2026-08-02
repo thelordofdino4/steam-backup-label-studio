@@ -14,6 +14,7 @@ import type {
 import {
   getCaseInsertPresetOwnedFieldCurrentValue,
   isCaseInsertPresetOwnedFieldSemanticValue,
+  canonicalizeCaseInsertAppliedPresetConfigurationOrdering,
   validateCaseInsertAppliedPresetConfiguration,
   type CaseInsertAppliedPresetConfiguration,
   type CaseInsertAppliedPresetOwnedFieldAddress,
@@ -170,20 +171,6 @@ export type CaseInsertPresetDetachPlanningResult =
 
 type Failure = Extract<CaseInsertPresetDetachPlanningResult, { ok: false }>
 
-const DETACH_REGION_ORDER = new Map([
-  ['front-cover', 0],
-  ['tray-card', 1],
-  ['back-panel', 2],
-  ['left-spine', 3],
-  ['right-spine', 4],
-])
-const DETACH_FIELD_ORDER = new Map([
-  ['layout-x', 0],
-  ['layout-y', 1],
-  ['layout-scale', 2],
-  ['layout-width', 3],
-])
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -205,47 +192,6 @@ function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
     deepFreeze(child, seen)
   }
   return Object.freeze(value)
-}
-
-function recordString(value: unknown, key: string) {
-  return isRecord(value) && typeof value[key] === 'string' ? value[key] : ''
-}
-
-function canonicalizeConfigurationOrdering(value: unknown) {
-  let canonical: unknown
-  try {
-    canonical = structuredClone(value)
-  } catch {
-    return value
-  }
-  if (!isRecord(canonical) || !Array.isArray(canonical.ownedFields)) {
-    return deepFreeze(canonical)
-  }
-  for (const field of canonical.ownedFields) {
-    if (!isRecord(field) || !Array.isArray(field.sources)) continue
-    field.sources.sort((left, right) =>
-      (DETACH_REGION_ORDER.get(recordString(left, 'region')) ?? 99) -
-        (DETACH_REGION_ORDER.get(recordString(right, 'region')) ?? 99) ||
-      recordString(left, 'slotId').localeCompare(recordString(right, 'slotId')) ||
-      recordString(left, 'assignmentId').localeCompare(
-        recordString(right, 'assignmentId'),
-      ))
-  }
-  canonical.ownedFields.sort((left, right) => {
-    const leftAddress = isRecord(left) ? left.address : null
-    const rightAddress = isRecord(right) ? right.address : null
-    return (DETACH_REGION_ORDER.get(recordString(leftAddress, 'region')) ?? 99) -
-        (DETACH_REGION_ORDER.get(recordString(rightAddress, 'region')) ?? 99) ||
-      recordString(leftAddress, 'featureOwnerId').localeCompare(
-        recordString(rightAddress, 'featureOwnerId'),
-      ) ||
-      recordString(leftAddress, 'runtimeObjectId').localeCompare(
-        recordString(rightAddress, 'runtimeObjectId'),
-      ) ||
-      (DETACH_FIELD_ORDER.get(recordString(leftAddress, 'fieldId')) ?? 99) -
-        (DETACH_FIELD_ORDER.get(recordString(rightAddress, 'fieldId')) ?? 99)
-  })
-  return deepFreeze(canonical)
 }
 
 function sameValue(left: unknown, right: unknown): boolean {
@@ -449,7 +395,9 @@ export function planCaseInsertPresetDetach(
   }
 
   const validatedConfiguration = validateCaseInsertAppliedPresetConfiguration(
-    canonicalizeConfigurationOrdering(input.configuration),
+    canonicalizeCaseInsertAppliedPresetConfigurationOrdering(
+      input.configuration,
+    ),
   )
   if (!validatedConfiguration.ok) {
     return mapConfigurationFailure(
