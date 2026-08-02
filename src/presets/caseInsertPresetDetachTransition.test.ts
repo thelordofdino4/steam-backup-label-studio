@@ -2,6 +2,13 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import {
+  createCaseInsertPresetUnattachedEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+import {
+  createCaseInsertPresetTransitionSuccessEvidence,
+} from './caseInsertPresetTransitionSuccessIdentity.ts'
+
 import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import {
@@ -51,6 +58,7 @@ import {
 import {
   createCaseInsertPresetDetachReviewAcceptance,
   transitionCaseInsertPresetDetach,
+  validateCaseInsertPresetDetachTransitionSuccess,
   type CaseInsertPresetDetachTransitionResult,
   type TransitionCaseInsertPresetDetachInput,
 } from './caseInsertPresetDetachTransition.ts'
@@ -187,7 +195,7 @@ function buildFixture(options: Readonly<{
       preset: { id: definition.id, revision: definition.revision },
       requestedScope,
     },
-    attachment: { status: 'unattached' },
+    attachment: createCaseInsertPresetUnattachedEndpoint(),
     reviewApproval: createCaseInsertPresetApplyReviewApproval(planning.plan),
     materialConsentAcceptances:
       applyAcceptances as CaseInsertPresetMaterialConsentAcceptance[],
@@ -440,26 +448,18 @@ test('clean, customized, mixed, enabled, and disabled values are all preserved e
   if (report.ok) assert.equal(report.status, 'customized')
 })
 
-test('repeated stable IDs ignore array order while output preserves caller ordering and disabled payloads', () => {
+test('repeated stable IDs preserve planned caller ordering and disabled payloads', () => {
   const fixture = buildFixture({
     definition: repeatedDefinition(),
     mutateSource: addRepeatedTargets,
+    mutateCurrent: (aggregate) => {
+      aggregate.templates.cover.artworkSlots.reverse()
+    },
   })
-  const reordered = structuredClone(fixture.aggregate)
-  reordered.templates.cover.artworkSlots.reverse()
-  const current = {
-    ...fixture.input.current,
-    aggregate: reordered,
-    snapshot: buildSnapshot(
-      reordered,
-      fixture.input.current.sessionId as string,
-      fixture.input.current.projectRevision as number,
-    ),
-  }
-  const result = successful({ ...fixture.input, current })
+  const result = successful(fixture.input)
   assert.deepEqual(
     result.aggregate.templates.cover.artworkSlots.map(({ id }) => id),
-    reordered.templates.cover.artworkSlots.map(({ id }) => id),
+    fixture.aggregate.templates.cover.artworkSlots.map(({ id }) => id),
   )
   const target = result.aggregate.templates.cover.artworkSlots.find(({ id }) =>
     id === 'case:user-artwork:target')!
@@ -488,7 +488,7 @@ test('exact review acceptance is mandatory and bound to plan, review, configurat
   failed({ ...fixture.input, reviewAcceptance: deepFreeze({ accepted: true }) },
     'invalid-review-acceptance')
   const stale = structuredClone(fixture.input.reviewAcceptance) as MutableRecord
-  stale.planReviewIdentity = 'case:preset-detach-review:v1:stale'
+  stale.planReviewIdentity = 'case:preset-detach-review:v2:stale'
   failed({ ...fixture.input, reviewAcceptance: deepFreeze(stale) },
     'review-mismatch')
   const other = buildFixture({ sessionId: 'other-detach-transition-session' })
@@ -556,11 +556,11 @@ test('request, operation, configuration domain, and attachment status fail close
 test('plan version, identity, operation, and hidden executable fields fail closed', () => {
   const fixture = buildFixture()
   const version = structuredClone(fixture.plan) as MutableRecord
-  version.formatVersion = 2
+  version.formatVersion = 99
   failed({ ...fixture.input, plan: deepFreeze(version) },
     'unsupported-plan-version')
   const identity = structuredClone(fixture.plan) as MutableRecord
-  identity.planIdentity = 'case:preset-detach-plan:v1:forged'
+  identity.planIdentity = 'case:preset-detach-plan:v2:forged'
   failed({ ...fixture.input, plan: deepFreeze(identity) },
     'plan-identity-mismatch')
   const operation = structuredClone(fixture.plan) as MutableRecord
@@ -849,7 +849,7 @@ test('missing and ambiguous repeated targets block the entire multi-region resul
         fixture.input.current.projectRevision as number,
       ),
     },
-  }, 'target-missing')
+  }, 'stale-detach-plan')
   const ambiguous = structuredClone(fixture.aggregate)
   ambiguous.templates.cover.artworkSlots.push(createDefaultCaseInsertImageSlot(
     'case:user-artwork:target',
@@ -866,8 +866,8 @@ test('missing and ambiguous repeated targets block the entire multi-region resul
         fixture.input.current.projectRevision as number,
       ),
     },
-  }, 'target-ambiguous')
-  assert.deepEqual(Object.keys(result).sort(), ['address', 'code', 'ok', 'status'])
+  }, 'stale-detach-plan')
+  assert.deepEqual(Object.keys(result).sort(), ['code', 'ok', 'status'])
 })
 
 test('complete region evidence keeps Tray, Back Panel, left/right Spine, and mirroring distinct', () => {
@@ -922,6 +922,112 @@ test('transition identities are deterministic and bind plan, configuration, revi
   })
   assert.notEqual(successful(changedValue.input).transitionIdentity,
     first.transitionIdentity)
+})
+
+test('strict Detach success validation binds the exact unchanged clone, source configuration, release, and successor absence', () => {
+  const fixture = buildFixture()
+  const success = successful(fixture.input)
+  const validated = validateCaseInsertPresetDetachTransitionSuccess(success)
+  assert.equal(validated.ok, true)
+  if (!validated.ok) return
+  assert.equal(validated.status, 'validated')
+  assert.notEqual(validated.success, success)
+  assert.equal(isDeeplyFrozen(validated), true)
+  assert.equal(
+    validated.success.successEvidence.sourceAggregateContentIdentity,
+    validated.success.successEvidence.resultAggregateContentIdentity,
+  )
+  assert.equal(validated.success.successEvidence.sourceAttachment.status,
+    'attached')
+  assert.equal(validated.success.successEvidence.successorAttachment.status,
+    'unattached')
+  assert.equal(validated.success.releaseResult.nextAppliedPresetConfiguration,
+    null)
+  assert.equal(validated.success.sourceConfiguration.attachmentStatus,
+    'detached-uninstalled')
+  assert.equal(validated.success.applicationAdoptionStatus, 'not-adopted')
+
+  const otherFixture = buildFixture({
+    mutateSource: (aggregate) => {
+      aggregate.templates.cover.background.layout.rotation = 1
+    },
+  })
+  const other = successful(otherFixture.input)
+  const mutations: readonly ((value: MutableRecord) => void)[] = [
+    (value) => {
+      const aggregate = value.sourceAggregate as ProjectJewelCaseState
+      aggregate.templates.cover.background.layout.x += 1
+    },
+    (value) => {
+      const aggregate = value.aggregate as ProjectJewelCaseState
+      aggregate.templates.cover.background.layout.y += 1
+    },
+    (value) => {
+      const aggregate = value.aggregate as MutableRecord
+      delete aggregate.export
+    },
+    (value) => {
+      value.sourceConfiguration = structuredClone(other.sourceConfiguration)
+    },
+    (value) => {
+      value.releaseResult = structuredClone(other.releaseResult)
+    },
+    (value) => {
+      ;(value.releaseResult as MutableRecord).releaseIdentity =
+        other.releaseResult.releaseIdentity
+    },
+    (value) => {
+      const endpoint = structuredClone(
+        createCaseInsertPresetUnattachedEndpoint(),
+      ) as unknown as MutableRecord
+      endpoint.attachmentIdentity = 'case:preset-attachment:v1:forged'
+      ;(value.successEvidence as MutableRecord).successorAttachment = endpoint
+    },
+    (value) => {
+      const evidence = value.successEvidence as MutableRecord
+      ;(evidence.context as MutableRecord).sessionId = 'mixed-session'
+    },
+    (value) => {
+      ;(value.successEvidence as MutableRecord).wholeSuccessIdentity =
+        other.successEvidence.wholeSuccessIdentity
+    },
+    (value) => { value.transitionIdentity = other.transitionIdentity },
+    (value) => { value.applicationAdoptionStatus = 'adopted' },
+    (value) => { value.formatVersion = 99 },
+  ]
+  for (const mutate of mutations) {
+    const candidate = structuredClone(success) as unknown as MutableRecord
+    mutate(candidate)
+    const result = validateCaseInsertPresetDetachTransitionSuccess(candidate)
+    assert.equal(result.ok, false)
+    assert.equal('success' in result, false)
+    assert.equal(isDeeplyFrozen(result), true)
+  }
+
+  const forgedOperationTransitionIdentity =
+    'case:preset-detach-transition:v1:reidentified-forgery'
+  const reidentifiedEvidence = createCaseInsertPresetTransitionSuccessEvidence({
+    ...success.successEvidence,
+    lineage: {
+      ...success.successEvidence.lineage,
+      operationTransitionIdentity: forgedOperationTransitionIdentity,
+    },
+  })
+  const reidentifiedLineage = structuredClone(success) as unknown as
+    MutableRecord
+  ;(reidentifiedLineage.releaseResult as MutableRecord).transitionIdentity =
+    forgedOperationTransitionIdentity
+  reidentifiedLineage.successEvidence = reidentifiedEvidence
+  reidentifiedLineage.transitionIdentity = reidentifiedEvidence.transitionIdentity
+  const reidentifiedResult = validateCaseInsertPresetDetachTransitionSuccess(
+    reidentifiedLineage,
+  )
+  assert.equal(reidentifiedResult.ok, false)
+  if (reidentifiedResult.ok) return
+  assert.equal(
+    reidentifiedResult.code,
+    'detach-operation-transition-identity-invalid',
+  )
 })
 
 test('transition source has no planner rerun, writer, detector, resolver, catalog, UI, renderer, persistence, or runtime dependency', () => {

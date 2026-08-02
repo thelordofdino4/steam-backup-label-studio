@@ -2,6 +2,9 @@ import {
   type CaseInsertPresetAssignmentSnapshotIdentity,
   type CaseInsertPresetSnapshotObjectState,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
+import {
+  isCaseInsertPresetAggregateContentIdentity,
+} from '../caseInsert/presetAggregateIdentity.ts'
 import type { ProjectCaseInsertLayout } from '../project/projectTypes.ts'
 import { caseInsertTemplates } from '../templates/caseInsertTemplates.ts'
 import type { TemplateRect } from '../types/template.ts'
@@ -33,7 +36,7 @@ import {
 
 export const CASE_INSERT_PRESET_APPLY_PLAN_KIND =
   'sbls/case-insert-preset-apply-plan' as const
-export const CASE_INSERT_PRESET_APPLY_PLAN_FORMAT_VERSION = 1 as const
+export const CASE_INSERT_PRESET_APPLY_PLAN_FORMAT_VERSION = 2 as const
 
 export type CaseInsertPresetPlanOperation = 'apply'
 export type CaseInsertPresetPlanRequestedOperation =
@@ -264,6 +267,9 @@ export type CaseInsertPresetApplyPlan = Readonly<{
     projectRevision: number
     projectKind: 'caseInsert'
     template: Readonly<{ id: string; revision: null }>
+    aggregateContentIdentity: CaseInsertPresetAssignmentSnapshotIdentity[
+      'aggregateContentIdentity'
+    ]
     preset: Readonly<{ id: CaseInsertPresetId; revision: number }>
     scopeKey: string
     resolvedRegions: readonly CaseInsertPresetConcreteRegionId[]
@@ -302,6 +308,7 @@ export type CaseInsertPresetApplyPlanningResult =
         | 'project-revision'
         | 'template-id'
         | 'template-revision'
+        | 'aggregate-content'
       )[]
     }>
   | Readonly<{
@@ -474,7 +481,10 @@ function isSnapshotIdentity(
     identity.projectRevision >= 0 &&
     typeof template.id === 'string' &&
     template.id.trim().length > 0 &&
-    template.revision === null
+    template.revision === null &&
+    isCaseInsertPresetAggregateContentIdentity(
+      identity.aggregateContentIdentity,
+    )
 }
 
 function staleDimensions(
@@ -486,6 +496,7 @@ function staleDimensions(
     | 'project-revision'
     | 'template-id'
     | 'template-revision'
+    | 'aggregate-content'
   )[] = []
   if (actual.sessionId !== expected.sessionId) dimensions.push('session-id')
   if (actual.projectRevision !== expected.projectRevision) {
@@ -494,6 +505,9 @@ function staleDimensions(
   if (actual.template.id !== expected.template.id) dimensions.push('template-id')
   if (actual.template.revision !== expected.template.revision) {
     dimensions.push('template-revision')
+  }
+  if (actual.aggregateContentIdentity !== expected.aggregateContentIdentity) {
+    dimensions.push('aggregate-content')
   }
   return dimensions
 }
@@ -1085,6 +1099,8 @@ export function planCaseInsertPresetFirstApply(
         sessionId: value.snapshotIdentity.sessionId,
         projectRevision: value.snapshotIdentity.projectRevision,
         template: { ...value.snapshotIdentity.template },
+        aggregateContentIdentity:
+          value.snapshotIdentity.aggregateContentIdentity,
       },
     },
     assignments: buildAssignmentSummaries(
@@ -1110,6 +1126,8 @@ export function planCaseInsertPresetFirstApply(
       projectRevision: value.snapshotIdentity.projectRevision,
       projectKind: 'caseInsert',
       template: { ...value.snapshotIdentity.template },
+      aggregateContentIdentity:
+        value.snapshotIdentity.aggregateContentIdentity,
       preset: { id: value.preset.id, revision: value.preset.revision },
       scopeKey,
       resolvedRegions: [...value.resolvedRegions],

@@ -9,6 +9,9 @@ import {
 import { captureNormalizedProjectSnapshot } from '../lifecycle/canonicalProject.ts'
 import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
 import { createBlankJewelCaseSavedProject } from '../project/caseInsertProjectAdapters.ts'
+import {
+  createEmbeddedProjectImageAssetProvenance,
+} from '../project/projectAssetStatus.ts'
 import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
@@ -251,7 +254,28 @@ test('binds repeated objects only by stable ID and ignores array order', () => {
     reordered,
   ))
 
-  assert.deepEqual(reorderedResolution, firstResolution)
+  assert.deepEqual(
+    {
+      preset: reorderedResolution.preset,
+      requestedScope: reorderedResolution.requestedScope,
+      resolvedRegions: reorderedResolution.resolvedRegions,
+      assignments: reorderedResolution.assignments,
+      compatibilityStatus: reorderedResolution.compatibilityStatus,
+      compatibilityReasons: reorderedResolution.compatibilityReasons,
+    },
+    {
+      preset: firstResolution.preset,
+      requestedScope: firstResolution.requestedScope,
+      resolvedRegions: firstResolution.resolvedRegions,
+      assignments: firstResolution.assignments,
+      compatibilityStatus: firstResolution.compatibilityStatus,
+      compatibilityReasons: firstResolution.compatibilityReasons,
+    },
+  )
+  assert.notEqual(
+    reorderedResolution.snapshotIdentity.aggregateContentIdentity,
+    firstResolution.snapshotIdentity.aggregateContentIdentity,
+  )
   assert.equal(firstResolution.assignments[0]?.currentState?.id, 'cover-artwork-1')
   assert.equal(firstResolution.assignments[0]?.currentState?.label, 'Renamed target')
 })
@@ -310,6 +334,7 @@ test('distinguishes preserved disabled payload from an absent object', () => {
       { enabled: true },
     )
     slot.imageDataUrl = 'data:image/png;base64,AA=='
+    slot.imageSource = createEmbeddedProjectImageAssetProvenance(slot.label)
     templates.cover.additionalArtworkEnabled = false
     templates.cover.artworkSlots = [slot]
   })

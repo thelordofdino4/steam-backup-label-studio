@@ -2,6 +2,14 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import {
+  createCaseInsertPresetAttachedEndpoint,
+  createCaseInsertPresetUnattachedEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+import {
+  createCaseInsertPresetTransitionSuccessEvidence,
+} from './caseInsertPresetTransitionSuccessIdentity.ts'
+
 import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import {
@@ -40,11 +48,14 @@ import {
   applyCaseInsertPresetFirstTime,
   createCaseInsertPresetApplyReviewApproval,
   createCaseInsertPresetMaterialConsentAcceptance,
+  validateCaseInsertPresetApplyTransitionSuccess,
   type ApplyCaseInsertPresetFirstTimeInput,
   type CaseInsertPresetApplyTransitionResult,
   type CaseInsertPresetMaterialConsentAcceptance,
   type ImmutableProjectJewelCaseState,
 } from './caseInsertPresetApplyTransition.ts'
+
+type MutableRecord = Record<string, unknown>
 
 type AssignmentSpec = Readonly<{
   suffix: string
@@ -275,7 +286,7 @@ function approvedInput(
       },
       requestedScope: fixture.scope,
     },
-    attachment: { status: 'unattached' },
+    attachment: createCaseInsertPresetUnattachedEndpoint(),
     reviewApproval: createCaseInsertPresetApplyReviewApproval(fixture.plan),
     materialConsentAcceptances:
       acceptances as CaseInsertPresetMaterialConsentAcceptance[],
@@ -495,7 +506,7 @@ test('coordinated Complete Apply is aggregate-atomic and consent-complete', () =
   }
 })
 
-test('stable repeated-object addressing ignores array reorder', () => {
+test('semantic repeated-object order changes invalidate the planned source', () => {
   const repeatedId = 'cover-logo-2'
   const spec: AssignmentSpec = {
     suffix: 'front-repeated-artwork',
@@ -515,17 +526,15 @@ test('stable repeated-object addressing ignores array reorder', () => {
   const reordered = clone(fixture.aggregate)
   reordered.templates.cover.logoSlots.reverse()
   const first = applied(applyCaseInsertPresetFirstTime(approvedInput(fixture)))
-  const second = applied(applyCaseInsertPresetFirstTime(approvedInput(fixture, {
+  const second = failed(applyCaseInsertPresetFirstTime(approvedInput(fixture, {
     source: { ...approvedInput(fixture).source, aggregate: reordered },
-  })))
+  })), 'invalid-source-aggregate')
   const firstTarget = first.aggregate.templates.cover.logoSlots.find(
     ({ id }) => id === repeatedId,
   )!
-  const secondTarget = second.aggregate.templates.cover.logoSlots.find(
-    ({ id }) => id === repeatedId,
-  )!
-  assert.deepEqual(firstTarget.layout, secondTarget.layout)
-  assert.equal(second.aggregate.templates.cover.logoSlots[0]!.id, repeatedId)
+  assert.equal(firstTarget.id, repeatedId)
+  assert.equal(second.code, 'source-aggregate-identity-mismatch')
+  assert.equal('aggregate' in second, false)
 })
 
 test('missing and duplicate repeated targets fail closed without output', () => {
@@ -552,7 +561,7 @@ test('missing and duplicate repeated targets fail closed without output', () => 
   missing.templates.cover.logoSlots = []
   failed(applyCaseInsertPresetFirstTime(approvedInput(fixture, {
     source: { ...approvedInput(fixture).source, aggregate: missing },
-  })), 'target-missing')
+  })), 'invalid-source-aggregate')
   assert.deepEqual(fixture.aggregate, sourceBefore)
 
   const duplicate = clone(fixture.aggregate)
@@ -561,7 +570,7 @@ test('missing and duplicate repeated targets fail closed without output', () => 
   )
   failed(applyCaseInsertPresetFirstTime(approvedInput(fixture, {
     source: { ...approvedInput(fixture).source, aggregate: duplicate },
-  })), 'target-ambiguous')
+  })), 'invalid-source-aggregate')
 })
 
 test('disabled payloads and optional-target skips preserve all content', () => {
@@ -610,7 +619,7 @@ test('one changed precondition prevents every multi-region write', () => {
   const before = clone(changed)
   const result = failed(applyCaseInsertPresetFirstTime(approvedInput(fixture, {
     source: { ...approvedInput(fixture).source, aggregate: changed },
-  })), 'precondition-failed')
+  })), 'invalid-source-aggregate')
 
   assert.deepEqual(changed, before)
   assert.equal('aggregate' in result, false)
@@ -731,7 +740,7 @@ test('stale identities, source context, invalid aggregates, and attachment fail 
   }), 'precondition-failed')
   failed(applyCaseInsertPresetFirstTime({
     ...input,
-    attachment: { status: 'attached', configurationIdentity: 'existing' },
+    attachment: createCaseInsertPresetAttachedEndpoint('existing'),
   }), 'already-attached')
   failed(applyCaseInsertPresetFirstTime({
     ...input,
@@ -756,7 +765,7 @@ test('unsupported plan versions, operations, actions, and divergent writes fail 
   })
 
   const version = mutablePlanningResult(fixture.planningResult)
-  version.plan.formatVersion = 2
+  version.plan.formatVersion = 99
   failed(applyCaseInsertPresetFirstTime(approvedInput(fixture, {
     planningResult: deepFreeze(version) as unknown as
       CaseInsertPresetApplyPlanningResult,
@@ -795,7 +804,7 @@ test('a changed current semantic value after planning fails preflight', () => {
   textById(changed, 'cover', FRONT_TEXT.object.id).layout.x += 0.000000000001
   failed(applyCaseInsertPresetFirstTime(approvedInput(fixture, {
     source: { ...approvedInput(fixture).source, aggregate: changed },
-  })), 'precondition-failed')
+  })), 'invalid-source-aggregate')
 })
 
 test('semantic no-op Apply returns a detached attachment candidate without changes', () => {
@@ -863,6 +872,97 @@ test('configuration candidates are deterministic and retain coalesced provenance
     assert.equal(owned.sources.every(({ roleId, slotId, assignmentId }) =>
       Boolean(roleId && slotId && assignmentId)), true)
   }
+})
+
+test('strict Apply success validation binds aggregates, absence, configuration, lineage, and whole identity', () => {
+  const fixture = createFixture([FRONT_TEXT], {
+    kind: 'region', region: 'front-cover',
+  })
+  const success = applied(applyCaseInsertPresetFirstTime(approvedInput(fixture)))
+  const validated = validateCaseInsertPresetApplyTransitionSuccess(success)
+  assert.equal(validated.ok, true)
+  if (!validated.ok) return
+  assert.equal(validated.status, 'validated')
+  assert.notEqual(validated.success, success)
+  assert.equal(Object.isFrozen(validated.success), true)
+  assert.equal(validated.success.successEvidence.sourceAttachment.status,
+    'unattached')
+  assert.equal(validated.success.successEvidence.successorAttachment.status,
+    'attached')
+  assert.equal(validated.success.applicationAdoptionStatus, 'not-adopted')
+  assert.match(validated.success.successEvidence.wholeSuccessIdentity,
+    /^case:preset-transition-whole-success:v1:[0-9a-f]{64}$/)
+
+  const otherFixture = createFixture([FRONT_TEXT], {
+    kind: 'region', region: 'front-cover',
+  }, (aggregate) => {
+    textById(aggregate, 'cover', FRONT_TEXT.object.id).value = 'Other source'
+  })
+  const other = applied(applyCaseInsertPresetFirstTime(
+    approvedInput(otherFixture),
+  ))
+  const mutations: readonly ((value: MutableRecord) => void)[] = [
+    (value) => {
+      const source = value.sourceAggregate as ProjectJewelCaseState
+      textById(source, 'cover', FRONT_TEXT.object.id).value = 'Substituted source'
+    },
+    (value) => {
+      const aggregate = value.aggregate as ProjectJewelCaseState
+      textById(aggregate, 'cover', FRONT_TEXT.object.id).value = 'Substituted result'
+    },
+    (value) => {
+      value.successorConfiguration = structuredClone(other.successorConfiguration)
+    },
+    (value) => {
+      const evidence = value.successEvidence as MutableRecord
+      evidence.sourceAttachment = createCaseInsertPresetAttachedEndpoint(
+        success.successorConfiguration.configurationIdentity,
+      )
+    },
+    (value) => {
+      delete (value.successEvidence as MutableRecord).sourceAttachment
+    },
+    (value) => {
+      ;(value.successEvidence as MutableRecord).wholeSuccessIdentity =
+        'case:preset-transition-whole-success:v1:forged'
+    },
+    (value) => { value.transitionIdentity = 'case:preset-apply-transition:v2:forged' },
+    (value) => { value.applicationAdoptionStatus = 'adopted' },
+    (value) => { value.formatVersion = 99 },
+  ]
+  for (const mutate of mutations) {
+    const candidate = structuredClone(success) as unknown as MutableRecord
+    mutate(candidate)
+    const result = validateCaseInsertPresetApplyTransitionSuccess(candidate)
+    assert.equal(result.ok, false)
+    assert.equal('success' in result, false)
+    assert.equal(Object.isFrozen(result), true)
+  }
+
+  const forgedPlanReviewIdentity = 'case:preset-apply-review:v1:forged'
+  const reidentifiedEvidence = createCaseInsertPresetTransitionSuccessEvidence({
+    ...success.successEvidence,
+    lineage: {
+      ...success.successEvidence.lineage,
+      planReviewIdentity: forgedPlanReviewIdentity,
+    },
+  })
+  const reidentifiedLineage = structuredClone(success) as unknown as
+    MutableRecord
+  reidentifiedLineage.successEvidence = reidentifiedEvidence
+  reidentifiedLineage.transitionIdentity = reidentifiedEvidence.transitionIdentity
+  const reidentifiedResult = validateCaseInsertPresetApplyTransitionSuccess(
+    reidentifiedLineage,
+  )
+  assert.equal(reidentifiedResult.ok, false)
+  if (reidentifiedResult.ok) return
+  assert.equal(reidentifiedResult.code, 'apply-success-lineage-invalid')
+
+  const cyclic = structuredClone(success) as unknown as MutableRecord
+  cyclic.cycle = cyclic
+  const cycleResult = validateCaseInsertPresetApplyTransitionSuccess(cyclic)
+  assert.equal(cycleResult.ok, false)
+  assert.equal(cycleResult.code, 'cyclic-or-aliased-input')
 })
 
 test('content, provenance, style, unrelated regions, and caller inputs stay detached', () => {

@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import {
+  createCaseInsertPresetUnattachedEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+
+import {
   createDefaultCaseInsertImageSlot,
 } from '../caseInsert/defaults.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
@@ -270,7 +274,7 @@ function buildTransition(
       },
       requestedScope: scope,
     },
-    attachment: { status: 'unattached' },
+    attachment: createCaseInsertPresetUnattachedEndpoint(),
     reviewApproval: createCaseInsertPresetApplyReviewApproval(
       planningResult.plan,
     ),

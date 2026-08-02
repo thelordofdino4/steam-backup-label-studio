@@ -40,7 +40,7 @@ type DetachPlanContentIdentityInput = Readonly<{
 
 export const CASE_INSERT_PRESET_DETACH_PLAN_KIND =
   'sbls/case-insert-preset-detach-plan' as const
-export const CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION = 1 as const
+export const CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION = 2 as const
 export const CASE_INSERT_PRESET_DETACH_OWNERSHIP_PROJECTION_KIND =
   'sbls/case-insert-preset-detach-ownership-projection' as const
 
@@ -51,15 +51,17 @@ export const CASE_INSERT_PRESET_DETACH_PRESERVATION_IDENTITY_PREFIX =
 export const CASE_INSERT_PRESET_DETACH_WARNING_IDENTITY_PREFIX =
   'case:preset-detach-warning:v1:' as const
 export const CASE_INSERT_PRESET_DETACH_REVIEW_IDENTITY_PREFIX =
-  'case:preset-detach-review:v1:' as const
+  'case:preset-detach-review:v2:' as const
 export const CASE_INSERT_PRESET_DETACH_PLAN_IDENTITY_PREFIX =
-  'case:preset-detach-plan:v1:' as const
+  'case:preset-detach-plan:v2:' as const
 export const CASE_INSERT_PRESET_DETACH_REVIEW_ACCEPTANCE_IDENTITY_PREFIX =
   'case:preset-detach-review-acceptance:v1:' as const
 export const CASE_INSERT_PRESET_DETACH_CONSENT_ACCEPTANCE_IDENTITY_PREFIX =
   'case:preset-detach-consent-acceptance:v1:' as const
 export const CASE_INSERT_PRESET_DETACH_TRANSITION_IDENTITY_PREFIX =
   'case:preset-detach-transition:v1:' as const
+export const CASE_INSERT_PRESET_DETACH_CONFIGURATION_RELEASE_IDENTITY_PREFIX =
+  'case:preset-detach-configuration-release:v1:' as const
 
 const REGION_ORDER = new Map([
   ['front-cover', 0],
@@ -232,5 +234,13 @@ export function createCaseInsertPresetDetachTransitionIdentity(
 ) {
   return `${CASE_INSERT_PRESET_DETACH_TRANSITION_IDENTITY_PREFIX}${
     encodeCaseInsertPresetDeterministicIdentity(cloneValue(transition))
+  }`
+}
+
+export function createCaseInsertPresetDetachConfigurationReleaseIdentity(
+  release: Readonly<Record<string, unknown>>,
+) {
+  return `${CASE_INSERT_PRESET_DETACH_CONFIGURATION_RELEASE_IDENTITY_PREFIX}${
+    encodeCaseInsertPresetDeterministicIdentity(cloneValue(release))
   }`
 }

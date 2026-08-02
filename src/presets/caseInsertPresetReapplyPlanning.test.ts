@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import {
+  createCaseInsertPresetUnattachedEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+
 import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import {
@@ -160,7 +164,7 @@ function buildFixture(options: Readonly<{
       },
       requestedScope: scope,
     },
-    attachment: { status: 'unattached' },
+    attachment: createCaseInsertPresetUnattachedEndpoint(),
     reviewApproval: createCaseInsertPresetApplyReviewApproval(planning.plan),
     materialConsentAcceptances:
       materialConsentAcceptances as CaseInsertPresetMaterialConsentAcceptance[],
@@ -681,7 +685,12 @@ test('repeated stable IDs ignore reorder, preserve disabled state, and fail ambi
   })
   const orderedPlan = successful(ordered.input).plan
   const reorderedPlan = successful(reordered.input).plan
-  assert.equal(orderedPlan.reviewIdentity, reorderedPlan.reviewIdentity)
+  assert.deepEqual(orderedPlan.fieldEffects, reorderedPlan.fieldEffects)
+  assert.notEqual(
+    orderedPlan.preconditions.aggregateContentIdentity,
+    reorderedPlan.preconditions.aggregateContentIdentity,
+  )
+  assert.notEqual(orderedPlan.reviewIdentity, reorderedPlan.reviewIdentity)
   assert.equal(reorderedPlan.fieldEffects.every(({ address, enablement }) =>
     address.runtimeObjectId === 'case:user-artwork:target' &&
     !enablement.objectEnabled && !enablement.effectiveEnabled), true)

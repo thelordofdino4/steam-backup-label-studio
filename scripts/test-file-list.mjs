@@ -138,6 +138,7 @@ export const testFiles = [
   'src/editor/discPresetScaleControlRange.test.ts',
   'src/editor/repeatedArtwork.test.ts',
   'src/caseInsert/backCoverCopyFit.test.ts',
+  'src/caseInsert/presetAggregateIdentity.test.ts',
   'src/caseInsert/brandingLogoSlots.test.ts',
   'src/caseInsert/brandingMarkTargetSources.test.ts',
   'src/caseInsert/brandingSupplementalUsk.test.ts',

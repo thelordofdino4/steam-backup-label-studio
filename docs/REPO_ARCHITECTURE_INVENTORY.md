@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #345 merge commit `13c0cbff4f7658a3f926b6a994973ce29082d55d` plus the focused pure Detach-transition checkpoint on 2026-08-02.
+> Case preset ownership refresh: PR #347 merge commit `ec9243ea1f42d97d9476bfe05160e933c746510f` plus the focused pure transition-evidence amendment on 2026-08-02.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -954,7 +954,15 @@ consent set, and the complete current compare-and-swap context before any output
 construction. It returns an unchanged-semantic deeply frozen aggregate plus
 authoritative deterministic release evidence, or neither; it performs zero
 aggregate writes, returns no next configuration, and records that application
-adoption has not occurred. No installed attachment/release-adoption owner,
+adoption has not occurred. Assignment snapshots and all three operation plans
+now bind a distinct deterministic identity for the complete normalized Case
+aggregate. Successful transitions retain detached source/result aggregates,
+exact aggregate identities, canonical source/successor attachment endpoints,
+operation/context/plan/review/consent lineage, an operation-discriminated
+transition identity, one whole-success identity, and explicit non-adoption.
+Strict public validators recompute the entire operation-specific bundle and
+reject substituted aggregates, configurations, endpoints, releases, lineage,
+or mixed authentic fragments. No installed attachment/release-adoption owner,
 lifecycle application transaction, schema, UI, or menu connection exists.
 
 `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` is now the pure
@@ -965,14 +973,13 @@ replace, and Detach release edges, provides a pure fail-closed attachment-edge
 classifier, and defines operation-discriminated future result/receipt identity
 facts. It does not execute any transition or write an aggregate, attachment,
 project revision, store, lifecycle session, schema, persistence path, UI,
-catalog, or runtime.
-The model exposes no adoptable evidence type at this baseline: read-only source
-analysis proved all three current success bundles lack identities over the
-complete source and result aggregates and lack a public whole-success validator.
-Apply has additional transition/source-edge evidence gaps, while Reapply and
-Detach already prove their configuration endpoints more strongly. The next
-safe owner change belongs to the snapshot and transition evidence modules, not
-to `App.tsx`, the lifecycle store, or project schema.
+catalog, or runtime. Its strict audit now accepts authentic strengthened Apply,
+Reapply, and Detach successes only as opaque branded inert evidence with
+`applicationAdoptionStatus: not-adopted`. Legacy/incomplete shapes still fail as
+`aggregate-evidence-insufficient`. It returns no successor application snapshot
+or receipt and exports no adoption executor. The next safe owner is a separate
+pure atomic application-adoption transition, not `App.tsx`, the lifecycle store,
+or project schema.
 
 Key files:
 
@@ -1014,6 +1021,7 @@ Key files:
 - `src/presets/caseInsertPresetAssignmentResolution.ts`
 - `src/presets/caseInsertPresetApplyPlanning.ts`
 - `src/presets/caseInsertPresetApplyReviewIdentity.ts`
+- `src/presets/caseInsertPresetApplyCandidate.ts`
 - `src/presets/caseInsertPresetApplyTransition.ts`
 - `src/presets/caseInsertPresetAppliedConfiguration.ts`
 - `src/presets/caseInsertPresetReapplyPlanning.ts`
@@ -1023,8 +1031,13 @@ Key files:
 - `src/presets/caseInsertPresetDetachIdentity.ts`
 - `src/presets/caseInsertPresetDetachPlanning.ts`
 - `src/presets/caseInsertPresetDetachTransition.ts`
+- `src/presets/caseInsertPresetAttachmentEndpoint.ts`
+- `src/presets/caseInsertPresetIdentityDigest.ts`
+- `src/presets/caseInsertPresetSafeInput.ts`
+- `src/presets/caseInsertPresetTransitionSuccessIdentity.ts`
 - `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
+- `src/caseInsert/presetAggregateIdentity.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
@@ -1147,10 +1160,17 @@ Risks:
   ownership release, zero aggregate writes, no next configuration, and explicit
   non-adoption; failure returns neither. It does not rerun the planner,
   customization detector, resolver, compatibility, catalog, Apply/Reapply, or
-  aggregate writer. These pure owners have no
+  aggregate writer. The assignment snapshot separately identifies its complete
+  normalized Case aggregate content, and the three transition successes bind
+  exact source/result aggregates, configuration/release endpoints, context and
+  lineage in operation-discriminated transition and whole-success identities.
+  Strict validators return only complete detached immutable successes; the
+  adoption-model audit converts them only into opaque inert `not-adopted`
+  evidence and rejects legacy/incomplete evidence. These pure owners have no
   React/store, renderer, filesystem, Tauri, persistence, or commit dependency.
-  No runtime Case preset mutation/attachment owner exists in current source.
-  Detach attachment/release adoption, persistence/schema, UI, lifecycle/store
+  No runtime Case preset mutation/attachment owner or adoption executor exists
+  in current source. Apply/Reapply/Detach attachment/release adoption,
+  persistence/schema, UI, lifecycle/store
   commit, and runtime application remain absent. The production Case catalog
   remains empty.
 
@@ -1830,12 +1850,16 @@ Current `npm run test` covers these broad areas:
 - The pure Case preset pipeline from definition/catalog/compatibility through
   stable assignment resolution, first-time Apply planning/transition,
   authoritative configuration/customization detection, and same-ID exact-
-  revision Reapply planning plus pure atomic execution, including explicit
+  revision Reapply planning plus pure atomic execution and Detach planning/
+  transition, including explicit
   overwrite/preserve policies,
   exact field preconditions, retained/new/retired/moved footprint effects,
   repeated-ID determinism, exact review/consent acceptance, strict compare-and-
   swap preflight, coherent detached aggregate/configuration output, and typed
-  fail-closed outcomes.
+  fail-closed outcomes; plus content-complete aggregate identities, exact
+  attachment endpoints, operation-discriminated transition/whole-success
+  validation, fragment-substitution rejection, and opaque inert non-adopted
+  evidence without an adoption executor.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
 - The runtime-connected application lifecycle composition root, state store,
   command registry/dispatcher, busy coordinator, typed command ports,

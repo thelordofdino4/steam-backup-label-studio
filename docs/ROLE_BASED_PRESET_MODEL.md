@@ -3,7 +3,7 @@
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against commit: `13c0cbff4f7658a3f926b6a994973ce29082d55d` plus the current unstaged pure Case Detach-transition slice.
+> Last reviewed against commit: `ec9243ea1f42d97d9476bfe05160e933c746510f` plus the current unstaged pure Case transition-evidence amendment.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
@@ -990,15 +990,28 @@ source, replayed, or tombstone attachment edges, while operation-discriminated
 future results and receipts prevent an operation from naming the wrong
 attachment action or successor-state shape.
 
-No current transition success is independently adoptable yet. Its identities
-do not bind both complete source and result Case aggregates, and no public
-whole-success validator exists. The model therefore exposes no executor and
-fails Apply, Reapply, and Detach evidence candidates as aggregate-evidence
-insufficient. A narrow antecedent evidence amendment must add content-complete
-source/result aggregate identities, exact configuration endpoints, one outer
-bundle identity, and strict whole-success validators before the pure atomic
-application-adoption transition can be implemented. Persistence, schema,
-save/load, store, UI, catalog entries, and runtime remain later work.
+The antecedent transition-evidence amendment is now implemented. The assignment
+snapshot keeps its session/revision/template context identity distinct from one
+deterministic identity for the complete normalized Case aggregate. That content
+identity covers every Cover, Tray, left/right Spine, mirror, export, owner,
+enablement, stable-ID, payload/provenance, text/style, layout, and semantic array
+fact; record key order is canonical while semantic array order is preserved.
+Apply binds canonical source absence to one exact successor configuration.
+Reapply binds exact source/result aggregates and source/successor configurations.
+Detach proves its returned unchanged-semantic clone has the same complete
+identity as the checked source, binds the exact source configuration/release,
+and names canonical successor absence.
+
+All three successes now carry exact context/plan/review/consent lineage, an
+operation-discriminated transition identity, one whole-success identity, and
+`applicationAdoptionStatus: not-adopted`. Strict validators recompute complete
+aggregates, endpoints, nested identities, and whole-success coherence and reject
+aggregate/configuration substitution or authentic fragments mixed across
+executions. The adoption model can return only opaque branded inert evidence;
+it produces no successor application snapshot or receipt and exposes no
+executor. Legacy/incomplete evidence remains `aggregate-evidence-insufficient`.
+Persistence, schema, save/load, store, UI, catalog entries, and runtime remain
+later work, and the production Case catalog remains empty.
 
 Deferred areas:
 

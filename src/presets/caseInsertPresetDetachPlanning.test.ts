@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import {
+  createCaseInsertPresetUnattachedEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+
 import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import {
@@ -177,7 +181,7 @@ function buildFixture(options: Readonly<{
       preset: { id: definition.id, revision: definition.revision },
       requestedScope,
     },
-    attachment: { status: 'unattached' },
+    attachment: createCaseInsertPresetUnattachedEndpoint(),
     reviewApproval: createCaseInsertPresetApplyReviewApproval(planning.plan),
     materialConsentAcceptances:
       acceptances as CaseInsertPresetMaterialConsentAcceptance[],
@@ -654,8 +658,12 @@ test('repeated stable-ID lookup ignores array order, preserves disabled payload,
   })
   const first = successful(ordered.input).plan
   const second = successful(reordered.input).plan
-  assert.equal(first.reviewIdentity, second.reviewIdentity)
-  assert.equal(first.planIdentity, second.planIdentity)
+  assert.notEqual(first.reviewIdentity, second.reviewIdentity)
+  assert.notEqual(first.planIdentity, second.planIdentity)
+  assert.notEqual(
+    first.preconditions.aggregateContentIdentity,
+    second.preconditions.aggregateContentIdentity,
+  )
   assert.equal(second.releaseFootprint.every(({ address, enablement }) =>
     address.runtimeObjectId === 'case:user-artwork:target' &&
     address.bindingKind === 'repeated' && !enablement.objectEnabled &&

@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import {
+  createCaseInsertPresetUnattachedEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+
+import {
   createDefaultCaseInsertImageSlot,
 } from '../caseInsert/defaults.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
@@ -50,6 +54,7 @@ import {
   createCaseInsertPresetReapplyConsentAcceptance,
   createCaseInsertPresetReapplyReviewAcceptance,
   transitionCaseInsertPresetReapply,
+  validateCaseInsertPresetReapplyTransitionSuccess,
   type TransitionCaseInsertPresetReapplyInput,
 } from './caseInsertPresetReapplyTransition.ts'
 import {
@@ -59,6 +64,7 @@ import {
 } from './caseInsertPresetTestFixtures.ts'
 
 type MutableDefinition = ReturnType<typeof createMinimalCaseInsertPresetDefinition>
+type MutableRecord = Record<string, unknown>
 type Fixture = Readonly<{
   definition: CaseInsertPresetDefinitionV1
   configuration: CaseInsertAppliedPresetConfiguration
@@ -142,7 +148,7 @@ function buildFixture(options: Readonly<{
       preset: { id: definition.id, revision: definition.revision },
       requestedScope: scope,
     },
-    attachment: { status: 'unattached' },
+    attachment: createCaseInsertPresetUnattachedEndpoint(),
     reviewApproval: createCaseInsertPresetApplyReviewApproval(applyPlan.plan),
     materialConsentAcceptances:
       applyConsents as CaseInsertPresetMaterialConsentAcceptance[],
@@ -384,7 +390,7 @@ test('exact review acceptance is mandatory and stale, generic, or another-plan r
     ...input,
     reviewAcceptance: {
       ...structuredClone(input.reviewAcceptance),
-      planReviewIdentity: 'case:preset-reapply-review:v1:stale',
+      planReviewIdentity: 'case:preset-reapply-review:v2:stale',
     },
   }), 'review-mismatch')
   const other = planFor(
@@ -610,19 +616,15 @@ test('fixed text width, Back Panel versus Tray, independent spines, and disabled
       id === target.id)!.layout.x)
   const reorderedAggregate = structuredClone(repeatedInput.current.aggregate)
   reorderedAggregate.templates.cover.artworkSlots.reverse()
-  const reorderedResult = successful(deepFreeze({
+  const reorderedResult = failed(deepFreeze({
     ...repeatedInput,
     current: {
       ...structuredClone(repeatedInput.current),
       aggregate: normalizeProjectJewelCaseState(reorderedAggregate),
     },
-  }))
-  assert.equal(
-    reorderedResult.nextConfiguration.configurationIdentity,
-    repeatedResult.nextConfiguration.configurationIdentity,
-  )
-  assert.equal(reorderedResult.aggregate.templates.cover.artworkSlots.find(
-    ({ id }) => id === 'case:user-artwork:target')!.layout.x, target.layout.x)
+  }), 'attachment-context-mismatch')
+  assert.equal(reorderedResult.code, 'current-aggregate-identity-mismatch')
+  assert.equal('aggregate' in reorderedResult, false)
 })
 
 test('strict CAS rejects session, revision, template, retained value, and target changes before any output', () => {
@@ -652,13 +654,13 @@ test('strict CAS rejects session, revision, template, retained value, and target
   failed(deepFreeze({
     ...base,
     current: { ...structuredClone(base.current), aggregate: changed },
-  }), 'stale-reapply-plan')
+  }), 'attachment-context-mismatch')
   const missing = structuredClone(base.current.aggregate)
   missing.templates.cover.background.id = 'case:cover:missing-background'
   failed(deepFreeze({
     ...base,
     current: { ...structuredClone(base.current), aggregate: missing },
-  }), 'target-missing')
+  }), 'attachment-context-mismatch')
 })
 
 test('duplicate stable targets fail ambiguous and caller consent order is deterministic', () => {
@@ -724,7 +726,7 @@ test('duplicate stable targets fail ambiguous and caller consent order is determ
       ...structuredClone(duplicatedInput.current),
       aggregate: normalizeProjectJewelCaseState(ambiguous),
     },
-  }), 'target-ambiguous')
+  }), 'attachment-context-mismatch')
 })
 
 test('unsupported and forged plan/configuration/report authorities fail without a partial pair', () => {
@@ -732,7 +734,7 @@ test('unsupported and forged plan/configuration/report authorities fail without 
   const plan = planFor(fixture)
   const input = inputFor(fixture, plan)
   const unsupportedPlan = structuredClone(plan) as Record<string, unknown>
-  unsupportedPlan.formatVersion = 2
+  unsupportedPlan.formatVersion = 99
   failed(deepFreeze({ ...input, plan: unsupportedPlan }) as never,
     'unsupported-plan-version')
   const forgedPlan = structuredClone(plan)
@@ -844,6 +846,78 @@ test('v2 configuration remains authoritative for later detection, planning, and 
     first.nextConfiguration.configurationIdentity)
 })
 
+test('strict Reapply success validation rejects aggregate, configuration, endpoint, lineage, and mixed-success substitution', () => {
+  const fixture = buildFixture()
+  const success = successful(inputFor(fixture, planFor(fixture)))
+  const validated = validateCaseInsertPresetReapplyTransitionSuccess(success)
+  assert.equal(validated.ok, true)
+  if (!validated.ok) return
+  assert.equal(validated.status, 'validated')
+  assert.notEqual(validated.success, success)
+  assert.equal(Object.isFrozen(validated.success), true)
+  assert.equal(validated.success.successEvidence.sourceAttachment.status,
+    'attached')
+  assert.equal(validated.success.successEvidence.successorAttachment.status,
+    'attached')
+  assert.notEqual(
+    validated.success.sourceConfiguration.configurationIdentity,
+    validated.success.nextConfiguration.configurationIdentity,
+  )
+  assert.equal(validated.success.applicationAdoptionStatus, 'not-adopted')
+
+  const otherFixture = buildFixture({
+    mutateSource: (aggregate) => {
+      aggregate.templates.cover.background.layout.rotation = 1
+    },
+  })
+  const other = successful(inputFor(otherFixture, planFor(otherFixture)))
+  const mutations: readonly ((value: MutableRecord) => void)[] = [
+    (value) => {
+      const aggregate = value.sourceAggregate as ProjectJewelCaseState
+      aggregate.templates.cover.background.layout.x += 1
+    },
+    (value) => {
+      const aggregate = value.aggregate as ProjectJewelCaseState
+      aggregate.templates.cover.background.layout.y += 1
+    },
+    (value) => {
+      value.sourceConfiguration = structuredClone(other.sourceConfiguration)
+    },
+    (value) => {
+      value.nextConfiguration = structuredClone(other.nextConfiguration)
+    },
+    (value) => {
+      value.nextConfiguration = structuredClone(value.sourceConfiguration)
+    },
+    (value) => {
+      const evidence = value.successEvidence as MutableRecord
+      const context = evidence.context as MutableRecord
+      context.sessionId = 'mixed-session'
+    },
+    (value) => {
+      const evidence = value.successEvidence as MutableRecord
+      evidence.sourceAttachment = structuredClone(
+        other.successEvidence.sourceAttachment,
+      )
+    },
+    (value) => {
+      ;(value.successEvidence as MutableRecord).wholeSuccessIdentity =
+        other.successEvidence.wholeSuccessIdentity
+    },
+    (value) => { value.transitionIdentity = other.transitionIdentity },
+    (value) => { value.applicationAdoptionStatus = 'adopted' },
+    (value) => { value.formatVersion = 99 },
+  ]
+  for (const mutate of mutations) {
+    const candidate = structuredClone(success) as unknown as MutableRecord
+    mutate(candidate)
+    const result = validateCaseInsertPresetReapplyTransitionSuccess(candidate)
+    assert.equal(result.ok, false)
+    assert.equal('success' in result, false)
+    assert.equal(Object.isFrozen(result), true)
+  }
+})
+
 test('preserve, overwrite, new-claim, and retired field changes all invalidate the CAS', () => {
   const customized = buildFixture({
     mutateCurrent: (aggregate) => {
@@ -869,7 +943,7 @@ test('preserve, overwrite, new-claim, and retired field changes all invalidate t
     failed(deepFreeze({
       ...input,
       current: { ...structuredClone(input.current), aggregate: changed },
-    }), 'stale-reapply-plan')
+    }), 'attachment-context-mismatch')
   }
 
   const clean = buildFixture()
@@ -890,7 +964,7 @@ test('preserve, overwrite, new-claim, and retired field changes all invalidate t
       ...structuredClone(input.current),
       aggregate: changedRetired,
     },
-  }), 'stale-reapply-plan')
+  }), 'attachment-context-mismatch')
   const changedClaim = structuredClone(input.current.aggregate)
   changedClaim.templates.cover.titleArtwork.layout.y += 1
   failed(deepFreeze({
@@ -899,7 +973,7 @@ test('preserve, overwrite, new-claim, and retired field changes all invalidate t
       ...structuredClone(input.current),
       aggregate: changedClaim,
     },
-  }), 'stale-reapply-plan')
+  }), 'attachment-context-mismatch')
 })
 
 test('transition has no planner, detector, resolver, compatibility, catalog, renderer, persistence, UI, or runtime execution dependency', () => {

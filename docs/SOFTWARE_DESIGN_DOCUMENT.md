@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #345 merge commit `13c0cbff4f7658a3f926b6a994973ce29082d55d` plus the focused pure Detach-transition checkpoint on 2026-08-02.
+> Case preset ownership refresh: PR #347 merge commit `ec9243ea1f42d97d9476bfe05160e933c746510f` plus the focused pure transition-evidence amendment on 2026-08-02.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -1451,7 +1451,8 @@ through an empty user-ready catalog, validates the five concrete-region/basis
 pairings and trusted owner/object identities, and evaluates supplied template,
 scope, owner, and repeated-object capabilities without project mutation.
 `src/caseInsert/presetAssignmentSnapshot.ts` detaches the lifecycle-owned
-normalized Case aggregate and exposes fixed and repeated owner bindings;
+normalized Case aggregate, carries a distinct deterministic identity of that
+complete content, and exposes fixed and repeated owner bindings;
 `src/presets/caseInsertPresetAssignmentResolution.ts` reuses catalog and
 compatibility authority, expands explicit scopes to concrete regions, and
 returns deterministic immutable current binding facts with typed disabled,
@@ -1575,24 +1576,43 @@ successor snapshot rather than separate aggregate and configuration commits.
 Operation-discriminated result/receipt types prevent an Apply, Reapply, or
 Detach success from naming the wrong attachment action or attachment-state
 shape, and a private coherence proof keeps future success structurally
-uninhabitable until the whole-success validator and executor exist. The module
-also defines legal attach/replace/release relationships, a
-pure fail-closed attachment-edge classifier, future receipt/identity vocabulary,
+uninhabitable until a future executor performs the still-current compare-and-
+swap. The module also defines legal attach/replace/release relationships, a pure
+fail-closed attachment-edge classifier, future receipt/identity vocabulary,
 strict hostile-input validation, and no executor.
 
-Its evidence audit deliberately blocks the next transition. Current Apply has
-no transition identity or retained source-attachment edge; Reapply does not
-bind its complete source/result aggregates or final configuration identity in
-its transition identity; and Detach discards the complete checked source
-snapshot while its release/transition identity does not bind the separately
-cloned aggregate. The assignment snapshot identity itself names only session,
-project revision, and template, not aggregate content. All current transition
-successes therefore classify as `aggregate-evidence-insufficient`. Before an
-application-adoption transition is safe, the transition owners must expose
-content-complete source/result aggregate identities, exact configuration
-endpoints, one outer bundle identity, and public whole-success validators.
-No store, lifecycle, schema, persistence, save/load, UI, catalog, or runtime
-state changed at this checkpoint.
+`src/caseInsert/presetAggregateIdentity.ts` now validates one complete
+normalized `ProjectJewelCaseState` and gives equivalent detached clones the same
+content identity. Its deterministic typed encoder canonicalizes record property
+order while preserving semantic array membership/order and covers all Cover,
+Tray, left/right Spine, mirror, export, enablement, payload/provenance, stable-ID,
+style, and layout state. Partial, non-normalized, Disc/cross-domain, malformed,
+hostile, and cyclic structures fail closed. The assignment snapshot keeps its
+session/revision/template context identity distinct from this aggregate-content
+identity; neither is a configuration, transition, or whole-success identity.
+
+Apply, Reapply, and Detach successes now retain complete detached source/result
+aggregates and their content identities. Shared pure endpoint/evidence owners
+bind canonical source absence to Apply's exact successor configuration, bind
+Reapply's exact source and distinct successor configurations, and bind Detach's
+exact source configuration/release to canonical successor absence. Detach's
+returned clone must recompute to the checked source aggregate identity. Each
+success carries operation/context/plan/review/consent lineage, an operation-
+discriminated transition identity, explicit
+`applicationAdoptionStatus: not-adopted`, and one deterministic whole-success
+identity. Public operation-specific validators accept `unknown`, safely detach
+hostile input, validate complete aggregates/configurations/endpoints/releases,
+recompute nested and whole identities, and return no partial evidence on
+failure. Substituted aggregates/configurations and independently authentic
+fragments from different successes therefore cannot validate.
+
+The adoption-model audit can convert an authentic validated Apply, Reapply, or
+Detach success only into an opaque branded `validated-inert-evidence` value.
+Legacy/incomplete transition shapes still fail as
+`aggregate-evidence-insufficient`. No successor application snapshot, adopted
+status, receipt, executor, aggregate write, configuration attachment/release,
+store, lifecycle, schema, persistence, save/load, UI, catalog entry, or runtime
+state is produced at this checkpoint. The production Case catalog remains empty.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -1899,6 +1919,12 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/hooks/useJewelCaseSpineSteamBannerEditor.ts`
 - `src/hooks/useCaseInsertBrandingMarkSync.ts`
 - `src/caseInsert/*.ts`
+- `src/caseInsert/presetAggregateIdentity.ts`
+- `src/presets/caseInsertPresetApplyTransition.ts`
+- `src/presets/caseInsertPresetReapplyTransition.ts`
+- `src/presets/caseInsertPresetDetachTransition.ts`
+- `src/presets/caseInsertPresetTransitionSuccessIdentity.ts`
+- `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
 - `src/layout/layoutRangeMath.ts`
@@ -1956,6 +1982,10 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Focused tests cover split cover/tray and spine action modules, branding mark
   source projection, image-slot source import/application, project persistence,
   and case insert text layout/wrapping helpers.
+- Case preset evidence tests cover full-aggregate identity completeness,
+  operation-specific whole-success validation, aggregate/configuration/endpoint
+  substitution, mixed authentic fragments, hostile input, immutable inert
+  evidence, legacy rejection, and absence of an adoption executor.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks

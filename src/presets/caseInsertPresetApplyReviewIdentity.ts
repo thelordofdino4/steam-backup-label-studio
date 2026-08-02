@@ -52,6 +52,7 @@ type ReviewablePlan = Readonly<{
       sessionId: string
       projectRevision: number
       template: Readonly<{ id: string; revision: number | null }>
+      aggregateContentIdentity: string
     }>
   }>
   assignments: readonly Readonly<{
@@ -170,6 +171,7 @@ type ReviewablePlan = Readonly<{
     projectRevision: number
     projectKind: string
     template: Readonly<{ id: string; revision: number | null }>
+    aggregateContentIdentity: string
     preset: Readonly<{ id: string; revision: number }>
     scopeKey: string
     resolvedRegions: readonly string[]
@@ -409,6 +411,7 @@ export function createCaseInsertPresetApplyPlanReviewIdentity(
       plan.source.snapshotIdentity.projectRevision,
       plan.source.snapshotIdentity.template.id,
       plan.source.snapshotIdentity.template.revision,
+      plan.source.snapshotIdentity.aggregateContentIdentity,
     ]),
     tuple('assignments', assignments),
     tuple('field-actions', fieldActions),
@@ -429,6 +432,7 @@ export function createCaseInsertPresetApplyPlanReviewIdentity(
       plan.preconditions.projectKind,
       plan.preconditions.template.id,
       plan.preconditions.template.revision,
+      plan.preconditions.aggregateContentIdentity,
       plan.preconditions.preset.id,
       plan.preconditions.preset.revision,
       plan.preconditions.scopeKey,
