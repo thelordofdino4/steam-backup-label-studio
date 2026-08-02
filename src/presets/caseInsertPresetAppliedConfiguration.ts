@@ -270,33 +270,56 @@ function cloneMutable<T>(value: T): T {
   ) as T
 }
 
-function deepFreeze<T>(value: T): T {
+function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
   if (value === null || typeof value !== 'object') return value
+  if (seen.has(value)) return value
+  seen.add(value)
   for (const child of Object.values(value as Record<string, unknown>)) {
-    deepFreeze(child)
+    deepFreeze(child, seen)
   }
   return Object.freeze(value)
 }
 
-function isDeeplyFrozen(value: unknown): boolean {
+function isDeeplyFrozen(
+  value: unknown,
+  seen = new WeakSet<object>(),
+): boolean {
   if (value === null || typeof value !== 'object') return true
-  return Object.isFrozen(value) && Object.values(value).every(isDeeplyFrozen)
+  if (seen.has(value)) return true
+  seen.add(value)
+  return Object.isFrozen(value) && Object.values(value).every((child) =>
+    isDeeplyFrozen(child, seen))
 }
 
-function sameValue(left: unknown, right: unknown): boolean {
+function sameValue(
+  left: unknown,
+  right: unknown,
+  seen = new WeakMap<object, WeakSet<object>>(),
+): boolean {
   if (left === right) return true
   if (Array.isArray(left) || Array.isArray(right)) {
-    return Array.isArray(left) && Array.isArray(right) &&
-      left.length === right.length &&
-      left.every((value, index) => sameValue(value, right[index]))
+    if (!Array.isArray(left) || !Array.isArray(right) ||
+        left.length !== right.length) return false
+  } else if (!isRecord(left) || !isRecord(right)) {
+    return false
   }
-  if (!isRecord(left) || !isRecord(right)) return false
-  const leftKeys = Object.keys(left)
-  const rightKeys = Object.keys(right)
+  const leftObject = left as object
+  const rightObject = right as object
+  const comparedRights = seen.get(leftObject) ?? new WeakSet<object>()
+  if (comparedRights.has(rightObject)) return true
+  comparedRights.add(rightObject)
+  seen.set(leftObject, comparedRights)
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.every((value, index) => sameValue(value, right[index], seen))
+  }
+  const leftRecord = left as Record<string, unknown>
+  const rightRecord = right as Record<string, unknown>
+  const leftKeys = Object.keys(leftRecord)
+  const rightKeys = Object.keys(rightRecord)
   return leftKeys.length === rightKeys.length &&
     leftKeys.every((key) =>
-      Object.prototype.hasOwnProperty.call(right, key) &&
-      sameValue(left[key], right[key]))
+      Object.prototype.hasOwnProperty.call(rightRecord, key) &&
+      sameValue(leftRecord[key], rightRecord[key], seen))
 }
 
 function validationFailure(
@@ -445,6 +468,65 @@ function ownedFieldSort(
     left.address.featureOwnerId.localeCompare(right.address.featureOwnerId) ||
     left.address.runtimeObjectId.localeCompare(right.address.runtimeObjectId) ||
     FIELD_ORDER.get(left.address.fieldId)! - FIELD_ORDER.get(right.address.fieldId)!
+}
+
+function recordString(value: unknown, key: string) {
+  return isRecord(value) && typeof value[key] === 'string' ? value[key] : ''
+}
+
+/**
+ * Detaches and canonicalizes caller ordering before strict configuration
+ * validation. It does not repair values or make an invalid configuration valid.
+ */
+export function canonicalizeCaseInsertAppliedPresetConfigurationOrdering(
+  value: unknown,
+) {
+  let canonical: unknown
+  try {
+    canonical = structuredClone(value)
+  } catch {
+    return value
+  }
+  if (!isRecord(canonical) || !Array.isArray(canonical.ownedFields)) {
+    return deepFreeze(canonical)
+  }
+  for (const field of canonical.ownedFields) {
+    if (!isRecord(field) || !Array.isArray(field.sources)) continue
+    field.sources.sort((left, right) =>
+      (REGION_ORDER.get(recordString(left, 'region') as
+        CaseInsertPresetConcreteRegionId) ?? 99) -
+        (REGION_ORDER.get(recordString(right, 'region') as
+          CaseInsertPresetConcreteRegionId) ?? 99) ||
+      recordString(left, 'slotId').localeCompare(recordString(right, 'slotId')) ||
+      recordString(left, 'assignmentId').localeCompare(
+        recordString(right, 'assignmentId'),
+      ))
+  }
+  canonical.ownedFields.sort((left, right) => {
+    const leftAddress = isRecord(left) ? left.address : null
+    const rightAddress = isRecord(right) ? right.address : null
+    return (REGION_ORDER.get(recordString(leftAddress, 'region') as
+      CaseInsertPresetConcreteRegionId) ?? 99) -
+        (REGION_ORDER.get(recordString(rightAddress, 'region') as
+          CaseInsertPresetConcreteRegionId) ?? 99) ||
+      recordString(leftAddress, 'featureOwnerId').localeCompare(
+        recordString(rightAddress, 'featureOwnerId'),
+      ) ||
+      recordString(leftAddress, 'runtimeObjectId').localeCompare(
+        recordString(rightAddress, 'runtimeObjectId'),
+      ) ||
+      (FIELD_ORDER.get(recordString(leftAddress, 'fieldId') as
+        CaseInsertPresetPlanFieldId) ?? 99) -
+        (FIELD_ORDER.get(recordString(rightAddress, 'fieldId') as
+          CaseInsertPresetPlanFieldId) ?? 99) ||
+      recordString(leftAddress, 'bindingKind').localeCompare(
+        recordString(rightAddress, 'bindingKind'),
+      ) ||
+      recordString(leftAddress, 'bindingId').localeCompare(
+        recordString(rightAddress, 'bindingId'),
+      )
+  })
+  return deepFreeze(canonical)
 }
 
 function ownedFieldAddressKey(

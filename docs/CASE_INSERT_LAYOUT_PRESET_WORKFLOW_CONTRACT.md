@@ -1,10 +1,10 @@
 # Case Insert Layout Preset Workflow Contract
 
-> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, and Detach-planning checkpoints.
+> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, and Detach planning/transition checkpoints.
 > Purpose: Define the presentation-neutral Case Insert Layout Preset Select, Plan, Review, Apply, Reapply, and Detach workflow across Front Cover, complete Tray Card, Back Panel, and explicit left/right spine regions.
 > Read when: Designing or implementing Case preset definitions, catalogs, planning, owner adapters, application scopes, persistence, Game/import composition, future Case workflow presentation, or Case preset acceptance.
 > Authoritative source: This contract for target Case preset workflow semantics; current implementation facts defer to source and tests; physical geometry defers to the Case template and layout owners; serialized fields defer to `PROJECT_FILE_SPEC.md`.
-> Last reviewed against commit: `f662d81555fa16e36220c63854709b62fb46bd7a` plus the current unstaged pure Detach-planning slice.
+> Last reviewed against commit: `13c0cbff4f7658a3f926b6a994973ce29082d55d` plus the current unstaged pure Detach-transition slice.
 
 Last refreshed: 2026-08-02.
 
@@ -19,7 +19,7 @@ concrete-region/coordinate-basis registry, compatibility evaluator, stable
 assignment resolver, immutable first-time Apply planner, deterministic review
 identity, pure atomic first-time Apply transition, authoritative detached
 applied-configuration domain, exact customization detector, pure Reapply
-planner/transition, and pure Detach planner now exist under
+planner/transition, and pure Detach planner/transition now exist under
 `src/presets/`, with the lifecycle-detached normalized snapshot adapter under
 `src/caseInsert/`. The planner consumes only one successful exact resolver
 result, converts declared normalized regions into deterministic typed
@@ -56,10 +56,18 @@ footprint, an exact preservation fact for every current value, one
 configuration-level ownership-release warning, future compare-and-swap
 preconditions, review/plan identities, and a non-authoritative projection of no
 remaining applied-preset ownership. Clean and customized values have identical
-preservation semantics. It consults no selected definition, catalog, resolver,
-compatibility evaluator, customization detector, or Reapply policy; plans zero
-aggregate writes; and returns no next configuration. No starter definition,
-installed attachment, Detach transition, workflow
+preservation semantics. The Detach transition treats that exact deeply frozen
+plan as a strict compare-and-swap artifact, independently validates the named
+authoritative configuration, recomputes plan/review/acceptance/transition
+identities, requires the exact reviewed warning and empty material-consent set,
+then rechecks session, revision, template, snapshot, every stable target,
+enablement, and current value before constructing output. Success returns a
+detached deeply immutable aggregate with identical semantics plus authoritative
+pure release evidence; the complete ownership footprint is released with zero
+aggregate writes and no next applied configuration. A failure returns neither.
+Neither planner nor transition consults a selected definition, catalog,
+resolver, compatibility evaluator, customization detector, or Reapply policy.
+No starter definition, installed attachment/adoption boundary, workflow
 presentation, menu item, or persistence schema exists.
 
 **TARGET REQUIREMENT —** This contract owns the Case-specific form of the
@@ -270,7 +278,7 @@ bases, project kinds, templates, and scopes remain incompatible.
 | CURRENT FACT / TARGET REQUIREMENT | Coordinates | Current owners use explicit template regions and safe bounds | Every normalized preset region declares its compatible coordinate basis |
 | CURRENT FACT / TARGET REQUIREMENT | Resolution | Pure scope expansion and exact owner/object binding exist against one lifecycle-detached normalized Case snapshot | Continue treating this resolver output as the sole target/current-state binding authority |
 | CURRENT FACT / TARGET REQUIREMENT | Planning | Pure first-time Apply, same-ID Reapply, and complete-footprint Detach planning exist. Detach directly validates one authoritative configuration and current snapshot/context, emits deterministic release/preservation/warning/precondition/review evidence, plans no aggregate write, and returns only a non-authoritative no-ownership projection; unsupported fitting fails closed | Preserve the separate planner authorities and add no hidden mutation or target fallback |
-| CURRENT FACT / TARGET REQUIREMENT | Application | Pure reviewed first-time Apply and Reapply transitions completely preflight exact review/consent/context/address/value evidence and return coherent detached immutable aggregate/configuration outputs or neither; canonical configurations remain explicitly uninstalled and detect exact owned-field divergence; no runtime commit or Detach transition exists | Add Detach execution, then install an accepted operation's aggregate/configuration result once through the future lifecycle boundary |
+| CURRENT FACT / TARGET REQUIREMENT | Application | Pure reviewed first-time Apply, Reapply, and Detach transitions completely preflight exact plan/configuration/review/consent/context/address/value evidence and return coherent detached immutable outputs or neither; Apply/Reapply return authoritative uninstalled configurations, while Detach returns authoritative pure release evidence with an unchanged-semantic aggregate, zero writes, no next configuration, and no adoption claim | Adopt an accepted Apply/Reapply aggregate/configuration pair or Detach aggregate/release-result pair once through the future lifecycle boundary |
 | CURRENT FACT / TARGET REQUIREMENT | Mirroring | Editing actions may fan out according to `spine.mirrored` | Preset plans remain explicit per side and fan out only when review says so |
 | CURRENT FACT / TARGET REQUIREMENT | Persistence | Owner values save; no Case preset association saves | Continue saving owner values; future association requires explicit schema work |
 | CURRENT FACT / TARGET REQUIREMENT | Recovery | Normalization restores explicit owner values | Restore values first; never infer or silently reapply a preset from coordinates |
@@ -456,13 +464,33 @@ as both a complete-ownership release and an exact-current-value preservation;
 there are no aggregate actions, retained/new claims, replacement revision,
 overwrite/preserve policy, successor configuration, review acceptance, or
 consent acceptance. A blocker returns a typed failure with no partial plan or
-projection. The plan's projected ownership absence is explicitly
-non-authoritative until a separately reviewed atomic Detach transition exists.
+projection. The plan's projected ownership absence remains non-authoritative;
+only a separately reviewed successful pure Detach transition produces
+authoritative configuration-release evidence.
 
-**TARGET REQUIREMENT —** The eventual runtime commit replaces the Case
-aggregate/configuration once through the lifecycle project-mutation boundary.
-Calling individual React setters or owner callbacks in a fallible sequence is
-prohibited.
+**CURRENT FACT —** The pure Detach transition consumes only that exact deeply
+frozen plan, the named authoritative source configuration, one exact plan-bound
+review acceptance, the exact declared material-consent acceptance set (empty in
+v1), and the still-current normalized Case aggregate/snapshot/context. It
+recomputes structural and deterministic plan, review, acceptance, configuration,
+and transition identities; validates the complete source/release/preservation/
+precondition footprint; and directly rechecks every stable address, exact value,
+and enablement fact. All validation completes before any aggregate, release
+result, or transition identity is constructed. It never reruns planning,
+customization detection, compatibility evaluation, assignment resolution,
+catalog lookup, Apply, Reapply, or an aggregate writer. Success returns one
+deeply immutable detached aggregate that preserves caller ordering and every
+semantic value exactly, together with authoritative pure release evidence that
+classifies meaningful complete ownership release and aggregate semantic
+no-write. It returns no next configuration and explicitly records that
+application/store adoption has not occurred. Any blocker returns a typed failure
+containing neither output.
+
+**TARGET REQUIREMENT —** The eventual runtime commit adopts the accepted Case
+aggregate together with either the Apply/Reapply next configuration or the
+Detach configuration-release result once through the lifecycle project-mutation
+boundary. Calling individual React setters or owner callbacks in a fallible
+sequence is prohibited.
 
 **TARGET REQUIREMENT —** Multi-region Apply/Reapply/Detach is all-or-nothing.
 There is no partial success status that leaves Front changed while Back or a
@@ -722,6 +750,18 @@ explicitly uninstalled, and unpersisted. Aggregate semantic no-write still
 produces a configuration transition; a complete semantic no-op is not reachable
 in this v1 Reapply protocol because accepted transition evidence and provenance
 are authoritative configuration effects.
+
+**CURRENT FACT —** Pure Detach execution is distinct from both Reapply
+preservation and Reapply retirement. It accepts no overwrite/preserve policy,
+selected definition, replacement revision, or customization report. Clean and
+customized fields receive the same ownership-release treatment: the exact
+current value and all other aggregate content remain unchanged, prior
+last-applied values are not restored, and no owner is disabled or removed.
+Back Panel and complete Tray remain separate addresses; left and right Spine
+remain independent; mirror mode has no execution effect; and repeated objects
+resolve only by exact stable ID. The result is immutable transition evidence,
+not an applied configuration, tombstone, installation record, persisted removal,
+or claim that application state already adopted the release.
 
 **TARGET REQUIREMENT —** No reactive effect continuously resets customized
 values. A definition may declare a narrow event-scoped response such as
@@ -1038,16 +1078,22 @@ criteria.
    layout writes; and success returns one coherent detached aggregate plus a
    validated authoritative but uninstalled next configuration, while failure
    returns neither. Add a distinct pure Detach planner/transition that preserves
-   all current owner values. **Planning implemented:** the Detach planner
+   all current owner values. **Implemented:** the Detach planner
    validates one authoritative configuration and exact current snapshot/context,
    directly preflights its complete stable-address footprint, and returns
    deterministic release/preservation/warning/precondition/review evidence plus
    a non-authoritative no-ownership projection. It executes no writes and emits
-   no successor configuration. The atomic Detach transition remains next.
+   no successor configuration. The atomic transition independently validates
+   that exact reviewed intent and source configuration as one compare-and-swap
+   boundary, performs complete target/value preflight before output construction,
+   and returns either one unchanged-semantic aggregate plus validated release
+   evidence or neither. It performs zero aggregate writes and returns no next
+   applied configuration or adoption claim.
 8. Add owner-derived placement/fitting/clamp/reflow services and content-loss
    policy, including #181 integration only when its own decisions are ready.
-9. Add one lifecycle-owned atomic Case aggregate/configuration commit with
-   revision, dirty, busy, no-op, stale, cleanup, and future history boundaries.
+9. Add one lifecycle-owned atomic Case aggregate/configuration-or-release commit
+   with revision, dirty, busy, no-op, stale, cleanup, and future history
+   boundaries.
 10. Approve and implement applied-configuration schema/migration through
    `PROJECT_FILE_SPEC.md`, including exact-version recovery and Detach.
 11. Add accessible Case workflow presentation and typed navigation IDs; then
@@ -1059,15 +1105,12 @@ criteria.
     and real native Tauri acceptance before claiming the workflow implemented.
 
 **TARGET REQUIREMENT —** The smallest safe next implementation slice is the
-pure atomic Detach transition. It must consume one exact reviewed Detach plan,
-the named authoritative source configuration, exact review acceptance, any
-configuration-level consent declared by the plan, and the still-current
-aggregate/context. It must preflight the complete compare-and-swap boundary and
-return either an aggregate with identical semantics plus one validated
-configuration-release result, or a typed failure containing neither. It must
-not install, uninstall, persist, or mutate lifecycle/store state. Persistence,
-schema migration, UI, installation, and runtime commit remain separate later
-slices.
+narrow pure configuration-attachment lifecycle boundary: atomically adopt a
+successful Apply/Reapply configuration result or a successful Detach release
+result into one explicit application configuration state. That boundary must be
+contracted first if merged source does not yet define its owner and transition
+authority unambiguously. Persistence, schema migration, save/load, UI, and
+runtime workflow integration remain separate later slices.
 
 ## 18. Issue mapping, non-goals, open questions, and evidence index
 
@@ -1087,11 +1130,12 @@ slices.
 | CURRENT FACT | PR #342 | Merged authoritative detached applied-configuration validation and exact customization detection at `9db27a2cff122b2afb53286aa3ca511bfd5cb18f`; no installation, persistence, Reapply execution, or runtime behavior was added |
 | CURRENT FACT | PR #343 | Merged pure Reapply planning at `9d0b5ce043518f10187511b6e2404fca6a6e77ea`; no execution, installation, persistence, Detach, UI, or runtime behavior was added |
 | CURRENT FACT | PR #344 | Merged pure atomic Reapply transition at `f662d81555fa16e36220c63854709b62fb46bd7a`; no Detach, installation, persistence, schema, UI, store, or runtime behavior was added |
+| CURRENT FACT | PR #345 | Merged pure Detach planning at `13c0cbff4f7658a3f926b6a994973ce29082d55d`; no execution, installation/removal, persistence, schema, UI, store, or runtime behavior was added |
 
-**CURRENT FACT —** Read-only review at this checkpoint confirmed PR #344 merged
-the pure Reapply-transition checkpoint into `main` at
-`f662d81555fa16e36220c63854709b62fb46bd7a` and found no open pull request or
-newer focused Case Detach-planning owner. Issues #168, #149, #181, and
+**CURRENT FACT —** Read-only review at this checkpoint confirmed PR #345 merged
+the pure Detach-planning checkpoint into `main` at
+`13c0cbff4f7658a3f926b6a994973ce29082d55d` and found no open pull request or
+newer focused Case Detach-transition owner. Issues #168, #149, #181, and
 #305 remain open. No issue or pull request was created, edited, closed, labeled,
 commented on, or otherwise mutated.
 
@@ -1101,8 +1145,8 @@ commented on, or otherwise mutated.
 not implement or change:
 
 - React, Rust, manifests, dependencies, Tauri, runtime, or generated artifacts;
-- starter Case definitions, runtime Apply/Reapply application/commit engine,
-  installed configuration attachment, Detach execution, UI,
+- starter Case definitions, runtime Apply/Reapply/Detach application/commit
+  engine, installed configuration attachment/release adoption, UI,
   or workflow-host connection;
 - Case Template, menu descriptors/routing, current Disc items, sidebar panels,
   current Case surface selection, or final visual design;
@@ -1146,14 +1190,15 @@ and optional modal presentation require focused contracts/implementation.
 | CURRENT FACT | `src/presets/caseInsertPresetAppliedConfiguration.ts` and `caseInsertPresetAppliedConfiguration.test.ts` | Fail-closed promotion of a complete successful transition output into one authoritative detached configuration; deterministic configuration/report identities; direct exact-address clean/customized comparison; preserved coalesced provenance; distinct missing/ambiguous/invalid/incompatible states; this module itself owns no installation, persistence, Reapply, Detach, catalog, resolver, planner, renderer, or runtime access |
 | CURRENT FACT | `src/presets/caseInsertPresetReapplyPlanning.ts` and `caseInsertPresetReapplyPlanning.test.ts` | Pure same-canonical-ID exact-revision Reapply planning from one validated configuration/report/current snapshot chain; direct supplied-definition resolution without production catalog lookup; explicit overwrite/preserve policy; retained/new/retired/moved footprint classification; deterministic exact writes, warnings, consent requirements, preconditions, review identity, and non-authoritative projection; no execution, installation, persistence, Detach, UI, renderer, store, or runtime access |
 | CURRENT FACT | `src/presets/caseInsertPresetReapplyIdentity.ts`, `caseInsertPresetAggregateFieldTransition.ts`, `caseInsertPresetReapplyTransition.ts`, and `caseInsertPresetReapplyTransition.test.ts` | Canonical order-independent plan/review/requirement/acceptance/transition identities; one shared exhaustive immutable exact-address layout writer used by first Apply and Reapply; strict Reapply compare-and-swap preflight; exact review and consent-set validation; overwrite/preserve/new/retired/moved semantics; deterministic aggregate/configuration pair or neither; authoritative detached/uninstalled domain configuration v2 accepted by later detection and planning; no planner/detector/resolver/catalog/geometry/renderer/installation/persistence/schema/UI/store/runtime execution |
-| CURRENT FACT | `src/presets/caseInsertPresetDetachIdentity.ts`, `caseInsertPresetDetachPlanning.ts`, and `caseInsertPresetDetachPlanning.test.ts` | Pure configuration/report-independent Detach planning; strict authoritative-configuration and current-context validation; exact stable-address current-value and enablement preflight; complete ownership release with one exact preservation fact per field; deterministic warning/review/plan identities and future compare-and-swap preconditions; non-authoritative ownership-absence projection; zero aggregate writes and no next configuration, transition, installation/removal, persistence, schema, UI, store, or runtime execution |
+| CURRENT FACT | `src/presets/caseInsertPresetDetachIdentity.ts`, `caseInsertPresetDetachPlanning.ts`, and `caseInsertPresetDetachPlanning.test.ts` | Pure configuration/report-independent Detach planning; strict authoritative-configuration and current-context validation; exact stable-address current-value and enablement preflight; complete ownership release with one exact preservation fact per field; deterministic warning/review/plan identities and future compare-and-swap preconditions; non-authoritative ownership-absence projection; zero aggregate writes and no next configuration; the planner itself performs no transition execution, installation/removal, persistence, schema, UI, store, or runtime work |
+| CURRENT FACT | `src/presets/caseInsertPresetDetachTransition.ts` and `caseInsertPresetDetachTransition.test.ts` | Pure atomic Detach execution from one exact reviewed plan and independently validated authoritative configuration; canonical structural/identity validation; exact review and consent-set validation; strict current context/address/value/enablement compare-and-swap preflight before output construction; complete ownership release with an unchanged-semantic deeply frozen aggregate, deterministic authoritative release evidence, zero aggregate writes, no next configuration, and explicit non-adoption; no planner/detector/resolver/compatibility/catalog/writer/geometry/renderer/installation/persistence/schema/UI/store/runtime execution |
 | CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/caseInsert/presetAssignmentSnapshot.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, lifecycle-detached assignment snapshot, exact fixed/repeated binding adapters, snapshot/restore, and current no-preset schema |
 | CURRENT FACT | `src/templates/caseInsertTemplates.ts`, `src/layout/jewelCaseLayout.ts`, `jewelCaseFrontLayout.ts`, `jewelCaseBackLayout.ts`, `jewelCaseSpineLayout.ts` | Two physical surfaces, explicit regions/safe bases, Back Panel versus complete Tray, deterministic owner geometry |
 | CURRENT FACT | `src/caseInsert/templateSurfaceTransitions.ts`, `src/caseInsert/jewelCaseTransitions.ts`, `src/hooks/useCaseInsertTemplateEditor.ts`, `src/hooks/useJewelCaseSpineEditor.ts` | Focused Cover/Tray and side-specific/mirrored editing transitions |
 | CURRENT FACT | `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`, `CaseInsertSpinePreviewLayer.tsx`, `CaseInsertPreview.tsx`, `src/export/caseInsertTemplateExportLayers.ts`, `exportCaseInsertPng.ts` | Preview/export owner separation, one complete Tray composition, and no standalone Spine PNG |
 | CURRENT FACT | `src/caseInsert/brandingMarkTargetSources.ts`, `brandingMarkSlots.ts`, `brandingLogoSlots.ts`, `src/editor/repeatedArtwork.ts` | Branding family projection and repeated object identity |
-| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; Case runtime application, attachment, and Detach remain separate and unimplemented |
+| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; Case runtime application and configuration attachment/release adoption remain separate and unimplemented |
 | CURRENT FACT | `src/editor/editorNavigationRouter.ts`, `src/applicationMenu/applicationMenuRegistry.ts`, `src/components/editor/ApplicationWorkflowHost.tsx` | Current four Tools workflows and absence of Case Template/Layout Preset identities |
 | TARGET REQUIREMENT | [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md), [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md) | Shared workflow invariants, roles, preservation, and application vocabulary |
 | TARGET REQUIREMENT | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md), [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md), [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md) | Persistence, composed Game apply, and Guided boundaries |
-| CURRENT FACT | Issues #168, #149, #181, #281/#305 and merged PRs #336/#340/#341/#342/#343/#344, reviewed read-only on 2026-08-02 | Scope, open dependencies, shared workflow-host/planner/transition/configuration baselines, and absence of a newer exact Detach-planning owner |
+| CURRENT FACT | Issues #168, #149, #181, #281/#305 and merged PRs #336/#340/#341/#342/#343/#344/#345, reviewed read-only on 2026-08-02 | Scope, open dependencies, shared workflow-host/planner/transition/configuration baselines, and absence of a newer exact Detach-transition owner |

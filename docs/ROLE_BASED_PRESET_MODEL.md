@@ -3,7 +3,7 @@
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against commit: `f662d81555fa16e36220c63854709b62fb46bd7a` plus the current unstaged pure Case Detach-planning slice.
+> Last reviewed against commit: `13c0cbff4f7658a3f926b6a994973ce29082d55d` plus the current unstaged pure Case Detach-transition slice.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
@@ -896,13 +896,13 @@ changes are persisted through existing project fields, preview/export parity
 tests where practical, and manual Tauri verification for user-visible editor
 behavior when UI is added.
 
-## 17. Case/Spine Pure Apply, Reapply, And Detach-Planning Checkpoints
+## 17. Case/Spine Pure Apply, Reapply, And Detach Checkpoints
 
 Runtime Case Front, Case Back, and Spine preset application remains deferred.
 Pure first-time Apply planning, its atomic detached transition, the authoritative
 detached applied-configuration domain, exact customization detection, and pure
 same-preset Reapply planning/transition plus pure complete-footprint Detach
-planning are now implemented.
+planning/transition are now implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
@@ -910,7 +910,7 @@ validation, compatibility foundation, lifecycle-detached normalized Case
 snapshot adapter, stable exact assignment resolution, immutable planner,
 content-bound review/consent identity, pure atomic first-Apply transition,
 candidate validation, customization detector, Reapply planner/transition, and
-pure Detach planner now exist. The
+pure Detach planner/transition now exist. The
 resolver expands region/Front/Back/Spine/complete scopes, preserves complete
 Tray versus Back Panel and left/right identity, and distinguishes disabled,
 missing optional/required, ambiguous, stale, incompatible, invalid, and
@@ -959,7 +959,20 @@ then emits one complete deterministic release footprint, one exact current-value
 preservation per owned address, a configuration-level warning, future
 compare-and-swap preconditions, review/plan identities, and a non-authoritative
 no-ownership projection. Clean and customized values are preserved identically;
-there are zero aggregate writes and no next configuration. Detach execution,
+there are zero aggregate writes and no next configuration. Detach execution
+consumes that exact deeply frozen reviewed plan, independently validates its
+authoritative source configuration and exact review/empty-consent evidence, and
+rechecks the complete session/revision/template/snapshot/address/value/
+enablement compare-and-swap boundary before constructing output. Success
+returns one deeply immutable unchanged-semantic aggregate plus deterministic
+authoritative configuration-release evidence; it releases the complete
+footprint, performs zero writes, returns no next applied configuration, and
+explicitly remains unadopted by application/store state. Failure returns
+neither. It runs no planner, detector, resolver, compatibility/catalog,
+Apply/Reapply, writer, geometry, renderer, persistence, schema, UI, store, or
+runtime owner. Back Panel and complete Tray remain distinct, left/right Spine
+remain independent, mirror mode cannot redirect execution, and repeated objects
+resolve by exact stable ID. Configuration attachment/removal adoption,
 persistence/schema, UI, lifecycle/store commit, and runtime application remain
 future work. The production Case catalog remains empty.
 

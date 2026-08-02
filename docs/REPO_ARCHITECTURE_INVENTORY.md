@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #344 merge commit `f662d81555fa16e36220c63854709b62fb46bd7a` plus the focused pure Detach-planning checkpoint on 2026-08-02.
+> Case preset ownership refresh: PR #345 merge commit `13c0cbff4f7658a3f926b6a994973ce29082d55d` plus the focused pure Detach-transition checkpoint on 2026-08-02.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -923,7 +923,7 @@ catalog, compatibility, normalized snapshot, and stable assignment-resolution
 foundation, immutable first-time Apply planner, content-bound review/consent
 identity, pure atomic transition, authoritative detached applied-configuration
 domain, pure customization detector, pure same-ID Reapply planner, and pure
-atomic Reapply transition, plus the pure Detach planner, are implemented. The
+atomic Reapply transition, plus the pure Detach planner/transition, are implemented. The
 first-time planner owns
 deterministic typed direct layout-field proposals, preservation/skip/warning/
 blocker/consent classification, no-op and conflict detection,
@@ -948,8 +948,14 @@ validates its complete stable-address footprint, and emits deterministic
 ownership-release/preservation records, warning, review/plan identities, and
 future compare-and-swap preconditions. It plans zero aggregate writes and only
 a non-authoritative absence-of-ownership projection; it returns no next
-configuration. No installed attachment, lifecycle application transaction,
-Detach transition, schema, UI, or menu connection exists.
+configuration. The Detach transition independently validates that canonical
+plan and source configuration, exact plan-bound review acceptance, the empty v1
+consent set, and the complete current compare-and-swap context before any output
+construction. It returns an unchanged-semantic deeply frozen aggregate plus
+authoritative deterministic release evidence, or neither; it performs zero
+aggregate writes, returns no next configuration, and records that application
+adoption has not occurred. No installed attachment/release-adoption owner,
+lifecycle application transaction, schema, UI, or menu connection exists.
 
 Key files:
 
@@ -999,6 +1005,7 @@ Key files:
 - `src/presets/caseInsertPresetReapplyTransition.ts`
 - `src/presets/caseInsertPresetDetachIdentity.ts`
 - `src/presets/caseInsertPresetDetachPlanning.ts`
+- `src/presets/caseInsertPresetDetachTransition.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
@@ -1088,7 +1095,7 @@ Risks:
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 - Issue `#168` and the Case preset workflow contract retain future Case preset
-  starter definitions, installed attachment, Detach execution, runtime
+  starter definitions, installed configuration/release adoption, runtime
   application, persistence, and
   presentation work. Pure definition/catalog/compatibility owners reject
   malformed definitions; the pure snapshot/resolution boundary fails closed on
@@ -1114,11 +1121,20 @@ Risks:
   still-current aggregate/snapshot/context, directly preflights every owned
   address/value/enablement fact, and returns the complete ownership-release and
   exact-preservation review intent with zero aggregate writes and no successor
-  configuration. These pure owners have no
+  configuration. The pure Detach transition consumes that exact reviewed plan,
+  independently validates the source configuration and exact review/consent
+  evidence, then rechecks the complete current context/address/value/enablement
+  boundary before constructing output. Success returns a deeply immutable
+  aggregate/release-result pair with identical aggregate semantics, complete
+  ownership release, zero aggregate writes, no next configuration, and explicit
+  non-adoption; failure returns neither. It does not rerun the planner,
+  customization detector, resolver, compatibility, catalog, Apply/Reapply, or
+  aggregate writer. These pure owners have no
   React/store, renderer, filesystem, Tauri, persistence, or commit dependency.
   No runtime Case preset mutation/attachment owner exists in current source.
-  Detach execution, persistence/schema, UI, lifecycle/store commit, and runtime
-  application remain absent. The production Case catalog remains empty.
+  Detach attachment/release adoption, persistence/schema, UI, lifecycle/store
+  commit, and runtime application remain absent. The production Case catalog
+  remains empty.
 
 ## Text Systems
 
