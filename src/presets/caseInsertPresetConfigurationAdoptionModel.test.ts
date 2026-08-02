@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import {
+  createCaseInsertPresetUnattachedEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import {
   createCaseInsertPresetAssignmentSnapshot,
@@ -190,7 +194,7 @@ function buildEvidenceFixture(): EvidenceFixture {
       preset: { id: definition.id, revision: definition.revision },
       requestedScope: scope,
     },
-    attachment: { status: 'unattached' },
+    attachment: createCaseInsertPresetUnattachedEndpoint(),
     reviewApproval: applyReviewApproval,
     materialConsentAcceptances:
       applyAcceptances as CaseInsertPresetMaterialConsentAcceptance[],
@@ -683,20 +687,75 @@ test('application snapshot keeps aggregate and attachment in one coherent domain
   }
 })
 
-test('all exact current transition variants fail closed on aggregate evidence gaps', () => {
+test('strengthened successes produce only opaque inert adoption evidence', () => {
   const fixture = buildEvidenceFixture()
   for (const operation of ['apply', 'reapply', 'detach'] as const) {
     const result = auditCaseInsertPresetApplicationAdoptionEvidence(
       evidenceCandidate(operation, fixture[operation]),
     )
+    assert.equal(result.ok, true, `${operation}:${JSON.stringify(result)}`)
+    if (!result.ok) continue
+    assert.equal(result.status, 'validated-inert-evidence')
+    assert.equal(result.evidence.operation, operation)
+    assert.equal(result.evidence.applicationAdoptionStatus, 'not-adopted')
+    assert.equal(result.evidence.transitionResult.operation, operation)
+    assert.notEqual(
+      result.evidence.transitionResult,
+      fixture[operation],
+      'validated evidence must be detached from caller input',
+    )
+    assert.equal('aggregate' in result, false)
+    assert.equal('state' in result, false)
+    assert.equal('snapshot' in result, false)
+    assert.equal('receipt' in result, false)
+    assert.equal(isDeeplyFrozen(result), true)
+  }
+})
+
+test('legacy transition shapes remain aggregate-evidence-insufficient', () => {
+  const fixture = buildEvidenceFixture()
+  const legacyDetachRelease = structuredClone(fixture.detach.releaseResult) as
+    MutableRecord
+  legacyDetachRelease.formatVersion = 1
+  delete legacyDetachRelease.releaseIdentity
+  const legacy = {
+    apply: deepFreeze({
+      ok: true,
+      status: fixture.apply.status,
+      aggregate: structuredClone(fixture.apply.aggregate),
+      configurationCandidate:
+        structuredClone(fixture.apply.configurationCandidate),
+    }),
+    reapply: deepFreeze({
+      ok: true,
+      status: fixture.reapply.status,
+      transitionIdentity:
+        fixture.reapply.nextConfiguration.reapply.transitionIdentity,
+      aggregate: structuredClone(fixture.reapply.aggregate),
+      nextConfiguration: structuredClone(fixture.reapply.nextConfiguration),
+    }),
+    detach: deepFreeze({
+      ok: true,
+      status: fixture.detach.status,
+      transitionIdentity: fixture.detach.releaseResult.transitionIdentity,
+      aggregate: structuredClone(fixture.detach.aggregate),
+      releaseResult: legacyDetachRelease,
+    }),
+  }
+  for (const operation of ['apply', 'reapply', 'detach'] as const) {
+    const candidate = deepFreeze({
+      kind: CASE_INSERT_PRESET_ADOPTION_EVIDENCE_CANDIDATE_KIND,
+      formatVersion: CASE_INSERT_PRESET_ADOPTION_EVIDENCE_CANDIDATE_VERSION,
+      operation,
+      applicationAdoptionStatus: 'not-adopted',
+      transitionResult: legacy[operation],
+    })
+    const result = auditCaseInsertPresetApplicationAdoptionEvidence(candidate)
+    assert.equal(result.ok, false, operation)
     assert.equal(result.status, 'aggregate-evidence-insufficient', operation)
     assert.equal(result.operation, operation)
     assert.deepEqual(result.gaps,
       CASE_INSERT_PRESET_AGGREGATE_EVIDENCE_GAPS[operation])
-    assert.equal('aggregate' in result, false)
-    assert.equal('state' in result, false)
-    assert.equal('receipt' in result, false)
-    assert.equal(isDeeplyFrozen(result), true)
   }
 })
 
@@ -719,7 +778,7 @@ test('raw artifacts, failures, operation mismatch, versions, and adoption claims
 
   const version = structuredClone(evidenceCandidate('apply', fixture.apply)) as
     MutableRecord
-  version.formatVersion = 2
+  version.formatVersion = 99
   const versionResult = auditCaseInsertPresetApplicationAdoptionEvidence(
     deepFreeze(version),
   )
@@ -743,7 +802,7 @@ test('raw artifacts, failures, operation mismatch, versions, and adoption claims
 
   const mutable = structuredClone(evidenceCandidate('apply', fixture.apply))
   const mutableResult = auditCaseInsertPresetApplicationAdoptionEvidence(mutable)
-  assert.equal(mutableResult.status, 'invalid-transition-evidence')
+  assert.equal(mutableResult.status, 'validated-inert-evidence')
 
   const transitionFailure = {
     kind: CASE_INSERT_PRESET_ADOPTION_EVIDENCE_CANDIDATE_KIND,
@@ -828,7 +887,7 @@ test('legal relationship registry permits only coherent attach, replace, and rel
       replayRule: 'changed-source-state-is-conflict',
       outOfOrderRule:
         'session-revision-template-or-attachment-mismatch-is-conflict',
-      currentEvidenceReadiness: 'blocked-by-aggregate-evidence-amendment',
+      currentEvidenceReadiness: 'validated-evidence-future-executor-required',
     },
   )
   assert.equal(
@@ -872,7 +931,7 @@ test('attachment-edge classification rejects replay, missing, and different-sour
   if (apply.ok) {
     assert.equal(apply.attachmentAction, 'attached')
     assert.equal(apply.adoptionReadiness,
-      'blocked-by-aggregate-evidence-amendment')
+      'evidence-validated-future-executor-required')
   }
 
   const replayedApply = classifyCaseInsertPresetApplicationAdoptionRelationship({
@@ -1277,7 +1336,7 @@ test('model exports no executor and has no forbidden runtime dependency', () => 
     /\b(?:applyCaseInsertPresetFirstTime|transitionCaseInsertPresetReapply|transitionCaseInsertPresetDetach|detectCaseInsertPresetCustomization|resolveCaseInsertPresetAssignments|evaluateCaseInsertPresetCompatibility|applyCaseInsertPresetAggregateLayoutWrites)\s*\(/)
   assert.doesNotMatch(source, /JSON\.stringify|Date\.now|randomUUID/)
   assert.match(source,
-    /export type CaseInsertPresetApplicationAdoptionEvidence = never/)
+    /CASE_INSERT_PRESET_VALIDATED_APPLICATION_ADOPTION_EVIDENCE/)
   assert.match(source,
     /declare const CASE_INSERT_PRESET_COHERENT_ADOPTION_SUCCESS/)
   assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 0)

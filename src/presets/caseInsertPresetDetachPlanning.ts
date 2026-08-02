@@ -111,6 +111,8 @@ export type CaseInsertPresetDetachPlan = Readonly<{
   materialConsentRequirements: readonly []
   preconditions: Readonly<{
     configurationIdentity: string
+    aggregateContentIdentity:
+      CaseInsertPresetAssignmentSnapshotIdentity['aggregateContentIdentity']
     projectKind: 'caseInsert'
     sessionId: string
     projectRevision: number
@@ -532,6 +534,8 @@ export function planCaseInsertPresetDetach(
     materialConsentRequirements: [] as const,
     preconditions: {
       configurationIdentity: configuration.configurationIdentity,
+      aggregateContentIdentity:
+        input.current.snapshot.identity.aggregateContentIdentity,
       projectKind: 'caseInsert' as const,
       sessionId: input.current.sessionId as string,
       projectRevision: input.current.projectRevision as number,

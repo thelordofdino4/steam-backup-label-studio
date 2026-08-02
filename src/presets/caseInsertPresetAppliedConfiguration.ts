@@ -3,6 +3,9 @@ import {
   type CaseInsertPresetAssignmentSnapshotIdentity,
   type CaseInsertPresetSnapshotObjectState,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
+import {
+  isCaseInsertPresetAggregateContentIdentity,
+} from '../caseInsert/presetAggregateIdentity.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import type { ProjectJewelCaseState } from '../project/projectTypes.ts'
 import { caseInsertTemplates } from '../templates/caseInsertTemplates.ts'
@@ -25,8 +28,10 @@ import {
 import {
   CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND,
   CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION,
-  type CaseInsertPresetApplyTransitionResult,
-} from './caseInsertPresetApplyTransition.ts'
+} from './caseInsertPresetApplyCandidate.ts'
+import type {
+  CaseInsertPresetAppliedConfigurationCandidate,
+} from './caseInsertPresetApplyCandidate.ts'
 import {
   CASE_INSERT_PRESET_REAPPLY_CONSENT_IDENTITY_PREFIX,
   CASE_INSERT_PRESET_REAPPLY_REVIEW_ACCEPTANCE_IDENTITY_PREFIX,
@@ -353,6 +358,7 @@ function isSnapshotIdentity(
     'sessionId',
     'projectRevision',
     'template',
+    'aggregateContentIdentity',
   ]) || !isRecord(value.template) || !hasExactKeys(value.template, [
     'id',
     'revision',
@@ -364,7 +370,10 @@ function isSnapshotIdentity(
     isNonNegativeSafeInteger(value.projectRevision) &&
     typeof value.template.id === 'string' &&
     value.template.id.trim().length > 0 &&
-    value.template.revision === null
+    value.template.revision === null &&
+    isCaseInsertPresetAggregateContentIdentity(
+      value.aggregateContentIdentity,
+    )
 }
 
 function isCanonicalPreset(
@@ -848,6 +857,7 @@ function createConfigurationIdentity(
       configuration.source.snapshotIdentity.projectRevision,
       configuration.source.snapshotIdentity.template.id,
       configuration.source.snapshotIdentity.template.revision,
+      configuration.source.snapshotIdentity.aggregateContentIdentity,
     ]),
     tuple('owned-fields', fields),
     primitiveTuple('reviewed-warnings', configuration.reviewedWarningIds),
@@ -1101,18 +1111,18 @@ export function validateCaseInsertAppliedPresetConfiguration(
 }
 
 export function validateCaseInsertAppliedPresetConfigurationCandidate(
-  transitionResult: CaseInsertPresetApplyTransitionResult,
+  transitionResult: Readonly<{
+    ok: true
+    status: 'applied' | 'applied-semantic-no-op'
+    aggregate: Readonly<ProjectJewelCaseState>
+    configurationCandidate: CaseInsertPresetAppliedConfigurationCandidate
+  }>,
 ): CaseInsertAppliedPresetConfigurationValidationResult {
   if (!isRecord(transitionResult) || !isDeeplyFrozen(transitionResult) ||
       transitionResult.ok !== true ||
       (transitionResult.status !== 'applied' &&
         transitionResult.status !== 'applied-semantic-no-op') ||
-      !hasExactKeys(transitionResult, [
-        'ok',
-        'status',
-        'aggregate',
-        'configurationCandidate',
-      ])) {
+      !isRecord(transitionResult.configurationCandidate)) {
     return validationFailure(
       'invalid-configuration',
       'transition-result-not-successful',

@@ -1,3 +1,7 @@
+import {
+  createCaseInsertPresetIdentityDigest,
+} from './caseInsertPresetIdentityDigest.ts'
+
 type AddressIdentityInput = Readonly<{
   region: string
   featureOwnerId: string
@@ -69,14 +73,14 @@ type ReapplyPlanContentIdentityInput = Readonly<{
 
 export const CASE_INSERT_PRESET_REAPPLY_PLAN_KIND =
   'sbls/case-insert-preset-reapply-plan' as const
-export const CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION = 1 as const
+export const CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION = 2 as const
 export const CASE_INSERT_PRESET_REAPPLY_CONFIGURATION_PROJECTION_KIND =
   'sbls/case-insert-preset-reapply-configuration-projection' as const
 
 export const CASE_INSERT_PRESET_REAPPLY_REVIEW_IDENTITY_PREFIX =
-  'case:preset-reapply-review:v1:' as const
+  'case:preset-reapply-review:v2:' as const
 export const CASE_INSERT_PRESET_REAPPLY_PLAN_IDENTITY_PREFIX =
-  'case:preset-reapply-plan:v1:' as const
+  'case:preset-reapply-plan:v2:' as const
 export const CASE_INSERT_PRESET_REAPPLY_CONSENT_IDENTITY_PREFIX =
   'case:preset-reapply-consent:v1:' as const
 export const CASE_INSERT_PRESET_REAPPLY_WARNING_IDENTITY_PREFIX =
@@ -359,6 +363,8 @@ export function createCaseInsertPresetReapplyTransitionIdentity(
   transition: Readonly<Record<string, unknown>>,
 ) {
   return `${CASE_INSERT_PRESET_REAPPLY_TRANSITION_IDENTITY_PREFIX}${
-    encodeCaseInsertPresetDeterministicIdentity(transition)
+    createCaseInsertPresetIdentityDigest(
+      encodeCaseInsertPresetDeterministicIdentity(transition),
+    )
   }`
 }

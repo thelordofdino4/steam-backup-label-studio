@@ -186,7 +186,7 @@ function createSnapshot(
     projectRevision,
     project: captureNormalizedProjectSnapshot(project),
   })
-  assert.equal(result.ok, true)
+  assert.equal(result.ok, true, result.ok ? undefined : JSON.stringify(result))
   if (!result.ok) throw new Error(result.error.code)
   return result.value
 }
@@ -241,9 +241,41 @@ function plan(
 }
 
 function planned(result: CaseInsertPresetApplyPlanningResult) {
-  assert.equal(result.ok, true)
+  assert.equal(result.ok, true, result.ok ? undefined : JSON.stringify(result))
   if (!result.ok) throw new Error(result.status)
   return result.plan
+}
+
+function assertEquivalentResolvedPlanActions(
+  left: ReturnType<typeof planned>,
+  right: ReturnType<typeof planned>,
+) {
+  assert.deepEqual(
+    {
+      resolvedRegions: left.resolvedRegions,
+      assignments: left.assignments,
+      fieldActions: left.fieldActions,
+      preservationDecisions: left.preservationDecisions,
+      skips: left.skips,
+      warnings: left.warnings,
+      blockers: left.blockers,
+      materialConsentRequirements: left.materialConsentRequirements,
+      semanticNoOp: left.semanticNoOp,
+      fieldFootprint: left.fieldFootprint,
+    },
+    {
+      resolvedRegions: right.resolvedRegions,
+      assignments: right.assignments,
+      fieldActions: right.fieldActions,
+      preservationDecisions: right.preservationDecisions,
+      skips: right.skips,
+      warnings: right.warnings,
+      blockers: right.blockers,
+      materialConsentRequirements: right.materialConsentRequirements,
+      semanticNoOp: right.semanticNoOp,
+      fieldFootprint: right.fieldFootprint,
+    },
+  )
 }
 
 function fieldValue(
@@ -285,7 +317,7 @@ test('plans a minimal Front Apply with exact typed direct owner fields', () => {
   )
   assert.equal(value.operation, 'apply')
   assert.equal(value.kind, 'sbls/case-insert-preset-apply-plan')
-  assert.equal(value.formatVersion, 1)
+  assert.equal(value.formatVersion, 2)
 })
 
 test('converts a template coordinate basis into the authoritative owner basis', () => {
@@ -367,7 +399,12 @@ test('plans Left and Right Spine independently and ignores mirrored editing', ()
     createSnapshot((state) => { state.spine.mirrored = true }),
   ))
 
-  assert.deepEqual(planned(unmirrored), planned(mirrored))
+  assertEquivalentResolvedPlanActions(planned(unmirrored), planned(mirrored))
+  assert.notEqual(
+    planned(unmirrored).preconditions.aggregateContentIdentity,
+    planned(mirrored).preconditions.aggregateContentIdentity,
+  )
+  assert.notEqual(planned(unmirrored).reviewIdentity, planned(mirrored).reviewIdentity)
   assert.deepEqual(
     planned(unmirrored).assignments.map(({ region, objectId }) => ({
       region,
@@ -462,7 +499,12 @@ test('binds fixed synthetic and repeated objects without using array position', 
     }),
   ))
 
-  assert.deepEqual(planned(first), planned(reordered))
+  assertEquivalentResolvedPlanActions(planned(first), planned(reordered))
+  assert.notEqual(
+    planned(first).preconditions.aggregateContentIdentity,
+    planned(reordered).preconditions.aggregateContentIdentity,
+  )
+  assert.notEqual(planned(first).reviewIdentity, planned(reordered).reviewIdentity)
   assert.ok(planned(first).fieldActions.some(({ object }) =>
     object.bindingKind === 'repeated' && object.runtimeId === 'cover-logo-2'))
   assert.ok(planned(first).fieldActions.some(({ object }) =>
@@ -479,7 +521,8 @@ test('preserves disabled payloads and never enables them implicitly', () => {
       )!
       title.enabled = false
       title.value = 'Preserve me'
-      title.htmlSource = '<strong>Preserve me</strong>'
+      title.contentMode = 'html'
+      title.htmlSource = '<p><strong>Preserve me</strong></p>'
     }),
   ))
   const value = planned(result)

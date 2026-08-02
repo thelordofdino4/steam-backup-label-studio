@@ -4,6 +4,9 @@ import {
   type CaseInsertPresetAssignmentSnapshot,
   type CaseInsertPresetSnapshotEnablement,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
+import type {
+  CaseInsertPresetAggregateContentIdentity,
+} from '../caseInsert/presetAggregateIdentity.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import type { ProjectJewelCaseState } from '../project/projectTypes.ts'
 import {
@@ -186,6 +189,7 @@ export type CaseInsertPresetReapplyPlan = Readonly<{
     sessionId: string
     projectRevision: number
     template: Readonly<{ id: string; revision: null }>
+    aggregateContentIdentity: CaseInsertPresetAggregateContentIdentity
   }>
   preset: Readonly<{
     id: CaseInsertPresetId
@@ -246,6 +250,7 @@ export type CaseInsertPresetReapplyPlan = Readonly<{
     sessionId: string
     projectRevision: number
     template: Readonly<{ id: string; revision: null }>
+    aggregateContentIdentity: CaseInsertPresetAggregateContentIdentity
     selectedPreset: Readonly<{ id: CaseInsertPresetId; revision: number }>
     scopeKey: string
     resolvedRegions: readonly CaseInsertPresetConcreteRegionId[]
@@ -1238,6 +1243,8 @@ export function planCaseInsertPresetReapply(
       sessionId: input.current.sessionId,
       projectRevision: input.current.projectRevision,
       template: { id: input.current.template.id, revision: null },
+      aggregateContentIdentity:
+        input.current.snapshot.identity.aggregateContentIdentity,
     },
     preset: {
       id: selectedDefinition.id,
@@ -1290,6 +1297,8 @@ export function planCaseInsertPresetReapply(
       sessionId: input.current.sessionId,
       projectRevision: input.current.projectRevision,
       template: { id: input.current.template.id, revision: null },
+      aggregateContentIdentity:
+        input.current.snapshot.identity.aggregateContentIdentity,
       selectedPreset: {
         id: selectedDefinition.id,
         revision: selectedDefinition.revision,

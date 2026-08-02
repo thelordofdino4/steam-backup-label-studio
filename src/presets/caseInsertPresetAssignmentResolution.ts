@@ -169,6 +169,7 @@ function frozenIdentity(
     sessionId: identity.sessionId,
     projectRevision: identity.projectRevision,
     template: Object.freeze({ ...identity.template }),
+    aggregateContentIdentity: identity.aggregateContentIdentity,
   })
 }
 

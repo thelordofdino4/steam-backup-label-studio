@@ -6,6 +6,10 @@ import {
   type CaseInsertPresetAssignmentSnapshotIdentity,
   type CaseInsertPresetSnapshotObjectState,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
+import {
+  isCaseInsertPresetAggregateContentIdentity,
+  validateCaseInsertPresetAggregateContent,
+} from '../caseInsert/presetAggregateIdentity.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import type { ProjectJewelCaseState } from '../project/projectTypes.ts'
 import { caseInsertTemplates } from '../templates/caseInsertTemplates.ts'
@@ -37,26 +41,52 @@ import {
   createCaseInsertPresetPlanWarningIdentity,
 } from './caseInsertPresetApplyReviewIdentity.ts'
 import {
+  createCaseInsertPresetAttachedEndpoint,
+  createCaseInsertPresetUnattachedEndpoint,
+  isCaseInsertPresetAttachmentEndpoint,
+  type CaseInsertPresetAttachmentEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+import {
+  CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND,
+  CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION,
+  type CaseInsertPresetAppliedConfigurationCandidate,
+  type ImmutableProjectJewelCaseState,
+} from './caseInsertPresetApplyCandidate.ts'
+import {
   applyCaseInsertPresetAggregateLayoutWrites,
   type CaseInsertPresetAggregateLayoutWrite,
 } from './caseInsertPresetAggregateFieldTransition.ts'
+import {
+  validateCaseInsertAppliedPresetConfiguration,
+  validateCaseInsertAppliedPresetConfigurationCandidate,
+  type CaseInsertAppliedPresetConfiguration,
+} from './caseInsertPresetAppliedConfiguration.ts'
+import {
+  encodeCaseInsertPresetDeterministicIdentity,
+} from './caseInsertPresetReapplyIdentity.ts'
+import {
+  createCaseInsertPresetTransitionSuccessEvidence,
+  type CaseInsertPresetTransitionSuccessEvidence,
+} from './caseInsertPresetTransitionSuccessIdentity.ts'
+import {
+  cloneCaseInsertPresetPlainInput,
+  deepFreezeCaseInsertPresetValue,
+  hasExactCaseInsertPresetKeys,
+  sameCaseInsertPresetValue,
+} from './caseInsertPresetSafeInput.ts'
 
 export const CASE_INSERT_PRESET_APPLY_REVIEW_APPROVAL_KIND =
   'sbls/case-insert-preset-apply-review-approval' as const
 export const CASE_INSERT_PRESET_MATERIAL_CONSENT_ACCEPTANCE_KIND =
   'sbls/case-insert-preset-material-consent-acceptance' as const
-export const CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND =
-  'sbls/case-insert-preset-applied-configuration-candidate' as const
-export const CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION = 1 as const
+export const CASE_INSERT_PRESET_APPLY_TRANSITION_SUCCESS_VERSION = 1 as const
 
-type DeepReadonly<T> = T extends readonly (infer Item)[]
-  ? readonly DeepReadonly<Item>[]
-  : T extends object
-    ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
-    : T
-
-export type ImmutableProjectJewelCaseState =
-  DeepReadonly<ProjectJewelCaseState>
+export {
+  CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND,
+  CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION,
+  type CaseInsertPresetAppliedConfigurationCandidate,
+  type ImmutableProjectJewelCaseState,
+} from './caseInsertPresetApplyCandidate.ts'
 
 export type CaseInsertPresetApplyReviewApproval = Readonly<{
   kind: typeof CASE_INSERT_PRESET_APPLY_REVIEW_APPROVAL_KIND
@@ -75,38 +105,7 @@ export type CaseInsertPresetMaterialConsentAcceptance = Readonly<{
 }>
 
 export type CaseInsertPresetAttachmentAssertion =
-  | Readonly<{ status: 'unattached' }>
-  | Readonly<{
-      status: 'attached'
-      configurationIdentity: string
-    }>
-
-export type CaseInsertPresetAppliedConfigurationCandidate = Readonly<{
-  kind: typeof CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND
-  formatVersion: typeof CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION
-  installationStatus: 'candidate-uninstalled'
-  operation: 'apply'
-  preset: Readonly<{
-    id: CaseInsertPresetApplyPlan['preset']['id']
-    revision: number
-    source: 'builtin' | 'user'
-  }>
-  requestedScope: CaseInsertPresetApplicationScope
-  resolvedRegions: readonly CaseInsertPresetConcreteRegionId[]
-  template: Readonly<{ id: string; revision: null }>
-  reviewedPlanIdentity: string
-  sourceSnapshotIdentity: CaseInsertPresetAssignmentSnapshotIdentity
-  ownedFields: readonly Readonly<{
-    featureOwnerId: CaseInsertPresetOwnerId
-    object: CaseInsertPresetPlanSourceAssignment['object']
-    fieldId: CaseInsertPresetPlanFieldId
-    lastAppliedValue: number
-    sources: readonly CaseInsertPresetPlanSourceAssignment[]
-  }>[]
-  reviewedWarningIds: readonly string[]
-  acceptedMaterialConsentRequirementIds:
-    readonly `case:preset-consent:${string}`[]
-}>
+  CaseInsertPresetAttachmentEndpoint
 
 export type ApplyCaseInsertPresetFirstTimeInput = Readonly<{
   planningResult: CaseInsertPresetApplyPlanningResult
@@ -145,6 +144,7 @@ type FailureCode = Readonly<{
     | 'unsupported-operation'
     | 'unsupported-action'
     | 'transition-conflict'
+    | 'configuration-validation-failed'
   code: string
   details?: Readonly<Record<string, unknown>>
 }>
@@ -153,10 +153,48 @@ export type CaseInsertPresetApplyTransitionResult =
   | Readonly<{
       ok: true
       status: 'applied' | 'applied-semantic-no-op'
+      formatVersion: typeof CASE_INSERT_PRESET_APPLY_TRANSITION_SUCCESS_VERSION
+      operation: 'apply'
+      transitionIdentity: string
+      sourceAggregate: ImmutableProjectJewelCaseState
       aggregate: ImmutableProjectJewelCaseState
       configurationCandidate: CaseInsertPresetAppliedConfigurationCandidate
+      successorConfiguration: CaseInsertAppliedPresetConfiguration
+      successEvidence: CaseInsertPresetTransitionSuccessEvidence
+      applicationAdoptionStatus: 'not-adopted'
     }>
   | FailureCode
+
+declare const CASE_INSERT_PRESET_VALIDATED_APPLY_SUCCESS: unique symbol
+
+export type ValidatedCaseInsertPresetApplyTransitionSuccess = Extract<
+  CaseInsertPresetApplyTransitionResult,
+  { ok: true }
+> & Readonly<{
+  [CASE_INSERT_PRESET_VALIDATED_APPLY_SUCCESS]: true
+}>
+
+export type CaseInsertPresetApplyTransitionSuccessValidationResult =
+  | Readonly<{
+      ok: true
+      status: 'validated'
+      success: ValidatedCaseInsertPresetApplyTransitionSuccess
+    }>
+  | Readonly<{
+      ok: false
+      status:
+        | 'invalid-transition-success'
+        | 'unsupported-transition-success-version'
+        | 'transition-success-identity-mismatch'
+        | 'transition-lineage-mismatch'
+        | 'source-aggregate-mismatch'
+        | 'result-aggregate-mismatch'
+        | 'source-attachment-mismatch'
+        | 'successor-attachment-mismatch'
+        | 'configuration-identity-mismatch'
+        | 'application-adoption-status-mismatch'
+      code: string
+    }>
 
 const REGION_SET = new Set<string>(CASE_INSERT_PRESET_CONCRETE_REGION_IDS)
 const OWNER_SET = new Set<string>(CASE_INSERT_PRESET_OWNER_IDS)
@@ -266,7 +304,10 @@ function isSnapshotIdentity(
   return typeof value.sessionId === 'string' && value.sessionId.trim().length > 0 &&
     isNonNegativeSafeInteger(value.projectRevision) &&
     typeof value.template.id === 'string' && value.template.id.trim().length > 0 &&
-    value.template.revision === null
+    value.template.revision === null &&
+    isCaseInsertPresetAggregateContentIdentity(
+      value.aggregateContentIdentity,
+    )
 }
 
 function staleDimensions(
@@ -281,6 +322,9 @@ function staleDimensions(
   if (actual.template.id !== expected.template.id) dimensions.push('template-id')
   if (actual.template.revision !== expected.template.revision) {
     dimensions.push('template-revision')
+  }
+  if (actual.aggregateContentIdentity !== expected.aggregateContentIdentity) {
+    dimensions.push('aggregate-content')
   }
   return dimensions
 }
@@ -344,6 +388,8 @@ function validatePlan(
         sessionId: plan.preconditions.sessionId,
         projectRevision: plan.preconditions.projectRevision,
         template: plan.preconditions.template,
+        aggregateContentIdentity:
+          plan.preconditions.aggregateContentIdentity,
       }) ||
       plan.source.projectKind !== 'caseInsert' ||
       plan.preconditions.projectKind !== 'caseInsert' ||
@@ -370,6 +416,8 @@ function validatePlan(
     plan.preconditions.template.id !== plan.source.snapshotIdentity.template.id ||
     plan.preconditions.template.revision !==
       plan.source.snapshotIdentity.template.revision ||
+    plan.preconditions.aggregateContentIdentity !==
+      plan.source.snapshotIdentity.aggregateContentIdentity ||
     plan.preconditions.preset.id !== plan.preset.id ||
     plan.preconditions.preset.revision !== plan.preset.revision ||
     plan.preconditions.scopeKey !== scopeKey
@@ -898,9 +946,7 @@ export function applyCaseInsertPresetFirstTime(
   )
   if (consentFailure) return consentFailure
 
-  if (!isRecord(input.attachment) ||
-      (input.attachment.status !== 'unattached' &&
-        input.attachment.status !== 'attached')) {
+  if (!isCaseInsertPresetAttachmentEndpoint(input.attachment)) {
     return failure('invalid-source-aggregate', 'attachment-assertion-invalid')
   }
   if (input.attachment.status === 'attached') {
@@ -945,6 +991,14 @@ export function applyCaseInsertPresetFirstTime(
   }
   if (!sameValue(input.source.aggregate, normalized)) {
     return failure('invalid-source-aggregate', 'source-aggregate-not-normalized')
+  }
+  const aggregateContent = validateCaseInsertPresetAggregateContent(normalized)
+  if (!aggregateContent.ok || aggregateContent.aggregateContentIdentity !==
+      input.source.snapshotIdentity.aggregateContentIdentity) {
+    return failure(
+      'invalid-source-aggregate',
+      'source-aggregate-identity-mismatch',
+    )
   }
   if (!caseInsertTemplates[normalized.templateType] ||
       normalized.templateType !== plan.preconditions.template.id) {
@@ -997,12 +1051,310 @@ export function applyCaseInsertPresetFirstTime(
     acceptedConsentIds,
   )
   const aggregate = deepFreeze(cloneMutable(normalizedResult))
-  return deepFreeze({
-    ok: true,
-    status: planningStatus === 'semantic-no-op'
-      ? 'applied-semantic-no-op'
-      : 'applied',
+  const status = planningStatus === 'semantic-no-op'
+    ? 'applied-semantic-no-op' as const
+    : 'applied' as const
+  const candidateResult = deepFreeze({
+    ok: true as const,
+    status,
     aggregate,
     configurationCandidate,
+  })
+  const validatedConfiguration =
+    validateCaseInsertAppliedPresetConfigurationCandidate(candidateResult)
+  if (!validatedConfiguration.ok) {
+    return failure(
+      'configuration-validation-failed',
+      validatedConfiguration.code,
+    )
+  }
+  const sourceAggregate = deepFreeze(cloneMutable(normalized))
+  const sourceAggregateContent = validateCaseInsertPresetAggregateContent(
+    sourceAggregate,
+  )
+  const resultAggregateContent = validateCaseInsertPresetAggregateContent(
+    aggregate,
+  )
+  if (!sourceAggregateContent.ok || !resultAggregateContent.ok) {
+    return failure(
+      'configuration-validation-failed',
+      'aggregate-content-identity-unavailable',
+    )
+  }
+  const planIdentity = `case:preset-apply-plan:v2:${
+    encodeCaseInsertPresetDeterministicIdentity(plan)
+  }`
+  const reviewAcceptanceIdentity =
+    `case:preset-apply-review-acceptance:v1:${
+      encodeCaseInsertPresetDeterministicIdentity(input.reviewApproval)
+    }`
+  const materialConsentAcceptanceIdentities =
+    input.materialConsentAcceptances.map((acceptance) =>
+      `case:preset-apply-consent-acceptance:v1:${
+        encodeCaseInsertPresetDeterministicIdentity(acceptance)
+      }`)
+  const successorConfiguration = validatedConfiguration.configuration
+  const successEvidence = createCaseInsertPresetTransitionSuccessEvidence({
+    operation: 'apply',
+    transitionStatus: status,
+    context: {
+      projectKind: 'caseInsert',
+      sessionId: input.source.snapshotIdentity.sessionId,
+      projectRevision: input.source.snapshotIdentity.projectRevision,
+      template: cloneMutable(input.source.snapshotIdentity.template),
+      snapshotAggregateContentIdentity:
+        input.source.snapshotIdentity.aggregateContentIdentity,
+    },
+    lineage: {
+      planIdentity,
+      planReviewIdentity: plan.reviewIdentity,
+      reviewAcceptanceIdentity,
+      materialConsentAcceptanceIdentities,
+      operationTransitionIdentity: null,
+    },
+    sourceAggregateContentIdentity:
+      sourceAggregateContent.aggregateContentIdentity,
+    resultAggregateContentIdentity:
+      resultAggregateContent.aggregateContentIdentity,
+    sourceAttachment: createCaseInsertPresetUnattachedEndpoint(),
+    successorAttachment: createCaseInsertPresetAttachedEndpoint(
+      successorConfiguration.configurationIdentity,
+    ),
+    sourceConfigurationIdentity: null,
+    successorConfigurationIdentity:
+      successorConfiguration.configurationIdentity,
+    configurationReleaseIdentity: null,
+    applicationAdoptionStatus: 'not-adopted',
+  })
+  return deepFreeze({
+    ok: true,
+    status,
+    formatVersion: CASE_INSERT_PRESET_APPLY_TRANSITION_SUCCESS_VERSION,
+    operation: 'apply' as const,
+    transitionIdentity: successEvidence.transitionIdentity,
+    sourceAggregate,
+    aggregate,
+    configurationCandidate,
+    successorConfiguration,
+    successEvidence,
+    applicationAdoptionStatus: 'not-adopted' as const,
+  })
+}
+
+function applySuccessValidationFailure(
+  status: Exclude<
+    CaseInsertPresetApplyTransitionSuccessValidationResult,
+    { ok: true }
+  >['status'],
+  code: string,
+): CaseInsertPresetApplyTransitionSuccessValidationResult {
+  return Object.freeze({ ok: false, status, code })
+}
+
+export function validateCaseInsertPresetApplyTransitionSuccess(
+  value: unknown,
+): CaseInsertPresetApplyTransitionSuccessValidationResult {
+  const cloned = cloneCaseInsertPresetPlainInput(value)
+  if (!cloned.ok || !isRecord(cloned.value)) {
+    return applySuccessValidationFailure(
+      'invalid-transition-success',
+      cloned.ok ? 'apply-success-root-invalid' : cloned.code,
+    )
+  }
+  const success = cloned.value
+  if (success.operation === 'apply' && success.formatVersion !==
+      CASE_INSERT_PRESET_APPLY_TRANSITION_SUCCESS_VERSION) {
+    return applySuccessValidationFailure(
+      'unsupported-transition-success-version',
+      'apply-success-version-unsupported',
+    )
+  }
+  if (!hasExactCaseInsertPresetKeys(success, [
+    'ok', 'status', 'formatVersion', 'operation', 'transitionIdentity',
+    'sourceAggregate', 'aggregate', 'configurationCandidate',
+    'successorConfiguration', 'successEvidence',
+    'applicationAdoptionStatus',
+  ]) || success.ok !== true || success.operation !== 'apply' ||
+      success.formatVersion !==
+        CASE_INSERT_PRESET_APPLY_TRANSITION_SUCCESS_VERSION ||
+      (success.status !== 'applied' &&
+        success.status !== 'applied-semantic-no-op')) {
+    return applySuccessValidationFailure(
+      'invalid-transition-success',
+      'apply-success-shape-invalid',
+    )
+  }
+  if (success.applicationAdoptionStatus !== 'not-adopted') {
+    return applySuccessValidationFailure(
+      'application-adoption-status-mismatch',
+      'apply-success-adoption-status-invalid',
+    )
+  }
+  const sourceAggregate = validateCaseInsertPresetAggregateContent(
+    success.sourceAggregate,
+  )
+  if (!sourceAggregate.ok) {
+    return applySuccessValidationFailure(
+      'source-aggregate-mismatch',
+      sourceAggregate.code,
+    )
+  }
+  const resultAggregate = validateCaseInsertPresetAggregateContent(
+    success.aggregate,
+  )
+  if (!resultAggregate.ok) {
+    return applySuccessValidationFailure(
+      'result-aggregate-mismatch',
+      resultAggregate.code,
+    )
+  }
+
+  const frozenCandidateInput = deepFreezeCaseInsertPresetValue({
+    ok: true as const,
+    status: success.status,
+    aggregate: resultAggregate.aggregate,
+    configurationCandidate: success.configurationCandidate,
+  }) as unknown as Parameters<
+    typeof validateCaseInsertAppliedPresetConfigurationCandidate
+  >[0]
+  const promoted = validateCaseInsertAppliedPresetConfigurationCandidate(
+    frozenCandidateInput,
+  )
+  if (!promoted.ok) {
+    return applySuccessValidationFailure(
+      'configuration-identity-mismatch',
+      promoted.code,
+    )
+  }
+  const successor = validateCaseInsertAppliedPresetConfiguration(
+    deepFreezeCaseInsertPresetValue(success.successorConfiguration),
+  )
+  if (!successor.ok || !sameCaseInsertPresetValue(
+    successor.ok ? successor.configuration : null,
+    promoted.configuration,
+  )) {
+    return applySuccessValidationFailure(
+      'configuration-identity-mismatch',
+      successor.ok
+        ? 'apply-successor-configuration-mismatch'
+        : successor.code,
+    )
+  }
+  if (!isRecord(success.successEvidence) ||
+      !hasExactCaseInsertPresetKeys(success.successEvidence, [
+        'kind', 'formatVersion', 'operation', 'transitionResultVersion',
+        'transitionStatus', 'context', 'lineage',
+        'sourceAggregateContentIdentity', 'resultAggregateContentIdentity',
+        'sourceAttachment', 'successorAttachment',
+        'sourceConfigurationIdentity', 'successorConfigurationIdentity',
+        'configurationReleaseIdentity', 'applicationAdoptionStatus',
+        'transitionIdentity', 'wholeSuccessIdentity',
+      ])) {
+    return applySuccessValidationFailure(
+      'invalid-transition-success',
+      'apply-success-evidence-shape-invalid',
+    )
+  }
+  const evidence = success.successEvidence as unknown as
+    CaseInsertPresetTransitionSuccessEvidence
+  if (!isRecord(evidence.context) || !isRecord(evidence.lineage) ||
+      !isCaseInsertPresetAttachmentEndpoint(evidence.sourceAttachment) ||
+      !isCaseInsertPresetAttachmentEndpoint(evidence.successorAttachment) ||
+      evidence.sourceAttachment.status !== 'unattached') {
+    return applySuccessValidationFailure(
+      'source-attachment-mismatch',
+      'apply-source-attachment-not-authoritative-absence',
+    )
+  }
+  if (evidence.successorAttachment.status !== 'attached' ||
+      evidence.successorAttachment.configurationIdentity !==
+        promoted.configuration.configurationIdentity ||
+      evidence.successorConfigurationIdentity !==
+        promoted.configuration.configurationIdentity ||
+      evidence.sourceConfigurationIdentity !== null ||
+      evidence.configurationReleaseIdentity !== null) {
+    return applySuccessValidationFailure(
+      'successor-attachment-mismatch',
+      'apply-successor-attachment-incoherent',
+    )
+  }
+  if (typeof evidence.lineage.planIdentity !== 'string' ||
+      !evidence.lineage.planIdentity.startsWith('case:preset-apply-plan:v2:') ||
+      typeof evidence.lineage.planReviewIdentity !== 'string' ||
+      !evidence.lineage.planReviewIdentity.startsWith(
+        'case:preset-apply-review:v1:',
+      ) || typeof evidence.lineage.reviewAcceptanceIdentity !== 'string' ||
+      !evidence.lineage.reviewAcceptanceIdentity.startsWith(
+        'case:preset-apply-review-acceptance:v1:',
+      ) || !Array.isArray(
+        evidence.lineage.materialConsentAcceptanceIdentities,
+      ) || evidence.lineage.planReviewIdentity !==
+        promoted.configuration.reviewedPlanIdentity ||
+      evidence.lineage.operationTransitionIdentity !== null ||
+      evidence.lineage.materialConsentAcceptanceIdentities.some(
+        (identity) => typeof identity !== 'string' || !identity.startsWith(
+          'case:preset-apply-consent-acceptance:v1:',
+        ),
+      )) {
+    return applySuccessValidationFailure(
+      'transition-lineage-mismatch',
+      'apply-success-lineage-invalid',
+    )
+  }
+  if (evidence.operation !== 'apply' ||
+      evidence.transitionStatus !== success.status ||
+      evidence.applicationAdoptionStatus !== 'not-adopted' ||
+      evidence.context.projectKind !== 'caseInsert' ||
+      evidence.context.sessionId !==
+        promoted.configuration.source.snapshotIdentity.sessionId ||
+      evidence.context.projectRevision !==
+        promoted.configuration.source.snapshotIdentity.projectRevision ||
+      !sameCaseInsertPresetValue(
+        evidence.context.template,
+        promoted.configuration.source.snapshotIdentity.template,
+      ) || evidence.context.snapshotAggregateContentIdentity !==
+        promoted.configuration.source.snapshotIdentity
+          .aggregateContentIdentity ||
+      evidence.sourceAggregateContentIdentity !==
+        sourceAggregate.aggregateContentIdentity ||
+      evidence.resultAggregateContentIdentity !==
+        resultAggregate.aggregateContentIdentity ||
+      sourceAggregate.aggregateContentIdentity !==
+        evidence.context.snapshotAggregateContentIdentity) {
+    return applySuccessValidationFailure(
+      'source-aggregate-mismatch',
+      'apply-success-aggregate-context-incoherent',
+    )
+  }
+  const expectedEvidence = createCaseInsertPresetTransitionSuccessEvidence({
+    operation: 'apply',
+    transitionStatus: success.status,
+    context: evidence.context,
+    lineage: evidence.lineage,
+    sourceAggregateContentIdentity:
+      sourceAggregate.aggregateContentIdentity,
+    resultAggregateContentIdentity:
+      resultAggregate.aggregateContentIdentity,
+    sourceAttachment: evidence.sourceAttachment,
+    successorAttachment: evidence.successorAttachment,
+    sourceConfigurationIdentity: null,
+    successorConfigurationIdentity:
+      promoted.configuration.configurationIdentity,
+    configurationReleaseIdentity: null,
+    applicationAdoptionStatus: 'not-adopted',
+  })
+  if (!sameCaseInsertPresetValue(evidence, expectedEvidence) ||
+      success.transitionIdentity !== expectedEvidence.transitionIdentity) {
+    return applySuccessValidationFailure(
+      'transition-success-identity-mismatch',
+      'apply-whole-success-identity-invalid',
+    )
+  }
+
+  return deepFreezeCaseInsertPresetValue({
+    ok: true,
+    status: 'validated' as const,
+    success: deepFreezeCaseInsertPresetValue(success) as unknown as
+      ValidatedCaseInsertPresetApplyTransitionSuccess,
   })
 }

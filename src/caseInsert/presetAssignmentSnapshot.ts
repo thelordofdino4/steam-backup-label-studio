@@ -25,6 +25,11 @@ import type {
 import { caseInsertTemplates } from '../templates/caseInsertTemplates.ts'
 import type { DiscTextKey } from '../discText/types.ts'
 import { getCaseInsertDiscTextBlockId } from './textContent.ts'
+import {
+  isCaseInsertPresetAggregateContentIdentity,
+  validateCaseInsertPresetAggregateContent,
+  type CaseInsertPresetAggregateContentIdentity,
+} from './presetAggregateIdentity.ts'
 
 export const CASE_INSERT_PRESET_ASSIGNMENT_SNAPSHOT_KIND =
   'case-insert-preset-assignment-snapshot' as const
@@ -38,6 +43,7 @@ export type CaseInsertPresetAssignmentSnapshotIdentity = Readonly<{
   sessionId: string
   projectRevision: number
   template: CaseInsertPresetTemplateIdentity
+  aggregateContentIdentity: CaseInsertPresetAggregateContentIdentity
 }>
 
 export type CaseInsertPresetAssignmentSnapshot = Readonly<{
@@ -219,6 +225,10 @@ export function createCaseInsertPresetAssignmentSnapshot(input: Readonly<{
   if (!isSupportedTemplateState(caseProject)) {
     return failure('unsupported-template')
   }
+  const aggregateContent = validateCaseInsertPresetAggregateContent(
+    caseProject.caseInsert,
+  )
+  if (!aggregateContent.ok) return failure('unsupported-snapshot')
 
   return Object.freeze({
     ok: true,
@@ -231,8 +241,10 @@ export function createCaseInsertPresetAssignmentSnapshot(input: Readonly<{
           id: caseProject.caseInsert.templateType,
           revision: null,
         }),
+        aggregateContentIdentity:
+          aggregateContent.aggregateContentIdentity,
       }),
-      caseInsert: caseProject.caseInsert,
+      caseInsert: aggregateContent.aggregate,
     }),
   })
 }
@@ -247,13 +259,23 @@ export function isCaseInsertPresetAssignmentSnapshot(
     return false
   }
 
+  const aggregateContent = validateCaseInsertPresetAggregateContent(
+    value.caseInsert,
+  )
+
   return typeof value.identity.sessionId === 'string' &&
     value.identity.sessionId.trim().length > 0 &&
     isNonNegativeSafeInteger(value.identity.projectRevision) &&
     typeof value.identity.template.id === 'string' &&
     value.identity.template.revision === null &&
+    isCaseInsertPresetAggregateContentIdentity(
+      value.identity.aggregateContentIdentity,
+    ) &&
     isSupportedCaseInsertState(value.caseInsert) &&
     value.caseInsert.templateType === value.identity.template.id &&
+    aggregateContent.ok &&
+    aggregateContent.aggregateContentIdentity ===
+      value.identity.aggregateContentIdentity &&
     isDeeplyFrozen(value)
 }
 

@@ -3,6 +3,10 @@ import {
   resolveCaseInsertPresetAggregateBinding,
   type CaseInsertPresetAssignmentSnapshot,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
+import {
+  isCaseInsertPresetAggregateContentIdentity,
+  validateCaseInsertPresetAggregateContent,
+} from '../caseInsert/presetAggregateIdentity.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
 import type { ProjectJewelCaseState } from '../project/projectTypes.ts'
 import {
@@ -18,6 +22,7 @@ import {
   CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION,
   CASE_INSERT_PRESET_DETACH_PLAN_KIND,
   canonicalizeCaseInsertPresetDetachPlanContent,
+  createCaseInsertPresetDetachConfigurationReleaseIdentity,
   createCaseInsertPresetDetachPlanIdentity,
   createCaseInsertPresetDetachPreservationIdentity,
   createCaseInsertPresetDetachReleaseIdentity,
@@ -26,6 +31,21 @@ import {
   createCaseInsertPresetDetachTransitionIdentity,
   createCaseInsertPresetDetachWarningIdentity,
 } from './caseInsertPresetDetachIdentity.ts'
+import {
+  createCaseInsertPresetAttachedEndpoint,
+  createCaseInsertPresetUnattachedEndpoint,
+  isCaseInsertPresetAttachmentEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+import {
+  createCaseInsertPresetTransitionSuccessEvidence,
+  type CaseInsertPresetTransitionSuccessEvidence,
+} from './caseInsertPresetTransitionSuccessIdentity.ts'
+import {
+  cloneCaseInsertPresetPlainInput,
+  deepFreezeCaseInsertPresetValue,
+  hasExactCaseInsertPresetKeys,
+  sameCaseInsertPresetValue,
+} from './caseInsertPresetSafeInput.ts'
 import type {
   CaseInsertPresetDetachAggregatePreservation,
   CaseInsertPresetDetachPlan,
@@ -38,7 +58,8 @@ export const CASE_INSERT_PRESET_DETACH_REVIEW_ACCEPTANCE_KIND =
 export const CASE_INSERT_PRESET_DETACH_REVIEW_ACCEPTANCE_VERSION = 1 as const
 export const CASE_INSERT_PRESET_DETACH_RELEASE_RESULT_KIND =
   'sbls/case-insert-preset-detach-release-result' as const
-export const CASE_INSERT_PRESET_DETACH_RELEASE_RESULT_VERSION = 1 as const
+export const CASE_INSERT_PRESET_DETACH_RELEASE_RESULT_VERSION = 2 as const
+export const CASE_INSERT_PRESET_DETACH_TRANSITION_SUCCESS_VERSION = 1 as const
 
 export type CaseInsertPresetDetachReviewAcceptance = Readonly<{
   kind: typeof CASE_INSERT_PRESET_DETACH_REVIEW_ACCEPTANCE_KIND
@@ -58,6 +79,7 @@ export type CaseInsertPresetDetachConfigurationReleaseResult = Readonly<{
   formatVersion: typeof CASE_INSERT_PRESET_DETACH_RELEASE_RESULT_VERSION
   domainStatus: 'validated-authoritative-transition-evidence'
   operation: 'detach'
+  releaseIdentity: string
   transitionIdentity: string
   transitionClassification: 'meaningful-configuration-ownership-release'
   sourceConfigurationIdentity: string
@@ -138,9 +160,15 @@ export type CaseInsertPresetDetachTransitionResult =
   | Readonly<{
       ok: true
       status: 'detached-aggregate-semantic-no-op'
+      formatVersion: typeof CASE_INSERT_PRESET_DETACH_TRANSITION_SUCCESS_VERSION
+      operation: 'detach'
       transitionIdentity: string
+      sourceAggregate: Readonly<ProjectJewelCaseState>
+      sourceConfiguration: CaseInsertAppliedPresetConfiguration
       aggregate: Readonly<ProjectJewelCaseState>
       releaseResult: CaseInsertPresetDetachConfigurationReleaseResult
+      successEvidence: CaseInsertPresetTransitionSuccessEvidence
+      applicationAdoptionStatus: 'not-adopted'
     }>
   | Readonly<{
       ok: false
@@ -149,6 +177,38 @@ export type CaseInsertPresetDetachTransitionResult =
       dimensions?: readonly string[]
       address?: CaseInsertAppliedPresetOwnedFieldAddress
       requirementId?: string
+    }>
+
+declare const CASE_INSERT_PRESET_VALIDATED_DETACH_SUCCESS: unique symbol
+
+export type ValidatedCaseInsertPresetDetachTransitionSuccess = Extract<
+  CaseInsertPresetDetachTransitionResult,
+  { ok: true }
+> & Readonly<{
+  [CASE_INSERT_PRESET_VALIDATED_DETACH_SUCCESS]: true
+}>
+
+export type CaseInsertPresetDetachTransitionSuccessValidationResult =
+  | Readonly<{
+      ok: true
+      status: 'validated'
+      success: ValidatedCaseInsertPresetDetachTransitionSuccess
+    }>
+  | Readonly<{
+      ok: false
+      status:
+        | 'invalid-transition-success'
+        | 'unsupported-transition-success-version'
+        | 'transition-success-identity-mismatch'
+        | 'transition-lineage-mismatch'
+        | 'source-aggregate-mismatch'
+        | 'result-aggregate-mismatch'
+        | 'source-attachment-mismatch'
+        | 'successor-attachment-mismatch'
+        | 'configuration-identity-mismatch'
+        | 'release-configuration-mismatch'
+        | 'application-adoption-status-mismatch'
+      code: string
     }>
 
 type Failure = Extract<CaseInsertPresetDetachTransitionResult, { ok: false }>
@@ -318,9 +378,12 @@ function validatePlanShape(value: unknown): value is CaseInsertPresetDetachPlan 
       !Array.isArray(value.materialConsentRequirements) ||
       !isRecord(value.preconditions) ||
       !hasExactKeys(value.preconditions, [
-        'configurationIdentity', 'projectKind', 'sessionId', 'projectRevision',
-        'template', 'resolvedRegions', 'fields',
+        'configurationIdentity', 'aggregateContentIdentity', 'projectKind',
+        'sessionId', 'projectRevision', 'template', 'resolvedRegions', 'fields',
       ]) || !Array.isArray(value.preconditions.resolvedRegions) ||
+      !isCaseInsertPresetAggregateContentIdentity(
+        value.preconditions.aggregateContentIdentity,
+      ) ||
       !Array.isArray(value.preconditions.fields) ||
       !isRecord(value.projectedOwnership) ||
       !hasExactKeys(value.projectedOwnership, [
@@ -733,6 +796,8 @@ function preflightCurrent(
   if (current.snapshot.identity.sessionId !== current.sessionId ||
       current.snapshot.identity.projectRevision !== current.projectRevision ||
       !sameValue(current.snapshot.identity.template, current.template) ||
+      current.snapshot.identity.aggregateContentIdentity !==
+        plan.preconditions.aggregateContentIdentity ||
       !sameValue(current.snapshot.caseInsert, normalized)) {
     return failure('stale-detach-plan', 'current-snapshot-stale')
   }
@@ -804,6 +869,24 @@ function validateReleaseResult(
   configuration: CaseInsertAppliedPresetConfiguration,
   acceptance: CaseInsertPresetDetachReviewAcceptance,
 ) {
+  const expectedReleaseIdentity =
+    createCaseInsertPresetDetachConfigurationReleaseIdentity({
+      operation: 'detach',
+      sourceConfigurationIdentity: configuration.configurationIdentity,
+      sourceConfigurationFormatVersion: configuration.formatVersion,
+      preset: configuration.preset,
+      planIdentity: plan.planIdentity,
+      planReviewIdentity: plan.reviewIdentity,
+      reviewAcceptanceIdentity: acceptance.acceptanceIdentity,
+      reviewedWarningIds: plan.warnings.map(({ id }) => id).sort(),
+      acceptedMaterialConsentRequirementIds: [] as string[],
+      context: result.context,
+      releasedFootprint: plan.releaseFootprint,
+      aggregateWriteCount: 0,
+      nextAppliedPresetConfiguration: null,
+      successorAttachment: createCaseInsertPresetUnattachedEndpoint(),
+      applicationAdoptionStatus: 'not-adopted',
+    })
   const expectedTransitionIdentity = createCaseInsertPresetDetachTransitionIdentity({
     operation: 'detach',
     status: 'detached-aggregate-semantic-no-op',
@@ -819,7 +902,8 @@ function validateReleaseResult(
     nextAppliedPresetConfiguration: null,
     applicationAdoptionStatus: 'not-adopted',
   })
-  return result.transitionIdentity === expectedTransitionIdentity &&
+  return result.releaseIdentity === expectedReleaseIdentity &&
+    result.transitionIdentity === expectedTransitionIdentity &&
     result.releasedFootprint.length === configuration.ownedFields.length &&
     result.proof.sourceOwnedFieldCount === configuration.ownedFields.length &&
     result.proof.releasedOwnedFieldCount === configuration.ownedFields.length &&
@@ -892,11 +976,30 @@ export function transitionCaseInsertPresetDetach(
     applicationAdoptionStatus: 'not-adopted',
   })
   const aggregate = deepFreeze(cloneMutable(current.aggregate))
+  const releaseIdentity =
+    createCaseInsertPresetDetachConfigurationReleaseIdentity({
+      operation: 'detach',
+      sourceConfigurationIdentity: configuration.configurationIdentity,
+      sourceConfigurationFormatVersion: configuration.formatVersion,
+      preset: configuration.preset,
+      planIdentity: plan.planIdentity,
+      planReviewIdentity: plan.reviewIdentity,
+      reviewAcceptanceIdentity: acceptance.acceptanceIdentity,
+      reviewedWarningIds,
+      acceptedMaterialConsentRequirementIds,
+      context,
+      releasedFootprint: plan.releaseFootprint,
+      aggregateWriteCount: 0,
+      nextAppliedPresetConfiguration: null,
+      successorAttachment: createCaseInsertPresetUnattachedEndpoint(),
+      applicationAdoptionStatus: 'not-adopted',
+    })
   const releaseResult = deepFreeze({
     kind: CASE_INSERT_PRESET_DETACH_RELEASE_RESULT_KIND,
     formatVersion: CASE_INSERT_PRESET_DETACH_RELEASE_RESULT_VERSION,
     domainStatus: 'validated-authoritative-transition-evidence' as const,
     operation: 'detach' as const,
+    releaseIdentity,
     transitionIdentity,
     transitionClassification:
       'meaningful-configuration-ownership-release' as const,
@@ -927,14 +1030,375 @@ export function transitionCaseInsertPresetDetach(
         plan,
         configuration,
         acceptance,
-      )) {
+  )) {
     return failure('release-validation-failed', 'detach-release-self-invalid')
   }
+  const sourceAggregate = deepFreeze(cloneMutable(current.aggregate))
+  const sourceAggregateContent = validateCaseInsertPresetAggregateContent(
+    sourceAggregate,
+  )
+  const resultAggregateContent = validateCaseInsertPresetAggregateContent(
+    aggregate,
+  )
+  if (!sourceAggregateContent.ok || !resultAggregateContent.ok ||
+      sourceAggregateContent.aggregateContentIdentity !==
+        resultAggregateContent.aggregateContentIdentity) {
+    return failure(
+      'release-validation-failed',
+      'detach-aggregate-identity-incoherent',
+    )
+  }
+  const successEvidence = createCaseInsertPresetTransitionSuccessEvidence({
+    operation: 'detach',
+    transitionStatus: 'detached-aggregate-semantic-no-op',
+    context: {
+      ...context,
+      snapshotAggregateContentIdentity:
+        plan.preconditions.aggregateContentIdentity,
+    },
+    lineage: {
+      planIdentity: plan.planIdentity,
+      planReviewIdentity: plan.reviewIdentity,
+      reviewAcceptanceIdentity: acceptance.acceptanceIdentity,
+      materialConsentAcceptanceIdentities: [],
+      operationTransitionIdentity: releaseResult.transitionIdentity,
+    },
+    sourceAggregateContentIdentity:
+      sourceAggregateContent.aggregateContentIdentity,
+    resultAggregateContentIdentity:
+      resultAggregateContent.aggregateContentIdentity,
+    sourceAttachment: createCaseInsertPresetAttachedEndpoint(
+      configuration.configurationIdentity,
+    ),
+    successorAttachment: createCaseInsertPresetUnattachedEndpoint(),
+    sourceConfigurationIdentity: configuration.configurationIdentity,
+    successorConfigurationIdentity: null,
+    configurationReleaseIdentity: releaseResult.releaseIdentity,
+    applicationAdoptionStatus: 'not-adopted',
+  })
   return deepFreeze({
     ok: true,
     status: 'detached-aggregate-semantic-no-op' as const,
-    transitionIdentity,
+    formatVersion: CASE_INSERT_PRESET_DETACH_TRANSITION_SUCCESS_VERSION,
+    operation: 'detach' as const,
+    transitionIdentity: successEvidence.transitionIdentity,
+    sourceAggregate,
+    sourceConfiguration: configuration,
     aggregate,
     releaseResult,
+    successEvidence,
+    applicationAdoptionStatus: 'not-adopted' as const,
+  })
+}
+
+function detachSuccessValidationFailure(
+  status: Exclude<
+    CaseInsertPresetDetachTransitionSuccessValidationResult,
+    { ok: true }
+  >['status'],
+  code: string,
+): CaseInsertPresetDetachTransitionSuccessValidationResult {
+  return Object.freeze({ ok: false, status, code })
+}
+
+export function validateCaseInsertPresetDetachTransitionSuccess(
+  value: unknown,
+): CaseInsertPresetDetachTransitionSuccessValidationResult {
+  const cloned = cloneCaseInsertPresetPlainInput(value)
+  if (!cloned.ok || !isRecord(cloned.value)) {
+    return detachSuccessValidationFailure(
+      'invalid-transition-success',
+      cloned.ok ? 'detach-success-root-invalid' : cloned.code,
+    )
+  }
+  const success = cloned.value
+  if (success.operation === 'detach' && success.formatVersion !==
+      CASE_INSERT_PRESET_DETACH_TRANSITION_SUCCESS_VERSION) {
+    return detachSuccessValidationFailure(
+      'unsupported-transition-success-version',
+      'detach-success-version-unsupported',
+    )
+  }
+  if (!hasExactCaseInsertPresetKeys(success, [
+    'ok', 'status', 'formatVersion', 'operation', 'transitionIdentity',
+    'sourceAggregate', 'sourceConfiguration', 'aggregate', 'releaseResult',
+    'successEvidence', 'applicationAdoptionStatus',
+  ]) || success.ok !== true || success.operation !== 'detach' ||
+      success.formatVersion !==
+        CASE_INSERT_PRESET_DETACH_TRANSITION_SUCCESS_VERSION ||
+      success.status !== 'detached-aggregate-semantic-no-op') {
+    return detachSuccessValidationFailure(
+      'invalid-transition-success',
+      'detach-success-shape-invalid',
+    )
+  }
+  if (success.applicationAdoptionStatus !== 'not-adopted') {
+    return detachSuccessValidationFailure(
+      'application-adoption-status-mismatch',
+      'detach-success-adoption-status-invalid',
+    )
+  }
+  const sourceAggregate = validateCaseInsertPresetAggregateContent(
+    success.sourceAggregate,
+  )
+  if (!sourceAggregate.ok) {
+    return detachSuccessValidationFailure(
+      'source-aggregate-mismatch',
+      sourceAggregate.code,
+    )
+  }
+  const resultAggregate = validateCaseInsertPresetAggregateContent(
+    success.aggregate,
+  )
+  if (!resultAggregate.ok || sourceAggregate.aggregateContentIdentity !==
+      (resultAggregate.ok ? resultAggregate.aggregateContentIdentity : null) ||
+      !sameCaseInsertPresetValue(
+        sourceAggregate.aggregate,
+        resultAggregate.ok ? resultAggregate.aggregate : null,
+      )) {
+    return detachSuccessValidationFailure(
+      'result-aggregate-mismatch',
+      resultAggregate.ok
+        ? 'detach-result-not-exact-unchanged-semantic-clone'
+        : resultAggregate.code,
+    )
+  }
+  const sourceConfiguration = validateCaseInsertAppliedPresetConfiguration(
+    deepFreezeCaseInsertPresetValue(success.sourceConfiguration),
+  )
+  if (!sourceConfiguration.ok) {
+    return detachSuccessValidationFailure(
+      'configuration-identity-mismatch',
+      sourceConfiguration.code,
+    )
+  }
+  const configuration = sourceConfiguration.configuration
+  if (!isRecord(success.releaseResult) ||
+      !hasExactCaseInsertPresetKeys(success.releaseResult, [
+        'kind', 'formatVersion', 'domainStatus', 'operation',
+        'releaseIdentity', 'transitionIdentity', 'transitionClassification',
+        'sourceConfigurationIdentity', 'sourceConfigurationFormatVersion',
+        'preset', 'planIdentity', 'planReviewIdentity',
+        'reviewAcceptanceIdentity', 'reviewedWarningIds',
+        'acceptedMaterialConsentRequirementIds', 'context',
+        'releasedFootprint', 'proof', 'nextAppliedPresetConfiguration',
+        'applicationAdoptionStatus',
+      ])) {
+    return detachSuccessValidationFailure(
+      'invalid-transition-success',
+      'detach-release-shape-invalid',
+    )
+  }
+  const release = success.releaseResult as unknown as
+    CaseInsertPresetDetachConfigurationReleaseResult
+  if (release.kind !== CASE_INSERT_PRESET_DETACH_RELEASE_RESULT_KIND ||
+      release.formatVersion !== CASE_INSERT_PRESET_DETACH_RELEASE_RESULT_VERSION ||
+      release.domainStatus !== 'validated-authoritative-transition-evidence' ||
+      release.operation !== 'detach' ||
+      release.sourceConfigurationIdentity !==
+        configuration.configurationIdentity ||
+      release.sourceConfigurationFormatVersion !== configuration.formatVersion ||
+      release.nextAppliedPresetConfiguration !== null ||
+      release.applicationAdoptionStatus !== 'not-adopted' ||
+      !Array.isArray(release.releasedFootprint) ||
+      release.releasedFootprint.length !== configuration.ownedFields.length ||
+      !isRecord(release.proof) || release.proof.aggregateWriteCount !== 0 ||
+      release.proof.preservesEveryAggregateValue !== true ||
+      release.proof.releasesCompleteConfiguration !== true) {
+    return detachSuccessValidationFailure(
+      'release-configuration-mismatch',
+      'detach-release-configuration-incoherent',
+    )
+  }
+  const releaseByAddress = new Map<string,
+    CaseInsertPresetDetachReleaseRecord>()
+  for (const item of release.releasedFootprint) {
+    if (!isRecord(item) || !isRecord(item.address) ||
+        typeof item.id !== 'string') {
+      return detachSuccessValidationFailure(
+        'release-configuration-mismatch',
+        'detach-release-record-invalid',
+      )
+    }
+    const record = item as CaseInsertPresetDetachReleaseRecord
+    const key = addressKey(record.address)
+    if (releaseByAddress.has(key) || record.id !==
+        createCaseInsertPresetDetachReleaseIdentity({
+          address: record.address,
+          currentValue: record.currentValue,
+          previousLastAppliedValue: record.previousLastAppliedValue,
+          sources: record.sources,
+          enablement: record.enablement,
+          ownershipDisposition: record.ownershipDisposition,
+          aggregateDisposition: record.aggregateDisposition,
+        })) {
+      return detachSuccessValidationFailure(
+        'release-configuration-mismatch',
+        'detach-release-record-identity-invalid',
+      )
+    }
+    releaseByAddress.set(key, record)
+  }
+  for (const field of configuration.ownedFields) {
+    const releaseRecord = releaseByAddress.get(addressKey(field.address))
+    if (!releaseRecord || releaseRecord.previousLastAppliedValue !==
+        field.lastAppliedValue || !sameCaseInsertPresetValue(
+          releaseRecord.sources,
+          field.sources,
+        )) {
+      return detachSuccessValidationFailure(
+        'release-configuration-mismatch',
+        'detach-release-footprint-substituted',
+      )
+    }
+  }
+  const expectedOperationTransitionIdentity =
+    createCaseInsertPresetDetachTransitionIdentity({
+      operation: 'detach',
+      status: 'detached-aggregate-semantic-no-op',
+      planIdentity: release.planIdentity,
+      planReviewIdentity: release.planReviewIdentity,
+      sourceConfigurationIdentity: configuration.configurationIdentity,
+      reviewAcceptanceIdentity: release.reviewAcceptanceIdentity,
+      reviewedWarningIds: release.reviewedWarningIds,
+      acceptedMaterialConsentRequirementIds:
+        release.acceptedMaterialConsentRequirementIds,
+      current: release.context,
+      releasedFootprint: release.releasedFootprint,
+      aggregateWriteCount: 0,
+      nextAppliedPresetConfiguration: null,
+      applicationAdoptionStatus: 'not-adopted',
+    })
+  if (release.transitionIdentity !== expectedOperationTransitionIdentity) {
+    return detachSuccessValidationFailure(
+      'transition-lineage-mismatch',
+      'detach-operation-transition-identity-invalid',
+    )
+  }
+  const expectedReleaseIdentity =
+    createCaseInsertPresetDetachConfigurationReleaseIdentity({
+      operation: 'detach',
+      sourceConfigurationIdentity: configuration.configurationIdentity,
+      sourceConfigurationFormatVersion: configuration.formatVersion,
+      preset: configuration.preset,
+      planIdentity: release.planIdentity,
+      planReviewIdentity: release.planReviewIdentity,
+      reviewAcceptanceIdentity: release.reviewAcceptanceIdentity,
+      reviewedWarningIds: release.reviewedWarningIds,
+      acceptedMaterialConsentRequirementIds:
+        release.acceptedMaterialConsentRequirementIds,
+      context: release.context,
+      releasedFootprint: release.releasedFootprint,
+      aggregateWriteCount: 0,
+      nextAppliedPresetConfiguration: null,
+      successorAttachment: createCaseInsertPresetUnattachedEndpoint(),
+      applicationAdoptionStatus: 'not-adopted',
+    })
+  if (release.releaseIdentity !== expectedReleaseIdentity) {
+    return detachSuccessValidationFailure(
+      'release-configuration-mismatch',
+      'detach-release-identity-invalid',
+    )
+  }
+  if (!isRecord(success.successEvidence) ||
+      !hasExactCaseInsertPresetKeys(success.successEvidence, [
+        'kind', 'formatVersion', 'operation', 'transitionResultVersion',
+        'transitionStatus', 'context', 'lineage',
+        'sourceAggregateContentIdentity', 'resultAggregateContentIdentity',
+        'sourceAttachment', 'successorAttachment',
+        'sourceConfigurationIdentity', 'successorConfigurationIdentity',
+        'configurationReleaseIdentity', 'applicationAdoptionStatus',
+        'transitionIdentity', 'wholeSuccessIdentity',
+      ])) {
+    return detachSuccessValidationFailure(
+      'invalid-transition-success',
+      'detach-success-evidence-shape-invalid',
+    )
+  }
+  const evidence = success.successEvidence as unknown as
+    CaseInsertPresetTransitionSuccessEvidence
+  if (!isRecord(evidence.context) || !isRecord(evidence.lineage) ||
+      !isCaseInsertPresetAttachmentEndpoint(evidence.sourceAttachment) ||
+      !isCaseInsertPresetAttachmentEndpoint(evidence.successorAttachment) ||
+      evidence.sourceAttachment.status !== 'attached' ||
+      evidence.sourceAttachment.configurationIdentity !==
+        configuration.configurationIdentity ||
+      evidence.sourceConfigurationIdentity !==
+        configuration.configurationIdentity) {
+    return detachSuccessValidationFailure(
+      'source-attachment-mismatch',
+      'detach-source-attachment-incoherent',
+    )
+  }
+  if (evidence.successorAttachment.status !== 'unattached' ||
+      evidence.successorConfigurationIdentity !== null ||
+      evidence.configurationReleaseIdentity !== release.releaseIdentity) {
+    return detachSuccessValidationFailure(
+      'successor-attachment-mismatch',
+      'detach-successor-attachment-incoherent',
+    )
+  }
+  if (evidence.lineage.planIdentity !== release.planIdentity ||
+      evidence.lineage.planReviewIdentity !== release.planReviewIdentity ||
+      evidence.lineage.reviewAcceptanceIdentity !==
+        release.reviewAcceptanceIdentity ||
+      !Array.isArray(
+        evidence.lineage.materialConsentAcceptanceIdentities,
+      ) || evidence.lineage.materialConsentAcceptanceIdentities.length !== 0 ||
+      evidence.lineage.operationTransitionIdentity !==
+        release.transitionIdentity) {
+    return detachSuccessValidationFailure(
+      'transition-lineage-mismatch',
+      'detach-success-lineage-incoherent',
+    )
+  }
+  if (evidence.operation !== 'detach' ||
+      evidence.transitionStatus !== success.status ||
+      evidence.applicationAdoptionStatus !== 'not-adopted' ||
+      evidence.context.projectKind !== 'caseInsert' ||
+      evidence.context.sessionId !== release.context.sessionId ||
+      evidence.context.projectRevision !== release.context.projectRevision ||
+      !sameCaseInsertPresetValue(
+        evidence.context.template,
+        release.context.template,
+      ) || evidence.context.snapshotAggregateContentIdentity !==
+        sourceAggregate.aggregateContentIdentity ||
+      evidence.sourceAggregateContentIdentity !==
+        sourceAggregate.aggregateContentIdentity ||
+      evidence.resultAggregateContentIdentity !==
+        resultAggregate.aggregateContentIdentity) {
+    return detachSuccessValidationFailure(
+      'source-aggregate-mismatch',
+      'detach-success-aggregate-context-incoherent',
+    )
+  }
+  const expectedEvidence = createCaseInsertPresetTransitionSuccessEvidence({
+    operation: 'detach',
+    transitionStatus: success.status,
+    context: evidence.context,
+    lineage: evidence.lineage,
+    sourceAggregateContentIdentity:
+      sourceAggregate.aggregateContentIdentity,
+    resultAggregateContentIdentity:
+      resultAggregate.aggregateContentIdentity,
+    sourceAttachment: evidence.sourceAttachment,
+    successorAttachment: evidence.successorAttachment,
+    sourceConfigurationIdentity: configuration.configurationIdentity,
+    successorConfigurationIdentity: null,
+    configurationReleaseIdentity: release.releaseIdentity,
+    applicationAdoptionStatus: 'not-adopted',
+  })
+  if (!sameCaseInsertPresetValue(evidence, expectedEvidence) ||
+      success.transitionIdentity !== expectedEvidence.transitionIdentity) {
+    return detachSuccessValidationFailure(
+      'transition-success-identity-mismatch',
+      'detach-whole-success-identity-invalid',
+    )
+  }
+  return deepFreezeCaseInsertPresetValue({
+    ok: true,
+    status: 'validated' as const,
+    success: deepFreezeCaseInsertPresetValue(success) as unknown as
+      ValidatedCaseInsertPresetDetachTransitionSuccess,
   })
 }
