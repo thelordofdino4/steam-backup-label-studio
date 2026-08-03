@@ -922,9 +922,9 @@ left/right-spine assignment and atomic workflow semantics. The pure definition,
 catalog, compatibility, normalized snapshot, and stable assignment-resolution
 foundation, immutable first-time Apply planner, content-bound review/consent
 identity, pure atomic transition, authoritative detached applied-configuration
-domain, pure customization detector, pure same-ID Reapply planner, and pure
-atomic Reapply transition, plus the pure Detach planner/transition, are implemented. The
-first-time planner owns
+domain, pure customization detector, pure same-ID Reapply planner, pure atomic
+Reapply transition, pure Detach planner/transition, and pure atomic application-
+adoption transition are implemented. The first-time planner owns
 deterministic typed direct layout-field proposals, preservation/skip/warning/
 blocker/consent classification, no-op and conflict detection,
 staleness/identity preconditions, and field footprints. The transition validates
@@ -962,24 +962,41 @@ operation/context/plan/review/consent lineage, an operation-discriminated
 transition identity, one whole-success identity, and explicit non-adoption.
 Strict public validators recompute the entire operation-specific bundle and
 reject substituted aggregates, configurations, endpoints, releases, lineage,
-or mixed authentic fragments. No installed attachment/release-adoption owner,
-lifecycle application transaction, schema, UI, or menu connection exists.
+or mixed authentic fragments. No lifecycle/store attachment installation,
+schema, UI, or menu connection exists.
 
 `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` is now the pure
 model owner for one canonical unattached wrapper, one exact validated attached
 configuration wrapper, and one immutable Case assignment-snapshot-plus-
 attachment application unit. It also records the legal Apply attach, Reapply
 replace, and Detach release edges, provides a pure fail-closed attachment-edge
-classifier, and defines operation-discriminated future result/receipt identity
-facts. It does not execute any transition or write an aggregate, attachment,
+classifier, and defines operation-discriminated result/receipt identity facts.
+It does not execute any transition or write an aggregate, attachment,
 project revision, store, lifecycle session, schema, persistence path, UI,
 catalog, or runtime. Its strict audit now accepts authentic strengthened Apply,
 Reapply, and Detach successes only as opaque branded inert evidence with
 `applicationAdoptionStatus: not-adopted`. Legacy/incomplete shapes still fail as
 `aggregate-evidence-insufficient`. It returns no successor application snapshot
-or receipt and exports no adoption executor. The next safe owner is a separate
-pure atomic application-adoption transition, not `App.tsx`, the lifecycle store,
-or project schema.
+or receipt and performs no adoption itself.
+
+`src/presets/caseInsertPresetApplicationAdoptionTransition.ts` is the separate
+pure atomic authority. It consumes one versioned exact-operation request with
+one current immutable application snapshot and one opaque audited evidence
+value. It safely clones untrusted input, revalidates the complete owning whole-
+success result, and rechecks project/session/revision/template, source/result
+aggregate, source/successor attachment, exact configuration, release, and non-
+adoption compare-and-swap facts. Apply attaches the promoted configuration,
+Reapply replaces the exact source with a distinct successor, and Detach returns
+canonical absence while preserving aggregate semantics. Success creates one
+deeply immutable detached successor application snapshot, increments revision
+exactly once, and emits one deterministic receipt binding both application
+identities and the complete evidence/context edge. Failure exposes no
+successor, receipt, adoption identity, or actionable transition structure.
+The module imports no planner, operation transition, detector, resolver,
+compatibility evaluator, catalog, aggregate writer, lifecycle/store,
+persistence, schema, UI, renderer, or runtime owner. The next safe owner is a
+focused lifecycle-owned aggregate/attachment commit adapter, not `App.tsx` or
+project schema.
 
 Key files:
 
@@ -1036,6 +1053,7 @@ Key files:
 - `src/presets/caseInsertPresetSafeInput.ts`
 - `src/presets/caseInsertPresetTransitionSuccessIdentity.ts`
 - `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
+- `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/presetAggregateIdentity.ts`
 - `src/caseInsert/*.ts`
@@ -1166,13 +1184,14 @@ Risks:
   lineage in operation-discriminated transition and whole-success identities.
   Strict validators return only complete detached immutable successes; the
   adoption-model audit converts them only into opaque inert `not-adopted`
-  evidence and rejects legacy/incomplete evidence. These pure owners have no
+  evidence and rejects legacy/incomplete evidence. The pure application-
+  adoption transition consumes that evidence and one exact current snapshot,
+  revalidates the complete CAS chain, and returns one coherent successor plus
+  deterministic receipt or a typed inert failure. These pure owners have no
   React/store, renderer, filesystem, Tauri, persistence, or commit dependency.
-  No runtime Case preset mutation/attachment owner or adoption executor exists
-  in current source. Apply/Reapply/Detach attachment/release adoption,
-  persistence/schema, UI, lifecycle/store
-  commit, and runtime application remain absent. The production Case catalog
-  remains empty.
+  No runtime Case preset mutation/attachment owner exists in current source.
+  Persistence/schema, UI, lifecycle/store commit, and runtime application
+  remain absent. The production Case catalog remains empty.
 
 ## Text Systems
 
@@ -1858,8 +1877,10 @@ Current `npm run test` covers these broad areas:
   swap preflight, coherent detached aggregate/configuration output, and typed
   fail-closed outcomes; plus content-complete aggregate identities, exact
   attachment endpoints, operation-discriminated transition/whole-success
-  validation, fragment-substitution rejection, and opaque inert non-adopted
-  evidence without an adoption executor.
+  validation, fragment-substitution rejection, opaque inert non-adopted
+  evidence, and the pure atomic application-adoption transition's exact CAS,
+  attach/replace/release successor state, deterministic receipt, replay/out-of-
+  order rejection, hostile-input rejection, and no-integration boundaries.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
 - The runtime-connected application lifecycle composition root, state store,
   command registry/dispatcher, busy coordinator, typed command ports,

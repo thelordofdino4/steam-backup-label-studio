@@ -887,7 +887,8 @@ test('legal relationship registry permits only coherent attach, replace, and rel
       replayRule: 'changed-source-state-is-conflict',
       outOfOrderRule:
         'session-revision-template-or-attachment-mismatch-is-conflict',
-      currentEvidenceReadiness: 'validated-evidence-future-executor-required',
+      currentEvidenceReadiness:
+        'validated-evidence-pure-adoption-transition-required',
     },
   )
   assert.equal(
@@ -931,7 +932,7 @@ test('attachment-edge classification rejects replay, missing, and different-sour
   if (apply.ok) {
     assert.equal(apply.attachmentAction, 'attached')
     assert.equal(apply.adoptionReadiness,
-      'evidence-validated-future-executor-required')
+      'evidence-validated-pure-adoption-transition-required')
   }
 
   const replayedApply = classifyCaseInsertPresetApplicationAdoptionRelationship({
@@ -1084,12 +1085,28 @@ function identityInput(
     configurationIdentity: replacementConfigurationIdentity,
   }
   const common = {
-    consumedTransitionIdentity: `case:preset-${operation}-transition:v1:fixture`,
-    sourceApplicationStateIdentity: 'case:application-state:v1:source',
+    consumedTransitionIdentity: `case:preset-${operation}-transition:v2:fixture`,
+    consumedWholeSuccessIdentity:
+      `case:preset-transition-whole-success:v1:${operation}-fixture`,
+    sourceApplicationStateIdentity:
+      'case:preset-application-state:v1:source',
+    successorApplicationStateIdentity:
+      `case:preset-application-state:v1:${operation}-successor`,
     sourceAggregateIdentity: 'case:aggregate:v1:source',
     resultAggregateIdentity: operation === 'detach'
       ? 'case:aggregate:v1:source'
       : 'case:aggregate:v1:result',
+    sourceConfigurationIdentity: operation === 'apply'
+      ? null
+      : attachedConfigurationIdentity,
+    successorConfigurationIdentity: operation === 'detach'
+      ? null
+      : operation === 'apply'
+        ? attachedConfigurationIdentity
+        : replacementConfigurationIdentity,
+    configurationReleaseIdentity: operation === 'detach'
+      ? 'case:preset-detach-configuration-release:v1:fixture'
+      : null,
   }
   const sourceContext = {
     projectKind: 'caseInsert' as const,
@@ -1145,7 +1162,7 @@ function identityInput(
   }
 }
 
-test('future adoption identity projection is deterministic but is not a receipt', () => {
+test('adoption identity projection is deterministic but is not a receipt', () => {
   for (const operation of ['apply', 'reapply', 'detach'] as const) {
     const input = identityInput(operation)
     const first = projectCaseInsertPresetApplicationAdoptionIdentity(input)
@@ -1229,7 +1246,7 @@ test('future adoption identity projection is deterministic but is not a receipt'
   }
 })
 
-test('future receipt schema records atomicity and explicit non-persistence', () => {
+test('receipt schema records atomicity and explicit non-persistence', () => {
   const applyInput = identityInput('apply')
   const reapplyInput = identityInput('reapply')
   const detachInput = identityInput('detach')
@@ -1258,9 +1275,27 @@ test('future receipt schema records atomicity and explicit non-persistence', () 
       formatVersion: CASE_INSERT_PRESET_APPLICATION_ADOPTION_RECEIPT_VERSION,
       adoptionIdentity,
       consumedTransitionIdentity: input.consumedTransitionIdentity,
+      consumedWholeSuccessIdentity: input.consumedWholeSuccessIdentity,
       sourceApplicationStateIdentity: input.sourceApplicationStateIdentity,
+      successorApplicationStateIdentity:
+        input.successorApplicationStateIdentity,
       sourceAggregateIdentity: input.sourceAggregateIdentity,
       resultAggregateIdentity: input.resultAggregateIdentity,
+      sourceConfigurationIdentity: input.sourceConfigurationIdentity,
+      successorConfigurationIdentity: input.successorConfigurationIdentity,
+      configurationReleaseIdentity: input.configurationReleaseIdentity,
+      sourceApplicationContext: {
+        projectKind: input.source.projectKind,
+        sessionId: input.source.sessionId,
+        projectRevision: input.source.projectRevision,
+        template: input.source.template,
+      },
+      successorApplicationContext: {
+        projectKind: input.successor.projectKind,
+        sessionId: input.successor.sessionId,
+        projectRevision: input.successor.projectRevision,
+        template: input.successor.template,
+      },
       sourceProjectRevision: input.source.projectRevision,
       successorProjectRevision: input.successor.projectRevision,
       applicationAdoptionStatus: 'adopted' as const,

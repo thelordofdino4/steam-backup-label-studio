@@ -3,7 +3,7 @@
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against commit: `ec9243ea1f42d97d9476bfe05160e933c746510f` plus the current unstaged pure Case transition-evidence amendment.
+> Last reviewed against commit: `54ee66a6d3051998bbadd19ea239ebe3b81beed7` plus the current unstaged pure Case application-adoption transition.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
@@ -896,13 +896,13 @@ changes are persisted through existing project fields, preview/export parity
 tests where practical, and manual Tauri verification for user-visible editor
 behavior when UI is added.
 
-## 17. Case/Spine Pure Apply, Reapply, And Detach Checkpoints
+## 17. Case/Spine Pure Apply, Reapply, Detach, And Adoption Checkpoints
 
 Runtime Case Front, Case Back, and Spine preset application remains deferred.
 Pure first-time Apply planning, its atomic detached transition, the authoritative
 detached applied-configuration domain, exact customization detection, and pure
 same-preset Reapply planning/transition plus pure complete-footprint Detach
-planning/transition are now implemented.
+planning/transition and pure atomic application adoption are now implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
@@ -972,9 +972,9 @@ neither. It runs no planner, detector, resolver, compatibility/catalog,
 Apply/Reapply, writer, geometry, renderer, persistence, schema, UI, store, or
 runtime owner. Back Panel and complete Tray remain distinct, left/right Spine
 remain independent, mirror mode cannot redirect execution, and repeated objects
-resolve by exact stable ID. Configuration attachment/removal adoption,
-persistence/schema, UI, lifecycle/store commit, and runtime application remain
-future work. The production Case catalog remains empty.
+resolve by exact stable ID. Lifecycle/store attachment installation,
+persistence/schema, UI, and runtime application remain future work. The
+production Case catalog remains empty.
 
 The pure configuration-attachment/application-adoption model is now also
 implemented. It wraps the unchanged validated configuration in exactly one
@@ -1007,11 +1007,28 @@ operation-discriminated transition identity, one whole-success identity, and
 `applicationAdoptionStatus: not-adopted`. Strict validators recompute complete
 aggregates, endpoints, nested identities, and whole-success coherence and reject
 aggregate/configuration substitution or authentic fragments mixed across
-executions. The adoption model can return only opaque branded inert evidence;
-it produces no successor application snapshot or receipt and exposes no
-executor. Legacy/incomplete evidence remains `aggregate-evidence-insufficient`.
-Persistence, schema, save/load, store, UI, catalog entries, and runtime remain
-later work, and the production Case catalog remains empty.
+executions. The adoption model returns only opaque branded inert evidence that
+remains `not-adopted`; it does not mutate application state.
+
+The separate pure application-adoption transition consumes only that opaque
+evidence plus one exact current immutable application snapshot. It safely
+revalidates the complete operation/version/whole-success chain and every
+project/session/revision/template, aggregate, attachment, configuration, and
+release compare-and-swap fact. Apply returns the exact result aggregate with
+the exact promoted configuration attached; Reapply returns the exact result
+aggregate with its distinct successor configuration; Detach returns the exact
+unchanged-semantic aggregate with canonical authoritative absence and no
+tombstone. Every successful edge increments the application snapshot revision
+exactly once and emits one deterministic deeply immutable receipt binding both
+application identities, whole-success identity, both aggregate identities,
+attachment/configuration/release identities, and source/successor context. A
+failure returns no successor, receipt, adoption identity, or actionable
+transition structure. The pure transition invokes no planner, operation
+transition, detector, resolver, compatibility evaluator, catalog, aggregate
+writer, lifecycle/store, persistence, schema, UI, or runtime owner.
+Legacy/incomplete evidence remains `aggregate-evidence-insufficient`.
+Persistence, schema, save/load, lifecycle/store commit, UI, catalog entries,
+and runtime remain later work, and the production Case catalog remains empty.
 
 Deferred areas:
 

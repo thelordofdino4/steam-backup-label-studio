@@ -1562,24 +1562,23 @@ customization detector, resolver, compatibility/catalog owners, aggregate
 writer, geometry, renderer, persistence, schema, UI, store, lifecycle, Rust, or
 Tauri. Back Panel/complete Tray and left/right Spine remain exact separate
 addresses, mirror mode cannot redirect execution, and repeated objects use only
-stable-ID lookup. Configuration attachment/removal adoption, persistence,
-schema, UI, and runtime integration remain absent. The production Case catalog
-remains empty.
+stable-ID lookup. Lifecycle/store attachment installation, persistence, schema,
+UI, and runtime integration remain absent. The production Case catalog remains
+empty.
 
 `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` now defines the
 pure session-only model preceding that absent runtime boundary. One canonical
 `unattached` wrapper and one exact-one `attached` wrapper leave the validated
 configuration's identity-bound `detached-uninstalled` field unchanged. One
 application snapshot pairs the complete normalized Case assignment snapshot
-with that wrapper, and future success/result types expose only one coherent
+with that wrapper, and success/result types expose only one coherent
 successor snapshot rather than separate aggregate and configuration commits.
 Operation-discriminated result/receipt types prevent an Apply, Reapply, or
 Detach success from naming the wrong attachment action or attachment-state
-shape, and a private coherence proof keeps future success structurally
-uninhabitable until a future executor performs the still-current compare-and-
-swap. The module also defines legal attach/replace/release relationships, a pure
-fail-closed attachment-edge classifier, future receipt/identity vocabulary,
-strict hostile-input validation, and no executor.
+shape, and a private coherence proof prevents structural caller construction.
+The module also defines legal attach/replace/release relationships, a pure
+fail-closed attachment-edge classifier, receipt/identity vocabulary, strict
+hostile-input validation, and no mutation executor.
 
 `src/caseInsert/presetAggregateIdentity.ts` now validates one complete
 normalized `ProjectJewelCaseState` and gives equivalent detached clones the same
@@ -1606,13 +1605,34 @@ recompute nested and whole identities, and return no partial evidence on
 failure. Substituted aggregates/configurations and independently authentic
 fragments from different successes therefore cannot validate.
 
-The adoption-model audit can convert an authentic validated Apply, Reapply, or
+The adoption-model audit converts an authentic validated Apply, Reapply, or
 Detach success only into an opaque branded `validated-inert-evidence` value.
+That evidence remains `not-adopted` and cannot itself mutate application state.
 Legacy/incomplete transition shapes still fail as
-`aggregate-evidence-insufficient`. No successor application snapshot, adopted
-status, receipt, executor, aggregate write, configuration attachment/release,
-store, lifecycle, schema, persistence, save/load, UI, catalog entry, or runtime
-state is produced at this checkpoint. The production Case catalog remains empty.
+`aggregate-evidence-insufficient`.
+
+`src/presets/caseInsertPresetApplicationAdoptionTransition.ts` now owns the
+separate pure atomic adoption boundary. One versioned request names an exact
+operation, one current immutable Case application snapshot, and one opaque
+audited evidence value. The transition safely detaches untrusted input,
+revalidates the owning whole-success bundle, and checks exact project kind,
+session, revision, template, source/result aggregate, source/successor
+attachment, source/successor configuration, release, and non-adoption facts.
+Apply attaches exactly the promoted configuration; Reapply replaces the exact
+source configuration with its distinct successor; Detach preserves complete
+aggregate semantics and produces canonical authoritative absence with no
+tombstone. Success returns one deeply immutable detached successor snapshot and
+one deterministic operation-discriminated receipt, increments application
+revision exactly once, and preserves session/template/project kind. Failure
+returns no successor, receipt, adoption identity, or actionable transition
+structure. The receipt binds the consumed transition and whole-success
+identities, source/successor application and aggregate identities, attachment/
+configuration/release identities, complete context/revisions, atomicity, and
+explicit `not-persisted`/non-integration facts. The transition invokes no
+planner, Apply/Reapply/Detach transition, detector, resolver, compatibility
+evaluator, catalog, aggregate writer, lifecycle/store, schema, persistence,
+save/load, UI, renderer, Rust, Tauri, or runtime owner. The production Case
+catalog remains empty; lifecycle/store installation remains future work.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -1985,7 +2005,9 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Case preset evidence tests cover full-aggregate identity completeness,
   operation-specific whole-success validation, aggregate/configuration/endpoint
   substitution, mixed authentic fragments, hostile input, immutable inert
-  evidence, legacy rejection, and absence of an adoption executor.
+  evidence, legacy rejection, plus pure adoption CAS, attach/replace/release
+  successor semantics, receipt determinism, replay/out-of-order rejection,
+  hostile-input failure, and runtime-dependency isolation.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks

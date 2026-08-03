@@ -39,10 +39,20 @@ import {
   encodeCaseInsertPresetDeterministicIdentity,
 } from './caseInsertPresetReapplyIdentity.ts'
 import {
+  CASE_INSERT_PRESET_DETACH_CONFIGURATION_RELEASE_IDENTITY_PREFIX,
   CASE_INSERT_PRESET_DETACH_TRANSITION_IDENTITY_PREFIX,
   createCaseInsertPresetDetachReleaseIdentity,
   createCaseInsertPresetDetachTransitionIdentity,
 } from './caseInsertPresetDetachIdentity.ts'
+import {
+  CASE_INSERT_PRESET_APPLY_TRANSITION_IDENTITY_PREFIX,
+  CASE_INSERT_PRESET_DETACH_TRANSITION_IDENTITY_V2_PREFIX,
+  CASE_INSERT_PRESET_REAPPLY_TRANSITION_IDENTITY_V2_PREFIX,
+  CASE_INSERT_PRESET_WHOLE_SUCCESS_IDENTITY_PREFIX,
+} from './caseInsertPresetTransitionSuccessIdentity.ts'
+import {
+  createCaseInsertPresetIdentityDigest,
+} from './caseInsertPresetIdentityDigest.ts'
 
 export {
   CASE_INSERT_PRESET_ATTACHED_IDENTITY_PREFIX,
@@ -64,6 +74,8 @@ export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_RECEIPT_KIND =
 export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_RECEIPT_VERSION = 1 as const
 export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_IDENTITY_PREFIX =
   'case:preset-application-adoption:v1:' as const
+export const CASE_INSERT_PRESET_APPLICATION_STATE_IDENTITY_PREFIX =
+  'case:preset-application-state:v1:' as const
 const CASE_INSERT_PRESET_CONFIGURATION_IDENTITY_PREFIX =
   'case:preset-applied-configuration:v1:' as const
 
@@ -237,7 +249,8 @@ export type CaseInsertPresetApplicationAdoptionRelationshipRule = Readonly<{
   attachmentAction: 'attached' | 'replaced' | 'released'
   replayRule: 'changed-source-state-is-conflict'
   outOfOrderRule: 'session-revision-template-or-attachment-mismatch-is-conflict'
-  currentEvidenceReadiness: 'validated-evidence-future-executor-required'
+  currentEvidenceReadiness:
+    'validated-evidence-pure-adoption-transition-required'
 }>
 
 export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_RELATIONSHIPS =
@@ -252,7 +265,8 @@ export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_RELATIONSHIPS =
       replayRule: 'changed-source-state-is-conflict',
       outOfOrderRule:
         'session-revision-template-or-attachment-mismatch-is-conflict',
-      currentEvidenceReadiness: 'validated-evidence-future-executor-required',
+      currentEvidenceReadiness:
+        'validated-evidence-pure-adoption-transition-required',
     }),
     reapply: Object.freeze({
       operation: 'reapply',
@@ -264,7 +278,8 @@ export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_RELATIONSHIPS =
       replayRule: 'changed-source-state-is-conflict',
       outOfOrderRule:
         'session-revision-template-or-attachment-mismatch-is-conflict',
-      currentEvidenceReadiness: 'validated-evidence-future-executor-required',
+      currentEvidenceReadiness:
+        'validated-evidence-pure-adoption-transition-required',
     }),
     detach: Object.freeze({
       operation: 'detach',
@@ -276,7 +291,8 @@ export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_RELATIONSHIPS =
       replayRule: 'changed-source-state-is-conflict',
       outOfOrderRule:
         'session-revision-template-or-attachment-mismatch-is-conflict',
-      currentEvidenceReadiness: 'validated-evidence-future-executor-required',
+      currentEvidenceReadiness:
+        'validated-evidence-pure-adoption-transition-required',
     }),
   } satisfies Readonly<Record<
     CaseInsertPresetApplicationAdoptionOperation,
@@ -331,7 +347,8 @@ export type CaseInsertPresetApplicationAdoptionRelationshipResult =
       currentAttachmentIdentity: string
       sourceConfigurationIdentity: string | null
       successorConfigurationIdentity: string | null
-      adoptionReadiness: 'evidence-validated-future-executor-required'
+      adoptionReadiness:
+        'evidence-validated-pure-adoption-transition-required'
     }>
   | CaseInsertPresetAdoptionModelFailure
 
@@ -362,9 +379,14 @@ type CaseInsertPresetApplicationAdoptionIdentityContext<
 
 type CaseInsertPresetApplicationAdoptionIdentityInputCommon = Readonly<{
   consumedTransitionIdentity: string
+  consumedWholeSuccessIdentity: string
   sourceApplicationStateIdentity: string
+  successorApplicationStateIdentity: string
   sourceAggregateIdentity: string
   resultAggregateIdentity: string
+  sourceConfigurationIdentity: string | null
+  successorConfigurationIdentity: string | null
+  configurationReleaseIdentity: string | null
 }>
 
 export type CaseInsertPresetApplicationAdoptionIdentityInput =
@@ -413,15 +435,38 @@ export type CaseInsertPresetApplicationAdoptionIdentityProjectionResult =
     }>
   | CaseInsertPresetAdoptionModelFailure
 
+export type CaseInsertPresetApplicationStateIdentityProjectionResult =
+  | Readonly<{
+      ok: true
+      status: 'projected'
+      applicationStateIdentity: string
+    }>
+  | CaseInsertPresetAdoptionModelFailure
+
+export type CaseInsertPresetApplicationAdoptionReceiptContext = Readonly<{
+  projectKind: 'caseInsert'
+  sessionId: string
+  projectRevision: number
+  template: Readonly<{ id: string; revision: null }>
+}>
+
 type CaseInsertPresetApplicationAdoptionReceiptCommon = Readonly<{
   kind: typeof CASE_INSERT_PRESET_APPLICATION_ADOPTION_RECEIPT_KIND
   formatVersion:
     typeof CASE_INSERT_PRESET_APPLICATION_ADOPTION_RECEIPT_VERSION
   adoptionIdentity: string
   consumedTransitionIdentity: string
+  consumedWholeSuccessIdentity: string
   sourceApplicationStateIdentity: string
+  successorApplicationStateIdentity: string
   sourceAggregateIdentity: string
   resultAggregateIdentity: string
+  sourceConfigurationIdentity: string | null
+  successorConfigurationIdentity: string | null
+  configurationReleaseIdentity: string | null
+  sourceApplicationContext: CaseInsertPresetApplicationAdoptionReceiptContext
+  successorApplicationContext:
+    CaseInsertPresetApplicationAdoptionReceiptContext
   sourceProjectRevision: number
   successorProjectRevision: number
   applicationAdoptionStatus: 'adopted'
@@ -475,10 +520,14 @@ export type CaseInsertPresetApplicationAdoptionReceipt =
   | CaseInsertPresetReapplyApplicationAdoptionReceipt
   | CaseInsertPresetDetachApplicationAdoptionReceipt
 
-export type CaseInsertPresetFutureApplicationAdoptionRequest = Readonly<{
+export type CaseInsertPresetApplicationAdoptionRequest = Readonly<{
   current: CaseInsertPresetApplicationSnapshot
   evidence: CaseInsertPresetApplicationAdoptionEvidence
 }>
+
+/** @deprecated Use CaseInsertPresetApplicationAdoptionRequest. */
+export type CaseInsertPresetFutureApplicationAdoptionRequest =
+  CaseInsertPresetApplicationAdoptionRequest
 
 type CaseInsertPresetApplicationSnapshotWithAttachment<
   Attachment extends CaseInsertPresetAttachmentState,
@@ -496,7 +545,7 @@ type CaseInsertPresetCoherentAdoptionSuccessProof = Readonly<{
     'whole-success-validator-required'
 }>
 
-export type CaseInsertPresetFutureApplicationAdoptionResult =
+export type CaseInsertPresetApplicationAdoptionResult =
   | (Readonly<{
       ok: true
       status: 'adopted'
@@ -525,6 +574,10 @@ export type CaseInsertPresetFutureApplicationAdoptionResult =
       receipt: CaseInsertPresetDetachApplicationAdoptionReceipt
     }> & CaseInsertPresetCoherentAdoptionSuccessProof)
   | CaseInsertPresetAdoptionModelFailure
+
+/** @deprecated Use CaseInsertPresetApplicationAdoptionResult. */
+export type CaseInsertPresetFutureApplicationAdoptionResult =
+  CaseInsertPresetApplicationAdoptionResult
 
 type PlainValue = null | boolean | number | string | PlainValue[] | PlainRecord
 type PlainRecord = { [key: string]: PlainValue }
@@ -888,7 +941,8 @@ export function classifyCaseInsertPresetApplicationAdoptionRelationship(
       currentAttachmentIdentity: attachment.state.attachmentIdentity,
       sourceConfigurationIdentity: null,
       successorConfigurationIdentity: successorIdentity,
-      adoptionReadiness: 'evidence-validated-future-executor-required' as const,
+      adoptionReadiness:
+        'evidence-validated-pure-adoption-transition-required' as const,
     })
   }
 
@@ -931,7 +985,8 @@ export function classifyCaseInsertPresetApplicationAdoptionRelationship(
       currentAttachmentIdentity: attachment.state.attachmentIdentity,
       sourceConfigurationIdentity: sourceIdentity,
       successorConfigurationIdentity: successorIdentity,
-      adoptionReadiness: 'evidence-validated-future-executor-required' as const,
+      adoptionReadiness:
+        'evidence-validated-pure-adoption-transition-required' as const,
     })
   }
 
@@ -950,7 +1005,8 @@ export function classifyCaseInsertPresetApplicationAdoptionRelationship(
     currentAttachmentIdentity: attachment.state.attachmentIdentity,
     sourceConfigurationIdentity: sourceIdentity,
     successorConfigurationIdentity: null,
-    adoptionReadiness: 'evidence-validated-future-executor-required' as const,
+    adoptionReadiness:
+      'evidence-validated-pure-adoption-transition-required' as const,
   })
 }
 
@@ -1076,6 +1132,60 @@ export function validateCaseInsertPresetApplicationSnapshot(
   return createCaseInsertPresetApplicationSnapshot({
     snapshot: input.snapshot,
     attachment: input.attachment,
+  })
+}
+
+function applicationAttachmentIdentityReference(
+  attachment: CaseInsertPresetAttachmentState,
+): CaseInsertPresetAttachmentIdentityReference {
+  return attachment.status === 'unattached'
+    ? deepFreeze({
+        status: 'unattached' as const,
+        attachmentIdentity: attachment.attachmentIdentity,
+      })
+    : deepFreeze({
+        status: 'attached' as const,
+        attachmentIdentity: attachment.attachmentIdentity,
+        configurationIdentity: attachment.configuration.configurationIdentity,
+      })
+}
+
+/**
+ * Projects one validated application snapshot into a compact deterministic
+ * identity. The projection binds the complete aggregate through its content
+ * identity and an attached configuration through its validated identity.
+ */
+export function projectCaseInsertPresetApplicationStateIdentity(
+  value: unknown,
+): CaseInsertPresetApplicationStateIdentityProjectionResult {
+  const validated = validateCaseInsertPresetApplicationSnapshot(value)
+  if (!validated.ok) return validated
+  const snapshot = validated.value
+  const projection = {
+    kind: snapshot.kind,
+    formatVersion: snapshot.formatVersion,
+    projectKind: snapshot.projectKind,
+    snapshotIdentity: snapshot.snapshot.identity,
+    attachment: applicationAttachmentIdentityReference(snapshot.attachment),
+  }
+  let applicationStateIdentity: string
+  try {
+    applicationStateIdentity =
+      `${CASE_INSERT_PRESET_APPLICATION_STATE_IDENTITY_PREFIX}${
+        createCaseInsertPresetIdentityDigest(
+          encodeCaseInsertPresetDeterministicIdentity(projection),
+        )
+      }`
+  } catch {
+    return failure(
+      'invalid-adoption-model',
+      'application-state-identity-unavailable',
+    )
+  }
+  return deepFreeze({
+    ok: true,
+    status: 'projected' as const,
+    applicationStateIdentity,
   })
 }
 
@@ -1420,6 +1530,18 @@ function validConfigurationIdentity(value: unknown): value is string {
   )
 }
 
+function validOperationTransitionIdentity(
+  operation: CaseInsertPresetApplicationAdoptionOperation,
+  value: unknown,
+) {
+  const prefix = operation === 'apply'
+    ? CASE_INSERT_PRESET_APPLY_TRANSITION_IDENTITY_PREFIX
+    : operation === 'reapply'
+      ? CASE_INSERT_PRESET_REAPPLY_TRANSITION_IDENTITY_V2_PREFIX
+      : CASE_INSERT_PRESET_DETACH_TRANSITION_IDENTITY_V2_PREFIX
+  return validIdentityString(value) && value.startsWith(prefix)
+}
+
 function validAttachmentReference(
   value: unknown,
 ): value is CaseInsertPresetAttachmentIdentityReference {
@@ -1470,17 +1592,32 @@ export function projectCaseInsertPresetApplicationAdoptionIdentity(
   }
   const input = cloned.value
   if (!hasExactKeys(input, [
-    'operation', 'consumedTransitionIdentity',
-    'sourceApplicationStateIdentity', 'sourceAggregateIdentity',
-    'resultAggregateIdentity', 'source', 'successor',
+    'operation', 'consumedTransitionIdentity', 'consumedWholeSuccessIdentity',
+    'sourceApplicationStateIdentity', 'successorApplicationStateIdentity',
+    'sourceAggregateIdentity', 'resultAggregateIdentity',
+    'sourceConfigurationIdentity', 'successorConfigurationIdentity',
+    'configurationReleaseIdentity', 'source', 'successor',
     'aggregateAdoptionClassification', 'attachmentAction',
   ]) || (input.operation !== 'apply' && input.operation !== 'reapply' &&
       input.operation !== 'detach')) {
     return failure('invalid-adoption-model', 'adoption-identity-shape-invalid')
   }
   const operation = input.operation
-  if (!validIdentityString(input.consumedTransitionIdentity) ||
-      !validIdentityString(input.sourceApplicationStateIdentity) ||
+  if (!validOperationTransitionIdentity(
+        operation,
+        input.consumedTransitionIdentity,
+      ) || !validIdentityString(input.consumedWholeSuccessIdentity) ||
+      !input.consumedWholeSuccessIdentity.startsWith(
+        CASE_INSERT_PRESET_WHOLE_SUCCESS_IDENTITY_PREFIX,
+      ) || !validIdentityString(input.sourceApplicationStateIdentity) ||
+      !input.sourceApplicationStateIdentity.startsWith(
+        CASE_INSERT_PRESET_APPLICATION_STATE_IDENTITY_PREFIX,
+      ) || !validIdentityString(input.successorApplicationStateIdentity) ||
+      !input.successorApplicationStateIdentity.startsWith(
+        CASE_INSERT_PRESET_APPLICATION_STATE_IDENTITY_PREFIX,
+      ) ||
+      input.sourceApplicationStateIdentity ===
+        input.successorApplicationStateIdentity ||
       !validIdentityString(input.sourceAggregateIdentity) ||
       !validIdentityString(input.resultAggregateIdentity) ||
       !validIdentityContext(input.source) ||
@@ -1511,19 +1648,35 @@ export function projectCaseInsertPresetApplicationAdoptionIdentity(
     ? input.attachmentAction === 'attached' &&
       input.aggregateAdoptionClassification === 'exact-transition-result' &&
       sourceAttachment.status === 'unattached' &&
-      successorAttachment.status === 'attached'
+      successorAttachment.status === 'attached' &&
+      input.sourceConfigurationIdentity === null &&
+      input.successorConfigurationIdentity ===
+        successorAttachment.configurationIdentity &&
+      input.configurationReleaseIdentity === null
     : operation === 'reapply'
       ? input.attachmentAction === 'replaced' &&
         input.aggregateAdoptionClassification === 'exact-transition-result' &&
         sourceAttachment.status === 'attached' &&
         successorAttachment.status === 'attached' &&
         sourceAttachment.configurationIdentity !==
-          successorAttachment.configurationIdentity
+          successorAttachment.configurationIdentity &&
+        input.sourceConfigurationIdentity ===
+          sourceAttachment.configurationIdentity &&
+        input.successorConfigurationIdentity ===
+          successorAttachment.configurationIdentity &&
+        input.configurationReleaseIdentity === null
       : input.attachmentAction === 'released' &&
         input.aggregateAdoptionClassification ===
           'exact-unchanged-semantic-transition-result' &&
         sourceAttachment.status === 'attached' &&
-        successorAttachment.status === 'unattached'
+        successorAttachment.status === 'unattached' &&
+        input.sourceConfigurationIdentity ===
+          sourceAttachment.configurationIdentity &&
+        input.successorConfigurationIdentity === null &&
+        validIdentityString(input.configurationReleaseIdentity) &&
+        input.configurationReleaseIdentity.startsWith(
+          CASE_INSERT_PRESET_DETACH_CONFIGURATION_RELEASE_IDENTITY_PREFIX,
+        )
   if (!relationshipMatches) {
     return failure(
       'unsupported-state-transition',
