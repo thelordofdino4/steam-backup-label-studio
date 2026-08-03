@@ -309,6 +309,8 @@ export const testFiles = [
   'src/presets/caseInsertPresetDetachPlanning.test.ts',
   'src/presets/caseInsertPresetDetachTransition.test.ts',
   'src/presets/caseInsertPresetConfigurationAdoptionModel.test.ts',
+  'src/presets/caseInsertPresetApplicationAdoption.testFixture.test.ts',
+  'src/presets/caseInsertPresetApplicationAdoptionTransition.test.ts',
   'src/steam/steamArtworkAssets.test.ts',
   'src/steam/steamLogoCandidateRouting.test.ts',
   'src/steam/steamLogoCandidateSignals.test.ts',

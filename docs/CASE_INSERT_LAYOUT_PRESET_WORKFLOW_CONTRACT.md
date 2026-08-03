@@ -1,10 +1,10 @@
 # Case Insert Layout Preset Workflow Contract
 
-> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, Detach planning/transition, configuration-attachment/adoption modeling, and content-complete transition-evidence checkpoints.
+> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, Detach planning/transition, content-complete transition evidence, and atomic application-adoption checkpoints.
 > Purpose: Define the presentation-neutral Case Insert Layout Preset Select, Plan, Review, Apply, Reapply, and Detach workflow across Front Cover, complete Tray Card, Back Panel, and explicit left/right spine regions.
 > Read when: Designing or implementing Case preset definitions, catalogs, planning, owner adapters, application scopes, persistence, Game/import composition, future Case workflow presentation, or Case preset acceptance.
 > Authoritative source: This contract for target Case preset workflow semantics; current implementation facts defer to source and tests; physical geometry defers to the Case template and layout owners; serialized fields defer to `PROJECT_FILE_SPEC.md`.
-> Last reviewed against commit: `ec9243ea1f42d97d9476bfe05160e933c746510f` plus the current unstaged pure transition-evidence amendment.
+> Last reviewed against commit: `54ee66a6d3051998bbadd19ea239ebe3b81beed7` plus the current unstaged pure application-adoption transition.
 
 Last refreshed: 2026-08-02.
 
@@ -67,13 +67,13 @@ pure release evidence; the complete ownership footprint is released with zero
 aggregate writes and no next applied configuration. A failure returns neither.
 Neither planner nor transition consults a selected definition, catalog,
 resolver, compatibility evaluator, customization detector, or Reapply policy.
-No starter definition, installed attachment/adoption executor, workflow
+No starter definition, lifecycle/store commit adapter, workflow
 presentation, menu item, or persistence schema exists. A pure application
 attachment model now distinguishes one canonical authoritative absence from one
 complete validated attached Case configuration and pairs that wrapper with one
-exact Case assignment snapshot as a single future atomic state unit. It also
-defines legal Apply/Reapply/Detach attachment edges, future request/receipt
-types, deterministic future receipt-identity inputs, and a strict inert-evidence
+exact Case assignment snapshot as a single pure atomic state unit. It also
+defines legal Apply/Reapply/Detach attachment edges, request/receipt types,
+deterministic receipt-identity inputs, and a strict inert-evidence
 audit boundary. Each assignment snapshot and Apply/Reapply/Detach plan now binds
 one deterministic identity for the complete normalized Case aggregate. Each
 successful transition carries detached source/result aggregates, their exact
@@ -82,9 +82,12 @@ operation/context/plan/review/consent lineage, one operation-discriminated
 transition identity, one whole-success identity, and explicit
 `applicationAdoptionStatus: not-adopted`. Operation-specific public validators
 recompute and validate the entire bundle before returning opaque branded inert
-evidence. The adoption model still performs no transition, attachment,
-aggregate write, revision change, lifecycle/store commit, receipt construction,
-or persistence, and it exposes no adoption executor.
+evidence. A separate pure application-adoption transition now revalidates that
+evidence and one exact current application snapshot, performs the complete
+compare-and-swap check, and returns one coherent successor snapshot plus one
+operation-discriminated adoption receipt or a typed failure containing neither.
+It performs no lifecycle/store commit, schema change, persistence, catalog
+installation, UI work, or runtime side effect.
 
 **TARGET REQUIREMENT —** This contract owns the Case-specific form of the
 shared preset protocol: stable identity and catalog consumption, compatibility,
@@ -542,16 +545,15 @@ later application session has attached the wrapper.
 **CURRENT FACT —** The same model defines one immutable application snapshot
 whose exact `CaseInsertPresetAssignmentSnapshot` carries normalized Case
 aggregate plus session/revision/template context and whose attachment wrapper
-travels beside it. A future successful adoption result has only one successor
+travels beside it. A successful adoption result has only one successor
 snapshot field, and its operation-discriminated result/receipt types require
 Apply/attached, Reapply/replaced, or Detach/released-to-absence edges; they cannot
 expose separate aggregate/configuration successes or pair a Detach success with
 an attached successor. The success variants require a private coherence proof,
-so no caller can structurally assemble a future adopted success. A pure
+so no caller can structurally assemble an adopted success. A pure
 attachment-edge classifier rejects replay, missing, different-source, and
-tombstone edges. The current module is not a store, reducer, project record,
-history entry, persisted schema, adoption transition, or adoption receipt
-producer.
+tombstone edges. The model module is not a store, reducer, project record,
+history entry, persisted schema, or transition executor.
 
 **CURRENT FACT —** The transition-evidence antecedent is now complete. All
 three operations expose content-complete, operation-discriminated success
@@ -580,7 +582,8 @@ return an application snapshot, successor attachment, adopted status, receipt,
 executor, or callable authority. `applicationAdoptionStatus: not-adopted`
 remains required at the transition root and inside its bound success evidence.
 
-**TARGET REQUIREMENT —** The future adoption authority accepts only these legal
+**CURRENT FACT / TARGET REQUIREMENT —** The pure adoption authority accepts
+only these legal
 attachment edges. Every session, revision, template, aggregate, configuration,
 and evidence mismatch fails as a conflict with no successor state.
 
@@ -590,7 +593,8 @@ and evidence mismatch fails as a conflict with no successor state.
 | Reapply success | Exact source configuration identity and contents named by the amended evidence | Exact Reapply transition result aggregate | Exact Reapply successor configuration, wrapped as attached | Missing/different attachment or changed session/revision/template/aggregate is a conflict |
 | Detach success | Exact source configuration identity, contents, and footprint named by the amended release evidence | Exact unchanged-semantic Detach transition result aggregate | Canonical authoritative absence | Missing/different attachment or changed session/revision/template/aggregate is a conflict |
 
-**TARGET REQUIREMENT —** All three operations use strict compare-and-swap
+**CURRENT FACT / TARGET REQUIREMENT —** All three operations use strict
+compare-and-swap
 preconditions: one complete successful deeply immutable transition result of
 the exact supported operation/version; transition-bound
 `applicationAdoptionStatus: not-adopted`; exact project kind, session ID,
@@ -607,21 +611,40 @@ the only successor attachment. A repeated result after any source fact changes
 is a conflict, not silent idempotent success; out-of-order evidence cannot skip
 an attachment edge.
 
-**TARGET REQUIREMENT —** A future deeply immutable receipt records the supported
-receipt format/version, operation, deterministic adoption identity, consumed
-transition and source-application identities, source/result aggregate
-identities, previous/successor attachment identities or canonical absence,
-source/successor session revision facts, exact aggregate-adoption
+**CURRENT FACT / TARGET REQUIREMENT —** The deeply immutable receipt records
+the supported receipt format/version, operation, deterministic adoption
+identity, consumed transition and whole-success identities, source/successor
+application identities, source/result aggregate identities, source/successor
+configuration and release identities, previous/successor attachment identities
+or canonical absence, complete source/successor application context and
+revision facts, exact aggregate-adoption
 classification, and exactly one attachment action: `attached`, `replaced`, or
 `released`. It records `applicationAdoptionStatus: adopted`, proves aggregate
 and attachment were one coherent application-domain result with no partial
 success, and records `persistence.status: not-persisted` plus explicit
 non-integration of project schema, save/load, store, UI, catalog, and runtime.
 It is not a configuration, release record, persisted project, store transaction,
-save result, catalog installation, or UI confirmation. Until the whole-success
-evidence is consumed by a separately implemented future adoption executor, the
-private coherence proof keeps this adopted success/receipt pair uninhabitable
-through the public model API.
+save result, catalog installation, or UI confirmation. The private coherence
+proof keeps the adopted success/receipt pair uninhabitable through structural
+caller construction; the transition alone produces it after strict validation.
+
+**CURRENT FACT —**
+`src/presets/caseInsertPresetApplicationAdoptionTransition.ts` is that pure
+atomic authority. It accepts one versioned exact operation request containing
+one current immutable application snapshot and one opaque audited evidence
+value, treats both as untrusted input, revalidates the owning whole-success
+bundle, and checks exact project/session/revision/template, source/result
+aggregate, source/successor attachment, configuration, release, and adoption
+status facts. Apply attaches exactly its promoted configuration, Reapply
+replaces the exact source with its distinct successor, and Detach preserves
+aggregate semantics while returning canonical absence. Success increments the
+application snapshot revision exactly once because every legal edge changes
+attachment/configuration state; it preserves session, template, and project
+kind. Replay, out-of-order evidence, substitution, aliases, accessors, hostile
+prototypes, cycles, functions, and thenables fail with a deeply immutable typed
+error that contains no successor, receipt, adoption identity, or actionable
+transition structure. Inputs and inert evidence remain unchanged and
+`not-adopted`.
 
 **TARGET REQUIREMENT —** The eventual runtime commit adopts the accepted Case
 aggregate together with either the Apply/Reapply next configuration or canonical
@@ -638,7 +661,10 @@ boundary unchanged.
 
 **TARGET REQUIREMENT —** A material change increments project revision exactly
 once and forms one future history transaction. A semantic no-op increments
-revision zero times and adds no history entry.
+revision zero times and adds no history entry. An aggregate-semantic no-op is
+not a whole-application no-op when Apply, Reapply, or Detach still changes the
+authoritative attachment/configuration edge; every currently legal adoption
+therefore increments the application snapshot revision exactly once.
 
 **TARGET REQUIREMENT —** Apply/Reapply/Detach preserve the active session ID,
 current path, persistence format, clean baseline, project kind, and route.
@@ -1254,6 +1280,11 @@ criteria.
 11. Add one pure atomic application-adoption transition, then one
    lifecycle-owned aggregate/attachment commit adapter with revision, dirty,
    busy, no-op, stale, cleanup, and future history boundaries.
+   **Pure transition implemented:** the versioned transition validates opaque
+   whole-success evidence and the exact current application snapshot, then
+   returns one detached successor aggregate/attachment snapshot plus one
+   adoption receipt or a typed inert failure. Lifecycle/store commit remains
+   unimplemented.
 12. Approve and implement applied-configuration schema/migration through
    `PROJECT_FILE_SPEC.md`, including exact-version recovery and Detach.
 13. Add accessible Case workflow presentation and typed navigation IDs; then
@@ -1265,13 +1296,14 @@ criteria.
     and real native Tauri acceptance before claiming the workflow implemented.
 
 **TARGET REQUIREMENT —** The smallest safe next implementation slice is one
-pure atomic Case preset application-adoption transition. It consumes one opaque
-validated Apply, Reapply, or Detach success plus one still-current immutable
-application snapshot, rechecks every compare-and-swap fact, and returns either
-one coherent successor aggregate/attachment snapshot plus one adoption receipt
-or one typed failure containing neither. Persistence, schema migration,
-save/load, store wiring, UI, catalog entries, and runtime workflow integration
-remain separate later slices.
+focused lifecycle-owned application commit adapter that consumes only a
+successful pure adoption result and atomically installs its complete Case
+aggregate/attachment snapshot behind existing project-mutation, revision,
+dirty-state, busy-scope, stale-session, and feedback boundaries. It must not
+rerun planners or transitions, accept raw evidence, expose partial setters, or
+add persistence/schema/UI/catalog behavior. Persistence, schema migration,
+save/load, workflow presentation, catalog entries, and broader runtime
+integration remain separate later slices.
 
 ## 18. Issue mapping, non-goals, open questions, and evidence index
 
@@ -1294,7 +1326,8 @@ remain separate later slices.
 | CURRENT FACT | PR #345 | Merged pure Detach planning at `13c0cbff4f7658a3f926b6a994973ce29082d55d`; no execution, installation/removal, persistence, schema, UI, store, or runtime behavior was added |
 | CURRENT FACT | PR #346 | Merged pure Detach transition at `d9741e8525d4c312d92a0a30cca2b3b85774497c`; no application adoption, attachment removal, persistence, schema, UI, store, or runtime behavior was added |
 | CURRENT FACT | PR #347 | Merged the pure configuration-attachment/application-adoption model at `ec9243ea1f42d97d9476bfe05160e933c746510f`; it defined canonical attachment state, one atomic future application snapshot, legal edges, receipt vocabulary, and the antecedent evidence gaps without an executor |
-| CURRENT FACT | Transition-evidence amendment checkpoint | Adds full normalized Case aggregate identities, complete Apply/Reapply/Detach endpoints, operation-discriminated transition and whole-success identities, strict whole-success validators, and opaque inert `not-adopted` evidence; no adoption executor or integration is added |
+| CURRENT FACT | PR #348 | Merged the transition-evidence amendment at `54ee66a6d3051998bbadd19ea239ebe3b81beed7`; it added full normalized Case aggregate identities, complete Apply/Reapply/Detach endpoints, operation-discriminated transition and whole-success identities, strict whole-success validators, and opaque inert `not-adopted` evidence without adoption execution or integration |
+| CURRENT FACT | Application-adoption transition checkpoint | Adds the pure atomic versioned adoption transition, complete CAS validation, detached coherent successor snapshot, and deterministic operation-discriminated receipt; no lifecycle/store commit, schema, persistence, UI, catalog, or runtime integration is added |
 
 **CURRENT FACT —** Read-only review at this checkpoint confirmed PR #346's
 Detach transition and PR #347's configuration-adoption model are merged into
@@ -1359,14 +1392,15 @@ and optional modal presentation require focused contracts/implementation.
 | CURRENT FACT | `src/presets/caseInsertPresetDetachIdentity.ts`, `caseInsertPresetDetachPlanning.ts`, and `caseInsertPresetDetachPlanning.test.ts` | Pure configuration/report-independent Detach planning; strict authoritative-configuration and current-context validation; exact stable-address current-value and enablement preflight; complete ownership release with one exact preservation fact per field; deterministic warning/review/plan identities and future compare-and-swap preconditions; non-authoritative ownership-absence projection; zero aggregate writes and no next configuration; the planner itself performs no transition execution, installation/removal, persistence, schema, UI, store, or runtime work |
 | CURRENT FACT | `src/presets/caseInsertPresetDetachTransition.ts` and `caseInsertPresetDetachTransition.test.ts` | Pure atomic Detach execution from one exact reviewed plan and independently validated authoritative configuration; exact source aggregate and unchanged-semantic result clone bound by the same complete aggregate identity; source configuration, release identity, canonical successor absence, lineage, transition, and whole-success validation; zero aggregate writes, no next configuration, and explicit non-adoption; no planner/detector/resolver/compatibility/catalog/writer/geometry/renderer/installation/persistence/schema/UI/store/runtime execution |
 | CURRENT FACT | `src/caseInsert/presetAggregateIdentity.ts`, `src/presets/caseInsertPresetIdentityDigest.ts`, `caseInsertPresetAttachmentEndpoint.ts`, `caseInsertPresetTransitionSuccessIdentity.ts`, and focused tests | Pure content-complete normalized Case aggregate validation and deterministic SHA-256 identity; canonical attachment endpoints; operation-discriminated transition evidence and whole-success identities; semantic array order and order-independent record encoding; no generic JSON identity, platform crypto, runtime, or mutation dependency |
-| CURRENT FACT | `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` and `caseInsertPresetConfigurationAdoptionModel.test.ts` | Canonical unattached/exact-one attached wrapper; deterministic attachment identity; one immutable aggregate/snapshot-plus-attachment application unit; legal Apply/Reapply/Detach relationship registry and pure fail-closed attachment-edge classifier; operation-discriminated future result/receipt and identity vocabulary; hostile-input validation; strict conversion of authentic strengthened successes into opaque inert `not-adopted` evidence; and legacy incomplete evidence rejection. No executor, receipt production, successor snapshot, aggregate write, transition invocation, installation/removal, persistence, schema, UI, store, lifecycle, catalog, renderer, geometry, or runtime behavior |
+| CURRENT FACT | `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` and `caseInsertPresetConfigurationAdoptionModel.test.ts` | Canonical unattached/exact-one attached wrapper; deterministic attachment and application-state identities; one immutable aggregate/snapshot-plus-attachment application unit; legal Apply/Reapply/Detach relationship registry and pure fail-closed attachment-edge classifier; operation-discriminated result/receipt and identity vocabulary; hostile-input validation; strict conversion of authentic strengthened successes into opaque inert `not-adopted` evidence; and legacy incomplete evidence rejection. The model itself performs no adoption, integration, or runtime behavior |
+| CURRENT FACT | `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`, its focused test, and test fixture | Pure versioned atomic adoption from opaque audited evidence plus one exact current application snapshot; full operation/version/whole-success/context/aggregate/attachment/configuration/release CAS; deterministic attach/replace/release receipt; exact one-step revision; deeply immutable detached successor or typed inert failure; replay, out-of-order, fragment substitution, hostile input, and alias rejection; no planner/operation transition/detector/resolver/compatibility/catalog/writer/lifecycle/store/persistence/schema/UI/runtime dependency |
 | CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/caseInsert/presetAssignmentSnapshot.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, lifecycle-detached assignment snapshot with distinct snapshot/context and full aggregate-content identities, exact fixed/repeated binding adapters, snapshot/restore, and current no-preset schema |
 | CURRENT FACT | `src/templates/caseInsertTemplates.ts`, `src/layout/jewelCaseLayout.ts`, `jewelCaseFrontLayout.ts`, `jewelCaseBackLayout.ts`, `jewelCaseSpineLayout.ts` | Two physical surfaces, explicit regions/safe bases, Back Panel versus complete Tray, deterministic owner geometry |
 | CURRENT FACT | `src/caseInsert/templateSurfaceTransitions.ts`, `src/caseInsert/jewelCaseTransitions.ts`, `src/hooks/useCaseInsertTemplateEditor.ts`, `src/hooks/useJewelCaseSpineEditor.ts` | Focused Cover/Tray and side-specific/mirrored editing transitions |
 | CURRENT FACT | `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`, `CaseInsertSpinePreviewLayer.tsx`, `CaseInsertPreview.tsx`, `src/export/caseInsertTemplateExportLayers.ts`, `exportCaseInsertPng.ts` | Preview/export owner separation, one complete Tray composition, and no standalone Spine PNG |
 | CURRENT FACT | `src/caseInsert/brandingMarkTargetSources.ts`, `brandingMarkSlots.ts`, `brandingLogoSlots.ts`, `src/editor/repeatedArtwork.ts` | Branding family projection and repeated object identity |
-| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; Case runtime application and configuration attachment/release adoption remain separate and unimplemented |
+| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; Case lifecycle/store attachment installation and runtime workflow application remain separate and unimplemented |
 | CURRENT FACT | `src/editor/editorNavigationRouter.ts`, `src/applicationMenu/applicationMenuRegistry.ts`, `src/components/editor/ApplicationWorkflowHost.tsx` | Current four Tools workflows and absence of Case Template/Layout Preset identities |
 | TARGET REQUIREMENT | [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md), [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md) | Shared workflow invariants, roles, preservation, and application vocabulary |
 | TARGET REQUIREMENT | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md), [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md), [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md) | Persistence, composed Game apply, and Guided boundaries |
-| CURRENT FACT | Issues #168, #149, #181, #281/#305 and merged PRs #336/#340/#341/#342/#343/#344/#345/#346/#347, reviewed read-only on 2026-08-02 | Scope, open dependencies, shared workflow-host/planner/transition/configuration/Detach/adoption-model baselines, and absence of a newer exact transition-evidence owner |
+| CURRENT FACT | Issues #168, #149, #181, #281/#305 and merged PRs #336/#340/#341/#342/#343/#344/#345/#346/#347/#348, reviewed read-only on 2026-08-02 | Scope, open dependencies, shared workflow-host/planner/transition/configuration/Detach/adoption-model/evidence baselines, and absence of a newer exact application-adoption transition owner |
