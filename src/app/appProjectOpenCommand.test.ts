@@ -127,6 +127,15 @@ for (const projectType of ['disc', 'caseInsert'] as const) {
     assert.equal(session.currentPath, path)
     assert.equal(session.persistenceFormat, 'legacy-json')
     assert.equal(session.revision, 0)
+    if (session.kind === 'caseInsert') {
+      assert.equal(session.caseInsertPresetApplication.applicationRevision, 0)
+      assert.equal(
+        session.caseInsertPresetApplication.attachment.status,
+        'unattached',
+      )
+    } else {
+      assert.equal('caseInsertPresetApplication' in session, false)
+    }
     assert.deepEqual(session.lastEditorRoute, candidate.editorRoute)
     assert.deepEqual(session.project, candidate.normalizedProject)
     assert.deepEqual(
@@ -286,6 +295,15 @@ for (const projectType of ['disc', 'caseInsert'] as const) {
       assert.equal(session.currentPath, path)
       assert.equal(session.persistenceFormat, 'sbls-package-v1')
       assert.equal(session.revision, 0)
+      if (session.kind === 'caseInsert') {
+        assert.equal(session.caseInsertPresetApplication.applicationRevision, 0)
+        assert.equal(
+          session.caseInsertPresetApplication.attachment.status,
+          'unattached',
+        )
+      } else {
+        assert.equal('caseInsertPresetApplication' in session, false)
+      }
       assert.deepEqual(session.project, candidate.normalizedProject)
       assert.deepEqual(
         session.cleanBaseline?.exactSnapshot,

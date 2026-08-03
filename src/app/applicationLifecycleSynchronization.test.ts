@@ -124,3 +124,71 @@ test('root synchronizes one exact Case route without project revision or dirty c
   assert.equal(publications, 1)
   root.dispose()
 })
+
+test('root Case synchronization advances the application revision only for application aggregate changes', () => {
+  const baseline = createBlankJewelCaseSavedProject('Case Sync')
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createLoadedProjectSession({
+      sessionId: 'case-content-root',
+      project: baseline,
+      currentPath: 'C:\\projects\\case-content-root.sbls',
+      persistenceFormat: 'sbls-package-v1',
+    }),
+  })
+  let publications = 0
+  root.subscribe(() => publications += 1)
+  const initialSession = root.getLifecycleState().activeSession
+  assert.equal(initialSession?.kind, 'caseInsert')
+  if (initialSession?.kind !== 'caseInsert') {
+    throw new Error('expected an active Case Insert session')
+  }
+  const initialApplication = initialSession.caseInsertPresetApplication
+
+  const titleOnly = structuredClone(baseline)
+  titleOnly.title = 'Top-level title only'
+  titleOnly.game.manualTitle = 'Top-level title only'
+  assert.equal(root.synchronizeCurrentProject({
+    sessionId: 'case-content-root',
+    kind: 'caseInsert',
+    project: titleOnly,
+  }), 'synchronized')
+  let session = root.getLifecycleState().activeSession
+  assert.equal(session?.revision, 1)
+  assert.equal(session?.kind, 'caseInsert')
+  if (session?.kind !== 'caseInsert') {
+    throw new Error('expected an active Case Insert session')
+  }
+  assert.equal(session.caseInsertPresetApplication, initialApplication)
+  assert.equal(session.caseInsertPresetApplication.attachment, initialApplication.attachment)
+  assert.equal(
+    session.caseInsertPresetApplication.applicationStateIdentity,
+    initialApplication.applicationStateIdentity,
+  )
+  assert.equal(session.caseInsertPresetApplication.applicationRevision, 0)
+
+  const aggregateEdit = structuredClone(titleOnly)
+  aggregateEdit.caseInsert.templates.cover.background.layout.x += 0.01
+  assert.equal(root.synchronizeCurrentProject({
+    sessionId: 'case-content-root',
+    kind: 'caseInsert',
+    project: aggregateEdit,
+  }), 'synchronized')
+  session = root.getLifecycleState().activeSession
+  assert.equal(session?.revision, 2)
+  assert.equal(session?.kind, 'caseInsert')
+  if (session?.kind !== 'caseInsert') {
+    throw new Error('expected an active Case Insert session')
+  }
+  assert.notEqual(session.caseInsertPresetApplication, initialApplication)
+  assert.equal(session.caseInsertPresetApplication.attachment, initialApplication.attachment)
+  assert.equal(session.caseInsertPresetApplication.applicationRevision, 1)
+  assert.equal(publications, 2)
+
+  assert.equal(root.synchronizeCurrentProject({
+    sessionId: 'case-content-root',
+    kind: 'caseInsert',
+    project: structuredClone(aggregateEdit),
+  }), 'no-op')
+  assert.equal(publications, 2)
+  root.dispose()
+})

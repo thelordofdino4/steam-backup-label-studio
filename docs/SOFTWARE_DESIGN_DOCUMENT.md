@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #347 merge commit `ec9243ea1f42d97d9476bfe05160e933c746510f` plus the focused pure transition-evidence amendment on 2026-08-02.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model checkpoint on 2026-08-02.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -1586,9 +1586,18 @@ content identity. Its deterministic typed encoder canonicalizes record property
 order while preserving semantic array membership/order and covers all Cover,
 Tray, left/right Spine, mirror, export, enablement, payload/provenance, stable-ID,
 style, and layout state. Partial, non-normalized, Disc/cross-domain, malformed,
-hostile, and cyclic structures fail closed. The assignment snapshot keeps its
-session/revision/template context identity distinct from this aggregate-content
-identity; neither is a configuration, transition, or whole-success identity.
+hostile, cyclic, and over-depth structures fail closed. The byte-identical v1
+encoding is measured and emitted incrementally into a fixed-buffer pure
+TypeScript SHA-256 owner, avoiding complete encoded-string, UTF-8, and padded-
+message copies. SHA and UTF-8 chunk buffers remain independent of large scalar-
+string payload length, while the deterministic encoding plan scales with the
+aggregate's structural node count. The flat digest remains synchronously
+linear in the complete encoded aggregate; changing that latency characteristic
+requires a separate compositional, asynchronous, native/platform, or live-limit
+decision.
+The assignment snapshot keeps its session/revision/template context identity
+distinct from this aggregate-content identity; neither is a configuration,
+transition, or whole-success identity.
 
 Apply, Reapply, and Detach successes now retain complete detached source/result
 aggregates and their content identities. Shared pure endpoint/evidence owners
@@ -1633,6 +1642,27 @@ planner, Apply/Reapply/Detach transition, detector, resolver, compatibility
 evaluator, catalog, aggregate writer, lifecycle/store, schema, persistence,
 save/load, UI, renderer, Rust, Tauri, or runtime owner. The production Case
 catalog remains empty; lifecycle/store installation remains future work.
+
+`src/lifecycle/caseInsertPresetSessionApplication.ts` and the discriminated
+Case branch in `src/lifecycle/projectSession.ts` now provide the focused
+application-lifecycle representation required before that installation. The
+complete normalized Case aggregate remains solely at
+`ProjectSession.project.caseInsert`; the required companion stores only its
+session-scoped preset attachment, exact assignment-snapshot identity, a
+distinct `applicationRevision`, and one canonical `applicationStateIdentity`.
+New and Open create an unattached companion at application revision zero.
+Committed full-aggregate editor synchronization preserves the attachment,
+returns the exact prior state for identical canonical application content, and
+advances the Case application revision once only when `project.caseInsert`, and
+therefore the reconstructed application snapshot, changes. The persisted-
+content revision continues to advance under its existing whole-project
+canonical-content rule. The separate application revision also makes a future
+aggregate-unchanged Detach representable: attachment and application identity
+can advance without pretending that persisted project content changed.
+The companion is excluded from project schema, clean baselines, dirty
+comparison, Save/package snapshots, and migration. This checkpoint does not
+install an Apply/Reapply/Detach successor, connect workflow UI, or add any
+attachment persistence; the production Case catalog remains empty.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -1945,6 +1975,8 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/presets/caseInsertPresetDetachTransition.ts`
 - `src/presets/caseInsertPresetTransitionSuccessIdentity.ts`
 - `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
+- `src/lifecycle/caseInsertPresetSessionApplication.ts`
+- `src/lifecycle/projectSession.ts`
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
 - `src/layout/layoutRangeMath.ts`

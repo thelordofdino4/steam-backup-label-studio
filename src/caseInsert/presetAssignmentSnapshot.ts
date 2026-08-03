@@ -34,6 +34,8 @@ import {
 export const CASE_INSERT_PRESET_ASSIGNMENT_SNAPSHOT_KIND =
   'case-insert-preset-assignment-snapshot' as const
 
+const trustedAssignmentSnapshots = new WeakSet<object>()
+
 export type CaseInsertPresetTemplateIdentity = Readonly<{
   id: string
   revision: null
@@ -230,28 +232,33 @@ export function createCaseInsertPresetAssignmentSnapshot(input: Readonly<{
   )
   if (!aggregateContent.ok) return failure('unsupported-snapshot')
 
+  const value = Object.freeze({
+    kind: CASE_INSERT_PRESET_ASSIGNMENT_SNAPSHOT_KIND,
+    identity: Object.freeze({
+      sessionId: input.sessionId,
+      projectRevision: input.projectRevision,
+      template: Object.freeze({
+        id: caseProject.caseInsert.templateType,
+        revision: null,
+      }),
+      aggregateContentIdentity:
+        aggregateContent.aggregateContentIdentity,
+    }),
+    caseInsert: aggregateContent.aggregate,
+  })
+  trustedAssignmentSnapshots.add(value)
   return Object.freeze({
     ok: true,
-    value: Object.freeze({
-      kind: CASE_INSERT_PRESET_ASSIGNMENT_SNAPSHOT_KIND,
-      identity: Object.freeze({
-        sessionId: input.sessionId,
-        projectRevision: input.projectRevision,
-        template: Object.freeze({
-          id: caseProject.caseInsert.templateType,
-          revision: null,
-        }),
-        aggregateContentIdentity:
-          aggregateContent.aggregateContentIdentity,
-      }),
-      caseInsert: aggregateContent.aggregate,
-    }),
+    value,
   })
 }
 
 export function isCaseInsertPresetAssignmentSnapshot(
   value: unknown,
 ): value is CaseInsertPresetAssignmentSnapshot {
+  if (isOwnedCaseInsertPresetAssignmentSnapshot(value)) {
+    return true
+  }
   if (!isRecord(value) ||
       value.kind !== CASE_INSERT_PRESET_ASSIGNMENT_SNAPSHOT_KIND ||
       !isRecord(value.identity) ||
@@ -277,6 +284,14 @@ export function isCaseInsertPresetAssignmentSnapshot(
     aggregateContent.aggregateContentIdentity ===
       value.identity.aggregateContentIdentity &&
     isDeeplyFrozen(value)
+}
+
+/** True only for immutable snapshots constructed by this module's owner. */
+export function isOwnedCaseInsertPresetAssignmentSnapshot(
+  value: unknown,
+): value is CaseInsertPresetAssignmentSnapshot {
+  return typeof value === 'object' && value !== null &&
+    trustedAssignmentSnapshots.has(value)
 }
 
 function isDeeplyFrozen(value: unknown): boolean {

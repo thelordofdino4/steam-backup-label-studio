@@ -99,6 +99,18 @@ for (const kind of ['disc', 'caseInsert'] as const) {
     assert.equal(session.persistenceFormat, null)
     assert.equal(session.cleanBaseline, null)
     assert.equal(session.revision, 0)
+    if (session.kind === 'caseInsert') {
+      assert.equal(
+        session.caseInsertPresetApplication.applicationRevision,
+        0,
+      )
+      assert.equal(
+        session.caseInsertPresetApplication.attachment.status,
+        'unattached',
+      )
+    } else {
+      assert.equal('caseInsertPresetApplication' in session, false)
+    }
     assert.equal(selectIsActiveProjectDirty(harness.root.getLifecycleState()), true)
     assert.equal(harness.getPromptCount(), 0)
     assert.equal(harness.getSessionIdCount(), 1)

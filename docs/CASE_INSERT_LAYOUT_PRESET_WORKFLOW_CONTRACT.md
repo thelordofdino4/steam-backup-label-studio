@@ -1,10 +1,10 @@
 # Case Insert Layout Preset Workflow Contract
 
-> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, Detach planning/transition, content-complete transition evidence, and atomic application-adoption checkpoints.
+> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, Detach planning/transition, content-complete transition evidence, atomic application-adoption, and passive lifecycle application-unit checkpoints.
 > Purpose: Define the presentation-neutral Case Insert Layout Preset Select, Plan, Review, Apply, Reapply, and Detach workflow across Front Cover, complete Tray Card, Back Panel, and explicit left/right spine regions.
 > Read when: Designing or implementing Case preset definitions, catalogs, planning, owner adapters, application scopes, persistence, Game/import composition, future Case workflow presentation, or Case preset acceptance.
 > Authoritative source: This contract for target Case preset workflow semantics; current implementation facts defer to source and tests; physical geometry defers to the Case template and layout owners; serialized fields defer to `PROJECT_FILE_SPEC.md`.
-> Last reviewed against commit: `54ee66a6d3051998bbadd19ea239ebe3b81beed7` plus the current unstaged pure application-adoption transition.
+> Last reviewed against `origin/main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996` (PRs #347–#349) plus the focused passive lifecycle-model checkpoint documented below.
 
 Last refreshed: 2026-08-02.
 
@@ -89,6 +89,19 @@ operation-discriminated adoption receipt or a typed failure containing neither.
 It performs no lifecycle/store commit, schema change, persistence, catalog
 installation, UI work, or runtime side effect.
 
+**CURRENT FACT —** `ProjectSession` now has a discriminated Case-only
+`caseInsertPresetApplication` companion owned by
+`src/lifecycle/caseInsertPresetSessionApplication.ts`. The complete Case
+aggregate remains solely in `ProjectSession.project.caseInsert`; the companion
+stores only canonical attachment, a distinct application revision, exact
+assignment/context identity, and the deterministic application-state identity.
+New and Open Case sessions initialize canonical authoritative `unattached`
+state at application revision zero. Strict capture and projection reconstruct
+the complete pure application snapshot from authoritative project content and
+the companion, so no shadow aggregate or independently writable
+aggregate/attachment pair exists. This passive representation adds no adoption
+commit, store action, UI, persistence, schema, catalog, or runtime workflow.
+
 **TARGET REQUIREMENT —** This contract owns the Case-specific form of the
 shared preset protocol: stable identity and catalog consumption, compatibility,
 Select, immutable Plan, Review, atomic Apply/Reapply/Detach, explicit Case
@@ -156,6 +169,9 @@ these classes.
 | Reapply | Fresh Plan and Review of the same canonical preset ID at one explicitly selected exact revision, with explicit scope and per-field customization policy/overwrite consent. |
 | Detach | Atomic removal of preset association for an explicit scope while preserving all current owner content and geometry. |
 | Mirrored editing | Current Case editor policy that fans an editing action to both spine-side owners; it is not a role, section, concrete region, assignment, or side identity. |
+| Project/content revision | Existing `ProjectSession.revision`; advances only under the established canonical persisted-project content rule and participates in Save/replacement authorization. |
+| Case preset application revision | Distinct deterministic counter owned by the Case application unit; advances exactly once when that unit's semantic application snapshot changes and is excluded from dirty comparison and persistence. |
+| Case preset application unit | One Case-only lifecycle representation whose authoritative aggregate is `ProjectSession.project.caseInsert` and whose companion binds canonical attachment, application revision, assignment/context identity, and application-state identity without duplicating aggregate state. |
 
 **TARGET REQUIREMENT —** The shared workflow is:
 
@@ -261,7 +277,7 @@ while the enclosing aggregate identity still truthfully records array order.
 
 | Identity | Proves | Does not prove by itself |
 | --- | --- | --- |
-| Assignment snapshot/context identity | Session ID, project revision, template identity, and the named aggregate-content identity at capture time | Configuration attachment, transition execution, or adoption |
+| Assignment snapshot/context identity | Session ID, application-snapshot revision (the existing pure type spells this `projectRevision`), template identity, and the named aggregate-content identity at capture time | Persisted-content revision, configuration attachment, transition execution, or adoption |
 | Aggregate-content identity | Exact complete normalized `ProjectJewelCaseState` semantics | Session/revision context, configuration ownership, or operation lineage |
 | Configuration identity | Exact detached/uninstalled applied-configuration contents and owned-field footprint | Current application attachment or exact aggregate contents |
 | Transition identity | One operation's exact context, aggregate/configuration endpoints, and plan/review/consent lineage | Runtime adoption against a still-current application snapshot |
@@ -282,7 +298,8 @@ session/revision/template context. It performs direct stable-address lookup
 through the shared Case snapshot-address owner, compares only `layout-x`,
 `layout-y`, `layout-scale`, and `layout-width` records in the configuration's
 owned footprint using exact owner semantics, and returns a deterministic deeply
-frozen clean/customized report. Current project revision may advance; session,
+frozen clean/customized report. Current content and application revisions may
+advance; session,
 project-kind, and template continuity remain guarded. Missing, ambiguous,
 unsupported, invalid, and incompatible states are failures rather than
 customization. The detector does not consult a catalog, resolver, planner,
@@ -445,7 +462,8 @@ order.
 - deterministic plan-format/version and operation identity, exact preset
   ID/revision, and catalog provenance; wall-clock or random identity must not
   make semantically equivalent pure plans differ;
-- session ID, base project revision, Case project kind, template identity, and
+- session ID, base application-snapshot revision (the pure field remains named
+  `projectRevision`), Case project kind, template identity, and
   current applied-configuration identity;
 - requested scope and sorted resolved concrete-region IDs;
 - immutable before-state identity, exact field-level proposed values, and
@@ -567,14 +585,29 @@ evidence accepted only by their owning strict whole-success validator.
 
 **CURRENT FACT —** The aggregate identity uses deterministic typed encoding plus
 a pure synchronous SHA-256 digest. Record property ordering is canonicalized;
-semantic arrays preserve their order. No identity uses generic JSON
-serialization, randomness, timestamps, rounding, process state, object identity,
-Web Crypto, Node crypto, React, DOM, Tauri, filesystem, or runtime services.
+semantic arrays preserve their order. The unchanged v1 encoding is planned and
+emitted incrementally into a fixed-buffer SHA-256 owner, so aggregate identity
+does not materialize a complete encoded string, UTF-8 copy, or padded-message
+copy. The SHA and UTF-8 chunk buffers stay bounded independently of large
+scalar-string payload length; the deterministic encoding plan still scales
+with the aggregate's structural node count. No identity uses generic JSON
+serialization, randomness, timestamps, rounding, process state, object
+identity, Web Crypto, Node crypto, React, DOM, Tauri, filesystem, or runtime
+services.
 Strict validators reject wrong operation/version/status, partial or malformed
 aggregates, cyclic/hostile input, forged identities, endpoint substitution,
 configuration substitution, lineage substitution, and mixed authentic fields
 from different successes. Legacy success shapes remain recognized only to fail
 closed as `aggregate-evidence-insufficient`.
+
+**OPEN QUESTION —** Exact flat v1 SHA-256 remains synchronously linear in the
+complete encoded aggregate. Bounded streaming removes complete encoded-string,
+UTF-8, and padded-message temporary copies for large scalar strings, but the
+encoding plan retains structural-node-scaled working memory and the digest does
+not guarantee low-latency editor synchronization for projects containing large
+embedded assets. A compositional identity, async worker, native/platform
+digest, or lower live aggregate limit would require a separate contract
+decision.
 
 **CURRENT FACT —** The adoption evidence audit validates the operation-specific
 whole success and returns only an opaque branded evidence union. It does not
@@ -598,7 +631,7 @@ compare-and-swap
 preconditions: one complete successful deeply immutable transition result of
 the exact supported operation/version; transition-bound
 `applicationAdoptionStatus: not-adopted`; exact project kind, session ID,
-current project revision, template ID/revision, assignment/application snapshot
+current application revision, template ID/revision, assignment/application snapshot
 context, source aggregate identity, result aggregate identity, and current
 attachment identity; valid configuration/release versions and identities; and
 one whole-success bundle identity accepted by its owning validator. Apply also
@@ -646,6 +679,35 @@ error that contains no successor, receipt, adoption identity, or actionable
 transition structure. Inputs and inert evidence remain unchanged and
 `not-adopted`.
 
+**CURRENT FACT —** The passive lifecycle owner can project the exact current
+pure `CaseInsertPresetApplicationSnapshot` from the Case session and can
+represent an already-validated Apply, Reapply, or Detach successor snapshot
+without installing it or advancing its revision. The existing pure snapshot
+field `snapshot.identity.projectRevision` is populated from the lifecycle
+companion's distinct `applicationRevision`; that compatibility spelling does
+not make it the persisted-content `ProjectSession.revision`. Every supplied
+aggregate, attachment, revision, assignment context, and application-state
+identity is recomputed and checked as one unit before exposure.
+
+**CURRENT FACT —** New and loaded Case sessions begin with canonical
+authoritative `unattached` state and application revision zero. Disc sessions
+have no Case companion. When committed editor synchronization changes canonical
+project content, the existing content revision advances once. For Case, the
+companion preserves its exact attachment and advances its application revision
+once only when the reconstructed application snapshot changes semantically.
+Thus a Case aggregate edit advances both counters once, a canonical content
+no-op advances neither, and a content change outside the Case aggregate leaves
+the application revision unchanged. Customization-producing editor changes do
+not implicitly detach the configuration.
+
+**CURRENT FACT —** Lifecycle/session equality compares the complete Case
+companion in addition to persisted content, baseline, route, and other session
+metadata. Attachment-only or application-revision-only changes are therefore
+observable and cannot collapse into a store no-op. Canonical dirty comparison,
+clean baselines, Save capture, and project serialization continue to inspect
+only normalized persisted project content. An attachment-only change does not
+dirty a clean project.
+
 **TARGET REQUIREMENT —** The eventual runtime commit adopts the accepted Case
 aggregate together with either the Apply/Reapply next configuration or canonical
 authoritative absence for Detach once through the lifecycle project-mutation
@@ -656,20 +718,24 @@ fallible sequence is prohibited.
 **TARGET REQUIREMENT —** Multi-region Apply/Reapply/Detach is all-or-nothing.
 There is no partial success status that leaves Front changed while Back or a
 spine failed. A blocker or commit failure leaves every Case owner,
-configuration, project revision, dirty state, navigation state, and history
+configuration, project/content revision, application revision, dirty state,
+navigation state, and history
 boundary unchanged.
 
-**TARGET REQUIREMENT —** A material change increments project revision exactly
-once and forms one future history transaction. A semantic no-op increments
-revision zero times and adds no history entry. An aggregate-semantic no-op is
-not a whole-application no-op when Apply, Reapply, or Detach still changes the
-authoritative attachment/configuration edge; every currently legal adoption
-therefore increments the application snapshot revision exactly once.
+**TARGET REQUIREMENT —** A persisted-content change increments the existing
+project/content revision exactly once and forms one future history transaction.
+A content-semantic no-op increments that revision zero times and adds no history
+entry. Separately, every accepted Apply/Reapply/Detach installs the pure
+transition's exact successor application revision without incrementing it
+again. Aggregate-semantic no-op Apply/Reapply and aggregate-unchanged Detach
+therefore leave project/content revision unchanged while remaining observable
+application transitions because attachment and application revision change.
 
 **TARGET REQUIREMENT —** Apply/Reapply/Detach preserve the active session ID,
 current path, persistence format, clean baseline, project kind, and route.
 Dirty state is re-derived from the committed canonical project against the
-unchanged baseline.
+unchanged baseline and ignores the session-only attachment, application
+revision, assignment/application identities, and adoption receipt.
 
 **TARGET REQUIREMENT —** Detach commits only association/configuration changes.
 It preserves the exact current content, enabled payloads, sources, geometry,
@@ -971,6 +1037,14 @@ the detached association receives no later preset response.
 current mirror/export/editor compatibility fields, but no generic Case preset
 identity, assignment, applied status, or resolved preset geometry.
 
+**CURRENT FACT —** The lifecycle `caseInsertPresetApplication` companion is
+session-only. It is not projected into `SavedCaseInsertProject`, package data,
+the clean baseline, or canonical dirty comparison. New and Open Case sessions
+derive the complete aggregate from authoritative project content but initialize
+canonical `unattached` state at application revision zero. Save followed by
+Open therefore begins a new unattached session; no attachment is inferred from
+configuration provenance, coordinates, owner values, or visual similarity.
+
 **TARGET REQUIREMENT —** This documentation slice changes no schema. Any future
 applied-configuration persistence requires an explicit
 [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md) version, validation,
@@ -985,6 +1059,12 @@ normalization, and migration decision.
 | TARGET REQUIREMENT | Concrete region, role, slot, trusted owner, stable object, and coordinate-basis assignment identities | DOM nodes/selectors, labels, array positions, viewport or resolved preview pixels |
 | TARGET REQUIREMENT | Attached/customized/detached status and preset-owned field footprint/accepted values | Transient selection, immutable review plan, busy/progress/focus state |
 | TARGET REQUIREMENT | Accepted material/loss policies and enough template compatibility identity to derive recovery state | Copied template geometry or renderer output |
+
+**TARGET REQUIREMENT —** This table describes a separately authorized future
+serialized configuration. It does not redefine the current lifecycle wrapper:
+canonical `unattached` is authoritative application absence, while a nested
+configuration's `detached-uninstalled` remains artifact provenance only and is
+never persisted as an attachment tombstone by this slice.
 
 **TARGET REQUIREMENT —** Load restores and normalizes explicit owner values
 first. It never infers an applied preset from coordinates, owner values,
@@ -1026,6 +1106,11 @@ to satisfy compatibility.
 not catalog definitions, applied plans, review choices, or synthetic preset
 pixels. Future applied configuration may describe association/customization but
 cannot become a second visual truth.
+
+**CURRENT FACT —** Current Save projection reads only the normalized persisted
+project. It excludes Case attachment, application revision,
+assignment/application identities, and adoption evidence while preserving the
+exact `project.caseInsert` aggregate.
 
 **TARGET REQUIREMENT —** Current Case layer order, clipping, guide projection,
 drag/selection, inline text editing, and export renderers are unchanged by this
@@ -1277,14 +1362,16 @@ criteria.
    `not-adopted`.
 10. Add owner-derived placement/fitting/clamp/reflow services and content-loss
    policy, including #181 integration only when its own decisions are ready.
-11. Add one pure atomic application-adoption transition, then one
-   lifecycle-owned aggregate/attachment commit adapter with revision, dirty,
-   busy, no-op, stale, cleanup, and future history boundaries.
-   **Pure transition implemented:** the versioned transition validates opaque
-   whole-success evidence and the exact current application snapshot, then
-   returns one detached successor aggregate/attachment snapshot plus one
-   adoption receipt or a typed inert failure. Lifecycle/store commit remains
-   unimplemented.
+11. Add one pure atomic application-adoption transition, amend the lifecycle
+   model so a Case session can passively retain and validate one coherent
+   aggregate/attachment application unit, then add one lifecycle-owned commit
+   adapter with revision, dirty, busy, no-op, stale, cleanup, and future history
+   boundaries. **Pure transition and passive lifecycle model implemented:** the
+   versioned transition returns one detached successor snapshot plus receipt;
+   `ProjectSession` now represents canonical absence or one exact attachment
+   beside its sole authoritative Case aggregate, preserves distinct content and
+   application revisions, and can represent the exact successor without
+   incrementing it. Adoption commit/store dispatch remains unimplemented.
 12. Approve and implement applied-configuration schema/migration through
    `PROJECT_FILE_SPEC.md`, including exact-version recovery and Detach.
 13. Add accessible Case workflow presentation and typed navigation IDs; then
@@ -1301,7 +1388,8 @@ successful pure adoption result and atomically installs its complete Case
 aggregate/attachment snapshot behind existing project-mutation, revision,
 dirty-state, busy-scope, stale-session, and feedback boundaries. It must not
 rerun planners or transitions, accept raw evidence, expose partial setters, or
-add persistence/schema/UI/catalog behavior. Persistence, schema migration,
+increment the pure successor application revision again, or add
+persistence/schema/UI/catalog behavior. Persistence, schema migration,
 save/load, workflow presentation, catalog entries, and broader runtime
 integration remain separate later slices.
 
@@ -1327,13 +1415,13 @@ integration remain separate later slices.
 | CURRENT FACT | PR #346 | Merged pure Detach transition at `d9741e8525d4c312d92a0a30cca2b3b85774497c`; no application adoption, attachment removal, persistence, schema, UI, store, or runtime behavior was added |
 | CURRENT FACT | PR #347 | Merged the pure configuration-attachment/application-adoption model at `ec9243ea1f42d97d9476bfe05160e933c746510f`; it defined canonical attachment state, one atomic future application snapshot, legal edges, receipt vocabulary, and the antecedent evidence gaps without an executor |
 | CURRENT FACT | PR #348 | Merged the transition-evidence amendment at `54ee66a6d3051998bbadd19ea239ebe3b81beed7`; it added full normalized Case aggregate identities, complete Apply/Reapply/Detach endpoints, operation-discriminated transition and whole-success identities, strict whole-success validators, and opaque inert `not-adopted` evidence without adoption execution or integration |
-| CURRENT FACT | Application-adoption transition checkpoint | Adds the pure atomic versioned adoption transition, complete CAS validation, detached coherent successor snapshot, and deterministic operation-discriminated receipt; no lifecycle/store commit, schema, persistence, UI, catalog, or runtime integration is added |
+| CURRENT FACT | PR #349 | Merged the pure atomic versioned adoption transition at `e9ae6f9d3002816aeb48f85281211f07b3b22996`, including complete CAS validation, detached coherent successor snapshot, deterministic operation-discriminated receipt, and no lifecycle/store commit, schema, persistence, UI, catalog, or runtime integration |
+| CURRENT FACT | Passive lifecycle-model checkpoint | Adds the discriminated Case-only `ProjectSession` companion, canonical unattached revision-zero New/Open initialization, strict capture/projection, split content/application revisions, whole-unit equality, and exact pure-successor representation without adoption commit, store action, schema, persistence, UI, catalog, or runtime workflow |
 
-**CURRENT FACT —** Read-only review at this checkpoint confirmed PR #346's
-Detach transition and PR #347's configuration-adoption model are merged into
-`main`, with synchronized `main`/`origin/main` at
-`ec9243ea1f42d97d9476bfe05160e933c746510f`. No open pull request or newer
-focused transition-evidence owner exists. Issues #168, #149, #181, and #305
+**CURRENT FACT —** Read-only review at this checkpoint confirmed PRs #347,
+#348, and #349 are merged into `main`, with synchronized `main`/`origin/main` at
+`e9ae6f9d3002816aeb48f85281211f07b3b22996`. No open pull request or newer
+focused lifecycle application-unit owner exists. Issues #168, #149, #181, and #305
 remain open. No issue or pull request was created, edited, closed, labeled,
 commented on, or otherwise mutated.
 
@@ -1343,14 +1431,13 @@ commented on, or otherwise mutated.
 not implement or change:
 
 - React, Rust, manifests, dependencies, Tauri, runtime, or generated artifacts;
-- starter Case definitions, application-adoption transition, runtime
-  Apply/Reapply/Detach application/commit engine, installed configuration
-  attachment/release adoption, UI,
-  or workflow-host connection;
+- starter Case definitions, lifecycle adoption commit/store action, runtime
+  Apply/Reapply/Detach application engine, installed configuration
+  attachment/release adoption, UI, or workflow-host connection;
 - Case Template, menu descriptors/routing, current Disc items, sidebar panels,
   current Case surface selection, or final visual design;
-- project schema, migrations, package format, Save, Open, dirty state, history,
-  or lifecycle behavior;
+- project schema, migrations, package format, Save/Open projection, persisted
+  dirty policy, history, or live lifecycle adoption behavior;
 - Game search/import, #149 composition, #181 copy fitting, Guided slots,
   placeholders, progress, or auto-fill;
 - template geometry, preview/export renderers, layer order, drag, selection,
@@ -1391,16 +1478,17 @@ and optional modal presentation require focused contracts/implementation.
 | CURRENT FACT | `src/presets/caseInsertPresetReapplyIdentity.ts`, `caseInsertPresetAggregateFieldTransition.ts`, `caseInsertPresetReapplyTransition.ts`, and `caseInsertPresetReapplyTransition.test.ts` | Canonical order-independent plan/review/requirement/acceptance identities; one shared exhaustive immutable exact-address layout writer used by first Apply and Reapply; strict compare-and-swap preflight; exact source/result aggregates and authoritative source/successor configurations; operation/lineage/transition/whole-success validation; overwrite/preserve/new/retired/moved semantics; deterministic aggregate/configuration pair or neither; no planner/detector/resolver/catalog/geometry/renderer/installation/persistence/schema/UI/store/runtime execution |
 | CURRENT FACT | `src/presets/caseInsertPresetDetachIdentity.ts`, `caseInsertPresetDetachPlanning.ts`, and `caseInsertPresetDetachPlanning.test.ts` | Pure configuration/report-independent Detach planning; strict authoritative-configuration and current-context validation; exact stable-address current-value and enablement preflight; complete ownership release with one exact preservation fact per field; deterministic warning/review/plan identities and future compare-and-swap preconditions; non-authoritative ownership-absence projection; zero aggregate writes and no next configuration; the planner itself performs no transition execution, installation/removal, persistence, schema, UI, store, or runtime work |
 | CURRENT FACT | `src/presets/caseInsertPresetDetachTransition.ts` and `caseInsertPresetDetachTransition.test.ts` | Pure atomic Detach execution from one exact reviewed plan and independently validated authoritative configuration; exact source aggregate and unchanged-semantic result clone bound by the same complete aggregate identity; source configuration, release identity, canonical successor absence, lineage, transition, and whole-success validation; zero aggregate writes, no next configuration, and explicit non-adoption; no planner/detector/resolver/compatibility/catalog/writer/geometry/renderer/installation/persistence/schema/UI/store/runtime execution |
-| CURRENT FACT | `src/caseInsert/presetAggregateIdentity.ts`, `src/presets/caseInsertPresetIdentityDigest.ts`, `caseInsertPresetAttachmentEndpoint.ts`, `caseInsertPresetTransitionSuccessIdentity.ts`, and focused tests | Pure content-complete normalized Case aggregate validation and deterministic SHA-256 identity; canonical attachment endpoints; operation-discriminated transition evidence and whole-success identities; semantic array order and order-independent record encoding; no generic JSON identity, platform crypto, runtime, or mutation dependency |
+| CURRENT FACT | `src/caseInsert/presetAggregateIdentity.ts`, `src/presets/caseInsertPresetIdentityDigest.ts`, `caseInsertPresetAttachmentEndpoint.ts`, `caseInsertPresetTransitionSuccessIdentity.ts`, and focused tests | Pure content-complete normalized Case aggregate validation and byte-identical deterministic SHA-256 identity through bounded incremental encoding/hash buffers; canonical attachment endpoints; operation-discriminated transition evidence and whole-success identities; semantic array order and order-independent record encoding; no generic JSON identity, platform crypto, runtime, or mutation dependency |
 | CURRENT FACT | `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` and `caseInsertPresetConfigurationAdoptionModel.test.ts` | Canonical unattached/exact-one attached wrapper; deterministic attachment and application-state identities; one immutable aggregate/snapshot-plus-attachment application unit; legal Apply/Reapply/Detach relationship registry and pure fail-closed attachment-edge classifier; operation-discriminated result/receipt and identity vocabulary; hostile-input validation; strict conversion of authentic strengthened successes into opaque inert `not-adopted` evidence; and legacy incomplete evidence rejection. The model itself performs no adoption, integration, or runtime behavior |
 | CURRENT FACT | `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`, its focused test, and test fixture | Pure versioned atomic adoption from opaque audited evidence plus one exact current application snapshot; full operation/version/whole-success/context/aggregate/attachment/configuration/release CAS; deterministic attach/replace/release receipt; exact one-step revision; deeply immutable detached successor or typed inert failure; replay, out-of-order, fragment substitution, hostile input, and alias rejection; no planner/operation transition/detector/resolver/compatibility/catalog/writer/lifecycle/store/persistence/schema/UI/runtime dependency |
+| CURRENT FACT | `src/lifecycle/caseInsertPresetSessionApplication.ts`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleStateStore.ts`, and focused tests | Case-only passive application companion with no aggregate copy; canonical unattached revision-zero New/Open initialization; strict hostile-input capture and deterministic pure-snapshot projection; preserved attachment and exact application-revision advancement during editor synchronization; explicit lifecycle equality without generic JSON identity; content-only dirty/baseline/Save semantics; exact Apply/Reapply/Detach successor representation, including unchanged-aggregate Detach, without installation or dispatch |
 | CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/caseInsert/presetAssignmentSnapshot.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, lifecycle-detached assignment snapshot with distinct snapshot/context and full aggregate-content identities, exact fixed/repeated binding adapters, snapshot/restore, and current no-preset schema |
 | CURRENT FACT | `src/templates/caseInsertTemplates.ts`, `src/layout/jewelCaseLayout.ts`, `jewelCaseFrontLayout.ts`, `jewelCaseBackLayout.ts`, `jewelCaseSpineLayout.ts` | Two physical surfaces, explicit regions/safe bases, Back Panel versus complete Tray, deterministic owner geometry |
 | CURRENT FACT | `src/caseInsert/templateSurfaceTransitions.ts`, `src/caseInsert/jewelCaseTransitions.ts`, `src/hooks/useCaseInsertTemplateEditor.ts`, `src/hooks/useJewelCaseSpineEditor.ts` | Focused Cover/Tray and side-specific/mirrored editing transitions |
 | CURRENT FACT | `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`, `CaseInsertSpinePreviewLayer.tsx`, `CaseInsertPreview.tsx`, `src/export/caseInsertTemplateExportLayers.ts`, `exportCaseInsertPng.ts` | Preview/export owner separation, one complete Tray composition, and no standalone Spine PNG |
 | CURRENT FACT | `src/caseInsert/brandingMarkTargetSources.ts`, `brandingMarkSlots.ts`, `brandingLogoSlots.ts`, `src/editor/repeatedArtwork.ts` | Branding family projection and repeated object identity |
-| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; Case lifecycle/store attachment installation and runtime workflow application remain separate and unimplemented |
+| CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; the passive Case lifecycle representation does not install an attachment, and Case adoption commit/runtime workflow application remain separate and unimplemented |
 | CURRENT FACT | `src/editor/editorNavigationRouter.ts`, `src/applicationMenu/applicationMenuRegistry.ts`, `src/components/editor/ApplicationWorkflowHost.tsx` | Current four Tools workflows and absence of Case Template/Layout Preset identities |
 | TARGET REQUIREMENT | [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md), [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md) | Shared workflow invariants, roles, preservation, and application vocabulary |
 | TARGET REQUIREMENT | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md), [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md), [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md) | Persistence, composed Game apply, and Guided boundaries |
-| CURRENT FACT | Issues #168, #149, #181, #281/#305 and merged PRs #336/#340/#341/#342/#343/#344/#345/#346/#347/#348, reviewed read-only on 2026-08-02 | Scope, open dependencies, shared workflow-host/planner/transition/configuration/Detach/adoption-model/evidence baselines, and absence of a newer exact application-adoption transition owner |
+| CURRENT FACT | Issues #168, #149, #181, #281/#305 and merged PRs #336/#340/#341/#342/#343/#344/#345/#346/#347/#348/#349, reviewed read-only on 2026-08-02 | Scope, open dependencies, shared workflow-host/planner/transition/configuration/Detach/adoption/evidence baselines, and absence of a newer exact lifecycle application-unit owner |

@@ -1,6 +1,7 @@
 import {
   CASE_INSERT_PRESET_ASSIGNMENT_SNAPSHOT_KIND,
   isCaseInsertPresetAssignmentSnapshot,
+  isOwnedCaseInsertPresetAssignmentSnapshot,
   type CaseInsertPresetAssignmentSnapshot,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
 import { normalizeProjectJewelCaseState } from '../caseInsert/normalization.ts'
@@ -158,6 +159,15 @@ export type CaseInsertPresetApplicationSnapshotValidationResult =
       value: CaseInsertPresetApplicationSnapshot
     }>
   | CaseInsertPresetAdoptionModelFailure
+
+const validatedAttachmentStates = new WeakMap<
+  object,
+  CaseInsertPresetAttachmentStateValidationResult
+>()
+const validatedApplicationSnapshots = new WeakMap<
+  object,
+  CaseInsertPresetApplicationSnapshotValidationResult
+>()
 
 export type CaseInsertPresetAggregateEvidenceGap =
   | 'source-aggregate-content-identity-missing'
@@ -599,10 +609,15 @@ function hasExactKeys(
     actual.every((key) => expected.includes(key))
 }
 
+const CASE_INSERT_PRESET_PLAIN_INPUT_MAX_DEPTH = 256
+
 function clonePlainInput(value: unknown): PlainCloneResult {
   const visited = new WeakSet<object>()
 
-  function clone(current: unknown): PlainCloneResult {
+  function clone(current: unknown, depth = 0): PlainCloneResult {
+    if (depth > CASE_INSERT_PRESET_PLAIN_INPUT_MAX_DEPTH) {
+      return { ok: false, code: 'maximum-depth-exceeded' }
+    }
     if (current === null || typeof current === 'string' ||
         typeof current === 'boolean') {
       return { ok: true, value: current, deeplyFrozen: true }
@@ -624,17 +639,19 @@ function clonePlainInput(value: unknown): PlainCloneResult {
     let prototype: object | null
     let descriptors: PropertyDescriptorMap
     let keys: (string | symbol)[]
+    let isArray: boolean
     let deeplyFrozen: boolean
     try {
       prototype = Object.getPrototypeOf(current) as object | null
       descriptors = Object.getOwnPropertyDescriptors(current)
-      keys = Reflect.ownKeys(current)
+      keys = Reflect.ownKeys(descriptors)
+      isArray = Array.isArray(current)
       deeplyFrozen = Object.isFrozen(current)
     } catch {
       return { ok: false, code: 'input-introspection-failed' }
     }
 
-    if (Array.isArray(current)) {
+    if (isArray) {
       if (prototype !== Array.prototype ||
           keys.some((key) => typeof key !== 'string' ||
             (key !== 'length' && !/^(0|[1-9][0-9]*)$/.test(key)))) {
@@ -647,6 +664,9 @@ function clonePlainInput(value: unknown): PlainCloneResult {
         return { ok: false, code: 'array-length-invalid' }
       }
       const arrayLength = lengthDescriptor.value as number
+      if (keys.length !== arrayLength + 1) {
+        return { ok: false, code: 'array-shape-invalid' }
+      }
       const result: PlainValue[] = []
       let childrenFrozen = true
       for (let index = 0; index < arrayLength; index += 1) {
@@ -654,7 +674,7 @@ function clonePlainInput(value: unknown): PlainCloneResult {
         if (!descriptor || !('value' in descriptor) || !descriptor.enumerable) {
           return { ok: false, code: 'sparse-or-accessor-array' }
         }
-        const child = clone(descriptor.value)
+        const child = clone(descriptor.value, depth + 1)
         if (!child.ok) return child
         result.push(child.value)
         childrenFrozen = childrenFrozen && child.deeplyFrozen
@@ -679,9 +699,14 @@ function clonePlainInput(value: unknown): PlainCloneResult {
       if (!descriptor || !('value' in descriptor) || !descriptor.enumerable) {
         return { ok: false, code: 'record-accessor-unsupported' }
       }
-      const child = clone(descriptor.value)
+      const child = clone(descriptor.value, depth + 1)
       if (!child.ok) return child
-      result[key] = child.value
+      Object.defineProperty(result, key, {
+        value: child.value,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      })
       childrenFrozen = childrenFrozen && child.deeplyFrozen
     }
     return {
@@ -702,6 +727,26 @@ function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
     deepFreeze(child, seen)
   }
   return Object.freeze(value)
+}
+
+function rememberValidatedAttachment(
+  result: Extract<
+    CaseInsertPresetAttachmentStateValidationResult,
+    { ok: true }
+  >,
+): CaseInsertPresetAttachmentStateValidationResult {
+  validatedAttachmentStates.set(result.state as object, result)
+  return result
+}
+
+function rememberValidatedApplicationSnapshot(
+  result: Extract<
+    CaseInsertPresetApplicationSnapshotValidationResult,
+    { ok: true }
+  >,
+): CaseInsertPresetApplicationSnapshotValidationResult {
+  validatedApplicationSnapshots.set(result.value as object, result)
+  return result
 }
 
 function sameValue(left: unknown, right: unknown): boolean {
@@ -789,7 +834,15 @@ function validateConfiguration(
 
 export function createCaseInsertPresetUnattachedState():
 CaseInsertPresetUnattachedState {
-  return createCaseInsertPresetUnattachedEndpoint()
+  const state = createCaseInsertPresetUnattachedEndpoint()
+  if (!validatedAttachmentStates.has(state as object)) {
+    rememberValidatedAttachment(deepFreeze({
+      ok: true as const,
+      status: 'validated' as const,
+      state,
+    }))
+  }
+  return state
 }
 
 export function createCaseInsertPresetAttachedState(
@@ -797,7 +850,7 @@ export function createCaseInsertPresetAttachedState(
 ): CaseInsertPresetAttachmentStateValidationResult {
   const validated = validateConfiguration(configuration)
   if (!validated.ok) return validated
-  return deepFreeze({
+  return rememberValidatedAttachment(deepFreeze({
     ok: true,
     status: 'validated' as const,
     state: {
@@ -809,12 +862,16 @@ export function createCaseInsertPresetAttachedState(
       ).attachmentIdentity,
       configuration: validated.configuration,
     },
-  })
+  }))
 }
 
 export function validateCaseInsertPresetAttachmentState(
   value: unknown,
 ): CaseInsertPresetAttachmentStateValidationResult {
+  if (typeof value === 'object' && value !== null) {
+    const cached = validatedAttachmentStates.get(value)
+    if (cached !== undefined) return cached
+  }
   const cloned = clonePlainInput(value)
   if (!cloned.ok || !isRecord(cloned.value)) {
     return failure(
@@ -844,11 +901,11 @@ export function validateCaseInsertPresetAttachmentState(
         'unattached-state-not-canonical',
       )
     }
-    return deepFreeze({
+    return rememberValidatedAttachment(deepFreeze({
       ok: true,
       status: 'validated' as const,
       state: createCaseInsertPresetUnattachedEndpoint(),
-    })
+    }))
   }
   if (!hasExactKeys(state, [
     'kind', 'formatVersion', 'status', 'attachmentIdentity', 'configuration',
@@ -866,7 +923,7 @@ export function validateCaseInsertPresetAttachmentState(
       'attachment-identity-invalid',
     )
   }
-  return deepFreeze({
+  return rememberValidatedAttachment(deepFreeze({
     ok: true,
     status: 'validated' as const,
     state: {
@@ -876,7 +933,7 @@ export function validateCaseInsertPresetAttachmentState(
       attachmentIdentity: expectedIdentity,
       configuration: validated.configuration,
     },
-  })
+  }))
 }
 
 /**
@@ -1051,9 +1108,54 @@ function validateSnapshot(
   return { ok: true, snapshot: frozen }
 }
 
+function captureOwnedApplicationSnapshotInput(value: unknown): Readonly<{
+  snapshot: CaseInsertPresetAssignmentSnapshot
+  attachment: unknown
+}> | null {
+  if (typeof value !== 'object' || value === null) return null
+  let prototype: object | null
+  let descriptors: PropertyDescriptorMap
+  let isArray: boolean
+  try {
+    prototype = Object.getPrototypeOf(value) as object | null
+    descriptors = Object.getOwnPropertyDescriptors(value)
+    isArray = Array.isArray(value)
+  } catch {
+    return null
+  }
+  const keys = Reflect.ownKeys(descriptors)
+  if (isArray || (prototype !== Object.prototype && prototype !== null) ||
+      keys.length !== 2 || keys.some((key) => typeof key !== 'string') ||
+      !keys.includes('snapshot') || !keys.includes('attachment')) {
+    return null
+  }
+  const snapshot = descriptors.snapshot
+  const attachment = descriptors.attachment
+  if (!snapshot || !('value' in snapshot) || !snapshot.enumerable ||
+      !attachment || !('value' in attachment) || !attachment.enumerable ||
+      !isOwnedCaseInsertPresetAssignmentSnapshot(snapshot.value)) {
+    return null
+  }
+  return Object.freeze({
+    snapshot: snapshot.value,
+    attachment: attachment.value,
+  })
+}
+
 export function createCaseInsertPresetApplicationSnapshot(
   input: unknown,
 ): CaseInsertPresetApplicationSnapshotValidationResult {
+  const ownedInput = captureOwnedApplicationSnapshotInput(input)
+  if (ownedInput) {
+    const attachment = validateCaseInsertPresetAttachmentState(
+      ownedInput.attachment,
+    )
+    if (!attachment.ok) return attachment
+    return createValidatedApplicationSnapshot(
+      ownedInput.snapshot,
+      attachment.state,
+    )
+  }
   const cloned = clonePlainInput(input)
   if (!cloned.ok || !isRecord(cloned.value) || !hasExactKeys(cloned.value, [
     'snapshot', 'attachment',
@@ -1069,18 +1171,28 @@ export function createCaseInsertPresetApplicationSnapshot(
     cloned.value.attachment,
   )
   if (!attachment.ok) return attachment
-  if (attachment.state.status === 'attached') {
-    const configuration = attachment.state.configuration
+  return createValidatedApplicationSnapshot(
+    snapshot.snapshot,
+    attachment.state,
+  )
+}
+
+function createValidatedApplicationSnapshot(
+  snapshot: CaseInsertPresetAssignmentSnapshot,
+  attachment: CaseInsertPresetAttachmentState,
+): CaseInsertPresetApplicationSnapshotValidationResult {
+  if (attachment.status === 'attached') {
+    const configuration = attachment.configuration
     const mismatches: string[] = []
     if (configuration.source.snapshotIdentity.sessionId !==
-        snapshot.snapshot.identity.sessionId) mismatches.push('session-id')
-    if (configuration.template.id !== snapshot.snapshot.identity.template.id ||
+        snapshot.identity.sessionId) mismatches.push('session-id')
+    if (configuration.template.id !== snapshot.identity.template.id ||
         configuration.template.revision !==
-          snapshot.snapshot.identity.template.revision) {
+          snapshot.identity.template.revision) {
       mismatches.push('template')
     }
     if (configuration.source.snapshotIdentity.projectRevision >=
-        snapshot.snapshot.identity.projectRevision) {
+        snapshot.identity.projectRevision) {
       mismatches.push('project-revision')
     }
     if (mismatches.length > 0) {
@@ -1091,22 +1203,26 @@ export function createCaseInsertPresetApplicationSnapshot(
       )
     }
   }
-  return deepFreeze({
+  return rememberValidatedApplicationSnapshot(deepFreeze({
     ok: true,
     status: 'validated' as const,
     value: {
       kind: CASE_INSERT_PRESET_APPLICATION_SNAPSHOT_KIND,
       formatVersion: CASE_INSERT_PRESET_APPLICATION_SNAPSHOT_VERSION,
       projectKind: 'caseInsert' as const,
-      snapshot: snapshot.snapshot,
-      attachment: attachment.state,
+      snapshot,
+      attachment,
     },
-  })
+  }))
 }
 
 export function validateCaseInsertPresetApplicationSnapshot(
   value: unknown,
 ): CaseInsertPresetApplicationSnapshotValidationResult {
+  if (typeof value === 'object' && value !== null) {
+    const cached = validatedApplicationSnapshots.get(value)
+    if (cached !== undefined) return cached
+  }
   const cloned = clonePlainInput(value)
   if (!cloned.ok || !isRecord(cloned.value)) {
     return failure(
