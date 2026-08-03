@@ -68,6 +68,12 @@ test('exact session route synchronization is identity-preserving and never dirty
     surface: 'spine',
   })
   assert.equal(routed.activeSession?.revision, 0)
+  assert.equal(
+    routed.activeSession?.kind === 'caseInsert'
+      ? routed.activeSession.caseInsertPresetApplication.applicationRevision
+      : null,
+    0,
+  )
   assert.equal(routed.activeSession?.project, loaded.activeSession?.project)
   assert.equal(routed.activeSession?.cleanBaseline, loaded.activeSession?.cleanBaseline)
   assert.equal(routed.activeSession?.currentPath, loaded.activeSession?.currentPath)
@@ -129,6 +135,12 @@ test('empty, new, and loaded lifecycle states establish one-session invariants',
   assert.equal(freshCase.activeSession?.cleanBaseline, null)
   assert.equal(freshCase.visibleWorkspace, 'caseInsert')
   assert.equal(selectIsActiveProjectDirty(freshCase), true)
+  assert.equal(
+    freshCase.activeSession?.kind === 'caseInsert'
+      ? freshCase.activeSession.caseInsertPresetApplication.applicationRevision
+      : null,
+    0,
+  )
 
   const loaded = createLoadedProjectSession({
     sessionId: 'session-loaded',
@@ -167,6 +179,56 @@ test('project replacement advances revision while navigation preserves session i
   assert.equal(resumed.visibleWorkspace, 'disc')
   assert.equal(resumed.activeSession, changed.activeSession)
   assert.equal(resumed.activeSession?.id, 'stable-session')
+})
+
+test('content revision overflow is rejected before Disc or Case replacement', () => {
+  const disc = createLoadedProjectSession({
+    sessionId: 'disc-overflow',
+    currentPath: 'disc.sbls',
+    persistenceFormat: 'sbls-package-v1',
+    project: createDiscProject(),
+  })
+  const caseState = createLoadedProjectSession({
+    sessionId: 'case-overflow',
+    currentPath: 'case.sbls',
+    persistenceFormat: 'sbls-package-v1',
+    project: createCaseInsertProjectSnapshot({ manualGameTitle: 'Case' }),
+  })
+  const discAtLimit = captureApplicationLifecycleState({
+    ...disc,
+    activeSession: { ...disc.activeSession!, revision: Number.MAX_SAFE_INTEGER },
+  })
+  const caseAtLimit = captureApplicationLifecycleState({
+    ...caseState,
+    activeSession: {
+      ...caseState.activeSession!,
+      revision: Number.MAX_SAFE_INTEGER,
+    },
+  })
+
+  assert.throws(
+    () => replaceActiveProjectContent(
+      discAtLimit,
+      createDiscProject('Overflow Disc'),
+    ),
+    /cannot advance safely/,
+  )
+  assert.throws(
+    () => replaceActiveProjectContent(
+      caseAtLimit,
+      createCaseInsertProjectSnapshot({ manualGameTitle: 'Overflow Case' }),
+    ),
+    /cannot advance safely/,
+  )
+  assert.throws(
+    () => adoptSavedProjectBaseline(discAtLimit, {
+      acceptedSnapshot: discAtLimit.activeSession!.project,
+      currentProject: createDiscProject('Overflow Save'),
+    }),
+    /cannot advance safely/,
+  )
+  assert.equal(discAtLimit.activeSession?.revision, Number.MAX_SAFE_INTEGER)
+  assert.equal(caseAtLimit.activeSession?.revision, Number.MAX_SAFE_INTEGER)
 })
 
 test('baseline adoption records the exact accepted snapshot and derives dirty state', () => {
@@ -239,6 +301,12 @@ test('canonical no-op synchronization ignores save timestamps and Case pane navi
   )
   assert.equal(paneChanged, loadedCase)
   assert.equal(paneChanged.activeSession?.revision, 0)
+  assert.equal(
+    paneChanged.activeSession?.kind === 'caseInsert'
+      ? paneChanged.activeSession.caseInsertPresetApplication.applicationRevision
+      : null,
+    0,
+  )
   assert.equal(selectIsActiveProjectDirty(paneChanged), false)
 })
 
@@ -297,6 +365,12 @@ test('complete Disc and Case synchronization preserves identity and rejects stal
   })
   assert.equal(changedCase.activeSession?.project.title, 'Edited Case')
   assert.equal(changedCase.activeSession?.revision, 1)
+  assert.equal(
+    changedCase.activeSession?.kind === 'caseInsert'
+      ? changedCase.activeSession.caseInsertPresetApplication.applicationRevision
+      : null,
+    1,
+  )
   assert.equal(selectIsActiveProjectDirty(changedCase), true)
 
   assert.equal(synchronizeActiveProjectContent(changedCase, {
@@ -367,6 +441,17 @@ test('lifecycle capture freezes truthful format identity without project seriali
   assert.equal(
     JSON.stringify(captured.activeSession?.project).includes('sbls-package-v1'),
     false,
+  )
+
+  const revoked = Proxy.revocable({}, {})
+  revoked.revoke()
+  assert.throws(
+    () => captureApplicationLifecycleState(
+      revoked.proxy as unknown as Parameters<
+        typeof captureApplicationLifecycleState
+      >[0],
+    ),
+    /could not be safely inspected/,
   )
 })
 

@@ -3,7 +3,7 @@
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against commit: `54ee66a6d3051998bbadd19ea239ebe3b81beed7` plus the current unstaged pure Case application-adoption transition.
+> Last reviewed against `origin/main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996` (PRs #347–#349) plus the focused passive Case lifecycle-model checkpoint.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
@@ -21,10 +21,11 @@ The Case-specific target sibling in
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
 now settles the future Case section, concrete-region, coordinate-basis,
 left/right-spine, multi-region atomicity, preservation, and recovery semantics.
-Pure Case definition, resolution, planning, review/consent identity, and atomic
-first-time Apply transition foundations now exist, but they add no runtime Case
-workflow or schema. This document remains the neutral/Disc-first model and
-current implementation record.
+Pure Case definition-through-Detach, strengthened transition evidence, atomic
+application adoption, and passive `ProjectSession` application-unit foundations
+now exist, but they add no adoption commit, runtime Case workflow, persistence,
+or schema. This document remains the neutral/Disc-first model and current
+implementation record.
 
 ## 1. Purpose And Scope
 
@@ -730,15 +731,25 @@ additional artwork element layout, and reset disc text layout should continue
 to reset to their feature defaults unless #270 intentionally introduces a
 preset-scoped reset command.
 
-Open design decision: whether a future project stores "last applied preset" and
-"dirty since preset" metadata. That requires schema work and should not be
-assumed for #270 unless explicitly included.
+Open design decision: whether a future saved project stores "last applied
+preset" or "dirty since preset" metadata. The current Case session can retain
+one canonical attachment in memory without serializing it or changing dirty
+comparison; persistence still requires schema work and must not be assumed for
+#270 unless explicitly included.
 
 ## 14. Save/Load Normalization Expectations
 
 Current saved projects do not store generic role-preset identity or resolved
 preset geometry. They store resulting feature-owned state plus the focused
 guided workflow metadata under schema version `0.2.0`.
+
+The current Case lifecycle model does not change that rule. Its
+`caseInsertPresetApplication` companion is session-only and contains no shadow
+aggregate. Save observes only authoritative persisted content at
+`ProjectSession.project`; attachment, application revision, assignment/application
+identities, and adoption evidence are excluded. Opening schema `0.2.0` creates a
+new canonical unattached Case application unit at revision zero rather than
+inferring attachment from saved values.
 
 The implemented Disc preset application writes normal existing
 layout/enablement fields. In the current model:
@@ -1027,8 +1038,36 @@ transition structure. The pure transition invokes no planner, operation
 transition, detector, resolver, compatibility evaluator, catalog, aggregate
 writer, lifecycle/store, persistence, schema, UI, or runtime owner.
 Legacy/incomplete evidence remains `aggregate-evidence-insufficient`.
-Persistence, schema, save/load, lifecycle/store commit, UI, catalog entries,
-and runtime remain later work, and the production Case catalog remains empty.
+
+The passive lifecycle representation is now implemented separately in
+`src/lifecycle/caseInsertPresetSessionApplication.ts` and the discriminated
+Case branch of `ProjectSession`. Persisted Case content remains the sole
+aggregate at `ProjectSession.project.caseInsert`; the companion binds only one
+canonical attachment, one distinct application revision, the exact assignment
+snapshot context, and the deterministic application-state identity. Strict
+capture reconstructs the complete application snapshot from those authorities
+and rejects divergence rather than retaining a second mutable aggregate.
+
+New and Open Case sessions initialize canonical authoritative `unattached` at
+application revision zero. Committed Case editor synchronization preserves the
+exact attachment, advances the existing project/content revision under its
+current canonical-content rule, and advances application revision exactly once
+only when the reconstructed Case application snapshot changes. Canonical
+content no-op advances neither counter; content changes outside the Case
+aggregate do not advance application revision. Lifecycle equality observes the
+complete companion, while dirty comparison, baseline adoption, Save, and schema
+projection remain content-only. The pure snapshot's existing
+`projectRevision` spelling receives this distinct application revision at the
+lifecycle projection boundary.
+
+The same passive owner can represent exact Apply, Reapply, and Detach pure
+successor snapshots without incrementing their revision or installing them.
+Because attachment and application revision are retained, an
+aggregate-unchanged Detach successor remains distinct from a lifecycle no-op.
+`detached-uninstalled` remains configuration provenance, never attachment
+absence or a tombstone. Adoption commit/store dispatch, persistence, schema,
+save/load attachment recovery, UI, catalog entries, and runtime workflow remain
+later work, and the production Case catalog remains empty.
 
 Deferred areas:
 
@@ -1084,7 +1123,9 @@ Open decisions before or during #270:
 - How to distinguish title artwork, title text fallback, and title text
   visibility in a preset.
 - Whether Steam Branding belongs in disc role presets later.
-- Whether "last applied preset" or "dirty since preset" should ever be stored.
+- Whether a future schema should persist applied-preset or customization
+  metadata; the current session-only attachment and application revision do not
+  answer that persistence question.
 - Where future persisted preset identity should live if schema work is approved.
 - How future crop/focal-point data should be represented for artwork roles.
 - How case back Screenshots and Additional Artwork should diverge in state and

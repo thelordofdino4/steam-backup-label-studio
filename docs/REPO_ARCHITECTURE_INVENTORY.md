@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #347 merge commit `ec9243ea1f42d97d9476bfe05160e933c746510f` plus the focused pure transition-evidence amendment on 2026-08-02.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model checkpoint on 2026-08-02.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -998,6 +998,28 @@ persistence, schema, UI, renderer, or runtime owner. The next safe owner is a
 focused lifecycle-owned aggregate/attachment commit adapter, not `App.tsx` or
 project schema.
 
+`src/lifecycle/caseInsertPresetSessionApplication.ts` now owns the intervening
+Case lifecycle representation, and `src/lifecycle/projectSession.ts`
+discriminates Disc and Case sessions. A Case session's only complete aggregate
+remains at `project.caseInsert`; its required companion contains only canonical
+session-scoped attachment metadata, the exact assignment-snapshot identity, a
+distinct `applicationRevision`, and `applicationStateIdentity`. New/Open create
+an unattached application at revision zero. Complete Case synchronization
+preserves attachment, is an exact state/revision/publication no-op for identical
+canonical application content, and advances both persisted-content and
+application revisions once for a real aggregate change. Attachment-only change
+is therefore representable without changing persisted content, including a
+future Detach whose aggregate is identical. The companion is excluded from
+schema, baseline, dirty comparison, Save/package snapshots, and migration.
+This owner validates and represents session state only: it does not commit a
+pure Apply/Reapply/Detach successor or connect workflow UI or persistence.
+Aggregate-content identity retains the exact flat v1 typed encoding and
+SHA-256 value, but its owner now emits and hashes that encoding incrementally
+with bounded additional working buffers rather than allocating complete
+encoded, UTF-8, and padded-message copies. Genuine aggregate changes remain
+synchronously linear in encoded content size; any compositional or asynchronous
+identity replacement remains a separate architecture decision.
+
 Key files:
 
 - `src/components/caseInsert/CaseInsertEditorShell.tsx`
@@ -1054,6 +1076,8 @@ Key files:
 - `src/presets/caseInsertPresetTransitionSuccessIdentity.ts`
 - `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
 - `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`
+- `src/lifecycle/caseInsertPresetSessionApplication.ts`
+- `src/lifecycle/projectSession.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/presetAggregateIdentity.ts`
 - `src/caseInsert/*.ts`
@@ -1189,9 +1213,14 @@ Risks:
   revalidates the complete CAS chain, and returns one coherent successor plus
   deterministic receipt or a typed inert failure. These pure owners have no
   React/store, renderer, filesystem, Tauri, persistence, or commit dependency.
-  No runtime Case preset mutation/attachment owner exists in current source.
-  Persistence/schema, UI, lifecycle/store commit, and runtime application
-  remain absent. The production Case catalog remains empty.
+  A focused lifecycle session-application owner now represents canonical
+  session-only attachment metadata beside the sole aggregate at
+  `project.caseInsert`, with a distinct application revision/identity and
+  unattached revision-zero New/Open state. It supports full-aggregate
+  synchronization and aggregate-unchanged attachment representation, but does
+  not commit an adoption successor. Persistence/schema, UI, lifecycle adoption
+  commit, and runtime preset application remain absent. The production Case
+  catalog remains empty.
 
 ## Text Systems
 

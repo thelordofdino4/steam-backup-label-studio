@@ -1,4 +1,5 @@
 import {
+  applicationLifecycleStatesAreSemanticallyEqual,
   captureApplicationLifecycleState,
   createEmptyApplicationLifecycleState,
   type ApplicationLifecycleState,
@@ -52,13 +53,6 @@ function captureSnapshot(
   })
 }
 
-function statesAreSemanticallyEqual(
-  first: ApplicationLifecycleState,
-  second: ApplicationLifecycleState,
-): boolean {
-  return first === second || JSON.stringify(first) === JSON.stringify(second)
-}
-
 export function createApplicationLifecycleStateStore(
   options: ApplicationLifecycleStateStoreOptions = {},
 ): ApplicationLifecycleStateStore {
@@ -100,10 +94,15 @@ export function createApplicationLifecycleStateStore(
         return Object.freeze({ status: 'stale', snapshot })
       }
 
-      const nextState = captureApplicationLifecycleState(
-        transition(snapshot.state),
-      )
-      if (statesAreSemanticallyEqual(snapshot.state, nextState)) {
+      const transitionedState = transition(snapshot.state)
+      if (transitionedState === snapshot.state) {
+        return Object.freeze({ status: 'no-op', snapshot })
+      }
+      const nextState = captureApplicationLifecycleState(transitionedState)
+      if (applicationLifecycleStatesAreSemanticallyEqual(
+        snapshot.state,
+        nextState,
+      )) {
         return Object.freeze({ status: 'no-op', snapshot })
       }
 

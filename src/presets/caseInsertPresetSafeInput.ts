@@ -18,12 +18,20 @@ export type CaseInsertPresetPlainCloneResult =
     }>
   | Readonly<{ ok: false; code: string }>
 
+const CASE_INSERT_PRESET_PLAIN_INPUT_MAX_DEPTH = 256
+
 export function cloneCaseInsertPresetPlainInput(
   value: unknown,
 ): CaseInsertPresetPlainCloneResult {
   const visited = new WeakSet<object>()
 
-  function clone(current: unknown): CaseInsertPresetPlainCloneResult {
+  function clone(
+    current: unknown,
+    depth = 0,
+  ): CaseInsertPresetPlainCloneResult {
+    if (depth > CASE_INSERT_PRESET_PLAIN_INPUT_MAX_DEPTH) {
+      return { ok: false, code: 'maximum-depth-exceeded' }
+    }
     if (current === null || typeof current === 'string' ||
         typeof current === 'boolean') {
       return { ok: true, value: current, deeplyFrozen: true }
@@ -44,17 +52,19 @@ export function cloneCaseInsertPresetPlainInput(
     let prototype: object | null
     let descriptors: PropertyDescriptorMap
     let keys: (string | symbol)[]
+    let isArray: boolean
     let deeplyFrozen: boolean
     try {
       prototype = Object.getPrototypeOf(current) as object | null
       descriptors = Object.getOwnPropertyDescriptors(current)
-      keys = Reflect.ownKeys(current)
+      keys = Reflect.ownKeys(descriptors)
+      isArray = Array.isArray(current)
       deeplyFrozen = Object.isFrozen(current)
     } catch {
       return { ok: false, code: 'input-introspection-failed' }
     }
 
-    if (Array.isArray(current)) {
+    if (isArray) {
       if (prototype !== Array.prototype ||
           keys.some((key) => typeof key !== 'string' ||
             (key !== 'length' && !/^(0|[1-9][0-9]*)$/.test(key)))) {
@@ -66,14 +76,18 @@ export function cloneCaseInsertPresetPlainInput(
           lengthDescriptor.value < 0) {
         return { ok: false, code: 'array-length-invalid' }
       }
+      const arrayLength = lengthDescriptor.value as number
+      if (keys.length !== arrayLength + 1) {
+        return { ok: false, code: 'array-shape-invalid' }
+      }
       const result: CaseInsertPresetPlainValue[] = []
       let childrenFrozen = true
-      for (let index = 0; index < lengthDescriptor.value; index += 1) {
+      for (let index = 0; index < arrayLength; index += 1) {
         const descriptor = descriptors[String(index)]
         if (!descriptor || !('value' in descriptor) || !descriptor.enumerable) {
           return { ok: false, code: 'sparse-or-accessor-array' }
         }
-        const child = clone(descriptor.value)
+        const child = clone(descriptor.value, depth + 1)
         if (!child.ok) return child
         result.push(child.value)
         childrenFrozen = childrenFrozen && child.deeplyFrozen
@@ -98,9 +112,14 @@ export function cloneCaseInsertPresetPlainInput(
       if (!descriptor || !('value' in descriptor) || !descriptor.enumerable) {
         return { ok: false, code: 'record-accessor-unsupported' }
       }
-      const child = clone(descriptor.value)
+      const child = clone(descriptor.value, depth + 1)
       if (!child.ok) return child
-      result[key] = child.value
+      Object.defineProperty(result, key, {
+        value: child.value,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      })
       childrenFrozen = childrenFrozen && child.deeplyFrozen
     }
     return {

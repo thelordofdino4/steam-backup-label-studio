@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createCaseInsertProjectSnapshot } from '../project/caseInsertProjectAdapters.ts'
-import type { SavedDiscProject } from '../project/projectTypes.ts'
+import type {
+  SavedCaseInsertProject,
+  SavedDiscProject,
+} from '../project/projectTypes.ts'
 import {
   captureNormalizedProjectSnapshot,
   createCanonicalProjectComparisonValue,
@@ -193,6 +196,12 @@ test('captured project snapshots are detached, immutable JSON values', () => {
 
   source.background.note = 'mutated after capture'
 
+  assert.equal(
+    captureNormalizedProjectSnapshot(
+      captured as unknown as SavedDiscProject,
+    ),
+    captured,
+  )
   assert.equal(createCanonicalProjectComparisonValue(captured), comparison)
   assert.equal(Object.isFrozen(captured), true)
   assert.equal(Object.isFrozen(captured.background), true)
@@ -203,4 +212,79 @@ test('captured project snapshots are detached, immutable JSON values', () => {
     } }),
     /finite (JSON )?number/,
   )
+})
+
+test('project capture rejects cyclic and accessor-bearing input without invoking accessors', () => {
+  const cyclic = createDiscProject() as SavedDiscProject & {
+    cycle?: unknown
+  }
+  cyclic.cycle = cyclic
+  assert.throws(
+    () => captureNormalizedProjectSnapshot(cyclic),
+    /must not contain cycles/,
+  )
+
+  const accessor = createDiscProject()
+  let getterCalls = 0
+  Object.defineProperty(accessor.background, 'scale', {
+    enumerable: true,
+    get() {
+      getterCalls += 1
+      return 1
+    },
+  })
+  assert.throws(
+    () => captureNormalizedProjectSnapshot(accessor),
+    /enumerable data property/,
+  )
+  assert.equal(getterCalls, 0)
+
+  for (const hostile of [new Map(), Promise.resolve(), () => 1]) {
+    const project = createDiscProject() as SavedDiscProject & {
+      hostile?: unknown
+    }
+    project.hostile = hostile
+    assert.throws(() => captureNormalizedProjectSnapshot(project))
+  }
+})
+
+test('project capture safely preserves unknown keys but rejects root session metadata', () => {
+  const rootPrototypeKey = JSON.parse(
+    `${JSON.stringify(createDiscProject()).slice(0, -1)},` +
+      '"__proto__":{"polluted":true}}',
+  ) as SavedDiscProject
+  const nestedPrototypeKey = createDiscProject() as SavedDiscProject & {
+    metadata: Record<string, unknown>
+  }
+  nestedPrototypeKey.metadata = JSON.parse(
+    '{"nested":{"__proto__":{"polluted":true},' +
+      '"constructor":"content","applicationRevision":17}}',
+  ) as Record<string, unknown>
+  const leakedSessionMetadata = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Leaked Case',
+  }) as SavedCaseInsertProject & {
+    caseInsertPresetApplication: Record<string, unknown>
+  }
+  leakedSessionMetadata.caseInsertPresetApplication = {
+    applicationRevision: 0,
+  }
+
+  const capturedRoot = captureNormalizedProjectSnapshot(rootPrototypeKey) as
+    unknown as Record<string, unknown>
+  const capturedNested = captureNormalizedProjectSnapshot(nestedPrototypeKey) as
+    unknown as { metadata: { nested: Record<string, unknown> } }
+  assert.equal(Object.hasOwn(capturedRoot, '__proto__'), true)
+  assert.deepEqual(capturedRoot.__proto__, { polluted: true })
+  assert.equal(
+    Object.hasOwn(capturedNested.metadata.nested, '__proto__'),
+    true,
+  )
+  assert.deepEqual(capturedNested.metadata.nested.__proto__, { polluted: true })
+  assert.equal(capturedNested.metadata.nested.constructor, 'content')
+  assert.equal(capturedNested.metadata.nested.applicationRevision, 17)
+  assert.throws(
+    () => captureNormalizedProjectSnapshot(leakedSessionMetadata),
+    /not persisted project content/,
+  )
+  assert.equal(({} as Record<string, unknown>).polluted, undefined)
 })

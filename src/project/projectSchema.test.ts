@@ -53,6 +53,15 @@ test('case insert snapshots use the shared current project schema version', () =
   assert.equal(project.editor?.activeCaseInsertTemplatePane, 'tray')
   assert.deepEqual(getSavedProjectSchemaIssues(project), [])
   assert.doesNotThrow(() => validateSavedProjectSchema(project))
+  const serialized = JSON.stringify(project)
+  for (const sessionOnlyField of [
+    'caseInsertPresetApplication',
+    'applicationRevision',
+    'applicationStateIdentity',
+    'attachmentIdentity',
+  ]) {
+    assert.equal(serialized.includes(sessionOnlyField), false)
+  }
 })
 
 test('project parse adapters preserve saved project payload compatibility', () => {

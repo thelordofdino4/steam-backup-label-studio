@@ -24,12 +24,34 @@ export type CanonicalProjectComparisonValue = string & {
 }
 
 const OMIT_VALUE = Symbol('omit-json-value')
+const PROJECT_JSON_MAX_DEPTH = 256
+const capturedProjectSnapshots = new WeakSet<object>()
+const canonicalComparisonValues = new WeakMap<
+  object,
+  CanonicalProjectComparisonValue
+>()
+
+const FORBIDDEN_ROOT_PROJECT_KEYS = new Set([
+  'caseInsertPresetApplication',
+  'applicationRevision',
+  'applicationStateIdentity',
+  'snapshotIdentity',
+  'attachmentIdentity',
+  'applicationAdoptionReceipt',
+  'applicationAdoptionStatus',
+  'adoptionIdentity',
+])
 
 function toJsonValue(
   value: unknown,
   path: string,
   arrayItem = false,
+  ancestors = new WeakSet<object>(),
+  depth = 0,
 ): JsonValue | typeof OMIT_VALUE {
+  if (depth > PROJECT_JSON_MAX_DEPTH) {
+    throw new TypeError(`${path} exceeds the maximum project nesting depth.`)
+  }
   if (value === undefined) {
     return arrayItem ? null : OMIT_VALUE
   }
@@ -49,30 +71,92 @@ function toJsonValue(
     return value
   }
 
-  if (Array.isArray(value)) {
-    return value.map((item, index) => {
-      const normalized = toJsonValue(item, `${path}[${index}]`, true)
-      return normalized === OMIT_VALUE ? null : normalized
-    })
-  }
-
   if (typeof value !== 'object') {
     throw new TypeError(`${path} must contain only JSON-compatible values.`)
   }
+  if (ancestors.has(value)) {
+    throw new TypeError(`${path} must not contain cycles.`)
+  }
+  ancestors.add(value)
 
-  const prototype = Object.getPrototypeOf(value)
+  let prototype: object | null
+  let descriptors: PropertyDescriptorMap
+  let keys: (string | symbol)[]
+  let isArray: boolean
+  try {
+    prototype = Object.getPrototypeOf(value) as object | null
+    descriptors = Object.getOwnPropertyDescriptors(value)
+    keys = Reflect.ownKeys(descriptors)
+    isArray = Array.isArray(value)
+  } catch {
+    throw new TypeError(`${path} could not be safely inspected.`)
+  }
+
+  if (isArray) {
+    if (prototype !== Array.prototype ||
+        keys.some((key) => typeof key !== 'string' ||
+          (key !== 'length' && !/^(0|[1-9][0-9]*)$/.test(key)))) {
+      throw new TypeError(`${path} must be a plain dense JSON array.`)
+    }
+    const lengthDescriptor = descriptors.length
+    if (!lengthDescriptor || !('value' in lengthDescriptor) ||
+        !Number.isSafeInteger(lengthDescriptor.value) ||
+        lengthDescriptor.value < 0 || keys.length !== lengthDescriptor.value + 1) {
+      throw new TypeError(`${path} must be a plain dense JSON array.`)
+    }
+    const normalizedArray: JsonValue[] = []
+    for (let index = 0; index < lengthDescriptor.value; index += 1) {
+      const descriptor = descriptors[String(index)]
+      if (!descriptor || !('value' in descriptor) || !descriptor.enumerable) {
+        throw new TypeError(`${path} must not contain sparse or accessor items.`)
+      }
+      const normalized = toJsonValue(
+        descriptor.value,
+        `${path}[${index}]`,
+        true,
+        ancestors,
+        depth + 1,
+      )
+      normalizedArray.push(normalized === OMIT_VALUE ? null : normalized)
+    }
+    ancestors.delete(value)
+    return normalizedArray
+  }
+
   if (prototype !== Object.prototype && prototype !== null) {
     throw new TypeError(`${path} must contain only plain JSON records.`)
   }
-
-  const record = value as Record<string, unknown>
-  const normalizedRecord: Record<string, JsonValue> = {}
-
-  for (const key of Object.keys(record).sort()) {
-    const normalized = toJsonValue(record[key], `${path}.${key}`)
-    if (normalized !== OMIT_VALUE) normalizedRecord[key] = normalized
+  if (keys.some((key) => typeof key !== 'string')) {
+    throw new TypeError(`${path} must not contain symbol keys.`)
   }
 
+  const normalizedRecord: Record<string, JsonValue> = {}
+  for (const key of (keys as string[]).sort()) {
+    if (path === 'project' && FORBIDDEN_ROOT_PROJECT_KEYS.has(key)) {
+      throw new TypeError(`${path}.${key} is not persisted project content.`)
+    }
+    const descriptor = descriptors[key]
+    if (!descriptor || !('value' in descriptor) || !descriptor.enumerable) {
+      throw new TypeError(`${path}.${key} must be an enumerable data property.`)
+    }
+    const normalized = toJsonValue(
+      descriptor.value,
+      `${path}.${key}`,
+      false,
+      ancestors,
+      depth + 1,
+    )
+    if (normalized !== OMIT_VALUE) {
+      Object.defineProperty(normalizedRecord, key, {
+        value: normalized,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      })
+    }
+  }
+
+  ancestors.delete(value)
   return normalizedRecord
 }
 
@@ -108,6 +192,21 @@ function isJsonObject(value: JsonValue): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function sameJsonValue(first: JsonValue, second: JsonValue): boolean {
+  if (first === second) return true
+  if (Array.isArray(first) || Array.isArray(second)) {
+    return Array.isArray(first) && Array.isArray(second) &&
+      first.length === second.length &&
+      first.every((value, index) => sameJsonValue(value, second[index]!))
+  }
+  if (!isJsonObject(first) || !isJsonObject(second)) return false
+  const firstKeys = Object.keys(first).sort()
+  const secondKeys = Object.keys(second).sort()
+  return firstKeys.length === secondKeys.length &&
+    firstKeys.every((key, index) => key === secondKeys[index] &&
+      sameJsonValue(first[key]!, second[key]!))
+}
+
 function createComparisonProjection(
   project: NormalizedPersistableProject,
   kind: EditorProjectType,
@@ -136,10 +235,17 @@ function createComparisonProjection(
 export function captureNormalizedProjectSnapshot(
   project: SavedProject,
 ): NormalizedPersistableProject {
-  validateSavedProjectSchema(project)
+  if (typeof project === 'object' && project !== null &&
+      capturedProjectSnapshots.has(project)) {
+    return project as unknown as NormalizedPersistableProject
+  }
   const clone = cloneProjectJson(project)
   validateSavedProjectSchema(clone)
-  return deepFreezeJson(clone) as unknown as NormalizedPersistableProject
+  const captured = deepFreezeJson(
+    clone,
+  ) as unknown as NormalizedPersistableProject
+  capturedProjectSnapshots.add(captured as object)
+  return captured
 }
 
 export function getNormalizedProjectKind(
@@ -151,10 +257,26 @@ export function getNormalizedProjectKind(
 export function createCanonicalProjectComparisonValue(
   project: NormalizedPersistableProject,
 ): CanonicalProjectComparisonValue {
+  const cached = canonicalComparisonValues.get(project as object)
+  if (cached !== undefined) return cached
   const projection = createComparisonProjection(
     project,
     getNormalizedProjectKind(project),
   )
+  const comparison = JSON.stringify(projection) as CanonicalProjectComparisonValue
+  if (capturedProjectSnapshots.has(project as object)) {
+    canonicalComparisonValues.set(project as object, comparison)
+  }
+  return comparison
+}
 
-  return JSON.stringify(projection) as CanonicalProjectComparisonValue
+/** Exact structural equality for already normalized immutable project data. */
+export function normalizedProjectSnapshotsAreExactlyEqual(
+  first: NormalizedPersistableProject,
+  second: NormalizedPersistableProject,
+): boolean {
+  return first === second || sameJsonValue(
+    first as unknown as JsonValue,
+    second as unknown as JsonValue,
+  )
 }

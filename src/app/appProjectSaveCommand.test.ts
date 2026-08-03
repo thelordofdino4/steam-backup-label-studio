@@ -8,6 +8,7 @@ import type {
   ApplicationLifecycleCommandContext,
 } from '../lifecycle/applicationLifecycleCommandPorts.ts'
 import {
+  captureApplicationLifecycleState,
   createEmptyApplicationLifecycleState,
   createLoadedProjectSession,
   createNewProjectSession,
@@ -27,6 +28,12 @@ import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
 import type { SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
+import {
+  buildCaseInsertPresetApplicationAdoptionFixture,
+} from '../presets/caseInsertPresetApplicationAdoption.testFixture.test.ts'
+import {
+  representCaseInsertPresetApplicationSnapshot,
+} from '../lifecycle/caseInsertPresetSessionApplication.ts'
 import {
   createApplicationProjectSaveCommandOwners,
   getDefaultPackageFileName,
@@ -71,6 +78,41 @@ function stateFor(
         currentPath: path,
         persistenceFormat: format,
       })
+}
+
+function attachedCaseStateForSave(): ApplicationLifecycleState {
+  const fixture = buildCaseInsertPresetApplicationAdoptionFixture(
+    'stable-session',
+  )
+  const project = createBlankJewelCaseSavedProject('Authorized Case')
+  project.caseInsert = structuredClone(
+    fixture.firstApplication.snapshot.caseInsert,
+  )
+  const loaded = createLoadedProjectSession({
+    sessionId: 'stable-session',
+    project,
+    currentPath: 'authorized-case.sbls',
+    persistenceFormat: 'sbls-package-v1',
+  })
+  const represented = representCaseInsertPresetApplicationSnapshot({
+    sessionId: 'stable-session',
+    project,
+    snapshot: fixture.firstApplication,
+  })
+  assert.equal(represented.ok, true)
+  if (!represented.ok) throw new Error(represented.detail)
+  const session = loaded.activeSession
+  assert.equal(session?.kind, 'caseInsert')
+  if (!session || session.kind !== 'caseInsert') {
+    throw new Error('Expected a Case Insert save fixture.')
+  }
+  return captureApplicationLifecycleState({
+    ...loaded,
+    activeSession: {
+      ...session,
+      caseInsertPresetApplication: represented.application,
+    },
+  })
 }
 
 type WriteInput = Parameters<ProjectPackageWritePort['encodeAndWrite']>[0]
@@ -279,6 +321,59 @@ test('direct Save uses the lifecycle-owned project without an editor capture por
   if (result.disposition === 'executed') {
     assert.equal(result.result.status, 'success')
   }
+})
+
+test('Case Save writes only persisted project content and preserves session application metadata', async () => {
+  const initial = attachedCaseStateForSave()
+  const before = initial.activeSession
+  assert.equal(before?.kind, 'caseInsert')
+  if (!before || before.kind !== 'caseInsert') return
+  assert.equal(before.caseInsertPresetApplication.attachment.status, 'attached')
+  assert.ok(before.caseInsertPresetApplication.applicationRevision > 0)
+  const harness = createHarness({ state: initial })
+
+  const result = await harness.root.dispatch('project.save')
+
+  assert.equal(result.disposition, 'executed')
+  assert.equal(harness.writeCalls.length, 1)
+  assert.deepEqual(harness.writeCalls[0].normalizedProject, before.project)
+  const serializedInput = JSON.stringify(
+    harness.writeCalls[0].normalizedProject,
+  )
+  for (const sessionOnlyField of [
+    'caseInsertPresetApplication',
+    'applicationRevision',
+    'applicationStateIdentity',
+    'attachmentIdentity',
+  ]) {
+    assert.equal(serializedInput.includes(sessionOnlyField), false)
+  }
+  const after = harness.root.getLifecycleState().activeSession
+  assert.equal(after?.kind, 'caseInsert')
+  if (!after || after.kind !== 'caseInsert') return
+  assert.deepEqual(
+    after.caseInsertPresetApplication,
+    before.caseInsertPresetApplication,
+  )
+  assert.equal(after.caseInsertPresetApplication.attachment.status, 'attached')
+  if (after.caseInsertPresetApplication.attachment.status === 'attached' &&
+      before.caseInsertPresetApplication.attachment.status === 'attached') {
+    assert.equal(
+      after.caseInsertPresetApplication.attachment.configuration
+        .configurationIdentity,
+      before.caseInsertPresetApplication.attachment.configuration
+        .configurationIdentity,
+    )
+  }
+  assert.equal(
+    after.caseInsertPresetApplication.applicationRevision,
+    before.caseInsertPresetApplication.applicationRevision,
+  )
+  assert.equal(
+    after.caseInsertPresetApplication.applicationStateIdentity,
+    before.caseInsertPresetApplication.applicationStateIdentity,
+  )
+  assert.equal(selectIsActiveProjectDirty(harness.root.getLifecycleState()), false)
 })
 
 test('wrong-kind synchronization during a write cannot mutate the active session', async () => {
