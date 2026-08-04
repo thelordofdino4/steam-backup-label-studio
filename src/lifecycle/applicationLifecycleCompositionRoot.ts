@@ -3,6 +3,7 @@ import {
   type ApplicationCommandDispatchResult,
   type ApplicationCommandId,
   type ApplicationLifecycleCommandId,
+  type CaseInsertPresetApplicationCommandId,
 } from './applicationCommandTypes.ts'
 import {
   ApplicationCommandDispatcher,
@@ -22,6 +23,10 @@ import {
   type ApplicationLifecycleCommandContext,
   type ApplicationLifecycleCommandPorts,
 } from './applicationLifecycleCommandPorts.ts'
+import {
+  createCaseInsertPresetSessionApplicationCommandDefinitions,
+  getCaseInsertPresetSessionApplicationCommandCapability,
+} from './caseInsertPresetSessionApplicationCommand.ts'
 import {
   createApplicationLifecycleStateStore,
   type ApplicationLifecycleStateSnapshot,
@@ -93,8 +98,12 @@ export interface ApplicationLifecycleCompositionRoot {
   getSnapshot(): ApplicationLifecycleCompositionSnapshot
   dispatch<Value = void>(
     commandId: ApplicationCommandId,
+    input?: unknown,
   ): Promise<ApplicationCommandDispatchResult<Value>>
-  dispatch<Value = void>(commandId: string): Promise<ApplicationCommandDispatchResult<Value>>
+  dispatch<Value = void>(
+    commandId: string,
+    input?: unknown,
+  ): Promise<ApplicationCommandDispatchResult<Value>>
   synchronizeCurrentProject(input: Readonly<{
     sessionId: ProjectSessionId
     kind: EditorProjectType
@@ -164,12 +173,26 @@ export function createApplicationLifecycleCompositionRoot(
     busy: CommandBusyState,
   ) {
     const lifecycleCapabilities = lifecycleCapabilitiesFor(stateSnapshot, busy)
+    const caseInsertPresetCapability =
+      getCaseInsertPresetSessionApplicationCommandCapability({
+        stateSnapshot,
+        busy,
+      })
+    const caseInsertPresetCapabilities = Object.freeze({
+      'case.layoutPreset.apply': caseInsertPresetCapability,
+      'case.layoutPreset.reapply': caseInsertPresetCapability,
+      'case.layoutPreset.detach': caseInsertPresetCapability,
+    }) satisfies Readonly<Record<
+      CaseInsertPresetApplicationCommandId,
+      ApplicationCommandCapability
+    >>
     return Object.freeze({
       ...lifecycleCapabilities,
       'export.png': getApplicationPngExportCapability(options.exportPng, {
         stateSnapshot,
         busy,
       }),
+      ...caseInsertPresetCapabilities,
     })
   }
 
@@ -237,6 +260,10 @@ export function createApplicationLifecycleCompositionRoot(
     registry.register(definition)
   }
   registry.register(createApplicationPngExportCommandDefinition(options.exportPng))
+  for (const definition of
+    createCaseInsertPresetSessionApplicationCommandDefinitions()) {
+    registry.register(definition)
+  }
 
   function createCommandContext(
     commandId: ApplicationCommandId,
@@ -275,7 +302,7 @@ export function createApplicationLifecycleCompositionRoot(
       return capabilitiesFor(stateSnapshot, busyCoordinator.getState())
     },
     getSnapshot: () => cachedSnapshot,
-    async dispatch(commandId: string) {
+    async dispatch(commandId: string, input?: unknown) {
       if (disposed) {
         throw new Error('The application lifecycle composition root is disposed.')
       }
@@ -290,7 +317,7 @@ export function createApplicationLifecycleCompositionRoot(
       return dispatcher.dispatch(
         commandId,
         createCommandContext(definition.id),
-        undefined,
+        input,
       )
     },
     synchronizeCurrentProject(input: Readonly<{

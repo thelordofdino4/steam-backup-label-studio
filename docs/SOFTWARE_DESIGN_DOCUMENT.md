@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model and pure adoption-commit checkpoints on 2026-08-03.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, and lifecycle-store installation checkpoints through 2026-08-04.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -1646,8 +1646,8 @@ versioned, operation-discriminated validated-success bundle retains the exact
 current application snapshot, audited `not-adopted` evidence, and adoption
 success/receipt together; the public audit reconstructs and revalidates those
 canonical facts rather than trusting separately supplied fragments. The
-production Case catalog remains empty; store/runtime installation remains
-future work.
+production Case catalog remains empty. The pure transition remains store-free;
+the focused lifecycle installation bridge is described below.
 
 `src/lifecycle/caseInsertPresetSessionApplication.ts` and the discriminated
 Case branch in `src/lifecycle/projectSession.ts` now provide the focused
@@ -1666,9 +1666,9 @@ canonical-content rule. The separate application revision also makes a future
 aggregate-unchanged Detach representable: attachment and application identity
 can advance without pretending that persisted project content changed.
 The companion is excluded from project schema, clean baselines, dirty
-comparison, Save/package snapshots, and migration. This checkpoint does not
-install an Apply/Reapply/Detach successor into a store, connect workflow UI, or
-add any attachment persistence; New/Open and reopened projects therefore remain
+comparison, Save/package snapshots, and migration. This representation owner
+does not install an Apply/Reapply/Detach successor, connect workflow UI, or add
+attachment persistence; New/Open and reopened projects therefore remain
 unattached, and the production Case catalog remains empty.
 
 `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts` now owns the pure
@@ -1687,6 +1687,23 @@ current session. Success returns one detached successor `ProjectSession` plus
 the existing adoption receipt atomically; failure returns neither. This pure
 boundary does not install state in a store and has no persistence, schema,
 save/load, UI, catalog, renderer, Tauri, or runtime dependency.
+
+`src/lifecycle/caseInsertPresetSessionApplicationCommand.ts` is the focused
+store-installation owner layered after that pure boundary. It registers the
+exact Apply, Reapply, and Detach operation IDs in the existing application
+command root, derives Case-session capability through the existing projection,
+and acquires one `project.mutation` scope that conflicts with lifecycle
+transitions and other preset mutations. Its one lifecycle-store transition
+runs the pure full-session compare-and-swap against the final current session,
+then installs the complete returned successor once under store-generation CAS.
+No observer can see aggregate and attachment separately; attachment-only
+transitions remain observable without changing persisted-content revision or
+dirty comparison. Typed stale, replay, operation, validation, busy, and store
+failures leave state unchanged, and the dispatcher releases busy ownership
+after success or failure. The bridge returns the existing adoption receipt and
+shared typed feedback; it does not rerun a planner or transition and adds no
+catalog, UI, App/editor invocation, schema, persistence, preview, or export
+connection.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -2003,6 +2020,8 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/lifecycle/caseInsertPresetSessionApplication.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts`
 - `src/lifecycle/projectSession.ts`
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
@@ -2070,7 +2089,12 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   commit tests additionally cover source-bundle audit, complete successor-
   session authorization, full-session staleness/replay rejection, exact content
   versus application revision behavior, atomic successor/receipt output, and
-  the absence of store, persistence, schema, UI, and runtime dependencies.
+  the pure boundary's absence of store, persistence, schema, UI, and runtime
+  dependencies. Focused command/store tests cover one-install behavior for all
+  three operations, aggregate-plus-attachment and attachment-only atomicity,
+  stale session/revision rejection, busy exclusion, unchanged-state failure,
+  cleanup, existing lifecycle capability isolation, and the absence of
+  planner, catalog, UI, schema, persistence, preview, or export dependencies.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks

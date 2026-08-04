@@ -137,6 +137,14 @@ test('separate application runtimes isolate the production New and Open owners',
       )
       continue
     }
+    if (id.startsWith('case.layoutPreset.')) {
+      assert.equal(
+        first.root.getApplicationCommandCapabilities()[id].canExecute,
+        false,
+        id,
+      )
+      continue
+    }
     if (!['project.open', 'project.new-disc', 'project.new-case'].includes(id)) {
       assert.equal(capabilities[id].canExecute, false, id)
     }

@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model and pure adoption-commit checkpoints on 2026-08-03.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, and lifecycle-store installation checkpoints through 2026-08-04.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -1039,6 +1039,19 @@ save/load, UI, catalog, renderer, Tauri, or runtime owner. The production Case
 catalog remains empty, and session-only attachment is still neither saved nor
 restored, so New/Open and reopened projects remain unattached.
 
+`src/lifecycle/caseInsertPresetSessionApplicationCommand.ts` now owns the
+bounded application-command/store installation bridge. The three exact Case
+preset operation IDs share the existing registry, dispatcher, capability
+projection, typed command results/feedback, and a new exclusive
+`project.mutation` busy scope. Each command accepts only one complete pure
+authorization snapshot and runs the pure full-session compare-and-swap inside
+one lifecycle-store generation-CAS transition. Success installs the complete
+aggregate-plus-companion successor once and returns the existing receipt;
+stale session/revision, replay, wrong operation, invalid input, busy conflict,
+or store failure changes nothing, and busy cleanup is guaranteed. This adds no
+planner/transition rerun, second store, catalog entry, UI/App/editor invocation,
+schema, persistence, preview, or export connection.
+
 Key files:
 
 - `src/components/caseInsert/CaseInsertEditorShell.tsx`
@@ -1098,6 +1111,8 @@ Key files:
 - `src/lifecycle/caseInsertPresetSessionApplication.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts`
 - `src/lifecycle/projectSession.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/presetAggregateIdentity.ts`
@@ -1240,9 +1255,11 @@ Risks:
   unattached revision-zero New/Open state. The pure lifecycle adoption adapter
   retains one complete source/successor authorization, reaudits it, and performs
   a full-session compare-and-swap that returns one atomic successor session plus
-  the existing receipt without installing either. Persistence/schema, UI,
-  store/runtime preset application, and a populated production Case catalog
-  remain absent; attachment is still not restored from saved projects.
+  the existing receipt. The focused command/store bridge installs that complete
+  authorized successor once under `project.mutation`; authorization-producing
+  workflow orchestration, persistence/schema, UI/App/editor invocation, and a
+  populated production Case catalog remain absent. Attachment is still not
+  restored from saved projects.
 
 ## Text Systems
 

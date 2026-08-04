@@ -144,6 +144,33 @@ test('busy scopes acquire atomically in stable order and release without leaks',
     save.release()
   }
   assert.deepEqual(coordinator.getState().occupiedScopes, [])
+
+  const presetMutation = coordinator.beginOperation({
+    operationId: 'case-preset-mutation',
+    commandId: 'case.layoutPreset.apply',
+    scopes: ['project.mutation'],
+  })
+  assert.equal(presetMutation.acquired, true)
+  const lifecycleWhilePresetActive = coordinator.beginOperation({
+    operationId: 'lifecycle-while-preset-active',
+    commandId: 'project.open',
+    scopes: ['lifecycle.transition'],
+  })
+  assert.deepEqual(lifecycleWhilePresetActive, {
+    acquired: false,
+    conflictingScopes: ['lifecycle.transition'],
+  })
+  const secondPreset = coordinator.beginOperation({
+    operationId: 'second-case-preset-mutation',
+    commandId: 'case.layoutPreset.detach',
+    scopes: ['project.mutation'],
+  })
+  assert.deepEqual(secondPreset, {
+    acquired: false,
+    conflictingScopes: ['project.mutation'],
+  })
+  if (presetMutation.acquired) presetMutation.release()
+  assert.deepEqual(coordinator.getState().occupiedScopes, [])
 })
 
 test('operation tokens support nested child scopes without reacquiring the root', async () => {

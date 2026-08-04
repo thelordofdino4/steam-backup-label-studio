@@ -224,6 +224,7 @@ export const testFiles = [
   'src/lifecycle/canonicalProject.test.ts',
   'src/lifecycle/caseInsertPresetSessionApplication.test.ts',
   'src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts',
+  'src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts',
   'src/lifecycle/projectSession.test.ts',
   'src/layout/backgroundArtworkFit.test.ts',
   'src/layout/caseInsertElementSafeZone.test.ts',

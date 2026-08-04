@@ -3,10 +3,10 @@
 > Purpose: Hydrated `SavedProject` schema, current/legacy JSON compatibility, validation, normalization, and migrations.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
 > Authoritative source: This document for hydrated saved-project fields and migrations; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for target package/container behavior; SDD for architecture boundaries.
-> Last reviewed against `origin/main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused pure Case preset lifecycle-model and adoption-commit checkpoints documented below.
+> Last reviewed against `origin/main` at `fcde6d9fef8efa25719761b538eda0ad2bca2ed6` plus the focused Case preset lifecycle-store installation checkpoint documented below.
 
 
-Last refreshed: 2026-08-03.
+Last refreshed: 2026-08-04.
 
 ## Purpose
 
@@ -55,9 +55,11 @@ separately versioned envelope. The adoption model's historically named
 `projectRevision` is the application revision, not the persisted-content
 `ProjectSession.revision`. Aggregate-changing adoption advances the latter once;
 attachment-only adoption retains it while the application revision advances
-once. There is no exact application-domain adoption no-op. None of this installs
-the successor in a store or connects attachment state to schema, Save/Open,
-package projection, UI, or production runtime behavior.
+once. There is no exact application-domain adoption no-op. These pure owners do
+not install the successor themselves. The focused lifecycle command/store
+bridge can install the complete authorized session in memory, but it connects
+no attachment state to schema, Save/Open, package projection, UI, or production
+workflow invocation.
 
 The draft target
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
@@ -103,7 +105,8 @@ Panel/left/right-spine assignments, accepted scopes, stable owner/object
 bindings, and attached/customized/detached semantics. The lifecycle model can
 now represent one canonical attachment beside the authoritative Case content,
 and its pure adoption adapter can authorize and return one complete successor
-without installing it in the lifecycle store. Schema `0.2.0` contains none of
+without installing it itself. The focused lifecycle command can install only
+that complete successor in the session store. Schema `0.2.0` contains none of
 that attachment or configuration metadata. New Case and Open initialize a new
 session with canonical authoritative `unattached` state and deterministic
 application revision zero. Loading must restore explicit Case owner values
@@ -410,8 +413,11 @@ are excluded. New and successfully opened Case sessions deterministically
 reconstruct a valid application unit from the complete current `caseInsert`
 aggregate with canonical `unattached` state at application revision zero. No
 starter configuration is selected, and no attachment is recovered from owner
-values or provenance. The pure adoption commit's successor session and receipt
-remain runtime-disconnected outputs and do not alter those persistence rules.
+values or provenance. The pure adoption commit's successor session can now be
+installed only through the focused session-only lifecycle command/store bridge.
+That bridge does not serialize its attachment or receipt and does not alter
+these persistence rules; there is still no production workflow UI or Save/Open
+attachment recovery.
 
 ## Normalization Rules
 
