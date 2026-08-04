@@ -10,6 +10,7 @@ import type {
 } from '../caseInsert/brandingSlotSources.ts'
 import {
   captureNormalizedProjectSnapshot,
+  getNormalizedProjectKind,
   type DeepReadonly,
   type NormalizedPersistableProject,
 } from '../lifecycle/canonicalProject.ts'
@@ -28,6 +29,14 @@ import type {
   SavedCaseInsertProject,
   SavedDiscProject,
 } from '../project/projectTypes.ts'
+import {
+  prepareCaseInsertPresetProjectRecovery,
+  type PreparedCaseInsertPresetProjectRecovery,
+} from '../project/caseInsertPresetProjectPersistence.ts'
+import {
+  CASE_INSERT_PRESET_CATALOG,
+  type CaseInsertPresetCatalog,
+} from '../presets/caseInsertPresetCatalog.ts'
 import type {
   RestoredCaseInsertProjectState,
 } from '../project/projectCaseInsert.ts'
@@ -92,6 +101,7 @@ export type StagedCaseInsertProjectOpenCandidate = Readonly<{
   editorRoute: Extract<ProjectSessionEditorRoute, { workspace: 'caseInsert' }>
   restoredProject: DeepReadonly<RestoredCaseInsertProjectState>
   activeDiscPresetState: null
+  caseInsertPresetRecovery: PreparedCaseInsertPresetProjectRecovery
   successMessage: string
 }>
 
@@ -105,6 +115,7 @@ export type ProjectOpenRestorationDependencies = Readonly<{
     imageDataUrl: string,
   ) => Promise<RestoredProjectState['backgroundImageSize']>
   caseInsertBrandingSources: CaseInsertBrandingSourceCatalog
+  caseInsertPresetCatalog?: CaseInsertPresetCatalog
 }>
 
 export type StageAppProjectOpenParams = ProjectOpenRestorationDependencies &
@@ -359,6 +370,20 @@ function stageCaseInsertProject(
       ...normalizedProject,
       caseInsert,
     })
+    if (getNormalizedProjectKind(acceptedProject) !== 'caseInsert') {
+      throw new Error('Normalized Case project kind was not retained.')
+    }
+    const recovery = prepareCaseInsertPresetProjectRecovery({
+      persistedState: project.caseInsertLayoutPreset,
+      project: acceptedProject as Extract<
+        typeof acceptedProject,
+        Readonly<{ projectType: 'caseInsert' }>
+      >,
+      catalog: params.caseInsertPresetCatalog ?? CASE_INSERT_PRESET_CATALOG,
+    })
+    if (!recovery.ok) {
+      throw new Error(`Case preset recovery failed: ${recovery.code}.`)
+    }
 
     return commandSucceeded(captureCandidate({
       projectType: 'caseInsert',
@@ -371,6 +396,7 @@ function stageCaseInsertProject(
         caseInsert,
       },
       activeDiscPresetState: null,
+      caseInsertPresetRecovery: recovery.recovery,
       successMessage:
         'Loaded case insert project template, metadata, and preview geometry.',
     }))

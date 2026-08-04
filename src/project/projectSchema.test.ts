@@ -4,6 +4,7 @@ import { createCaseInsertProjectSnapshot } from './caseInsertProjectAdapters.ts'
 import { normalizeParsedProject } from './normalizeProject.ts'
 import {
   CURRENT_PROJECT_SCHEMA_VERSION,
+  LEGACY_PROJECT_SCHEMA_VERSION,
   PREVIOUS_PROJECT_SCHEMA_VERSION,
   ProjectSchemaError,
   getAcceptedProjectSchemaVersions,
@@ -56,9 +57,9 @@ test('case insert snapshots use the shared current project schema version', () =
   const serialized = JSON.stringify(project)
   for (const sessionOnlyField of [
     'caseInsertPresetApplication',
-    'applicationRevision',
     'applicationStateIdentity',
     'attachmentIdentity',
+    'snapshotIdentity',
   ]) {
     assert.equal(serialized.includes(sessionOnlyField), false)
   }
@@ -73,7 +74,7 @@ test('project parse adapters preserve saved project payload compatibility', () =
   assert.deepEqual(normalizeParsedProject(contents), parsedProject)
 })
 
-test('registered 0.1.0 migration preserves content without inventing editor state', () => {
+test('registered 0.2.0 migration preserves Disc content without inventing editor state', () => {
   const legacyProject = createDiscProjectFixture({
     schemaVersion: PREVIOUS_PROJECT_SCHEMA_VERSION,
     title: 'Legacy Disc',
@@ -97,7 +98,29 @@ test('registered 0.1.0 migration preserves content without inventing editor stat
   assert.deepEqual(getAcceptedProjectSchemaVersions(), [
     CURRENT_PROJECT_SCHEMA_VERSION,
     PREVIOUS_PROJECT_SCHEMA_VERSION,
+    LEGACY_PROJECT_SCHEMA_VERSION,
   ])
+})
+
+test('older Case schemas migrate to explicit unattached preset state without inference', () => {
+  const legacy = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Matching Geometry Is Not Attachment',
+  }) as unknown as Record<string, unknown>
+  legacy.schemaVersion = LEGACY_PROJECT_SCHEMA_VERSION
+  delete legacy.caseInsertLayoutPreset
+
+  const migrated = migrateProjectSchemaRecord(legacy)
+
+  assert.equal(migrated.schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION)
+  assert.deepEqual(migrated.caseInsertLayoutPreset, {
+    kind: 'sbls/case-insert-layout-preset-project-state',
+    formatVersion: 1,
+    applicationRevision: 0,
+    attachment: { status: 'unattached' },
+  })
+  assert.equal(legacy.schemaVersion, LEGACY_PROJECT_SCHEMA_VERSION)
+  assert.equal('caseInsertLayoutPreset' in legacy, false)
+  assert.deepEqual(getSavedProjectSchemaIssues(migrated), [])
 })
 
 test('malformed optional guided editor metadata does not block project parsing', () => {

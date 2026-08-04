@@ -1,7 +1,7 @@
 {
   "registryVersion": 1,
   "status": "normative",
-  "supportedProjectSchemaVersions": ["0.1.0", "0.2.0"],
+  "supportedProjectSchemaVersions": ["0.1.0", "0.2.0", "0.3.0"],
   "compatibilityLifetime": "Every listed compatibility ID and byte digest remains reconstructible by Steam Backup Label Studio for as long as either listed project schema version remains supported. A future byte replacement requires a new compatibility ID or registry version; it must not silently reuse an existing tuple.",
   "assets": [
     {"id":"steam-banner:banner-lockup","path":"src/assets/steam-banner/steam-default-logo.png","sha256":"ee5f5eb9042c3c1092d3156e5fde047772932f59450639ad66e4e79e886d0837"},

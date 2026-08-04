@@ -27,6 +27,7 @@ import type { ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
 import type { SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
 import {
   buildCaseInsertPresetApplicationAdoptionFixture,
@@ -45,7 +46,7 @@ function discProject(
   savedAt = '2026-07-29T00:00:00.000Z',
 ): SavedDiscProject {
   return {
-    schemaVersion: '0.2.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'disc',
     title,
     savedAt,
@@ -323,7 +324,7 @@ test('direct Save uses the lifecycle-owned project without an editor capture por
   }
 })
 
-test('Case Save writes only persisted project content and preserves session application metadata', async () => {
+test('Case Save projects explicit preset persistence and preserves session application metadata', async () => {
   const initial = attachedCaseStateForSave()
   const before = initial.activeSession
   assert.equal(before?.kind, 'caseInsert')
@@ -336,15 +337,23 @@ test('Case Save writes only persisted project content and preserves session appl
 
   assert.equal(result.disposition, 'executed')
   assert.equal(harness.writeCalls.length, 1)
-  assert.deepEqual(harness.writeCalls[0].normalizedProject, before.project)
+  const saved = harness.writeCalls[0].normalizedProject
+  assert.equal(saved.projectType, 'caseInsert')
+  if (saved.projectType !== 'caseInsert') return
+  assert.deepEqual(saved.caseInsert, before.project.caseInsert)
+  assert.equal(saved.caseInsertLayoutPreset.attachment.status, 'attached')
+  assert.equal(
+    saved.caseInsertLayoutPreset.applicationRevision,
+    before.caseInsertPresetApplication.applicationRevision,
+  )
   const serializedInput = JSON.stringify(
     harness.writeCalls[0].normalizedProject,
   )
   for (const sessionOnlyField of [
     'caseInsertPresetApplication',
-    'applicationRevision',
     'applicationStateIdentity',
     'attachmentIdentity',
+    'snapshotIdentity',
   ]) {
     assert.equal(serializedInput.includes(sessionOnlyField), false)
   }

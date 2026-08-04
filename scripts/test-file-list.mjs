@@ -258,6 +258,7 @@ export const testFiles = [
   'src/project/projectAdditionalArtwork.test.ts',
   'src/project/projectAdditionalArtworkNormalization.test.ts',
   'src/project/projectCaseInsert.test.ts',
+  'src/project/caseInsertPresetProjectPersistence.test.ts',
   'src/project/projectCaseInsertStateHelpers.test.ts',
   'src/project/projectCaseInsertLegacy.test.ts',
   'src/project/projectCaseInsertArtworkSlots.test.ts',

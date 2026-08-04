@@ -6,8 +6,9 @@ import {
   type EditorProjectType,
 } from '../editor/editorTypes.ts'
 
-export const PREVIOUS_PROJECT_SCHEMA_VERSION = '0.1.0' as const
-export const CURRENT_PROJECT_SCHEMA_VERSION = '0.2.0' as const
+export const LEGACY_PROJECT_SCHEMA_VERSION = '0.1.0' as const
+export const PREVIOUS_PROJECT_SCHEMA_VERSION = '0.2.0' as const
+export const CURRENT_PROJECT_SCHEMA_VERSION = '0.3.0' as const
 
 export type CurrentProjectSchemaVersion = typeof CURRENT_PROJECT_SCHEMA_VERSION
 
@@ -27,9 +28,14 @@ const PROJECT_SCHEMA_MIGRATIONS: readonly ProjectSchemaMigration[] = [
   {
     from: PREVIOUS_PROJECT_SCHEMA_VERSION,
     to: CURRENT_PROJECT_SCHEMA_VERSION,
+    migrate: migrateProjectSchemaFrom02To03,
+  },
+  {
+    from: LEGACY_PROJECT_SCHEMA_VERSION,
+    to: PREVIOUS_PROJECT_SCHEMA_VERSION,
     migrate: (project) => ({
       ...project,
-      schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
+      schemaVersion: PREVIOUS_PROJECT_SCHEMA_VERSION,
     }),
   },
 ]
@@ -70,6 +76,21 @@ export function validateSavedProjectSchema(
   }
 }
 
+export function validateNormalizedProjectSchema(
+  project: unknown,
+): void {
+  const issues = getSavedProjectSchemaIssues(project, {
+    allowMissingCaseInsertLayoutPreset: true,
+  })
+
+  if (issues.length > 0) {
+    throw new ProjectSchemaError(
+      `Normalized project failed schema validation: ${issues[0]}`,
+      issues,
+    )
+  }
+}
+
 export function parseProjectJsonRecord(contents: string): JsonRecord {
   let parsed: unknown
 
@@ -90,7 +111,12 @@ export function parseProjectJsonRecord(contents: string): JsonRecord {
   return record
 }
 
-export function getSavedProjectSchemaIssues(project: unknown): string[] {
+export function getSavedProjectSchemaIssues(
+  project: unknown,
+  options: Readonly<{
+    allowMissingCaseInsertLayoutPreset?: boolean
+  }> = {},
+): string[] {
   const record = asRecord(project)
 
   if (!record) {
@@ -141,10 +167,37 @@ export function getSavedProjectSchemaIssues(project: unknown): string[] {
   if (projectType === 'disc') {
     validateDiscProjectRecord(record, templateRecord, issues)
   } else {
-    validateCaseInsertProjectRecord(record, templateRecord, issues)
+    validateCaseInsertProjectRecord(
+      record,
+      templateRecord,
+      issues,
+      options.allowMissingCaseInsertLayoutPreset === true,
+    )
   }
 
   return issues
+}
+
+function migrateProjectSchemaFrom02To03(project: JsonRecord): JsonRecord {
+  const template = asRecord(project.template)
+  const editor = asRecord(project.editor)
+  const projectType = template
+    ? resolveSchemaProjectType(project, template, editor)
+    : null
+  return {
+    ...project,
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
+    ...(projectType === 'caseInsert'
+      ? {
+          caseInsertLayoutPreset: {
+            kind: 'sbls/case-insert-layout-preset-project-state',
+            formatVersion: 1,
+            applicationRevision: 0,
+            attachment: { status: 'unattached' },
+          },
+        }
+      : {}),
+  }
 }
 
 export function migrateProjectSchemaRecord(
@@ -419,6 +472,7 @@ function validateCaseInsertProjectRecord(
   record: JsonRecord,
   templateRecord: JsonRecord,
   issues: string[],
+  allowMissingCaseInsertLayoutPreset: boolean,
 ) {
   const templateType = templateRecord.type
 
@@ -446,6 +500,50 @@ function validateCaseInsertProjectRecord(
   }
 
   validateCaseInsertStateRecord(caseInsertRecord, issues)
+  validateCaseInsertLayoutPresetProjectState(
+    record.caseInsertLayoutPreset,
+    issues,
+    allowMissingCaseInsertLayoutPreset,
+  )
+}
+
+function validateCaseInsertLayoutPresetProjectState(
+  value: unknown,
+  issues: string[],
+  allowMissing: boolean,
+) {
+  if (value === undefined && allowMissing) return
+  const record = asRecord(value)
+  if (!record) {
+    issues.push('caseInsertLayoutPreset must be an object for Case projects.')
+    return
+  }
+  if (record.kind !== 'sbls/case-insert-layout-preset-project-state') {
+    issues.push('caseInsertLayoutPreset.kind is invalid.')
+  }
+  if (record.formatVersion !== 1) {
+    issues.push('caseInsertLayoutPreset.formatVersion must be 1.')
+  }
+  if (typeof record.applicationRevision !== 'number' ||
+      !Number.isSafeInteger(record.applicationRevision) ||
+      record.applicationRevision < 0) {
+    issues.push(
+      'caseInsertLayoutPreset.applicationRevision must be a non-negative safe integer.',
+    )
+  }
+  const attachment = asRecord(record.attachment)
+  if (!attachment ||
+      (attachment.status !== 'unattached' && attachment.status !== 'attached')) {
+    issues.push(
+      'caseInsertLayoutPreset.attachment must declare attached or unattached state.',
+    )
+    return
+  }
+  if (attachment.status === 'attached' && !asRecord(attachment.configuration)) {
+    issues.push(
+      'caseInsertLayoutPreset.attachment.configuration must be an object when attached.',
+    )
+  }
 }
 
 function validateCaseInsertStateRecord(

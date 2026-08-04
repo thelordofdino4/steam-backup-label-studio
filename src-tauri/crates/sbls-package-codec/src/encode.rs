@@ -146,7 +146,7 @@ fn encode_project_package_inner_with_raster_budget_borrowed(
         .get("schemaVersion")
         .and_then(JsonValue::as_str)
         .ok_or_else(invalid_project)?;
-    if probed_schema_version != "0.2.0" {
+    if probed_schema_version != "0.3.0" {
         return Err(failure(
             FailureCode::ProjectSchemaUnsupported,
             FailureStage::Project,
@@ -175,7 +175,7 @@ fn encode_project_package_inner_with_raster_budget_borrowed(
         .get("schemaVersion")
         .and_then(JsonValue::as_str)
         .ok_or_else(|| failure(FailureCode::HydratedJsonInvalid, FailureStage::Project))?;
-    if schema_version != "0.2.0" {
+    if schema_version != "0.3.0" {
         return Err(failure(
             FailureCode::ProjectSchemaUnsupported,
             FailureStage::Project,
@@ -939,7 +939,7 @@ mod tests {
     ) -> Vec<AssetCapture> {
         let project = parse_json_with_limits(json, &PackageLimits::V1).unwrap();
         let shape = derive_registry_shape(&project).unwrap();
-        expand_registered_owners("0.2.0", shape)
+        expand_registered_owners("0.3.0", shape)
             .unwrap()
             .into_iter()
             .map(|owner| AssetCapture::new(owner, decision(owner)))
@@ -978,7 +978,7 @@ mod tests {
             r#","mediaMark":{"source":"placeholder","customImageDataUrl":null}"#
         };
         format!(
-            r#"{{"schemaVersion":"0.2.0","projectType":"disc","template":{{"type":"disc"}}{steam_banner}{logo_assets}{rating_badge}{media_mark}{extra}}}"#
+            r#"{{"schemaVersion":"0.3.0","projectType":"disc","template":{{"type":"disc"}}{steam_banner}{logo_assets}{rating_badge}{media_mark}{extra}}}"#
         )
         .into_bytes()
     }
@@ -995,7 +995,7 @@ mod tests {
             )
         };
         format!(
-            r#"{{"schemaVersion":"0.2.0","projectType":"caseInsert","template":{{"type":"caseInsert"}},"caseInsert":{{"templates":{{"cover":{},"tray":{}}},"spine":{{"left":{},"right":{}}}}}}}"#,
+            r#"{{"schemaVersion":"0.3.0","projectType":"caseInsert","template":{{"type":"caseInsert"}},"caseInsert":{{"templates":{{"cover":{},"tray":{}}},"spine":{{"left":{},"right":{}}}}}}}"#,
             surface(cover_extra),
             surface(tray_extra),
             surface(spine_left_extra),
@@ -1050,7 +1050,7 @@ mod tests {
 
     #[test]
     fn absent_case_surfaces_require_capture_of_normalized_default_banners() {
-        let json = br#"{"schemaVersion":"0.2.0","projectType":"caseInsert","template":{"type":"caseInsert"},"caseInsert":{}}"#.to_vec();
+        let json = br#"{"schemaVersion":"0.3.0","projectType":"caseInsert","template":{"type":"caseInsert"},"caseInsert":{}}"#.to_vec();
         let captures = raw_captures_for(&json, |_| AssetCaptureDecision::NoAcceptedAsset);
         assert_eq!(captures.len(), 16);
         let error = encode_project_package(&input(json, captures)).unwrap_err();
@@ -1246,7 +1246,7 @@ mod tests {
     #[test]
     fn implicit_and_variable_semantic_built_ins_require_exact_capture_bytes() {
         let implicit_disc =
-            br#"{"schemaVersion":"0.2.0","projectType":"disc","template":{"type":"disc"}}"#
+            br#"{"schemaVersion":"0.3.0","projectType":"disc","template":{"type":"disc"}}"#
                 .to_vec();
         let captures = raw_captures_for(&implicit_disc, |_| AssetCaptureDecision::NoAcceptedAsset);
         let error = encode_project_package(&input(implicit_disc, captures)).unwrap_err();
@@ -1516,7 +1516,7 @@ mod tests {
             mark_slots: slot_count,
         };
         let owners = expand_registered_owners(
-            "0.2.0",
+            "0.3.0",
             RegistryShape::CaseInsert(CaseRegistryShape {
                 cover: surface,
                 tray: surface,
@@ -1678,7 +1678,7 @@ mod tests {
             )
         };
         let json = format!(
-            r#"{{"schemaVersion":"0.2.0","projectType":"caseInsert","template":{{"type":"caseInsert"}},"caseInsert":{{"templates":{{"cover":{},"tray":{}}},"spine":{{"left":{},"right":{}}}}}}}"#,
+            r#"{{"schemaVersion":"0.3.0","projectType":"caseInsert","template":{{"type":"caseInsert"}},"caseInsert":{{"templates":{{"cover":{},"tray":{}}},"spine":{{"left":{},"right":{}}}}}}}"#,
             surface(1),
             surface(0),
             surface(0),
@@ -1737,14 +1737,14 @@ mod tests {
 
     #[test]
     fn project_kind_resolution_matches_current_schema_precedence_and_template_rules() {
-        let editor_only = br#"{"schemaVersion":"0.2.0","editor":{"projectType":"disc"},"template":{"type":"disc"}}"#;
+        let editor_only = br#"{"schemaVersion":"0.3.0","editor":{"projectType":"disc"},"template":{"type":"disc"}}"#;
         let editor_project = parse_json_with_limits(editor_only, &PackageLimits::V1).unwrap();
         assert_eq!(
             resolve_project_kind(&editor_project).unwrap(),
             ProjectKind::Disc
         );
 
-        let direct_wins = br#"{"schemaVersion":"0.2.0","projectType":"disc","editor":{"projectType":"caseInsert","workspace":"caseInsert"},"template":{"type":"disc"}}"#;
+        let direct_wins = br#"{"schemaVersion":"0.3.0","projectType":"disc","editor":{"projectType":"caseInsert","workspace":"caseInsert"},"template":{"type":"disc"}}"#;
         let direct_project = parse_json_with_limits(direct_wins, &PackageLimits::V1).unwrap();
         assert_eq!(
             resolve_project_kind(&direct_project).unwrap(),
@@ -1752,9 +1752,9 @@ mod tests {
         );
 
         for invalid in [
-            br#"{"schemaVersion":"0.2.0","projectType":"other","template":{"type":"disc"}}"#.as_slice(),
-            br#"{"schemaVersion":"0.2.0","projectType":"caseInsert","template":{"type":"disc"}}"#.as_slice(),
-            br#"{"schemaVersion":"0.2.0","editor":{"workspace":"home"},"template":{"type":"disc"}}"#.as_slice(),
+            br#"{"schemaVersion":"0.3.0","projectType":"other","template":{"type":"disc"}}"#.as_slice(),
+            br#"{"schemaVersion":"0.3.0","projectType":"caseInsert","template":{"type":"disc"}}"#.as_slice(),
+            br#"{"schemaVersion":"0.3.0","editor":{"workspace":"home"},"template":{"type":"disc"}}"#.as_slice(),
         ] {
             let project = parse_json_with_limits(invalid, &PackageLimits::V1).unwrap();
             assert_eq!(
@@ -1765,7 +1765,7 @@ mod tests {
 
         for template_type in ["caseInsert", "jewelCase", "dvdAmaray", "bluRay"] {
             let json = format!(
-                r#"{{"schemaVersion":"0.2.0","projectType":"caseInsert","template":{{"type":"{template_type}"}},"caseInsert":{{}}}}"#
+                r#"{{"schemaVersion":"0.3.0","projectType":"caseInsert","template":{{"type":"{template_type}"}},"caseInsert":{{}}}}"#
             );
             let project = parse_json_with_limits(json.as_bytes(), &PackageLimits::V1).unwrap();
             assert_eq!(
@@ -1905,10 +1905,10 @@ mod tests {
         let oversized = "data:image/bmp;base64,QUFBQUFBQUFB";
         for json in [
             format!(
-                r#"{{"schemaVersion":"0.2.0","projectType":"caseInsert","template":{{"type":"caseInsert"}},"caseInsert":{{}},"background":{{"imageDataUrl":"{oversized}"}}}}"#
+                r#"{{"schemaVersion":"0.3.0","projectType":"caseInsert","template":{{"type":"caseInsert"}},"caseInsert":{{}},"background":{{"imageDataUrl":"{oversized}"}}}}"#
             ),
             format!(
-                r#"{{"schemaVersion":"0.2.0","projectType":"disc","template":{{"type":"disc"}},"caseInsert":{{"templates":{{"cover":{{"background":{{"imageDataUrl":"{oversized}"}}}}}}}}}}"#
+                r#"{{"schemaVersion":"0.3.0","projectType":"disc","template":{{"type":"disc"}},"caseInsert":{{"templates":{{"cover":{{"background":{{"imageDataUrl":"{oversized}"}}}}}}}}}}"#
             ),
         ] {
             let json = json.into_bytes();

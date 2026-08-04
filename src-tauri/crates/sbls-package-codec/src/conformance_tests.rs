@@ -535,10 +535,10 @@ fn full_disc_current_schema_public_round_trip_is_exact_and_deterministic() {
     let _schedule = native::native_test_schedule_lock();
     let catalog = raster_catalog();
     assert_full_public_round_trip(
-        full_disc_project("0.2.0", &catalog),
+        full_disc_project("0.3.0", &catalog),
         disc_owner_specs(),
         &catalog,
-        "0.2.0",
+        "0.3.0",
     );
 }
 
@@ -547,10 +547,10 @@ fn full_case_all_surfaces_public_round_trip_is_exact_and_deterministic() {
     let _schedule = native::native_test_schedule_lock();
     let catalog = raster_catalog();
     assert_full_public_round_trip(
-        full_case_project("0.2.0", &catalog),
+        full_case_project("0.3.0", &catalog),
         case_owner_specs(),
         &catalog,
-        "0.2.0",
+        "0.3.0",
     );
 }
 
@@ -560,7 +560,7 @@ fn supported_older_schema_public_handoff_hydrates_without_migration() {
     let bmp = bmp_fixture([0x31, 0x41, 0x59]);
     let source = replace_once(
         golden_case_project("null", None),
-        r#""schemaVersion":"0.2.0""#,
+        r#""schemaVersion":"0.3.0""#,
         r#""schemaVersion":"0.1.0""#,
     );
     let asset = IndependentAsset::new(RasterMime::Bmp, bmp.clone(), 1, 1, banner_pointers());
@@ -568,7 +568,7 @@ fn supported_older_schema_public_handoff_hydrates_without_migration() {
     let decoded = decode_project_package(&package).unwrap();
     let hydrated = replace_once(
         golden_case_project(&quoted_data_url(RasterMime::Bmp, &bmp), None),
-        r#""schemaVersion":"0.2.0""#,
+        r#""schemaVersion":"0.3.0""#,
         r#""schemaVersion":"0.1.0""#,
     );
 
@@ -576,7 +576,7 @@ fn supported_older_schema_public_handoff_hydrates_without_migration() {
     assert_eq!(decoded.hydrated_project_json(), canonical_json(&hydrated));
     assert_eq!(decoded.metadata().asset_count(), 1);
     assert_eq!(decoded.metadata().binding_count(), 4);
-    assert!(!String::from_utf8_lossy(decoded.hydrated_project_json()).contains("0.2.0"));
+    assert!(!String::from_utf8_lossy(decoded.hydrated_project_json()).contains("0.3.0"));
 }
 
 #[test]
@@ -953,7 +953,7 @@ fn golden_case_project(banner_value: &str, cover_background: Option<&str>) -> Ve
     project.push_str(r#"},"tray":{"steamBanner":{"lockupImageDataUrl":"#);
     project.push_str(banner_value);
     project.push_str(
-        r#"}}}},"projectType":"caseInsert","schemaVersion":"0.2.0","template":{"type":"caseInsert"}}"#,
+        r#"}}}},"projectType":"caseInsert","schemaVersion":"0.3.0","template":{"type":"caseInsert"}}"#,
     );
     project.into_bytes()
 }
@@ -993,7 +993,7 @@ fn independent_raw_valid_golden_matches_public_writer_and_decoder() {
     assert_eq!(hydrated, canonical_json(&hydrated));
 
     let asset = IndependentAsset::new(RasterMime::Bmp, bmp, 1, 1, banner_pointers());
-    let (golden, manifest) = independent_package(&projection, "0.2.0", &[asset], None);
+    let (golden, manifest) = independent_package(&projection, "0.3.0", &[asset], None);
     parse_manifest(manifest.as_bytes()).unwrap();
 
     let captures = fixed_case_capture_plan(None)
@@ -1023,8 +1023,8 @@ fn independent_raw_valid_golden_matches_public_writer_and_decoder() {
 
 #[test]
 fn zero_asset_manifest_and_store_envelope_have_exactly_two_entries() {
-    let project = br#"{"caseInsert":{},"projectType":"caseInsert","schemaVersion":"0.2.0","template":{"type":"caseInsert"}}"#;
-    let (package, manifest) = independent_package(project, "0.2.0", &[], None);
+    let project = br#"{"caseInsert":{},"projectType":"caseInsert","schemaVersion":"0.3.0","template":{"type":"caseInsert"}}"#;
+    let (package, manifest) = independent_package(project, "0.3.0", &[], None);
     let parsed = parse_manifest(manifest.as_bytes()).unwrap();
     assert!(parsed.assets().is_empty());
     assert!(parsed.bindings().is_empty());
@@ -1087,7 +1087,7 @@ fn public_decode_jpeg_profile_code_yields_to_manifest_dimension_mismatch() {
             1,
             banner_pointers(),
         );
-        let (package, _) = independent_package(&project, "0.2.0", &[asset], None);
+        let (package, _) = independent_package(&project, "0.3.0", &[asset], None);
         let error = decode_project_package(&package).unwrap_err();
         assert_eq!(error.code, expected, "declared width {declared_width}");
         assert_eq!(error.stage, FailureStage::AssetValidation);
@@ -1109,7 +1109,7 @@ fn public_decode_bmp_profile_code_yields_to_manifest_dimension_mismatch() {
             1,
             banner_pointers(),
         );
-        let (package, _) = independent_package(&project, "0.2.0", &[asset], None);
+        let (package, _) = independent_package(&project, "0.3.0", &[asset], None);
         let error = decode_project_package(&package).unwrap_err();
         assert_eq!(error.code, expected, "declared width {declared_width}");
         assert_eq!(error.stage, FailureStage::AssetValidation);
@@ -1182,7 +1182,7 @@ fn missing_bound_leaf_and_residual_package_tokens_are_rejected() {
     let asset = IndependentAsset::new(RasterMime::Bmp, bmp.clone(), 1, 1, pointers);
     let projection_without_background = golden_case_project("null", None);
     let (missing_leaf, _) =
-        independent_package(&projection_without_background, "0.2.0", &[asset], None);
+        independent_package(&projection_without_background, "0.3.0", &[asset], None);
     let error = decode_project_package(&missing_leaf).unwrap_err();
     assert_eq!(error.code, FailureCode::BindingInvalid);
     assert_eq!(error.stage, FailureStage::BindingHydration);
@@ -1200,7 +1200,7 @@ fn missing_bound_leaf_and_residual_package_tokens_are_rejected() {
         project.push_str(&format!(r#","futureToken":"{token}"}}"#));
         let (package, _) = independent_package(
             project.as_bytes(),
-            "0.2.0",
+            "0.3.0",
             std::slice::from_ref(&banner_asset),
             None,
         );
@@ -1218,7 +1218,7 @@ fn project_and_asset_declared_byte_lengths_are_verified_at_the_public_boundary()
 
     let (project_mismatch, _) = independent_package(
         &project,
-        "0.2.0",
+        "0.3.0",
         std::slice::from_ref(&asset),
         Some(project.len() as u64 + 1),
     );
@@ -1228,7 +1228,7 @@ fn project_and_asset_declared_byte_lengths_are_verified_at_the_public_boundary()
 
     let mut length_mismatch = asset;
     length_mismatch.declared_byte_length = Some(bmp.len() as u64 + 1);
-    let (asset_mismatch, _) = independent_package(&project, "0.2.0", &[length_mismatch], None);
+    let (asset_mismatch, _) = independent_package(&project, "0.3.0", &[length_mismatch], None);
     let error = decode_project_package(&asset_mismatch).unwrap_err();
     assert_eq!(error.code, FailureCode::AssetDigestMismatch);
     assert_eq!(error.stage, FailureStage::AssetValidation);
@@ -1244,7 +1244,7 @@ fn nested_manifest_duplicate_and_closed_shape_matrix_is_rejected() {
         1,
         banner_pointers(),
     );
-    let (_, canonical) = independent_package(&project, "0.2.0", &[asset], None);
+    let (_, canonical) = independent_package(&project, "0.3.0", &[asset], None);
     parse_manifest(canonical.as_bytes()).unwrap();
 
     let binding_pointer = "/caseInsert/spine/left/steamBanner/lockupImageDataUrl";
@@ -1406,8 +1406,8 @@ fn archive_writer_and_reader_accept_exact_caps_and_reject_one_under() {
 fn unknown_semantic_built_ins_are_rejected_at_both_public_facades() {
     let _schedule = native::native_test_schedule_lock();
     let catalog = raster_catalog();
-    let disc = full_disc_project("0.2.0", &catalog);
-    let case = full_case_project("0.2.0", &catalog);
+    let disc = full_disc_project("0.3.0", &catalog);
+    let case = full_case_project("0.3.0", &catalog);
     let disc_variants = [
         (
             "supplemental USK beside a bound primary rating",
@@ -1540,12 +1540,12 @@ fn unbound_logo_evidence_and_direct_mark_absence_have_stable_public_precedence()
     let _schedule = native::native_test_schedule_lock();
     let catalog = raster_catalog();
     let disc_source = replace_once(
-        full_disc_project("0.2.0", &catalog),
+        full_disc_project("0.3.0", &catalog),
         r#""developerLogoSource":{"source":"custom"},"#,
         r#""developerLogoSource":{"source":"custom"},"developerLogoSize":{"width":8,"height":4},"#,
     );
     let case_source = replace_once(
-        full_case_project("0.2.0", &catalog),
+        full_case_project("0.3.0", &catalog),
         r#""logoSlots":[{"enabled":false,"#,
         r#""logoSlots":[{"enabled":false,"imageSize":{"width":8,"height":4},"#,
     );
@@ -1591,7 +1591,7 @@ fn unbound_logo_evidence_and_direct_mark_absence_have_stable_public_precedence()
     }
 
     let clean_disc = encode_project_package(&ProjectPackageEncodeInput::new(
-        full_disc_project("0.2.0", &catalog),
+        full_disc_project("0.3.0", &catalog),
         creator(),
         captures_for_specs(&disc_owner_specs()),
     ))

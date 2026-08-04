@@ -19,6 +19,9 @@ import {
 } from '../lifecycle/canonicalProject.ts'
 import type { SavedProject } from '../project/projectTypes.ts'
 import {
+  createCaseInsertProjectSaveSnapshot,
+} from '../project/caseInsertPresetProjectPersistence.ts'
+import {
   createProjectPackageCapturePlan,
 } from '../package/projectPackageCapturePlan.ts'
 import {
@@ -130,13 +133,23 @@ async function runSave(
   // Later editor synchronization may advance the same session to R+1 without
   // changing the bytes or baseline associated with this write.
   let writtenProject: ReturnType<typeof captureNormalizedProjectSnapshot>
+  let persistedProject: SavedProject
   let capturePlan: ReturnType<typeof createProjectPackageCapturePlan>
   try {
     writtenProject = captureNormalizedProjectSnapshot(
       session.project as unknown as SavedProject,
     )
+    persistedProject = session.kind === 'caseInsert'
+      ? createCaseInsertProjectSaveSnapshot(
+          writtenProject as Extract<
+            typeof writtenProject,
+            Readonly<{ projectType: 'caseInsert' }>
+          >,
+          session.caseInsertPresetApplication,
+        )
+      : writtenProject as unknown as SavedProject
     capturePlan = createProjectPackageCapturePlan(
-      writtenProject as unknown as SavedProject,
+      persistedProject,
     )
   } catch {
     return failure(
@@ -181,7 +194,7 @@ async function runSave(
         legacySourcePath: session.persistenceFormat === 'legacy-json'
           ? session.currentPath
           : null,
-        normalizedProject: writtenProject as unknown as SavedProject,
+        normalizedProject: persistedProject,
         capturePlan,
       })
     } catch (error) {

@@ -55,6 +55,7 @@ const CASE_APPLICATION_KEYS = Object.freeze([
   'attachment',
   'formatVersion',
   'kind',
+  'recoveryStatus',
   'snapshotIdentity',
 ])
 
@@ -768,7 +769,7 @@ test('lifecycle equality observes attachment and application revision while dirt
   ]) {
     assert.equal(serializedProject.includes(name), false)
   }
-  assert.equal(attachedSession.project.schemaVersion, '0.2.0')
+  assert.equal(attachedSession.project.schemaVersion, '0.3.0')
 
   const reopened = createLoadedProjectSession({
     sessionId: 'reopened-without-inference',
