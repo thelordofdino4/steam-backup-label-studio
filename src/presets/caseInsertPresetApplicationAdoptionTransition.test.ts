@@ -8,6 +8,9 @@ import {
 import {
   CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_KIND,
   CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_VERSION,
+  CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_KIND,
+  CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_VERSION,
+  auditCaseInsertPresetValidatedAdoptionSuccessBundle,
   transitionCaseInsertPresetApplicationAdoption,
   type CaseInsertPresetApplicationAdoptionTransitionResult,
 } from './caseInsertPresetApplicationAdoptionTransition.ts'
@@ -60,6 +63,55 @@ function rawRequest(
     evidence,
   }
 }
+
+test('validated adoption success bundles bind one exact versioned success', () => {
+  const adoption = transitionCaseInsertPresetApplicationAdoption(rawRequest(
+    'apply', fixture.sourceApplication, fixture.applyEvidence,
+  ))
+  assert.equal(adoption.ok, true)
+  if (!adoption.ok || adoption.operation !== 'apply') return
+
+  const input = {
+    kind: CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_KIND,
+    formatVersion:
+      CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_VERSION,
+    operation: 'apply',
+    current: fixture.sourceApplication,
+    evidence: fixture.applyEvidence,
+    adoption,
+  }
+  const audited = auditCaseInsertPresetValidatedAdoptionSuccessBundle(input)
+  const repeated = auditCaseInsertPresetValidatedAdoptionSuccessBundle(
+    structuredClone(input),
+  )
+
+  assert.equal(audited.ok, true)
+  assert.deepEqual(audited, repeated)
+  if (!audited.ok) return
+  assert.equal(isDeeplyFrozen(audited), true)
+  assert.notEqual(audited.bundle.current, fixture.sourceApplication)
+  assert.notEqual(audited.bundle.evidence, fixture.applyEvidence)
+  assert.notEqual(audited.bundle.adoption, adoption)
+
+  const forged = structuredClone(input)
+  const forgedReceipt = forged.adoption.receipt as unknown as MutableRecord
+  forgedReceipt.applicationAdoptionStatus = 'not-adopted'
+  const mismatch = auditCaseInsertPresetValidatedAdoptionSuccessBundle(forged)
+  assert.equal(mismatch.ok, false)
+  if (!mismatch.ok) assert.equal(mismatch.status, 'adoption-success-mismatch')
+
+  const unsupported = auditCaseInsertPresetValidatedAdoptionSuccessBundle({
+    ...input,
+    formatVersion: 2,
+  })
+  assert.equal(unsupported.ok, false)
+  if (!unsupported.ok) {
+    assert.equal(
+      unsupported.status,
+      'unsupported-adoption-success-bundle-version',
+    )
+  }
+})
 
 test('Apply atomically adopts the exact aggregate and promoted configuration', () => {
   const input = rawRequest(

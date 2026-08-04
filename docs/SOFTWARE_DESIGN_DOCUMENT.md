@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model checkpoint on 2026-08-02.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model and pure adoption-commit checkpoints on 2026-08-03.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -1522,8 +1522,9 @@ overwrite adopts selected value/provenance; a new claim may be configuration-
 only; retirement never writes; and movement remains retirement plus new claim.
 Back Panel/complete Tray and left/right-spine addresses remain distinct, while
 mirror mode has no execution effect. Installation, persistence/project schema,
-Detach application adoption, UI, lifecycle/store commit, and runtime application
-remain absent.
+Detach planning or application adoption, UI, store dispatch, and runtime
+application remain outside this Reapply transition; the later pure lifecycle
+commit adapter is described below.
 
 `src/presets/caseInsertPresetDetachIdentity.ts`,
 `src/presets/caseInsertPresetDetachPlanning.ts`, and
@@ -1640,8 +1641,13 @@ configuration/release identities, complete context/revisions, atomicity, and
 explicit `not-persisted`/non-integration facts. The transition invokes no
 planner, Apply/Reapply/Detach transition, detector, resolver, compatibility
 evaluator, catalog, aggregate writer, lifecycle/store, schema, persistence,
-save/load, UI, renderer, Rust, Tauri, or runtime owner. The production Case
-catalog remains empty; lifecycle/store installation remains future work.
+save/load, UI, renderer, Rust, Tauri, or runtime owner. Its source-owned,
+versioned, operation-discriminated validated-success bundle retains the exact
+current application snapshot, audited `not-adopted` evidence, and adoption
+success/receipt together; the public audit reconstructs and revalidates those
+canonical facts rather than trusting separately supplied fragments. The
+production Case catalog remains empty; store/runtime installation remains
+future work.
 
 `src/lifecycle/caseInsertPresetSessionApplication.ts` and the discriminated
 Case branch in `src/lifecycle/projectSession.ts` now provide the focused
@@ -1661,8 +1667,26 @@ aggregate-unchanged Detach representable: attachment and application identity
 can advance without pretending that persisted project content changed.
 The companion is excluded from project schema, clean baselines, dirty
 comparison, Save/package snapshots, and migration. This checkpoint does not
-install an Apply/Reapply/Detach successor, connect workflow UI, or add any
-attachment persistence; the production Case catalog remains empty.
+install an Apply/Reapply/Detach successor into a store, connect workflow UI, or
+add any attachment persistence; New/Open and reopened projects therefore remain
+unattached, and the production Case catalog remains empty.
+
+`src/lifecycle/caseInsertPresetSessionApplicationCommit.ts` now owns the pure
+lifecycle adoption preparation and commit boundary. Its preparer consumes one
+exact source Case `ProjectSession` plus the source-owned validated adoption
+bundle and emits one versioned, identity-bound authorization snapshot containing
+the complete source session, complete successor session, and bundle. The
+successor replaces `project.caseInsert` and its session-only preset companion as
+one coherent value while preserving every unrelated project field and session
+metadata. The persisted-content revision advances exactly once only when the
+complete Case aggregate changes; the distinct preset application revision
+always advances exactly once, so attachment-only Apply/Reapply and
+aggregate-unchanged Detach remain representable. The commit reaudits that
+snapshot and performs a full-session compare-and-swap against the supplied
+current session. Success returns one detached successor `ProjectSession` plus
+the existing adoption receipt atomically; failure returns neither. This pure
+boundary does not install state in a store and has no persistence, schema,
+save/load, UI, catalog, renderer, Tauri, or runtime dependency.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -1975,7 +1999,10 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/presets/caseInsertPresetDetachTransition.ts`
 - `src/presets/caseInsertPresetTransitionSuccessIdentity.ts`
 - `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
+- `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`
 - `src/lifecycle/caseInsertPresetSessionApplication.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
 - `src/lifecycle/projectSession.ts`
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
@@ -2039,7 +2066,11 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   substitution, mixed authentic fragments, hostile input, immutable inert
   evidence, legacy rejection, plus pure adoption CAS, attach/replace/release
   successor semantics, receipt determinism, replay/out-of-order rejection,
-  hostile-input failure, and runtime-dependency isolation.
+  hostile-input failure, and runtime-dependency isolation. Focused lifecycle
+  commit tests additionally cover source-bundle audit, complete successor-
+  session authorization, full-session staleness/replay rejection, exact content
+  versus application revision behavior, atomic successor/receipt output, and
+  the absence of store, persistence, schema, UI, and runtime dependencies.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks

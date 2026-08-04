@@ -3,10 +3,10 @@
 > Purpose: Hydrated `SavedProject` schema, current/legacy JSON compatibility, validation, normalization, and migrations.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
 > Authoritative source: This document for hydrated saved-project fields and migrations; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for target package/container behavior; SDD for architecture boundaries.
-> Last reviewed against `origin/main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused passive Case preset lifecycle-model checkpoint documented below.
+> Last reviewed against `origin/main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused pure Case preset lifecycle-model and adoption-commit checkpoints documented below.
 
 
-Last refreshed: 2026-08-02.
+Last refreshed: 2026-08-03.
 
 ## Purpose
 
@@ -43,6 +43,21 @@ project root, where they could otherwise leak into Save output. Descriptor-safe
 capture preserves schema-tolerated nested unknown data, including ordinary keys
 that happen to share those names, without invoking prototype setters or
 broadening schema `0.2.0`.
+
+The source adoption owner now retains one validated, versioned,
+operation-discriminated success bundle. A pure lifecycle preparer binds that
+bundle to the exact source `ProjectSession` in a complete deterministic
+successor-authorization envelope, and the corresponding pure commit performs a
+full-session compare-and-swap before returning the complete successor session
+and existing adoption receipt together. `ProjectSession` has no version
+discriminator; the adapter validates its exact Case-session shape and the
+separately versioned envelope. The adoption model's historically named
+`projectRevision` is the application revision, not the persisted-content
+`ProjectSession.revision`. Aggregate-changing adoption advances the latter once;
+attachment-only adoption retains it while the application revision advances
+once. There is no exact application-domain adoption no-op. None of this installs
+the successor in a store or connects attachment state to schema, Save/Open,
+package projection, UI, or production runtime behavior.
 
 The draft target
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
@@ -85,9 +100,10 @@ The Case-specific target sibling,
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 defines future exact preset references, explicit Front Cover/complete Tray/Back
 Panel/left/right-spine assignments, accepted scopes, stable owner/object
-bindings, and attached/customized/detached semantics. The passive lifecycle
-model can now represent one canonical attachment beside the authoritative Case
-content without installing an adoption result. Schema `0.2.0` contains none of
+bindings, and attached/customized/detached semantics. The lifecycle model can
+now represent one canonical attachment beside the authoritative Case content,
+and its pure adoption adapter can authorize and return one complete successor
+without installing it in the lifecycle store. Schema `0.2.0` contains none of
 that attachment or configuration metadata. New Case and Open initialize a new
 session with canonical authoritative `unattached` state and deterministic
 application revision zero. Loading must restore explicit Case owner values
@@ -386,15 +402,16 @@ type SavedCaseInsertProject = {
 }
 ```
 
-The in-memory Case session additionally owns the passive preset-application
-companion described above, but the saved shape does not. Save and Save As
+The in-memory Case session additionally owns the preset-application companion
+described above, but the saved shape does not. Save and Save As
 project only the normalized `SavedCaseInsertProject`; attachment,
 application revision, assignment/application identities, and adoption evidence
 are excluded. New and successfully opened Case sessions deterministically
 reconstruct a valid application unit from the complete current `caseInsert`
 aggregate with canonical `unattached` state at application revision zero. No
 starter configuration is selected, and no attachment is recovered from owner
-values or provenance.
+values or provenance. The pure adoption commit's successor session and receipt
+remain runtime-disconnected outputs and do not alter those persistence rules.
 
 ## Normalization Rules
 
