@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model checkpoint on 2026-08-02.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model and pure adoption-commit checkpoints on 2026-08-03.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -923,8 +923,9 @@ catalog, compatibility, normalized snapshot, and stable assignment-resolution
 foundation, immutable first-time Apply planner, content-bound review/consent
 identity, pure atomic transition, authoritative detached applied-configuration
 domain, pure customization detector, pure same-ID Reapply planner, pure atomic
-Reapply transition, pure Detach planner/transition, and pure atomic application-
-adoption transition are implemented. The first-time planner owns
+Reapply transition, pure Detach planner/transition, pure atomic application-
+adoption transition, and pure lifecycle adoption preparer/commit adapter are
+implemented. The first-time planner owns
 deterministic typed direct layout-field proposals, preservation/skip/warning/
 blocker/consent classification, no-op and conflict detection,
 staleness/identity preconditions, and field footprints. The transition validates
@@ -992,11 +993,12 @@ deeply immutable detached successor application snapshot, increments revision
 exactly once, and emits one deterministic receipt binding both application
 identities and the complete evidence/context edge. Failure exposes no
 successor, receipt, adoption identity, or actionable transition structure.
+The source owner also exposes a versioned, operation-discriminated validated-
+success bundle that retains the exact current application snapshot, audited
+`not-adopted` evidence, and adoption success/receipt as one revalidated value.
 The module imports no planner, operation transition, detector, resolver,
 compatibility evaluator, catalog, aggregate writer, lifecycle/store,
-persistence, schema, UI, renderer, or runtime owner. The next safe owner is a
-focused lifecycle-owned aggregate/attachment commit adapter, not `App.tsx` or
-project schema.
+persistence, schema, UI, renderer, or runtime owner.
 
 `src/lifecycle/caseInsertPresetSessionApplication.ts` now owns the intervening
 Case lifecycle representation, and `src/lifecycle/projectSession.ts`
@@ -1009,9 +1011,9 @@ preserves attachment, is an exact state/revision/publication no-op for identical
 canonical application content, and advances both persisted-content and
 application revisions once for a real aggregate change. Attachment-only change
 is therefore representable without changing persisted content, including a
-future Detach whose aggregate is identical. The companion is excluded from
+Detach successor whose aggregate is identical. The companion is excluded from
 schema, baseline, dirty comparison, Save/package snapshots, and migration.
-This owner validates and represents session state only: it does not commit a
+This representation owner validates session state only: it does not commit a
 pure Apply/Reapply/Detach successor or connect workflow UI or persistence.
 Aggregate-content identity retains the exact flat v1 typed encoding and
 SHA-256 value, but its owner now emits and hashes that encoding incrementally
@@ -1019,6 +1021,23 @@ with bounded additional working buffers rather than allocating complete
 encoded, UTF-8, and padded-message copies. Genuine aggregate changes remain
 synchronously linear in encoded content size; any compositional or asynchronous
 identity replacement remains a separate architecture decision.
+
+`src/lifecycle/caseInsertPresetSessionApplicationCommit.ts` now owns the pure
+lifecycle preparation and full-session compare-and-swap commit. Preparation
+consumes one exact source Case `ProjectSession` plus the source-owned validated
+adoption bundle and constructs one versioned, deterministic-identity snapshot
+containing the complete source session, complete successor session, and bundle.
+The successor updates the sole aggregate and session-only companion together,
+preserves unrelated project/session state, advances persisted-content revision
+once only when aggregate semantics change, and advances application revision
+exactly once for every authentic Apply/Reapply/Detach adoption. Commit reaudits
+the complete authorization and compares the complete supplied current session
+to the source; success returns the detached successor `ProjectSession` and the
+existing adoption receipt atomically, while failure returns neither. This owner
+does not install the successor in a store and imports no persistence, schema,
+save/load, UI, catalog, renderer, Tauri, or runtime owner. The production Case
+catalog remains empty, and session-only attachment is still neither saved nor
+restored, so New/Open and reopened projects remain unattached.
 
 Key files:
 
@@ -1077,6 +1096,8 @@ Key files:
 - `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
 - `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`
 - `src/lifecycle/caseInsertPresetSessionApplication.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
 - `src/lifecycle/projectSession.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/presetAggregateIdentity.ts`
@@ -1216,11 +1237,12 @@ Risks:
   A focused lifecycle session-application owner now represents canonical
   session-only attachment metadata beside the sole aggregate at
   `project.caseInsert`, with a distinct application revision/identity and
-  unattached revision-zero New/Open state. It supports full-aggregate
-  synchronization and aggregate-unchanged attachment representation, but does
-  not commit an adoption successor. Persistence/schema, UI, lifecycle adoption
-  commit, and runtime preset application remain absent. The production Case
-  catalog remains empty.
+  unattached revision-zero New/Open state. The pure lifecycle adoption adapter
+  retains one complete source/successor authorization, reaudits it, and performs
+  a full-session compare-and-swap that returns one atomic successor session plus
+  the existing receipt without installing either. Persistence/schema, UI,
+  store/runtime preset application, and a populated production Case catalog
+  remain absent; attachment is still not restored from saved projects.
 
 ## Text Systems
 
@@ -1909,7 +1931,11 @@ Current `npm run test` covers these broad areas:
   validation, fragment-substitution rejection, opaque inert non-adopted
   evidence, and the pure atomic application-adoption transition's exact CAS,
   attach/replace/release successor state, deterministic receipt, replay/out-of-
-  order rejection, hostile-input rejection, and no-integration boundaries.
+  order rejection, hostile-input rejection, and no-integration boundaries; plus
+  the source-owned validated success bundle and pure lifecycle preparer/commit
+  adapter's complete successor authorization, full-session staleness/replay
+  rejection, exact content/application revision rules, atomic successor-session
+  and existing-receipt result, hostile-input safety, and dependency isolation.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
 - The runtime-connected application lifecycle composition root, state store,
   command registry/dispatcher, busy coordinator, typed command ports,

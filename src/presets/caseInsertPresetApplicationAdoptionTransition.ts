@@ -43,6 +43,10 @@ export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_KIND =
   'sbls/case-insert-preset-application-adoption-transition' as const
 export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_VERSION =
   1 as const
+export const CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_KIND =
+  'sbls/case-insert-preset-validated-adoption-success-bundle' as const
+export const CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_VERSION =
+  1 as const
 
 export type CaseInsertPresetApplicationAdoptionTransitionInput = Readonly<{
   kind: typeof CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_KIND
@@ -62,6 +66,9 @@ export type CaseInsertPresetApplicationAdoptionTransitionFailureStatus =
   | 'source-aggregate-mismatch'
   | 'result-aggregate-mismatch'
   | 'successor-application-invalid'
+  | 'invalid-adoption-success-bundle'
+  | 'unsupported-adoption-success-bundle-version'
+  | 'adoption-success-mismatch'
 
 export type CaseInsertPresetApplicationAdoptionTransitionFailure = Readonly<{
   ok: false
@@ -118,6 +125,34 @@ type SuccessResult = Exclude<
   CaseInsertPresetApplicationAdoptionTransitionResult,
   { ok: false }
 >
+
+type ValidatedAdoptionSuccessBundleFor<
+  Operation extends CaseInsertPresetApplicationAdoptionOperation,
+> = Readonly<{
+  kind: typeof CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_KIND
+  formatVersion:
+    typeof CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_VERSION
+  operation: Operation
+  current: CaseInsertPresetApplicationSnapshot
+  evidence: Extract<
+    CaseInsertPresetApplicationAdoptionEvidence,
+    { operation: Operation }
+  >
+  adoption: Extract<SuccessResult, { operation: Operation }>
+}>
+
+export type CaseInsertPresetValidatedAdoptionSuccessBundle =
+  | ValidatedAdoptionSuccessBundleFor<'apply'>
+  | ValidatedAdoptionSuccessBundleFor<'reapply'>
+  | ValidatedAdoptionSuccessBundleFor<'detach'>
+
+export type AuditCaseInsertPresetAdoptionSuccessBundleResult =
+  | Readonly<{
+      ok: true
+      status: 'validated'
+      bundle: CaseInsertPresetValidatedAdoptionSuccessBundle
+    }>
+  | CaseInsertPresetApplicationAdoptionTransitionFailure
 type ApplyEvidence = Extract<
   CaseInsertPresetApplicationAdoptionEvidence,
   { operation: 'apply' }
@@ -610,6 +645,100 @@ export function transitionCaseInsertPresetApplicationAdoption(
     return failure(
       'invalid-adoption-transition',
       'adoption-transition-validation-failed',
+    )
+  }
+}
+
+function auditValidatedAdoptionSuccessBundle(
+  value: unknown,
+): AuditCaseInsertPresetAdoptionSuccessBundleResult {
+  const cloned = cloneCaseInsertPresetPlainInput(value)
+  if (!cloned.ok || !isRecord(cloned.value)) {
+    return failure(
+      'invalid-adoption-success-bundle',
+      cloned.ok ? 'adoption-success-bundle-root-invalid' : cloned.code,
+    )
+  }
+  const input = cloned.value
+  if (input.kind ===
+      CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_KIND &&
+      input.formatVersion !==
+        CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_VERSION) {
+    return failure(
+      'unsupported-adoption-success-bundle-version',
+      'adoption-success-bundle-version-unsupported',
+    )
+  }
+  if (!hasExactCaseInsertPresetKeys(input, [
+    'kind', 'formatVersion', 'operation', 'current', 'evidence', 'adoption',
+  ]) || input.kind !==
+      CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_KIND ||
+      input.formatVersion !==
+        CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_VERSION) {
+    return failure(
+      'invalid-adoption-success-bundle',
+      'adoption-success-bundle-shape-invalid',
+    )
+  }
+
+  const current = validateCaseInsertPresetApplicationSnapshot(input.current)
+  if (!current.ok) return fromModelFailure(current)
+  const audited = auditCaseInsertPresetApplicationAdoptionEvidence(
+    input.evidence,
+  )
+  if (!audited.ok) return fromModelFailure(audited)
+  if (input.operation !== audited.evidence.operation) {
+    return failure(
+      'adoption-operation-mismatch',
+      'adoption-success-bundle-operation-mismatch',
+      { operation: audited.evidence.operation },
+    )
+  }
+  const expected = transitionValidatedRequest({
+    kind: CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_KIND,
+    formatVersion:
+      CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_VERSION,
+    operation: audited.evidence.operation,
+    current: current.value,
+    evidence: audited.evidence,
+  })
+  if (!expected.ok) return expected
+  if (!sameCaseInsertPresetValue(input.adoption, expected)) {
+    return failure(
+      'adoption-success-mismatch',
+      'adoption-success-not-exact-evidence-result',
+      { operation: audited.evidence.operation },
+    )
+  }
+  return deepFreezeCaseInsertPresetValue({
+    ok: true as const,
+    status: 'validated' as const,
+    bundle: {
+      kind: CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_KIND,
+      formatVersion:
+        CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_VERSION,
+      operation: audited.evidence.operation,
+      current: current.value,
+      evidence: audited.evidence,
+      adoption: expected,
+    } as CaseInsertPresetValidatedAdoptionSuccessBundle,
+  })
+}
+
+/**
+ * Revalidates one complete source-owned adoption success bundle. The lifecycle
+ * adapter consumes this bundle instead of accepting loose evidence, aggregate,
+ * attachment, configuration, revision, or receipt fields.
+ */
+export function auditCaseInsertPresetValidatedAdoptionSuccessBundle(
+  value: unknown,
+): AuditCaseInsertPresetAdoptionSuccessBundleResult {
+  try {
+    return auditValidatedAdoptionSuccessBundle(value)
+  } catch {
+    return failure(
+      'invalid-adoption-success-bundle',
+      'adoption-success-bundle-validation-failed',
     )
   }
 }

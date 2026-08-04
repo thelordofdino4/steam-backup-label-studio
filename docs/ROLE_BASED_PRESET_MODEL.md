@@ -3,7 +3,7 @@
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against `origin/main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996` (PRs #347–#349) plus the focused passive Case lifecycle-model checkpoint.
+> Last reviewed against `origin/main` at `83623fcb43e303bf47b87014502251509bd19ce6` (PRs #347–#350) plus the focused pure Case lifecycle-owned adoption-commit checkpoint.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
@@ -22,10 +22,12 @@ The Case-specific target sibling in
 now settles the future Case section, concrete-region, coordinate-basis,
 left/right-spine, multi-region atomicity, preservation, and recovery semantics.
 Pure Case definition-through-Detach, strengthened transition evidence, atomic
-application adoption, and passive `ProjectSession` application-unit foundations
-now exist, but they add no adoption commit, runtime Case workflow, persistence,
-or schema. This document remains the neutral/Disc-first model and current
-implementation record.
+application adoption, passive `ProjectSession` application-unit foundations,
+source-owned validated adoption-success bundles, and a pure lifecycle-owned
+full-session adoption-commit adapter now exist. They add no store dispatch,
+runtime Case workflow, persistence, schema, UI, or production catalog entries.
+This document remains the neutral/Disc-first model and current implementation
+record.
 
 ## 1. Purpose And Scope
 
@@ -913,7 +915,8 @@ Runtime Case Front, Case Back, and Spine preset application remains deferred.
 Pure first-time Apply planning, its atomic detached transition, the authoritative
 detached applied-configuration domain, exact customization detection, and pure
 same-preset Reapply planning/transition plus pure complete-footprint Detach
-planning/transition and pure atomic application adoption are now implemented.
+planning/transition, pure atomic application adoption, and pure lifecycle-owned
+application-adoption preparation/commit are now implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 and its pure definition/parser, empty user-ready catalog, concrete-region/basis
@@ -983,9 +986,10 @@ neither. It runs no planner, detector, resolver, compatibility/catalog,
 Apply/Reapply, writer, geometry, renderer, persistence, schema, UI, store, or
 runtime owner. Back Panel and complete Tray remain distinct, left/right Spine
 remain independent, mirror mode cannot redirect execution, and repeated objects
-resolve by exact stable ID. Lifecycle/store attachment installation,
-persistence/schema, UI, and runtime application remain future work. The
-production Case catalog remains empty.
+resolve by exact stable ID. Store-dispatched attachment installation,
+persistence/schema, UI, and runtime application remain future work. The pure
+lifecycle commit adapter does not change those boundaries, and the production
+Case catalog remains empty.
 
 The pure configuration-attachment/application-adoption model is now also
 implemented. It wraps the unchanged validated configuration in exactly one
@@ -993,12 +997,12 @@ application-level `attached` state or represents authoritative absence with one
 canonical `unattached` state. `detached-uninstalled` remains configuration
 artifact provenance and is not overloaded as installed state or a Detach
 tombstone. One Case assignment snapshot and one attachment wrapper form the
-future atomic application unit; raw plans, reviews, configurations, and release
+pure atomic application unit; raw plans, reviews, configurations, and release
 records are not adoption authority. The legal state edges are absence to exact
 Apply configuration, exact Reapply source to exact successor configuration, and
 exact Detach source to absence. A pure classifier rejects missing, different-
 source, replayed, or tombstone attachment edges, while operation-discriminated
-future results and receipts prevent an operation from naming the wrong
+results and receipts prevent an operation from naming the wrong
 attachment action or successor-state shape.
 
 The antecedent transition-evidence amendment is now implemented. The assignment
@@ -1039,7 +1043,16 @@ transition, detector, resolver, compatibility evaluator, catalog, aggregate
 writer, lifecycle/store, persistence, schema, UI, or runtime owner.
 Legacy/incomplete evidence remains `aggregate-evidence-insufficient`.
 
-The passive lifecycle representation is now implemented separately in
+The source adoption owner also validates one complete versioned,
+operation-discriminated adoption-success bundle for Apply, Reapply, or Detach.
+The bundle retains the exact current application snapshot, opaque audited
+`not-adopted` evidence, and adoption success. Its audit reconstructs the
+canonical expected adoption result and requires the supplied success and
+existing receipt to match exactly. This is the lifecycle preparer's only
+adoption-success input; it does not accept loose receipt, aggregate, attachment,
+configuration, revision, or raw-evidence fragments.
+
+The lifecycle representation is implemented separately in
 `src/lifecycle/caseInsertPresetSessionApplication.ts` and the discriminated
 Case branch of `ProjectSession`. Persisted Case content remains the sole
 aggregate at `ProjectSession.project.caseInsert`; the companion binds only one
@@ -1060,14 +1073,33 @@ projection remain content-only. The pure snapshot's existing
 `projectRevision` spelling receives this distinct application revision at the
 lifecycle projection boundary.
 
-The same passive owner can represent exact Apply, Reapply, and Detach pure
-successor snapshots without incrementing their revision or installing them.
-Because attachment and application revision are retained, an
-aggregate-unchanged Detach successor remains distinct from a lifecycle no-op.
-`detached-uninstalled` remains configuration provenance, never attachment
-absence or a tombstone. Adoption commit/store dispatch, persistence, schema,
-save/load attachment recovery, UI, catalog entries, and runtime workflow remain
-later work, and the production Case catalog remains empty.
+The same owner can represent exact Apply, Reapply, and Detach pure successor
+application snapshots without incrementing their revision. The pure
+`src/lifecycle/caseInsertPresetSessionApplicationCommit.ts` boundary consumes
+one exact source Case `ProjectSession` plus the source-owned validated-success
+bundle and prepares one deterministic, operation-discriminated authorization
+envelope retaining the complete detached source session, complete detached
+successor session, and bundle. Its commit function re-audits that entire
+envelope and performs exact full-session compare-and-swap against one separately
+supplied current session. Session identity, both revisions, template/assignment
+context, aggregate, attachment/configuration, every unrelated project field,
+path, format, baseline, route, display identity, and remaining session metadata
+are therefore checked together.
+
+Success returns exactly one complete successor `ProjectSession` and the
+existing operation-discriminated adoption receipt atomically; failure returns
+neither, and the adapter does not mint a second receipt. An aggregate-changing
+operation advances persisted-content revision exactly once; aggregate-semantic
+no-op Apply/Reapply and aggregate-unchanged Detach retain it. Every legal
+attachment edge carries the adoption transition's already-advanced application
+revision without incrementing it again. Consequently, there is no exact
+application-domain no-op: attachment/application state changes even when
+aggregate semantics do not. `detached-uninstalled` remains configuration
+provenance, never attachment absence or a tombstone. Store dispatch,
+persistence, schema, save/load attachment recovery, UI, catalog entries,
+workflow/busy/feedback/history owners, and runtime behavior remain later work,
+and the production Case catalog remains empty. Issues #168, #149, #181, and
+#305 remain open.
 
 Deferred areas:
 
