@@ -1058,6 +1058,21 @@ or store failure changes nothing, and busy cleanup is guaranteed. This adds no
 planner/transition rerun, second store, catalog entry, UI/App/editor invocation,
 schema, persistence, preview, or export connection.
 
+`src/app/appCaseInsertPresetWorkflow.ts` now owns the presentation-neutral
+application sequence that consumes those existing boundaries. It reads the
+authoritative active Case session, exposes recovered attachment/status and
+customization without rewriting them, requires an explicit exact selection,
+and returns immutable Apply/Reapply/Detach review artifacts. A complete review
+decision is rebound to the exact session, content revision, application
+revision, application-state identity, assignment snapshot, operation, plan, and
+selected preset before the owner coordinates the existing pure transition,
+adoption, lifecycle authorization, and one exact registered command dispatch.
+It owns no second store or persisted workflow state, never constructs or
+installs a successor session, and leaves command busy/CAS/feedback behavior to
+the existing command layer. Detach is independent of catalog availability. No
+React, App/editor, workflow navigation, menu/sidebar, production catalog,
+schema, preview, export, Rust, or Tauri connection was added.
+
 `src/project/caseInsertPresetProjectPersistenceTypes.ts` and
 `src/project/caseInsertPresetProjectPersistence.ts` own the schema `0.3.0`
 Case-only projection and reconstruction boundary. Save validates one coherent
@@ -1133,6 +1148,8 @@ Key files:
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts`
+- `src/app/appCaseInsertPresetWorkflow.ts`
+- `src/app/appCaseInsertPresetWorkflow.test.ts`
 - `src/project/caseInsertPresetProjectPersistenceTypes.ts`
 - `src/project/caseInsertPresetProjectPersistence.ts`
 - `src/project/caseInsertPresetProjectPersistence.test.ts`
@@ -1280,8 +1297,10 @@ Risks:
   a full-session compare-and-swap that returns one atomic successor session plus
   the existing receipt. The focused command/store bridge installs that complete
   authorized successor once under `project.mutation`; authorization-producing
-  workflow orchestration, UI/App/editor invocation, and a populated production
-  Case catalog remain absent. Schema `0.3.0` and the existing Save/Open path now
+  UI/App/editor invocation and a populated production Case catalog remain
+  absent. A focused application workflow owner now performs explicit-selection
+  and reviewed Apply/Reapply/Detach orchestration through those exact owners.
+  Schema `0.3.0` and the existing Save/Open path now
   persist and atomically recover the explicit attachment/application state
   without replaying any preset operation.
 

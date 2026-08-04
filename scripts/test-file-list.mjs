@@ -37,6 +37,7 @@ export const testFiles = [
   'src/app/appProjectSave.test.ts',
   'src/app/appProjectSaveCommand.test.ts',
   'src/app/appCaseInsertPreviewTextHandlers.test.ts',
+  'src/app/appCaseInsertPresetWorkflow.test.ts',
   'src/app/appSteamDiscVisualImport.test.ts',
   'src/app/appSteamImportPlan.test.ts',
   'src/applicationMenu/applicationMenuRegistry.test.ts',

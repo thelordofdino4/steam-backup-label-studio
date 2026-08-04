@@ -1714,6 +1714,22 @@ shared typed feedback; it does not rerun a planner or transition and adds no
 catalog, UI, App/editor invocation, schema, persistence, preview, or export
 connection.
 
+`src/app/appCaseInsertPresetWorkflow.ts` is the presentation-neutral
+application workflow owner above those command and pure-domain boundaries. It
+reads the authoritative active Case session, requires explicit exact preset
+selection for Apply/Reapply, projects recovered attachment and typed recovery
+status without catalog mutation, invokes the established detector/resolver and
+planners, and returns immutable review artifacts carrying exact source-session,
+content/application-revision, snapshot, plan, selected-preset, warning, and
+material-consent proof. Confirmation rechecks that proof against the latest
+session, then coordinates the existing pure transition, adoption, lifecycle
+authorization, and exact registered command dispatch once. It neither
+constructs nor installs successor sessions and never writes aggregate and
+attachment separately. Detach does not require catalog resolution. The owner
+has no retained mutable workflow state and is not invoked by React, `App.tsx`,
+workflow navigation, menus, sidebars, preview, or export; the production Case
+catalog remains empty.
+
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
 revision-scoped recovery is documented in
@@ -2031,6 +2047,8 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts`
+- `src/app/appCaseInsertPresetWorkflow.ts`
+- `src/app/appCaseInsertPresetWorkflow.test.ts`
 - `src/project/caseInsertPresetProjectPersistenceTypes.ts`
 - `src/project/caseInsertPresetProjectPersistence.ts`
 - `src/project/caseInsertPresetProjectPersistence.test.ts`
