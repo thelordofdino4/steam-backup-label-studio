@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model and pure adoption-commit checkpoints on 2026-08-03.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, and schema `0.3.0` persistence/recovery checkpoints through 2026-08-04.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -431,8 +431,10 @@ Key files:
 Source-of-truth state:
 
 - `SavedProjectBase`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case-insert project types live in `src/project/projectTypes.ts`.
-- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.2.0` in `src/project/projectSchema.ts`.
-- `PROJECT_SCHEMA_MIGRATIONS` contains the explicit `0.1.0 -> 0.2.0` compatibility step.
+- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.3.0` in `src/project/projectSchema.ts`.
+- `PROJECT_SCHEMA_MIGRATIONS` contains pure `0.1.0 -> 0.2.0 -> 0.3.0`
+  compatibility steps. The second adds an explicit unattached Case preset
+  envelope and no new Disc field.
 - `projectGuidedWorkflow.ts` owns the compact Disc workflow snapshot adapter
   for active layout identity plus independent omission/completion arrays and
   tolerant restoration through the pure guided normalizer.
@@ -638,7 +640,7 @@ Risks:
 
 - Schema validation is shallow compared with the number of nested editor states.
 - Migration support currently contains only the explicit `0.1.0` to `0.2.0`
-  compatibility step.
+  and `0.2.0` to `0.3.0` compatibility steps.
 - Closed issue `#48` established the current schema-validation/migration
   baseline; future schema changes remain owned by `PROJECT_FILE_SPEC.md`.
 - Production `.sbls` Open/Save/Save As, content recognition, native
@@ -815,8 +817,9 @@ Source-of-truth state:
   and latest resolved runtime definition. Guided projection consumes that
   resolved definition and suppresses unsupported slots.
   `discGuidedWorkflow.ts` separately owns active guided layout identity/version
-  and independent canonical omission/completion transitions. Schema `0.2.0`
-  snapshots only that compact workflow through `projectGuidedWorkflow.ts`;
+  and independent canonical omission/completion transitions. Current schema
+  `0.3.0` retains the compact workflow introduced in `0.2.0` through
+  `projectGuidedWorkflow.ts`;
   progress controls never mutate feature owners. The focused completion service
   records slot IDs only from explicit owner actions, while new/different layout
   activation seeds currently satisfied slots once; no reactive effect watches
@@ -963,8 +966,9 @@ operation/context/plan/review/consent lineage, an operation-discriminated
 transition identity, one whole-success identity, and explicit non-adoption.
 Strict public validators recompute the entire operation-specific bundle and
 reject substituted aggregates, configurations, endpoints, releases, lineage,
-or mixed authentic fragments. No lifecycle/store attachment installation,
-schema, UI, or menu connection exists.
+or mixed authentic fragments. No UI or menu connection exists;
+lifecycle/store installation and focused schema/Save/Open persistence now exist
+in their separate owners below.
 
 `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` is now the pure
 model owner for one canonical unattached wrapper, one exact validated attached
@@ -1011,10 +1015,12 @@ preserves attachment, is an exact state/revision/publication no-op for identical
 canonical application content, and advances both persisted-content and
 application revisions once for a real aggregate change. Attachment-only change
 is therefore representable without changing persisted content, including a
-Detach successor whose aggregate is identical. The companion is excluded from
-schema, baseline, dirty comparison, Save/package snapshots, and migration.
-This representation owner validates session state only: it does not commit a
-pure Apply/Reapply/Detach successor or connect workflow UI or persistence.
+Detach successor whose aggregate is identical. The companion's transient
+identity and recovery status are excluded from baseline and content dirty
+comparison. Schema `0.3.0` persists its explicit attachment/application-
+revision projection, while this representation owner still only validates
+session state: it does not commit a pure Apply/Reapply/Detach successor or
+connect workflow UI.
 Aggregate-content identity retains the exact flat v1 typed encoding and
 SHA-256 value, but its owner now emits and hashes that encoding incrementally
 with bounded additional working buffers rather than allocating complete
@@ -1036,8 +1042,35 @@ to the source; success returns the detached successor `ProjectSession` and the
 existing adoption receipt atomically, while failure returns neither. This owner
 does not install the successor in a store and imports no persistence, schema,
 save/load, UI, catalog, renderer, Tauri, or runtime owner. The production Case
-catalog remains empty, and session-only attachment is still neither saved nor
-restored, so New/Open and reopened projects remain unattached.
+catalog remains empty. Separate project persistence now saves and restores an
+explicit attachment without invoking this adoption boundary.
+
+`src/lifecycle/caseInsertPresetSessionApplicationCommand.ts` now owns the
+bounded application-command/store installation bridge. The three exact Case
+preset operation IDs share the existing registry, dispatcher, capability
+projection, typed command results/feedback, and a new exclusive
+`project.mutation` busy scope. Each command accepts only one complete pure
+authorization snapshot and runs the pure full-session compare-and-swap inside
+one lifecycle-store generation-CAS transition. Success installs the complete
+aggregate-plus-companion successor once and returns the existing receipt;
+stale session/revision, replay, wrong operation, invalid input, busy conflict,
+or store failure changes nothing, and busy cleanup is guaranteed. This adds no
+planner/transition rerun, second store, catalog entry, UI/App/editor invocation,
+schema, persistence, preview, or export connection.
+
+`src/project/caseInsertPresetProjectPersistenceTypes.ts` and
+`src/project/caseInsertPresetProjectPersistence.ts` own the schema `0.3.0`
+Case-only projection and reconstruction boundary. Save validates one coherent
+aggregate/application snapshot and persists explicit unattached or attached
+state, application revision, exact preset identity, complete v1/v2 applied
+configuration, owned-field values, and assignment provenance. Open validates
+the envelope during immutable staging, reconstructs transient session identity,
+and reports `current`, `stale`, `incompatible`, `unavailable`, or
+`not-applicable` recovery status before one lifecycle/editor commit. Missing or
+changed catalog definitions never substitute a preset or erase recovered owner
+values. Recovery invokes no planner, Apply/Reapply/Detach transition, adoption,
+or UI command, and attachment is never inferred from geometry or field
+equality.
 
 Key files:
 
@@ -1098,6 +1131,11 @@ Key files:
 - `src/lifecycle/caseInsertPresetSessionApplication.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts`
+- `src/project/caseInsertPresetProjectPersistenceTypes.ts`
+- `src/project/caseInsertPresetProjectPersistence.ts`
+- `src/project/caseInsertPresetProjectPersistence.test.ts`
 - `src/lifecycle/projectSession.ts`
 - `src/caseInsert/presetAssignmentSnapshot.ts`
 - `src/caseInsert/presetAggregateIdentity.ts`
@@ -1240,9 +1278,12 @@ Risks:
   unattached revision-zero New/Open state. The pure lifecycle adoption adapter
   retains one complete source/successor authorization, reaudits it, and performs
   a full-session compare-and-swap that returns one atomic successor session plus
-  the existing receipt without installing either. Persistence/schema, UI,
-  store/runtime preset application, and a populated production Case catalog
-  remain absent; attachment is still not restored from saved projects.
+  the existing receipt. The focused command/store bridge installs that complete
+  authorized successor once under `project.mutation`; authorization-producing
+  workflow orchestration, UI/App/editor invocation, and a populated production
+  Case catalog remain absent. Schema `0.3.0` and the existing Save/Open path now
+  persist and atomically recover the explicit attachment/application state
+  without replaying any preset operation.
 
 ## Text Systems
 
@@ -1972,7 +2013,7 @@ Unknowns:
 - `App.tsx` remains a large orchestration component and owns many cross-feature flows.
 - Case insert editor hooks and export are large and centralize many behaviors.
 - Project schema migration support currently contains only the explicit
-  `0.1.0` to `0.2.0` compatibility step.
+  `0.1.0` to `0.2.0` and `0.2.0` to `0.3.0` compatibility steps.
 - Preview and export rendering are separate paths for both disc and case insert editors.
 - Inline preview text editing depends on DOM measurement, caret math, wrapped text behavior, and CSS.
 - Case insert parity is active work, especially tray/spine structured layout and alpha finish-line work.

@@ -6,7 +6,7 @@ import {
   APPLICATION_COMMAND_IDS,
   APPLICATION_LIFECYCLE_COMMAND_IDS,
   commandSucceeded,
-  type ApplicationCommandId,
+  type ApplicationLifecycleCommandId,
   type ApplicationCommandResult,
 } from './applicationCommandTypes.ts'
 import {
@@ -110,7 +110,7 @@ function disabledReason(
       'getLifecycleCommandCapabilities'
     ]
   >,
-  commandId: ApplicationCommandId,
+  commandId: ApplicationLifecycleCommandId,
 ) {
   const capability = capabilities[commandId]
   assert.equal(capability.canExecute, false)

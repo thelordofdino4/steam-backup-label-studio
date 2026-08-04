@@ -15,9 +15,14 @@ import {
   caseInsertPresetSessionApplicationsAreEqual,
   captureCaseInsertPresetSessionApplication,
   createInitialCaseInsertPresetSessionApplication,
+  createRecoveredCaseInsertPresetSessionApplication,
   synchronizeCaseInsertPresetSessionApplication,
   type CaseInsertPresetSessionApplication,
 } from './caseInsertPresetSessionApplication.ts'
+import {
+  recoverCaseInsertPresetProjectApplication,
+  type PreparedCaseInsertPresetProjectRecovery,
+} from '../project/caseInsertPresetProjectPersistence.ts'
 
 export type ProjectSessionId = string
 
@@ -116,6 +121,7 @@ export type NewProjectSessionInput = ProjectSessionSeed
 export type LoadedProjectSessionInput = ProjectSessionSeed & Readonly<{
   currentPath: string
   persistenceFormat: ProjectPersistenceFormat
+  caseInsertPresetRecovery?: PreparedCaseInsertPresetProjectRecovery
 }>
 
 export type AdoptSavedBaselineInput = Readonly<{
@@ -327,6 +333,30 @@ function createCaseApplication(
   const result = createInitialCaseInsertPresetSessionApplication({
     sessionId,
     project,
+  })
+  if (!result.ok) {
+    throw new TypeError(`Case preset application is invalid: ${result.detail}.`)
+  }
+  return result.application
+}
+
+function createRecoveredCaseApplication(
+  sessionId: ProjectSessionId,
+  project: NormalizedCaseInsertProject,
+  recovery: PreparedCaseInsertPresetProjectRecovery,
+): CaseInsertPresetSessionApplication {
+  const recovered = recoverCaseInsertPresetProjectApplication({
+    recovery,
+    sessionId,
+    project,
+  })
+  if (!recovered.ok) {
+    throw new TypeError(`Case preset recovery is invalid: ${recovered.code}.`)
+  }
+  const result = createRecoveredCaseInsertPresetSessionApplication({
+    sessionId,
+    project,
+    ...recovered.application,
   })
   if (!result.ok) {
     throw new TypeError(`Case preset application is invalid: ${result.detail}.`)
@@ -623,7 +653,7 @@ export function createLoadedProjectSession(
     input,
     'loadedProjectSessionInput',
     ['sessionId', 'project', 'currentPath', 'persistenceFormat'],
-    ['displayName', 'lastEditorRoute'],
+    ['displayName', 'lastEditorRoute', 'caseInsertPresetRecovery'],
   )
   const id = requireSessionId(captured.sessionId)
   const project = captureNormalizedProjectSnapshot(captured.project as SavedProject)
@@ -641,6 +671,11 @@ export function createLoadedProjectSession(
     : requireDisplayName(captured.displayName)
 
   if (kind === 'disc') {
+    if (captured.caseInsertPresetRecovery !== undefined) {
+      throw new TypeError(
+        'Disc project sessions cannot recover Case preset application state.',
+      )
+    }
     const discProject = project as NormalizedDiscProject
     return Object.freeze({
       activeSession: Object.freeze({
@@ -675,7 +710,14 @@ export function createLoadedProjectSession(
         'caseInsert',
         captured.lastEditorRoute,
       ),
-      caseInsertPresetApplication: createCaseApplication(id, caseProject),
+      caseInsertPresetApplication: captured.caseInsertPresetRecovery === undefined
+        ? createCaseApplication(id, caseProject)
+        : createRecoveredCaseApplication(
+            id,
+            caseProject,
+            captured.caseInsertPresetRecovery as
+              PreparedCaseInsertPresetProjectRecovery,
+          ),
     }),
     visibleWorkspace: 'caseInsert',
   })

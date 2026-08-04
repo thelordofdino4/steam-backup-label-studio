@@ -500,7 +500,7 @@ export type SavedDiscEditorState = {
 }
 
 export type SavedProjectBase = {
-  schemaVersion: '0.2.0'
+  schemaVersion: '0.3.0'
   projectType?: EditorProjectType
   title: string
   savedAt: string
@@ -570,6 +570,9 @@ export type SavedCaseInsertProject = SavedProjectBase & {
   }
   editor?: SavedCaseInsertEditorState
   caseInsert: ProjectJewelCaseState
+  caseInsertLayoutPreset: import(
+    './caseInsertPresetProjectPersistenceTypes.ts'
+  ).SavedCaseInsertLayoutPresetProjectState
 }
 
 export type SavedProject = SavedDiscProject | SavedCaseInsertProject

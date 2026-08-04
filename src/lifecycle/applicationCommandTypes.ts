@@ -14,9 +14,19 @@ export const APPLICATION_LIFECYCLE_COMMAND_IDS = Object.freeze([
 export type ApplicationLifecycleCommandId =
   typeof APPLICATION_LIFECYCLE_COMMAND_IDS[number]
 
+export const CASE_INSERT_PRESET_APPLICATION_COMMAND_IDS = Object.freeze([
+  'case.layoutPreset.apply',
+  'case.layoutPreset.reapply',
+  'case.layoutPreset.detach',
+] as const)
+
+export type CaseInsertPresetApplicationCommandId =
+  typeof CASE_INSERT_PRESET_APPLICATION_COMMAND_IDS[number]
+
 export const APPLICATION_COMMAND_IDS = Object.freeze([
   ...APPLICATION_LIFECYCLE_COMMAND_IDS,
   'export.png',
+  ...CASE_INSERT_PRESET_APPLICATION_COMMAND_IDS,
 ] as const)
 
 export type ApplicationCommandId = typeof APPLICATION_COMMAND_IDS[number]
@@ -95,6 +105,7 @@ export const COMMAND_BUSY_SCOPES = Object.freeze([
   'dialog.project-replacement',
   'persistence.read',
   'persistence.write',
+  'project.mutation',
   'application.termination',
   'export.execution',
   'dialog.export-warning',

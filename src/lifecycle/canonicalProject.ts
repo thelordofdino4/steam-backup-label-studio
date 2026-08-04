@@ -1,7 +1,11 @@
 import type { EditorProjectType } from '../editor/editorTypes.ts'
-import { validateSavedProjectSchema } from '../project/projectSchema.ts'
+import { validateNormalizedProjectSchema } from '../project/projectSchema.ts'
 import { resolveSavedProjectType } from '../project/projectRouting.ts'
-import type { SavedProject } from '../project/projectTypes.ts'
+import type {
+  SavedCaseInsertProject,
+  SavedDiscProject,
+  SavedProject,
+} from '../project/projectTypes.ts'
 
 type JsonPrimitive = boolean | number | string | null
 type JsonValue = JsonPrimitive | readonly JsonValue[] | JsonObject
@@ -15,7 +19,13 @@ export type DeepReadonly<T> =
       : T extends object ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
         : T
 
-export type NormalizedPersistableProject = DeepReadonly<SavedProject>
+export type NormalizedCaseInsertProject = DeepReadonly<
+  Omit<SavedCaseInsertProject, 'caseInsertLayoutPreset'>
+>
+
+export type NormalizedPersistableProject =
+  | DeepReadonly<SavedDiscProject>
+  | NormalizedCaseInsertProject
 
 declare const canonicalProjectComparisonBrand: unique symbol
 
@@ -184,6 +194,13 @@ function cloneProjectJson(project: SavedProject): JsonObject {
   return value as JsonObject
 }
 
+function removeCaseInsertPresetPersistence(project: JsonObject): JsonObject {
+  if (project.projectType !== 'caseInsert') return project
+  const content = cloneRecord(project)
+  delete content.caseInsertLayoutPreset
+  return content
+}
+
 function cloneRecord(record: JsonObject): Record<string, JsonValue> {
   return Object.fromEntries(Object.entries(record))
 }
@@ -239,8 +256,8 @@ export function captureNormalizedProjectSnapshot(
       capturedProjectSnapshots.has(project)) {
     return project as unknown as NormalizedPersistableProject
   }
-  const clone = cloneProjectJson(project)
-  validateSavedProjectSchema(clone)
+  const clone = removeCaseInsertPresetPersistence(cloneProjectJson(project))
+  validateNormalizedProjectSchema(clone)
   const captured = deepFreezeJson(
     clone,
   ) as unknown as NormalizedPersistableProject

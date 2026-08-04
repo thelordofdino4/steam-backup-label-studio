@@ -1291,7 +1291,7 @@ mod tests {
 
     #[test]
     fn absent_case_surfaces_require_built_in_bytes_in_old_and_current_schema() {
-        for schema in ["0.1.0", "0.2.0"] {
+        for schema in ["0.1.0", "0.2.0", "0.3.0"] {
             let project = format!(
                 r#"{{"schemaVersion":"{schema}","projectType":"caseInsert","template":{{"type":"caseInsert"}},"caseInsert":{{}}}}"#
             );
@@ -1723,7 +1723,7 @@ mod tests {
             r#""technicalMarks":{"assets":{"audio":{"source":"placeholder","customImageDataUrl":null,"customImageSize":null}}}"#,
         ];
 
-        for schema in ["0.1.0", "0.2.0"] {
+        for schema in ["0.1.0", "0.2.0", "0.3.0"] {
             for fragment in disc_fragments {
                 let project = format!(
                     r#"{{"schemaVersion":"{schema}","template":{{"type":"disc"}},"background":{{"imageDataUrl":null}},{fragment}}}"#,
@@ -1800,7 +1800,7 @@ mod tests {
 
     #[test]
     fn remembered_project_owned_title_bytes_require_bindings_not_a_built_in_registry() {
-        for schema in ["0.1.0", "0.2.0"] {
+        for schema in ["0.1.0", "0.2.0", "0.3.0"] {
             let disc = minimal_disc_projection_with_members(
                 schema,
                 "null",

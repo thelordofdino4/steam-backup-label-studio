@@ -11,11 +11,12 @@ const BUSY_SCOPE_ORDER: Readonly<Record<CommandBusyScope, number>> = Object.free
   'dialog.project-replacement': 40,
   'persistence.read': 50,
   'persistence.write': 60,
-  'application.termination': 70,
-  'export.execution': 80,
-  'dialog.export-warning': 90,
-  'dialog.export-destination': 100,
-  'persistence.export-write': 110,
+  'project.mutation': 70,
+  'application.termination': 80,
+  'export.execution': 90,
+  'dialog.export-warning': 100,
+  'dialog.export-destination': 110,
+  'persistence.export-write': 120,
 })
 
 const CHILD_LIFECYCLE_SCOPES = new Set<CommandBusyScope>([

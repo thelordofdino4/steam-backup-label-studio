@@ -30,6 +30,9 @@ import {
   CURRENT_PROJECT_SCHEMA_VERSION,
   parseSavedProjectContents,
 } from './projectSchema.ts'
+import {
+  createUnattachedCaseInsertLayoutPresetProjectState,
+} from './caseInsertPresetProjectPersistence.ts'
 
 export function createCaseInsertProjectSnapshot(
   params: CreateCaseInsertProjectSnapshotParams = {},
@@ -71,6 +74,8 @@ export function createCaseInsertProjectSnapshot(
       activeCaseInsertTemplatePane,
     },
     caseInsert,
+    caseInsertLayoutPreset:
+      createUnattachedCaseInsertLayoutPresetProjectState(),
   }
 }
 
@@ -130,6 +135,9 @@ export function normalizeSavedCaseInsertProject(
       activeCaseInsertTemplatePane,
     },
     caseInsert,
+    caseInsertLayoutPreset: record?.caseInsertLayoutPreset as
+      SavedCaseInsertProject['caseInsertLayoutPreset'] ??
+        createUnattachedCaseInsertLayoutPresetProjectState(),
   }
 }
 

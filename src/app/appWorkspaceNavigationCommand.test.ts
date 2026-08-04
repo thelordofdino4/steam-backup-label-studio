@@ -79,7 +79,7 @@ test('navigation owners fail safely without React dependencies', async () => {
     initialState: createLoadedProjectSession({
       sessionId: 'retained-disc',
       project: {
-        schemaVersion: '0.2.0',
+        schemaVersion: '0.3.0',
         projectType: 'disc',
         title: 'Retained Disc',
         savedAt: '2026-07-30T12:00:00.000Z',

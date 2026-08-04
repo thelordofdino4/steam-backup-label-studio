@@ -17,6 +17,9 @@ import {
   sameCaseInsertPresetValue,
 } from '../presets/caseInsertPresetSafeInput.ts'
 import type { SavedProject } from '../project/projectTypes.ts'
+import type {
+  CaseInsertPresetRecoveryStatus,
+} from '../project/caseInsertPresetProjectPersistence.ts'
 import {
   captureNormalizedProjectSnapshot,
   getNormalizedProjectKind,
@@ -38,6 +41,7 @@ export type CaseInsertPresetSessionApplication = Readonly<{
   applicationRevision: number
   snapshotIdentity: CaseInsertPresetAssignmentSnapshotIdentity
   attachment: CaseInsertPresetAttachmentState
+  recoveryStatus: CaseInsertPresetRecoveryStatus
   applicationStateIdentity: string
 }>
 
@@ -128,6 +132,54 @@ function isApplicationRevision(value: unknown): value is number {
     value >= 0
 }
 
+function captureRecoveryStatus(
+  value: unknown,
+): CaseInsertPresetRecoveryStatus |
+  CaseInsertPresetSessionApplicationFailure {
+  if (!isRecord(value)) {
+    return failure('invalid-input', 'recovery-status-invalid')
+  }
+  const keys = Object.keys(value)
+  if (value.status === 'not-applicable' && keys.length === 1) {
+    return deepFreezeCaseInsertPresetValue({ status: 'not-applicable' as const })
+  }
+  if (value.status === 'current' && keys.length === 2 &&
+      (value.customization === 'clean' || value.customization === 'customized')) {
+    return deepFreezeCaseInsertPresetValue({
+      status: 'current' as const,
+      customization: value.customization,
+    })
+  }
+  if (value.status === 'stale' && keys.length === 4 &&
+      isApplicationRevision(value.savedRevision) &&
+      isApplicationRevision(value.latestAvailableRevision) &&
+      value.latestAvailableRevision > value.savedRevision &&
+      (value.customization === 'clean' || value.customization === 'customized')) {
+    return deepFreezeCaseInsertPresetValue({
+      status: 'stale' as const,
+      savedRevision: value.savedRevision,
+      latestAvailableRevision: value.latestAvailableRevision,
+      customization: value.customization,
+    })
+  }
+  if (value.status === 'incompatible' && keys.length === 2 &&
+      typeof value.code === 'string' && value.code.length > 0) {
+    return deepFreezeCaseInsertPresetValue({
+      status: 'incompatible' as const,
+      code: value.code,
+    })
+  }
+  if (value.status === 'unavailable' && keys.length === 2 &&
+      (value.code === 'exact-definition-unavailable' ||
+        value.code === 'catalog-unavailable')) {
+    return deepFreezeCaseInsertPresetValue({
+      status: 'unavailable' as const,
+      code: value.code,
+    })
+  }
+  return failure('invalid-input', 'recovery-status-invalid')
+}
+
 function captureInputRecord(
   value: unknown,
   keys: readonly string[],
@@ -166,6 +218,7 @@ function buildApplication(input: Readonly<{
   project: unknown
   applicationRevision: unknown
   attachment: unknown
+  recoveryStatus: unknown
 }>): BuiltApplication | CaseInsertPresetSessionApplicationFailure {
   if (typeof input.sessionId !== 'string' || !input.sessionId.trim()) {
     return failure('invalid-session-id', 'session-id-invalid')
@@ -176,6 +229,8 @@ function buildApplication(input: Readonly<{
       'application-revision-invalid',
     )
   }
+  const recoveryStatus = captureRecoveryStatus(input.recoveryStatus)
+  if (isFailure(recoveryStatus)) return recoveryStatus
 
   let project: NormalizedPersistableProject
   try {
@@ -247,6 +302,7 @@ function buildApplication(input: Readonly<{
     applicationRevision: input.applicationRevision,
     snapshotIdentity: applicationSnapshot.value.snapshot.identity,
     attachment: applicationSnapshot.value.attachment,
+    recoveryStatus,
     applicationStateIdentity: identity.applicationStateIdentity,
   })
 
@@ -271,6 +327,7 @@ function createCaseInsertPresetSessionApplication(
 ): CaseInsertPresetSessionApplicationResult {
   const captured = captureInputRecord(input, [
     'sessionId', 'project', 'applicationRevision', 'attachment',
+    'recoveryStatus',
   ])
   if (isFailure(captured)) return captured
 
@@ -279,6 +336,7 @@ function createCaseInsertPresetSessionApplication(
     project: captured.project,
     applicationRevision: captured.applicationRevision,
     attachment: captured.attachment,
+    recoveryStatus: captured.recoveryStatus,
   })
   if (isFailure(built)) return built
   return deepFreezeCaseInsertPresetValue({
@@ -298,7 +356,14 @@ export function createInitialCaseInsertPresetSessionApplication(
     project: captured.project,
     applicationRevision: INITIAL_CASE_INSERT_PRESET_APPLICATION_REVISION,
     attachment: createCaseInsertPresetUnattachedState(),
+    recoveryStatus: { status: 'not-applicable' },
   })
+}
+
+export function createRecoveredCaseInsertPresetSessionApplication(
+  input: unknown,
+): CaseInsertPresetSessionApplicationResult {
+  return createCaseInsertPresetSessionApplication(input)
 }
 
 /**
@@ -368,6 +433,7 @@ export function synchronizeCaseInsertPresetSessionApplication(
     project: nextProject,
     applicationRevision: current.application.applicationRevision + 1,
     attachment: current.application.attachment,
+    recoveryStatus: current.application.recoveryStatus,
   })
   if (isFailure(advanced)) return advanced
   return deepFreezeCaseInsertPresetValue({
@@ -421,6 +487,7 @@ export function captureCaseInsertPresetSessionApplication(
     'applicationRevision',
     'snapshotIdentity',
     'attachment',
+    'recoveryStatus',
     'applicationStateIdentity',
   ]) || application.kind !== CASE_INSERT_PRESET_SESSION_APPLICATION_KIND ||
       application.formatVersion !==
@@ -433,6 +500,7 @@ export function captureCaseInsertPresetSessionApplication(
     project: captured.project,
     applicationRevision: application.applicationRevision,
     attachment: application.attachment,
+    recoveryStatus: application.recoveryStatus,
   })
   if (isFailure(built)) return built
   if (!sameCaseInsertPresetValue(
@@ -474,6 +542,7 @@ export function projectCaseInsertPresetSessionApplicationSnapshot(
     project: record.project,
     applicationRevision: captured.application.applicationRevision,
     attachment: captured.application.attachment,
+    recoveryStatus: captured.application.recoveryStatus,
   })
   if (isFailure(built)) return built
   return deepFreezeCaseInsertPresetValue({
@@ -512,6 +581,9 @@ export function representCaseInsertPresetApplicationSnapshot(
     applicationRevision:
       validated.value.snapshot.identity.projectRevision,
     attachment: validated.value.attachment,
+    recoveryStatus: validated.value.attachment.status === 'attached'
+      ? { status: 'current', customization: 'clean' }
+      : { status: 'not-applicable' },
   })
   if (isFailure(built)) return built
   if (!sameCaseInsertPresetValue(
@@ -557,6 +629,7 @@ export function caseInsertPresetSessionApplicationsAreEqual(
     first.applicationRevision === second.applicationRevision &&
     first.applicationStateIdentity === second.applicationStateIdentity &&
     sameCaseInsertPresetValue(first.snapshotIdentity, second.snapshotIdentity) &&
-    sameCaseInsertPresetValue(first.attachment, second.attachment)
+    sameCaseInsertPresetValue(first.attachment, second.attachment) &&
+    sameCaseInsertPresetValue(first.recoveryStatus, second.recoveryStatus)
   )
 }

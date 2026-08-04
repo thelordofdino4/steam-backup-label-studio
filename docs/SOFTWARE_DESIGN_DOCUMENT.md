@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model and pure adoption-commit checkpoints on 2026-08-03.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, and schema `0.3.0` persistence/recovery checkpoints through 2026-08-04.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -502,7 +502,8 @@ extensions are chooser affordances rather than decoder selectors. Save and Save
 As write `.sbls` package-v1 files only. Existing plain `.json` and `.sbls.json`
 projects remain readable legacy imports. The hydrated
 saved-project type remains a union of Disc and Case Insert shapes under schema
-version `0.2.0`; package/session metadata does not enter it.
+version `0.3.0`; package/session metadata does not enter it. The Case branch now
+includes one narrow explicit applied-preset persistence envelope.
 
 The ZIP-compatible `.sbls` package format is defined in
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md). Its
@@ -558,8 +559,10 @@ original format-choice rationale remains in
 ### 7.3 Source-Of-Truth State
 
 - `SavedProject`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case insert project state types live in `src/project/projectTypes.ts`.
-- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.2.0` in `src/project/projectSchema.ts`.
-- `PROJECT_SCHEMA_MIGRATIONS` registers the compatibility step from `0.1.0`.
+- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.3.0` in `src/project/projectSchema.ts`.
+- `PROJECT_SCHEMA_MIGRATIONS` registers pure `0.1.0 -> 0.2.0 -> 0.3.0`
+  compatibility steps; the last adds explicit unattached Case preset state and
+  no Disc field.
 - `sbls-package-codec` owns package bytes, manifest/projection/bindings,
   content-addressed raster assets, strict ZIP/JSON validation, hydration, and
   package failures. It returns hydrated JSON bytes to the later schema boundary
@@ -568,6 +571,10 @@ original format-choice rationale remains in
   independent canonical omitted and completed slot IDs; owner state, canonical
   preset definitions, resolved runtime geometry, and export composition remain
   independent.
+- Case preset persistence projects one explicit attachment/application-revision
+  envelope from the same validated lifecycle snapshot as the Case aggregate.
+  Open reconstructs transient identity and assesses catalog compatibility before
+  one coherent session install; it does not replay preset operations.
 
 ### 7.4 Render/Edit/Export Paths
 
@@ -623,7 +630,7 @@ original format-choice rationale remains in
 
 - Top-level schema validation is intentionally shallow.
 - Migration coverage is intentionally limited to the registered `0.1.0` to
-  `0.2.0` compatibility step.
+  `0.2.0` and `0.2.0` to `0.3.0` compatibility steps.
 - Issue `#48` is closed; future validation/migration changes remain governed by
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 
@@ -1429,7 +1436,7 @@ The disc editor is the first alpha-capable app surface.
 - Persisted state is `SavedDiscProject`.
 - Disc layer order lives in `src/editor/layerOrder.ts`.
 
-The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, or generic preset schema exists. Schema `0.2.0` does persist the focused Disc guided-workflow layout ID/version plus independent canonical omitted/completed slot IDs; it does not persist generic preset identity or geometry.
+The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, or generic Disc preset schema exists. Current schema `0.3.0` retains the focused Disc guided-workflow layout ID/version plus independent canonical omitted/completed slot IDs introduced in `0.2.0`; it does not persist generic Disc preset identity or geometry.
 
 The proposed target application-level Disc Layout Preset workflow—stable
 catalog references, non-mutating selection, immutable impact planning, review,
@@ -1646,8 +1653,8 @@ versioned, operation-discriminated validated-success bundle retains the exact
 current application snapshot, audited `not-adopted` evidence, and adoption
 success/receipt together; the public audit reconstructs and revalidates those
 canonical facts rather than trusting separately supplied fragments. The
-production Case catalog remains empty; store/runtime installation remains
-future work.
+production Case catalog remains empty. The pure transition remains store-free;
+the focused lifecycle installation bridge is described below.
 
 `src/lifecycle/caseInsertPresetSessionApplication.ts` and the discriminated
 Case branch in `src/lifecycle/projectSession.ts` now provide the focused
@@ -1665,11 +1672,13 @@ content revision continues to advance under its existing whole-project
 canonical-content rule. The separate application revision also makes a future
 aggregate-unchanged Detach representable: attachment and application identity
 can advance without pretending that persisted project content changed.
-The companion is excluded from project schema, clean baselines, dirty
-comparison, Save/package snapshots, and migration. This checkpoint does not
-install an Apply/Reapply/Detach successor into a store, connect workflow UI, or
-add any attachment persistence; New/Open and reopened projects therefore remain
-unattached, and the production Case catalog remains empty.
+The companion's transient identities and recovery status remain excluded from
+clean baselines and dirty comparison. Schema `0.3.0` persists only its explicit
+attachment/application-revision projection. Save verifies that projection and
+the aggregate belong to one application snapshot; Open validates and
+reconstructs them before atomic session installation. This representation owner
+does not install an Apply/Reapply/Detach successor or connect workflow UI, and
+the production Case catalog remains empty.
 
 `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts` now owns the pure
 lifecycle adoption preparation and commit boundary. Its preparer consumes one
@@ -1687,6 +1696,23 @@ current session. Success returns one detached successor `ProjectSession` plus
 the existing adoption receipt atomically; failure returns neither. This pure
 boundary does not install state in a store and has no persistence, schema,
 save/load, UI, catalog, renderer, Tauri, or runtime dependency.
+
+`src/lifecycle/caseInsertPresetSessionApplicationCommand.ts` is the focused
+store-installation owner layered after that pure boundary. It registers the
+exact Apply, Reapply, and Detach operation IDs in the existing application
+command root, derives Case-session capability through the existing projection,
+and acquires one `project.mutation` scope that conflicts with lifecycle
+transitions and other preset mutations. Its one lifecycle-store transition
+runs the pure full-session compare-and-swap against the final current session,
+then installs the complete returned successor once under store-generation CAS.
+No observer can see aggregate and attachment separately; attachment-only
+transitions remain observable without changing persisted-content revision or
+dirty comparison. Typed stale, replay, operation, validation, busy, and store
+failures leave state unchanged, and the dispatcher releases busy ownership
+after success or failure. The bridge returns the existing adoption receipt and
+shared typed feedback; it does not rerun a planner or transition and adds no
+catalog, UI, App/editor invocation, schema, persistence, preview, or export
+connection.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -1858,7 +1884,7 @@ while an explicit preset reapply restores preset fitting.
 
 `src/guidedPresets/discGuidedWorkflow.ts` separately owns the pure, versioned
 guided-layout identity plus independent omission and completion transitions.
-Schema `0.2.0` snapshots only that compact workflow through
+Schema `0.3.0` retains only that compact Disc workflow through
 `src/project/projectGuidedWorkflow.ts`; neither flag mutates owner content or
 placement. Completion is seeded from satisfied authoritative owner state only
 when a new/different layout activates and is subsequently recorded only by
@@ -2003,6 +2029,11 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/lifecycle/caseInsertPresetSessionApplication.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`
+- `src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts`
+- `src/project/caseInsertPresetProjectPersistenceTypes.ts`
+- `src/project/caseInsertPresetProjectPersistence.ts`
+- `src/project/caseInsertPresetProjectPersistence.test.ts`
 - `src/lifecycle/projectSession.ts`
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
@@ -2070,7 +2101,17 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   commit tests additionally cover source-bundle audit, complete successor-
   session authorization, full-session staleness/replay rejection, exact content
   versus application revision behavior, atomic successor/receipt output, and
-  the absence of store, persistence, schema, UI, and runtime dependencies.
+  the pure boundary's absence of store, persistence, schema, UI, and runtime
+  dependencies. Focused command/store tests cover one-install behavior for all
+  three operations, aggregate-plus-attachment and attachment-only atomicity,
+  stale session/revision rejection, busy exclusion, unchanged-state failure,
+  cleanup, existing lifecycle capability isolation, and the absence of
+  planner, catalog, UI, schema, persistence, preview, or export dependencies.
+- Focused Case preset project-persistence tests cover explicit attached and
+  detached round trips, complete version-1/version-2 configuration and owner
+  provenance, no-inference migration/recovery, catalog drift statuses,
+  malformed-state rejection, coherent snapshot enforcement, clean-state
+  preservation, and the absence of operation/adoption/UI dependencies.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks
@@ -2556,7 +2597,7 @@ Current tests cover broad helper and contract areas:
 - `App.tsx` remains large and coordinates many feature flows.
 - Case insert editor hooks and export are large and central.
 - Project schema validation is shallow, and migration coverage is limited to
-  the explicit `0.1.0` to `0.2.0` compatibility step.
+  the explicit `0.1.0` to `0.2.0` and `0.2.0` to `0.3.0` compatibility steps.
 - Preview and export rendering are separate paths in several subsystems.
 - Inline text editing depends on DOM measurement, caret math, wrapped text, CSS, and runtime focus behavior.
 - CSS can become hidden rendering/layout policy.
@@ -2573,8 +2614,9 @@ Current tests cover broad helper and contract areas:
 - Jewel case alpha remains open under `#126`.
 - Historical mark families remain open under `#125`.
 - Issue `#48` is closed; current schema validation and the `0.1.0` to `0.2.0`
-  migration are implemented, while any future schema change remains separate
-  work under [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
+  baseline migration remain implemented. The focused `0.2.0` to `0.3.0` Case
+  preset migration is now also implemented under
+  [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - Preview selection, snapping, keyboard nudging, inspector, and context-menu workflows remain open under related preview issues.
 - Production [`.sbls` package Open and content recognition](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
   are source-connected alongside package Save/Save As, legacy conversion,
@@ -2636,8 +2678,8 @@ Status: Accepted, current.
 Decision:
 
 - New project output is `.sbls` package v1; plain `.json` and `.sbls.json`
-  projects remain legacy imports. Hydrated projects use schema version `0.2.0`.
-- Schema `0.1.0` projects migrate explicitly to `0.2.0` without inferred guidance or owner changes.
+  projects remain legacy imports. Hydrated projects use schema version `0.3.0`.
+- Schema `0.1.0` projects migrate explicitly through `0.2.0` to `0.3.0` without inferred guidance, owner changes, or inferred Case preset attachment.
 - Images needed for reload are embedded as data URLs where supported.
 - `.sbls` packages are defined by
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md),
