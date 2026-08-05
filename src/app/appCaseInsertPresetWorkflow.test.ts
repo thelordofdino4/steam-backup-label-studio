@@ -624,8 +624,14 @@ test('a recovered Save/Open attachment is immediately inspectable, detachable, a
   assert.equal(owner.beginDetach().ok, true)
 })
 
-test('the production catalog remains empty, schema remains 0.3.0, and no UI wires the owner', () => {
-  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [])
+test('the production catalog has one reviewed entry, schema remains 0.3.0, and no UI wires the owner', () => {
+  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [{
+    id: 'builtin:case-preset:jewel-case-essentials',
+    revision: 1,
+    name: 'Jewel Case Essentials',
+    surface: 'case-insert',
+    source: 'builtin',
+  }])
   assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.3.0')
   const appSource = readFileSync('src/app/App.tsx', 'utf8')
   assert.doesNotMatch(appSource, /appCaseInsertPresetWorkflow/)

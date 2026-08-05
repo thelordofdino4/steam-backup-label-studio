@@ -1057,5 +1057,5 @@ test('transition source has no planner rerun, writer, detector, resolver, catalo
     'persistence',
     '@tauri-apps',
   ]) assert.equal(source.includes(forbidden), false, forbidden)
-  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [])
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
 })

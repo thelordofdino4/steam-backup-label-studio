@@ -1,10 +1,10 @@
 # Case Insert Layout Preset Workflow Contract
 
-> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, Detach planning/transition, content-complete transition evidence, atomic application-adoption, passive lifecycle application-unit, pure lifecycle-owned adoption commit, lifecycle-store installation, project persistence/recovery, and presentation-neutral workflow-orchestration checkpoints.
+> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, first reviewed production definition, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, Detach planning/transition, content-complete transition evidence, atomic application-adoption, passive lifecycle application-unit, pure lifecycle-owned adoption commit, lifecycle-store installation, project persistence/recovery, and presentation-neutral workflow-orchestration checkpoints.
 > Purpose: Define the presentation-neutral Case Insert Layout Preset Select, Plan, Review, Apply, Reapply, and Detach workflow across Front Cover, complete Tray Card, Back Panel, and explicit left/right spine regions.
 > Read when: Designing or implementing Case preset definitions, catalogs, planning, owner adapters, application scopes, persistence, Game/import composition, future Case workflow presentation, or Case preset acceptance.
 > Authoritative source: This contract for target Case preset workflow semantics; current implementation facts defer to source and tests; physical geometry defers to the Case template and layout owners; serialized fields defer to `PROJECT_FILE_SPEC.md`.
-> Last reviewed against synchronized `origin/main` at `fcde6d9fef8efa25719761b538eda0ad2bca2ed6` plus the stacked Case preset project-persistence and presentation-neutral workflow-orchestration checkpoints documented below.
+> Last reviewed against synchronized `origin/main` at `83a03b7fc8f6f82a060dda32f91e2e00c3a67c49` plus the stacked presentation-neutral workflow-orchestration commit `6a65066c05550c8717e0b54b92451f896a4203e4` and the first-production-definition checkpoint documented below.
 
 Last refreshed: 2026-08-04.
 
@@ -67,7 +67,8 @@ pure release evidence; the complete ownership footprint is released with zero
 aggregate writes and no next applied configuration. A failure returns neither.
 Neither planner nor transition consults a selected definition, catalog,
 resolver, compatibility evaluator, customization detector, or Reapply policy.
-No starter definition, workflow presentation, or menu item exists. A pure application
+One reviewed starter definition now exists; workflow presentation and a menu
+item do not. A pure application
 attachment model now distinguishes one canonical authoritative absence from one
 complete validated attached Case configuration and pairs that wrapper with one
 exact Case assignment snapshot as a single pure atomic state unit. It also
@@ -134,7 +135,8 @@ identity, and route. Stale, replayed, wrong-operation, malformed, busy, no-op,
 or store failures leave the authoritative state unchanged, and dispatcher
 cleanup releases the exclusion scope after success or failure. The bridge does
 not rerun planning, Apply/Reapply/Detach transitions, adoption, catalog lookup,
-or editor mutation. That bridge itself adds no production catalog, workflow UI,
+or editor mutation. That bridge itself does not own production catalog
+composition, workflow UI,
 App/editor invocation, persistence, schema, preview, or export connection; the
 separate focused project boundary described in section 12 owns persistence.
 
@@ -156,7 +158,8 @@ customization detection without rewriting attachment state or consulting the
 catalog. Detach therefore remains reviewable when the saved definition is
 missing or incompatible. Cancellation and stale/invalid review leave project,
 attachment, revisions, dirty state, and command counts unchanged. The
-production catalog remains empty, and no React, App/editor, navigation, menu,
+production catalog contains only Jewel Case Essentials revision 1, and no
+React, App/editor, navigation, menu,
 sidebar, preview, export, persistence, schema, Rust, or Tauri path invokes this
 owner.
 
@@ -289,7 +292,7 @@ modules, and transient active-preset behavior. The target Disc
 Select/Plan/Review/Apply/Reapply/Detach contract is not fully implemented.
 
 **CURRENT FACT —** Case Insert now has a pure coordinated definition format,
-strict parser, empty user-ready catalog, canonical exact-revision and
+strict parser, one-entry immutable production catalog, canonical exact-revision and
 alias-boundary resolution, a pure compatibility evaluator, and pure stable
 assignment resolution against one detached normalized Case snapshot. The
 resolver expands explicit scopes into concrete regions, binds fixed synthetic
@@ -302,6 +305,55 @@ blockers, disabled-target warnings, aggregate and field no-op state,
 multi-region consent, exact stale/identity preconditions, and a future
 customization footprint. Unsupported action-region or text-fitting work fails
 closed; #181 remains unresolved.
+
+**CURRENT FACT —** `src/presets/builtins/jewelCaseEssentialsCasePreset.ts`
+owns the first and only production Case definition. Its canonical identity is
+`builtin:case-preset:jewel-case-essentials` revision 1, its name is **Jewel Case
+Essentials**, its surface is `case-insert`, its definition format is v1, and its
+compatibility is the exact canonical `jewelCase` template. The production
+catalog registers it as `builtin` with no alias, deprecated revision, generated
+variant, user entry, or automatic selection. All percentages below are
+`center-x, center-y, width, height` within the declared coordinate basis.
+
+| Region | Role | Owner | Stable object identity | Basis | Normalized placement | Presence | Design rationale |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Front Cover | Background artwork | `case.cover.background` | `case:cover:background` | `front` | `50, 50, 100, 100` | Required | Only a background may span the full physical Front surface. |
+| Front Cover | Game title | `case.cover.title-artwork` | `case:cover:title-artwork` | `frontSafe` | `50, 18, 70, 24` | Required | Uses the primary title/logo owner in a print-safe top zone. |
+| Complete Tray | Background artwork | `case.tray.background` | `case:tray:background` | `back` | `50, 50, 100, 100` | Required | Intentionally covers the complete Tray behind Back Panel and spine content without owning that content. |
+| Back Panel | Game description text | `case.tray.text-blocks` | `case:tray:text:description` | `backPanelSafe` | `30, 18, 50, 24` | Required | Left upper copy zone, isolated from spine strips. |
+| Back Panel | Feature bullets/callouts | `case.tray.text-lists` | `case:tray:text-list:feature-bullets` | `backPanelSafe` | `78, 18, 34, 24` | Required | Right upper list zone, separated from description. |
+| Back Panel | System requirements | `case.tray.text-blocks` | `case:tray:text:minimum-requirements` | `backPanelSafe` | `27, 52, 44, 28` | Required | Left middle requirements column. |
+| Back Panel | System requirements | `case.tray.text-blocks` | `case:tray:text:recommended-requirements` | `backPanelSafe` | `73, 52, 44, 28` | Required | Right middle requirements column. |
+| Back Panel | Screenshots | `case.tray.artwork-slots` | `tray-artwork-1` | `backPanelSafe` | `17, 78, 26, 16` | Optional | Exact persisted production slot ID; absent target skips without creation. |
+| Back Panel | Screenshots | `case.tray.artwork-slots` | `tray-artwork-2` | `backPanelSafe` | `50, 78, 26, 16` | Optional | Exact persisted production slot ID; labels and array order are ignored. |
+| Back Panel | Screenshots | `case.tray.artwork-slots` | `tray-artwork-3` | `backPanelSafe` | `83, 78, 26, 16` | Optional | Exact persisted production slot ID; user-created or differently identified slots remain untargeted. |
+| Back Panel | Legal information | `case.tray.text-blocks` | `case:tray:text:copyright` | `backPanelSafe` | `50, 94, 90, 8` | Required | Dedicated bottom legal strip separated from screenshots. |
+| Left Spine | Spine background artwork | `case.spine.left.background` | `case:spine:left:background` | `leftSpine` | `50, 50, 100, 100` | Required | Full side-specific background; preserves independent left identity. |
+| Right Spine | Spine background artwork | `case.spine.right.background` | `case:spine:right:background` | `rightSpine` | `50, 50, 100, 100` | Required | Full side-specific background; preserves independent right identity. |
+| Left Spine | Vertical game logo/title | `case.spine.left.title-text` | `case:spine:left:text:title` | `leftSpineSafe` | `50, 50, 82, 70` | Required | Uses the existing enabled side-specific title-text owner inside the safe strip. |
+| Right Spine | Vertical game logo/title | `case.spine.right.title-text` | `case:spine:right:text:title` | `rightSpineSafe` | `50, 50, 82, 70` | Required | Uses the existing enabled side-specific title-text owner inside the safe strip. |
+
+**CURRENT FACT —** Current title artwork and title text may be enabled
+simultaneously. Because v1 has no alternative/fallback expression, this first
+definition targets only Front title artwork, the current primary title/logo
+owner, and leaves Front title text untouched. It targets the current default
+enabled side-specific spine title text and leaves both spine title-artwork
+alternatives untouched. It omits the Back title, Steam branding, logos, marks,
+additional artwork/text, and optional media-format roles because they are not
+required for the conservative essentials composition or their classification
+remains unresolved. The three screenshot assignments are permitted because
+the production Tray owner creates and persists deterministic
+`tray-artwork-N` IDs, the resolver binds those IDs exactly regardless of label
+or array order, and missing optional slots cause skips rather than creation.
+
+**CURRENT FACT —** Focused geometry tests transform every normalized region
+through the authoritative Jewel Case template. All foregrounds remain inside
+their declared safe bases; Back Panel foregrounds remain inside
+`backPanelSafe` and outside both spine strips; representative foreground boxes
+do not overlap; and full-surface background overlap is explicitly distinguished
+from foreground collision. The same committed owner geometry remains consumed
+by existing preview and PNG export renderers; this checkpoint changes neither
+renderer.
 
 **CURRENT FACT —** The pure first-time Apply transition validates the reviewed
 plan's format, operation, action/footprint/provenance coherence, exact
@@ -317,7 +369,8 @@ configuration. Semantic no-op Apply can still return the candidate. A public
 strict validator recomputes both aggregate identities, configuration and
 endpoint identities, operation/context/lineage evidence, transition identity,
 and whole-success identity before returning an opaque validated result. That
-first-time boundary contains no starter definitions, installed
+first-time transition boundary contains no built-in definition or catalog
+registration, installed
 configuration attachment, workflow presentation, menu launcher, Reapply, or
 Detach behavior.
 
@@ -1047,7 +1100,9 @@ revision-bound input, not a request to detect again. Any session, revision,
 template, exact target, enablement, current semantic value, or snapshot change
 after detection makes the report stale or incompatible. The selected exact
 definition is supplied directly and must retain the configuration's canonical
-preset ID; the production Case catalog remains empty. Retained customized
+preset ID. Production catalog population does not authorize implicit latest-
+revision substitution: Reapply receives and reviews one explicit exact
+revision. Retained customized
 fields require exactly one content-bound `overwrite-with-selected-preset` or
 `preserve-current-customization` policy. Overwrite remains review-visible and
 consent-gated even when its numeric write is a semantic no-op. Preserve retains
@@ -1507,14 +1562,22 @@ or increment either successor revision again.
 
 **CURRENT FACT —** The presentation-neutral orchestration slice is now
 implemented as described in section 1. It consumes recovered attachment/status,
-preserves exact-version/no-substitution behavior, and remains disconnected from
-catalog population, visual design, Game composition, and editor presentation.
+preserves exact-version/no-substitution behavior, consumes an injected catalog
+without owning its composition, and remains disconnected from visual design,
+Game composition, and editor presentation.
 
-**TARGET REQUIREMENT —** The next narrow Case preset slice must separately
-settle and implement either the first reviewed production catalog definition or
-the accessible Case workflow presentation/invocation adapter; neither concern
-may be smuggled into this headless owner, and any presentation must consume its
-immutable review/outcome protocol rather than duplicating domain decisions.
+**CURRENT FACT —** The first reviewed production-definition slice is implemented
+as described in section 3. Catalog population alone neither selects nor applies
+the definition, changes lifecycle state, dirties a project, recovers an
+attachment, nor begins a workflow. Existing headless integration tests prove an
+explicit exact selection can Apply through the existing command, persist and
+recover as `current`, Reapply revision 1 without implicit substitution even when
+a later test-only revision is available, and Detach without catalog access.
+
+**TARGET REQUIREMENT —** The next narrow Case preset slice is the accessible
+Case workflow presentation/invocation adapter. It must consume the existing
+catalog and immutable workflow review/outcome protocol without duplicating
+selection, planning, transition, adoption, lifecycle, or persistence decisions.
 
 ## 18. Issue mapping, non-goals, open questions, and evidence index
 
@@ -1522,8 +1585,8 @@ immutable review/outcome protocol rather than duplicating domain decisions.
 
 | Claim class | Issue/authority | Relationship |
 | --- | --- | --- |
-| CURRENT FACT / TARGET REQUIREMENT | [#168](https://github.com/thelordofdino4/steam-backup-label-studio/issues/168) (open) | Broad layout-preset and role-based editor parent; remains open for implementation, starter designs, UI, and product decisions |
-| CURRENT FACT / TARGET REQUIREMENT | [#149](https://github.com/thelordofdino4/steam-backup-label-studio/issues/149) (open) | Remaining structured imported Tray/Spine composition; may consume this planner but does not own it |
+| CURRENT FACT / TARGET REQUIREMENT | [#168](https://github.com/thelordofdino4/steam-backup-label-studio/issues/168) (open) | Broad layout-preset and role-based editor parent; Jewel Case Essentials supplies the first bounded starter definition, while UI, additional definitions, user-authored presets, and broader product decisions remain open |
+| CURRENT FACT / TARGET REQUIREMENT | [#149](https://github.com/thelordofdino4/steam-backup-label-studio/issues/149) (open) | Remaining structured imported Tray/Spine composition; the preset may place three existing exact screenshot slots, but does not create, rename, populate, or auto-stack imported content |
 | CURRENT FACT / TARGET REQUIREMENT | [#181](https://github.com/thelordofdino4/steam-backup-label-studio/issues/181) (open) | Case copy variant and fit-feedback decisions; no automatic shortening/rewording is implemented here |
 | CURRENT FACT / TARGET REQUIREMENT | [#281](https://github.com/thelordofdino4/steam-backup-label-studio/issues/281) (open) | Guided workflow owner; this slice adds no Case Guided slots or progress |
 | TARGET REQUIREMENT | Disc preset contract | Shared application protocol; Disc-specific geometry and owners remain separate |
@@ -1542,11 +1605,14 @@ immutable review/outcome protocol rather than duplicating domain decisions.
 | CURRENT FACT | PR #350 | Merged the discriminated Case-only `ProjectSession` companion at `83623fcb43e303bf47b87014502251509bd19ce6`, including canonical unattached revision-zero New/Open initialization, strict capture/projection, split content/application revisions, whole-unit equality, and exact pure-successor representation without adoption commit or store/runtime integration |
 | CURRENT FACT | Pure lifecycle-owned adoption-commit checkpoint | Adds the source-owned validated-success bundle, full source/successor authorization envelope, exact full-session compare-and-swap, aggregate-aware content revision, exact already-advanced application revision, and atomic existing-receipt return without store dispatch, persistence, schema, UI, catalog, workflow, busy scopes, feedback, history, or runtime integration |
 | CURRENT FACT | Lifecycle-store installation checkpoint | Registers `case.layoutPreset.apply`, `case.layoutPreset.reapply`, and `case.layoutPreset.detach` in the existing application command root; installs one complete authorized successor through final full-session and lifecycle-generation CAS under `project.mutation`; preserves content-only dirty semantics; returns the existing receipt through typed command results/feedback; and adds no catalog, UI, App/editor invocation, schema, persistence, preview, or export connection |
-| CURRENT FACT | Presentation-neutral workflow-orchestration checkpoint | Adds one application-layer owner that requires explicit exact selection, exposes immutable Apply/Reapply/Detach review artifacts and recovered status, rejects stale/cross-operation/cross-preset decisions, builds the existing complete authorization through existing pure owners, and dispatches the three existing commands once; no UI, App/editor invocation, production catalog entry, schema, preview, export, Rust, or Tauri connection |
+| CURRENT FACT | Presentation-neutral workflow-orchestration checkpoint | Adds one application-layer owner that requires explicit exact selection, exposes immutable Apply/Reapply/Detach review artifacts and recovered status, rejects stale/cross-operation/cross-preset decisions, builds the existing complete authorization through existing pure owners, and dispatches the three existing commands once; no UI, App/editor invocation, schema, preview, export, Rust, or Tauri connection |
+| CURRENT FACT | First production-definition checkpoint | Adds only Jewel Case Essentials revision 1 through the existing built-in definition and catalog boundaries; proves safe geometry, exact-ID optional screenshots, explicit Apply, atomic lifecycle installation, exact Save/Open recovery, exact-revision Reapply, and catalog-independent Detach; adds no alias, automatic selection/application, UI, schema, renderer, package, Rust, or dependency change |
 
 **CURRENT FACT —** Read-only review at this checkpoint confirmed the prerequisite
-work is merged into `main`, with synchronized `main`/`origin/main` at
-`fcde6d9fef8efa25719761b538eda0ad2bca2ed6` before this focused branch. No open
+work is merged into `origin/main` through the project-persistence prerequisite
+at `83a03b7fc8f6f82a060dda32f91e2e00c3a67c49`; this focused branch remains
+stacked directly on workflow-orchestration commit
+`6a65066c05550c8717e0b54b92451f896a4203e4`. No open
 pull request or newer exact lifecycle store-installation owner exists. Issues
 #168, #149, #181, and #305 remain open. No issue or pull request was created,
 edited, closed, labeled, commented on, or otherwise mutated.
@@ -1557,8 +1623,8 @@ edited, closed, labeled, commented on, or otherwise mutated.
 not implement or change:
 
 - React, Rust, manifests, dependencies, Tauri, or generated artifacts;
-- starter Case definitions, App/editor invocation, UI, or workflow-host
-  connection;
+- a second, aliased, generated, or user-authored Case definition; App/editor
+  invocation; UI; or workflow-host connection;
 - Case Template, menu descriptors/routing, current Disc items, sidebar panels,
   current Case surface selection, or final visual design;
 - project schema, migrations, package format, Save/Open projection, persisted
@@ -1572,9 +1638,11 @@ not implement or change:
 
 ### Open questions
 
-**OPEN QUESTION —** #168 or a focused starter-preset issue must define the
-first populated Case preset catalog, user-facing names, exact role
-participation, and whether any preset may create a missing repeated object.
+**CURRENT FACT —** Jewel Case Essentials settles the first populated production
+catalog entry and the exact role participation listed in section 3. It does not
+settle further built-ins, user-authored definitions, preset management, or
+whether a future separately versioned protocol may create missing repeated
+objects; v1 continues to forbid creation.
 
 **OPEN QUESTION —** Steam branding on Front and Spine must be classified as a
 preset role or retained as setup-owned visible output before a Case definition
@@ -1596,6 +1664,7 @@ and optional modal presentation require focused contracts/implementation.
 
 | Claim class | Evidence | Supports |
 | --- | --- | --- |
+| CURRENT FACT | `src/presets/builtins/jewelCaseEssentialsCasePreset.ts`, `src/presets/caseInsertPresetCatalog.ts`, `src/presets/builtins/jewelCaseEssentialsCasePreset.test.ts`, and focused definition/compatibility/resolution tests | First and only production entry; strict canonical identity/revision/template compatibility; exact reviewed roles, owners, objects, bases, normalized geometry, scopes, and presence; safe containment/non-overlap; no alias, automatic selection, mutation, or protocol extension |
 | CURRENT FACT | `src/presets/caseInsertPresetDefinition.ts`, `caseInsertPresetCatalog.ts`, `caseInsertPresetCompatibility.ts`, `caseInsertPresetAssignmentResolution.ts`, and their focused tests | Pure canonical definition parsing, exact catalog identity/alias boundaries, five concrete regions, coordinate-basis validation, explicit target presence/scopes, immutable compatibility, deterministic scope expansion, and typed exact owner/object resolution without planning or mutation |
 | CURRENT FACT | `src/presets/caseInsertPresetApplyPlanning.ts` and `caseInsertPresetApplyPlanning.test.ts` | Pure deeply immutable first-time Apply planning from exact resolver output; deterministic typed direct layout-field proposals, preservation, optional skips, required blockers, disabled/no-op/conflict/stale/unsupported distinctions, multi-region consent, later-commit preconditions, and field footprints without owner/project mutation |
 | CURRENT FACT | `src/presets/caseInsertPresetApplyReviewIdentity.ts`, `caseInsertPresetApplyTransition.ts`, and `caseInsertPresetApplyTransition.test.ts` | Deterministic content-bound review and consent identities; pure aggregate-atomic first-time Apply through exact stable addresses; full source/result aggregates and identities; canonical source absence and exact successor configuration endpoint; strict operation/lineage/transition/whole-success validation; immutable detached output and explicit non-adoption without resolver/planner/runtime/persistence access |
@@ -1610,7 +1679,7 @@ and optional modal presentation require focused contracts/implementation.
 | CURRENT FACT | `src/lifecycle/caseInsertPresetSessionApplication.ts`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleStateStore.ts`, and focused tests | Case-only passive application companion with no aggregate copy; canonical unattached revision-zero New/Open initialization; strict hostile-input capture and deterministic pure-snapshot projection; preserved attachment and exact application-revision advancement during editor synchronization; explicit lifecycle equality without generic JSON identity; content-only dirty/baseline/Save semantics; exact Apply/Reapply/Detach successor representation, including unchanged-aggregate Detach; the representation owner itself performs no installation or dispatch |
 | CURRENT FACT | `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts` and `caseInsertPresetSessionApplicationCommit.test.ts` | Pure lifecycle-owned preparation and commit boundary from one exact Case source session plus one source-audited operation-discriminated adoption-success bundle; deterministic complete source/successor authorization envelope; exact full-session CAS; one content-revision advance only for aggregate change; preservation of exact one-step application revision and all unrelated project/session authorities; atomic return of the complete successor plus existing adoption receipt or neither; replay/staleness/hostile-input rejection; no store, persistence, schema, UI, catalog, renderer, workflow, busy, feedback, history, or runtime dependency |
 | CURRENT FACT | `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`, `applicationLifecycleCompositionRoot.ts`, `applicationCommandTypes.ts`, `commandBusyScopes.ts`, and `caseInsertPresetSessionApplicationCommand.test.ts` | Existing-root registration and capability projection for the three exact operation IDs; one exclusive `project.mutation` scope; final pure full-session CAS inside one lifecycle-store generation-CAS transition; complete successor installation and existing-receipt return once; typed stale/busy/failure results and shared feedback; cleanup after success/failure; aggregate-plus-attachment and attachment-only atomicity; no planner/operation/adoption rerun, catalog, UI, App/editor invocation, schema, persistence, preview, or export connection |
-| CURRENT FACT | `src/app/appCaseInsertPresetWorkflow.ts` and `appCaseInsertPresetWorkflow.test.ts` | Presentation-neutral explicit-selection, immutable review, exact decision, stale-session, recovered-status, Apply/Reapply/Detach orchestration; existing pure transition/adoption/authorization owners and exact registered command dispatches remain authoritative; Detach is catalog-independent; typed command outcomes/feedback are preserved; no owned mutable workflow store, UI, App/editor invocation, production catalog entry, schema, renderer, export, Rust, or Tauri connection |
+| CURRENT FACT | `src/app/appCaseInsertPresetWorkflow.ts`, `appCaseInsertPresetWorkflow.test.ts`, and `jewelCaseEssentialsCasePreset.integration.test.ts` | Presentation-neutral explicit-selection, immutable review, exact decision, stale-session, recovered-status, Apply/Reapply/Detach orchestration; production-definition proof through existing pure transition/adoption/authorization owners and exact registered command dispatches; exact Save/Open recovery and catalog-independent Detach; no owned mutable workflow store, UI, App/editor invocation, schema, renderer, export, Rust, or Tauri connection |
 | CURRENT FACT | `src/project/caseInsertPresetProjectPersistenceTypes.ts`, `caseInsertPresetProjectPersistence.ts`, `projectSchema.ts`, `src/app/appProjectLoad.ts`, `appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, and focused tests | Schema `0.3.0` explicit attached/unattached Case envelope; exact v1/v2 configuration/owner provenance and application-revision projection; coherent Save snapshot check; pure older-schema default-to-unattached migration; pre-install recovery validation and fresh session identity; status-only current/stale/incompatible/unavailable catalog assessment; no geometry/value inference, catalog substitution, operation replay, adoption, UI, or separate persistence owner |
 | CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/caseInsert/presetAssignmentSnapshot.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, lifecycle-detached assignment snapshot with distinct snapshot/context and full aggregate-content identities, exact fixed/repeated binding adapters, snapshot/restore, and current no-preset schema |
 | CURRENT FACT | `src/templates/caseInsertTemplates.ts`, `src/layout/jewelCaseLayout.ts`, `jewelCaseFrontLayout.ts`, `jewelCaseBackLayout.ts`, `jewelCaseSpineLayout.ts` | Two physical surfaces, explicit regions/safe bases, Back Panel versus complete Tray, deterministic owner geometry |

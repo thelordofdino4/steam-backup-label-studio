@@ -226,7 +226,7 @@ test('New and Open Case construct one canonical unattached content-bound applica
     'caseInsertPresetApplication' in (disc.activeSession ?? {}),
     false,
   )
-  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [])
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
 })
 
 test('whole-unit capture rejects partial, forged, mismatched, and hostile values without touching callers', () => {

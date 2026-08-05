@@ -24,8 +24,10 @@ left/right-spine, multi-region atomicity, preservation, and recovery semantics.
 Pure Case definition-through-Detach, strengthened transition evidence, atomic
 application adoption, passive `ProjectSession` application-unit foundations,
 source-owned validated adoption-success bundles, and a pure lifecycle-owned
-full-session adoption-commit adapter now exist. They add no store dispatch,
-runtime Case workflow, persistence, schema, UI, or production catalog entries.
+full-session adoption-commit adapter now exist. Those pure owners do not
+construct the store, runtime workflow, persistence, schema, UI, or production
+catalog; the Case workflow contract records the later connected checkpoints and
+the sole Jewel Case Essentials production entry.
 This document remains the neutral/Disc-first model and current implementation
 record.
 
@@ -919,7 +921,7 @@ planning/transition, pure atomic application adoption, and pure lifecycle-owned
 application-adoption preparation/commit are now implemented.
 Their target workflow and ownership boundary is now defined by
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
-and its pure definition/parser, empty user-ready catalog, concrete-region/basis
+and its pure definition/parser, one-entry production catalog, concrete-region/basis
 validation, compatibility foundation, lifecycle-detached normalized Case
 snapshot adapter, stable exact assignment resolution, immutable planner,
 content-bound review/consent identity, pure atomic first-Apply transition,
@@ -986,10 +988,11 @@ neither. It runs no planner, detector, resolver, compatibility/catalog,
 Apply/Reapply, writer, geometry, renderer, persistence, schema, UI, store, or
 runtime owner. Back Panel and complete Tray remain distinct, left/right Spine
 remain independent, mirror mode cannot redirect execution, and repeated objects
-resolve by exact stable ID. Store-dispatched attachment installation,
-persistence/schema, UI, and runtime application remain future work. The pure
-lifecycle commit adapter does not change those boundaries, and the production
-Case catalog remains empty.
+resolve by exact stable ID. The pure transition itself owns no store dispatch,
+persistence/schema, UI, or runtime application. Separate later checkpoints now
+provide lifecycle installation and persistence/recovery, while UI invocation
+remains future work. The production catalog now contains only Jewel Case
+Essentials revision 1.
 
 The pure configuration-attachment/application-adoption model is now also
 implemented. It wraps the unchanged validated configuration in exactly one
@@ -1095,11 +1098,12 @@ attachment edge carries the adoption transition's already-advanced application
 revision without incrementing it again. Consequently, there is no exact
 application-domain no-op: attachment/application state changes even when
 aggregate semantics do not. `detached-uninstalled` remains configuration
-provenance, never attachment absence or a tombstone. Store dispatch,
-persistence, schema, save/load attachment recovery, UI, catalog entries,
-workflow/busy/feedback/history owners, and runtime behavior remain later work,
-and the production Case catalog remains empty. Issues #168, #149, #181, and
-#305 remain open.
+provenance, never attachment absence or a tombstone. This pure adapter itself
+owns no store dispatch, persistence, schema, save/load recovery, UI, catalog,
+workflow/busy/feedback/history, or runtime behavior. Separate later checkpoints
+now provide lifecycle installation, persistence/recovery, a presentation-neutral
+workflow owner, and the sole Jewel Case Essentials production catalog entry;
+UI invocation remains absent. Issues #168, #149, #181, and #305 remain open.
 
 Deferred areas:
 

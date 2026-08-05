@@ -995,7 +995,7 @@ test('transition has no planner, detector, resolver, compatibility, catalog, ren
   assert.equal(source.includes('filesystem'), false)
   assert.equal(source.includes('persist'), false)
   assert.equal(source.includes('detachCaseInsertPreset'), false)
-  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 0)
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
 })
 
 test('source files contain no project schema, installation, lifecycle, menu, or store integration', () => {

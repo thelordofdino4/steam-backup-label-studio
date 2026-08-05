@@ -1022,5 +1022,5 @@ test('transition source stays pure, directly addressed, and runtime-disconnected
   assert.equal(transitionSource.includes('invoke('), false)
   assert.equal(transitionSource.includes('writeFile'), false)
   assert.equal(transitionSource.includes('dispatch('), false)
-  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [])
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
 })

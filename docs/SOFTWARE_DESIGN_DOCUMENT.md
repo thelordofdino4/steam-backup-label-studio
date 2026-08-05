@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, and schema `0.3.0` persistence/recovery checkpoints through 2026-08-04.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, schema `0.3.0` persistence/recovery, presentation-neutral workflow orchestration, and first production-definition checkpoints through 2026-08-04.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -1454,7 +1454,7 @@ binding every assignment to an explicit Front Cover, complete Tray Card, Back
 Panel, left-spine, or right-spine region and owner-derived coordinate basis.
 Its pure foundation under `src/presets/` now strictly parses and freezes the v1
 definition shape, resolves canonical exact revisions and boundary-only aliases
-through an empty user-ready catalog, validates the five concrete-region/basis
+through one immutable production catalog, validates the five concrete-region/basis
 pairings and trusted owner/object identities, and evaluates supplied template,
 scope, owner, and repeated-object capabilities without project mutation.
 `src/caseInsert/presetAssignmentSnapshot.ts` detaches the lifecycle-owned
@@ -1492,8 +1492,8 @@ session/revision/template in a deterministic report identity, and distinguishes
 clean/customized from missing, ambiguous, unsupported, invalid, incompatible,
 or attachment-context failures. It shares direct address semantics with
 `presetAssignmentSnapshot.ts` and does not execute resolution, planning,
-catalog, geometry, renderer, persistence, or UI behavior. No starter
-definitions, installed attachment, application/lifecycle commit, Detach,
+catalog, geometry, renderer, persistence, or UI behavior. That module owns no
+built-in definitions, installed attachment, application/lifecycle commit, Detach,
 schema, workflow presentation, menu routing, renderer access, or runtime
 behavior is provided.
 `src/presets/caseInsertPresetReapplyPlanning.ts` is the pure next consumer. It
@@ -1509,7 +1509,9 @@ material-consent requirements, complete preconditions, review identity, and a
 non-authoritative uninstalled footprint projection. It performs no aggregate
 write, review/consent acceptance, transition, installation, persistence,
 schema, UI, renderer, store, or runtime work. The production Case catalog
-remains empty.
+contains only Jewel Case Essentials revision 1, but Reapply consumes one
+explicit exact supplied definition and never substitutes the catalog's latest
+revision implicitly.
 `src/presets/caseInsertPresetReapplyIdentity.ts` and
 `src/presets/caseInsertPresetReapplyTransition.ts` form the pure atomic
 execution boundary. They canonicalize order-independent plan evidence, require
@@ -1652,8 +1654,8 @@ save/load, UI, renderer, Rust, Tauri, or runtime owner. Its source-owned,
 versioned, operation-discriminated validated-success bundle retains the exact
 current application snapshot, audited `not-adopted` evidence, and adoption
 success/receipt together; the public audit reconstructs and revalidates those
-canonical facts rather than trusting separately supplied fragments. The
-production Case catalog remains empty. The pure transition remains store-free;
+canonical facts rather than trusting separately supplied fragments. Catalog
+composition remains outside this transition. The pure transition remains store-free;
 the focused lifecycle installation bridge is described below.
 
 `src/lifecycle/caseInsertPresetSessionApplication.ts` and the discriminated
@@ -1677,8 +1679,8 @@ clean baselines and dirty comparison. Schema `0.3.0` persists only its explicit
 attachment/application-revision projection. Save verifies that projection and
 the aggregate belong to one application snapshot; Open validates and
 reconstructs them before atomic session installation. This representation owner
-does not install an Apply/Reapply/Detach successor or connect workflow UI, and
-the production Case catalog remains empty.
+does not install an Apply/Reapply/Detach successor, compose the production
+catalog, or connect workflow UI.
 
 `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts` now owns the pure
 lifecycle adoption preparation and commit boundary. Its preparer consumes one
@@ -1728,7 +1730,21 @@ constructs nor installs successor sessions and never writes aggregate and
 attachment separately. Detach does not require catalog resolution. The owner
 has no retained mutable workflow state and is not invoked by React, `App.tsx`,
 workflow navigation, menus, sidebars, preview, or export; the production Case
-catalog remains empty.
+catalog is injected and contains only Jewel Case Essentials revision 1.
+
+`src/presets/builtins/jewelCaseEssentialsCasePreset.ts` owns that first and only
+production Case definition. It declares exact v1 normalized placements for
+full-surface Front/Tray/side backgrounds and safe Front title-artwork, Back
+description/features/requirements/three optional exact-ID screenshots/legal,
+and independent left/right spine-title owners. The existing catalog parses and
+registers the definition as a deeply immutable `builtin` revision with no alias.
+It performs no selection or mutation. Focused production tests prove safe
+Back-Panel/spine separation and foreground non-overlap, explicit Apply through
+the existing application workflow and lifecycle command, content/payload/
+enablement preservation, exact Save/Open recovery, exact-revision Reapply, and
+catalog-independent Detach. No React, `App.tsx`, navigation, menu, import/Open
+auto-application, renderer, schema, package, Rust, or dependency path consumes
+the definition in this checkpoint.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -2130,6 +2146,13 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   provenance, no-inference migration/recovery, catalog drift statuses,
   malformed-state rejection, coherent snapshot enforcement, clean-state
   preservation, and the absence of operation/adoption/UI dependencies.
+- Focused Jewel Case Essentials definition and production-integration tests
+  cover exact catalog identity, strict deep immutability, supported owner/basis
+  mappings, safe physical containment/non-overlap, exact repeated screenshot ID
+  binding and optional skips, explicit review/Apply dispatch, stale/Disc
+  rejection, full non-layout preservation, Save/Open recovery, no implicit
+  latest-revision Reapply substitution, explicit detached recovery, and
+  catalog-independent Detach.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks

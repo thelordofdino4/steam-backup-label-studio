@@ -1051,13 +1051,13 @@ test('configuration and report outputs expose no mutable aliases and mutate no i
   assert.equal(report.fields.length, configuration.ownedFields.length)
 })
 
-test('detector is catalog-independent and production Case catalog remains empty', () => {
+test('detector is catalog-independent with the populated production Case catalog', () => {
   const fixture = buildTransition(
     [FRONT_TEXT],
     { kind: 'region', region: 'front-cover' },
   )
   const configuration = validatedConfiguration(fixture.result)
-  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [])
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
   assert.equal(successful(detect(
     configuration,
     structuredClone(fixture.result.aggregate),
