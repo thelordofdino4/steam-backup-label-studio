@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, schema `0.3.0` persistence/recovery, presentation-neutral workflow orchestration, and first production-definition checkpoints through 2026-08-04.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, schema `0.3.0` persistence/recovery, presentation-neutral workflow orchestration, first production-definition, and accessible presentation/invocation checkpoints through 2026-08-05.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -271,7 +271,7 @@ Source-of-truth state:
   latest-projected-enabled items after earlier keyboard/modal owners, routes
   them into the same runtime ingress, deduplicates cross-source activation, and
   tears down with the runtime. It is window-local, not a system-global shortcut
-  owner. `applicationMenuWorkflowRouting.ts` now resolves the four Tools items
+  owner. `applicationMenuWorkflowRouting.ts` now resolves five Tools items
   only through those descriptors into `editorNavigationRouter.ts` and the
   shared `applicationWorkflowNavigationStore.ts`; the focused
   `applicationEditorFocusAdapter.ts` restores native WebView focus before the
@@ -280,7 +280,8 @@ Source-of-truth state:
   between its sidebar slot and the host, registers the exact focus control,
   and leaves all domain operations untouched. Game and Export Options are
   available for compatible Disc/Case contexts; Disc Template and Disc Layout
-  Presets are Disc-only. Combined Spine resolves only equivalent left/right
+  Presets are Disc-only; Case Layout Presets is Case-only. Combined Spine
+  resolves only equivalent left/right
   area/owner/control entries and retains the combined Spine route. Sidebar
   migration has not begun. Close/termination, Edit, native window actions,
   and Help remain disconnected and disabled. The user reported the complete
@@ -1070,10 +1071,22 @@ selected preset before the owner coordinates the existing pure transition,
 adoption, lifecycle authorization, and one exact registered command dispatch.
 It owns no second store or persisted workflow state, never constructs or
 installs a successor session, and leaves command busy/CAS/feedback behavior to
-the existing command layer. Detach is independent of catalog availability. No
-React, App/editor, workflow navigation, menu/sidebar, schema, preview, export,
-Rust, or Tauri connection exists. The owner consumes the injected production
-catalog but does not construct it.
+the existing command layer. Detach is independent of catalog availability. The
+owner consumes the injected production catalog but does not construct it.
+
+`src/app/caseInsertPresetPresentationController.ts` owns the only transient
+selection/review/pending/notice/focus presentation state above that application
+owner. `src/components/caseInsert/CaseInsertLayoutPresetsPanel.tsx` is one live
+accessible panel independently ordered after Template in the Case setup sidebar
+and moved, never duplicated, through the shared `WorkflowPresentationOutlet`.
+It starts from “Choose a preset”, offers only complete-preset first Apply,
+requires explicit Reapply policy for customized fields, reports exact recovered
+status, and keeps Detach usable without catalog resolution. App constructs the
+production workflow owner/controller once against the existing lifecycle root.
+The exact typed destination is `workflow.case-layout-presets` /
+`area.layout-presets.case` / `owner.case-layout-presets` /
+`control.case-layout-presets.selector`, and
+`menu.tools.case-layout-presets` is reveal/focus-only with no accelerator.
 
 `src/presets/builtins/jewelCaseEssentialsCasePreset.ts` owns the first and only
 production Case definition: canonical ID
@@ -1109,6 +1122,8 @@ equality.
 Key files:
 
 - `src/components/caseInsert/CaseInsertEditorShell.tsx`
+- `src/components/caseInsert/CaseInsertLayoutPresetsPanel.tsx`
+- `src/components/caseInsert/CaseInsertLayoutPresetsPanel.test.ts`
 - `src/components/caseInsert/CaseInsertTemplateControls.tsx`
 - `src/components/caseInsert/CaseInsertTemplateControls.types.ts`
 - `src/components/caseInsert/CaseInsertTemplateGameTitleControls.tsx`
@@ -1170,6 +1185,8 @@ Key files:
 - `src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts`
 - `src/app/appCaseInsertPresetWorkflow.ts`
 - `src/app/appCaseInsertPresetWorkflow.test.ts`
+- `src/app/caseInsertPresetPresentationController.ts`
+- `src/app/caseInsertPresetPresentationController.test.ts`
 - `src/project/caseInsertPresetProjectPersistenceTypes.ts`
 - `src/project/caseInsertPresetProjectPersistence.ts`
 - `src/project/caseInsertPresetProjectPersistence.test.ts`
@@ -1204,7 +1221,7 @@ Render path:
 
 Edit/interaction path:
 
-- `CaseInsertEditorShell` wires project, export, game, artwork, branding, text, and guide controls.
+- `CaseInsertEditorShell` wires project, export, Template navigation, the independent Case Layout Presets workflow, game, artwork, branding, text, and guide controls.
 - `useCaseInsertTemplateEditor` owns cover/tray actions.
 - `useJewelCaseSpineEditor` owns spine actions.
 - `useCaseInsertBrandingMarkSync` maps shared/global branding sources into case-insert slots.
@@ -1316,10 +1333,12 @@ Risks:
   retains one complete source/successor authorization, reaudits it, and performs
   a full-session compare-and-swap that returns one atomic successor session plus
   the existing receipt. The focused command/store bridge installs that complete
-  authorized successor once under `project.mutation`; authorization-producing
-  UI/App/editor invocation remains absent. The populated one-entry production
-  catalog has no automatic effect. A focused application workflow owner performs explicit-selection
-  and reviewed Apply/Reapply/Detach orchestration through those exact owners.
+  authorized successor once under `project.mutation`. The populated one-entry
+  production catalog has no automatic effect. A focused application workflow
+  owner performs explicit-selection and reviewed Apply/Reapply/Detach
+  orchestration through those exact owners; one transient controller and one
+  live Case sidebar/shared-host panel invoke that owner without copying its
+  authorization decisions.
   Schema `0.3.0` and the existing Save/Open path now
   persist and atomically recover the explicit attachment/application state
   without replaying any preset operation.

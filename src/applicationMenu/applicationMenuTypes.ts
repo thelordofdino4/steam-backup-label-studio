@@ -50,6 +50,7 @@ export const APPLICATION_MENU_ITEM_IDS = Object.freeze([
   'menu.tools.game',
   'menu.tools.disc-template',
   'menu.tools.disc-layout-presets',
+  'menu.tools.case-layout-presets',
   'menu.tools.export-options',
   'menu.window.minimize',
   'menu.window.toggle-maximize',

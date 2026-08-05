@@ -1,8 +1,8 @@
 # Case Insert Layout Preset Workflow Contract
 
-> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, first reviewed production definition, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, Detach planning/transition, content-complete transition evidence, atomic application-adoption, passive lifecycle application-unit, pure lifecycle-owned adoption commit, lifecycle-store installation, project persistence/recovery, and presentation-neutral workflow-orchestration checkpoints.
+> Status: Draft target-state normative contract with implemented pure definition/catalog/compatibility, first reviewed production definition, assignment-resolution, first-time Apply planning/transition, detached applied-configuration/customization detection, Reapply planning/transition, Detach planning/transition, content-complete transition evidence, atomic application-adoption, passive lifecycle application-unit, pure lifecycle-owned adoption commit, lifecycle-store installation, project persistence/recovery, presentation-neutral workflow orchestration, and accessible presentation/invocation checkpoints.
 > Purpose: Define the presentation-neutral Case Insert Layout Preset Select, Plan, Review, Apply, Reapply, and Detach workflow across Front Cover, complete Tray Card, Back Panel, and explicit left/right spine regions.
-> Read when: Designing or implementing Case preset definitions, catalogs, planning, owner adapters, application scopes, persistence, Game/import composition, future Case workflow presentation, or Case preset acceptance.
+> Read when: Designing or implementing Case preset definitions, catalogs, planning, owner adapters, application scopes, persistence, Game/import composition, Case workflow presentation, or Case preset acceptance.
 > Authoritative source: This contract for target Case preset workflow semantics; current implementation facts defer to source and tests; physical geometry defers to the Case template and layout owners; serialized fields defer to `PROJECT_FILE_SPEC.md`.
 > Last reviewed against synchronized `origin/main` at `83a03b7fc8f6f82a060dda32f91e2e00c3a67c49` plus the stacked presentation-neutral workflow-orchestration commit `6a65066c05550c8717e0b54b92451f896a4203e4` and the first-production-definition checkpoint documented below.
 
@@ -67,8 +67,8 @@ pure release evidence; the complete ownership footprint is released with zero
 aggregate writes and no next applied configuration. A failure returns neither.
 Neither planner nor transition consults a selected definition, catalog,
 resolver, compatibility evaluator, customization detector, or Reapply policy.
-One reviewed starter definition now exists; workflow presentation and a menu
-item do not. A pure application
+One reviewed starter definition, one workflow presentation, and one
+reveal/focus-only Tools item now exist. A pure application
 attachment model now distinguishes one canonical authoritative absence from one
 complete validated attached Case configuration and pairs that wrapper with one
 exact Case assignment snapshot as a single pure atomic state unit. It also
@@ -158,10 +158,19 @@ customization detection without rewriting attachment state or consulting the
 catalog. Detach therefore remains reviewable when the saved definition is
 missing or incompatible. Cancellation and stale/invalid review leave project,
 attachment, revisions, dirty state, and command counts unchanged. The
-production catalog contains only Jewel Case Essentials revision 1, and no
-React, App/editor, navigation, menu,
-sidebar, preview, export, persistence, schema, Rust, or Tauri path invokes this
-owner.
+production catalog contains only Jewel Case Essentials revision 1.
+
+**CURRENT FACT —** `src/app/caseInsertPresetPresentationController.ts` and
+`src/components/caseInsert/CaseInsertLayoutPresetsPanel.tsx` are now the focused
+transient presentation adapter for that owner. One panel is rendered in the
+Case setup sidebar after Template and before the semantic role panels; the same
+live panel moves through the shared nonmodal workflow host when the Tools
+launcher reveals it. Selection begins at the neutral “Choose a preset” option,
+Apply uses only complete-preset scope, review remains immutable until explicit
+confirmation or cancellation, Reapply requires an explicit policy for every
+customized field, and Detach remains catalog-independent. The adapter owns no
+planner, transition, adoption, lifecycle, persistence, renderer, export, Rust,
+or Tauri behavior.
 
 **TARGET REQUIREMENT —** This contract owns the Case-specific form of the
 shared preset protocol: stable identity and catalog consumption, compatibility,
@@ -521,7 +530,7 @@ presentation-neutral operation IDs:
 - `case.layoutPreset.reapply`
 - `case.layoutPreset.detach`
 
-**TARGET REQUIREMENT —** The future navigation vocabulary is reserved as
+**CURRENT FACT / TARGET REQUIREMENT —** The navigation vocabulary is
 `workflow.case-layout-presets`, `area.layout-presets.case`,
 `owner.case-layout-presets`, and
 `control.case-layout-presets.selector`. Navigation to that destination only
@@ -1326,29 +1335,35 @@ region identities, role adapters, or project mutations.
 | TARGET REQUIREMENT | Persistence | Exact reference/configuration semantics and no inference | Editor-specific assignment/configuration shape approved by project spec |
 | TARGET REQUIREMENT | Presentation | Shared accessible workflow-host mechanics | Active editor's exact workflow, roles, scopes, copy, and focus target |
 
-**TARGET REQUIREMENT —** The eventual active-editor presentation pairs are:
+**TARGET REQUIREMENT —** The active-editor presentation pairs are:
 
 - Disc editor: Disc Template and Disc Layout Presets.
 - Case editor: Case Template and Case Layout Presets.
 - Only the active editor's pair is presented or enabled.
 
-**TARGET REQUIREMENT —** `workflow.case-layout-presets`,
+**CURRENT FACT / TARGET REQUIREMENT —** `workflow.case-layout-presets`,
 `area.layout-presets.case`, `owner.case-layout-presets`, and
-`control.case-layout-presets.selector` are reserved for the future Case
+`control.case-layout-presets.selector` identify the connected Case preset
 workflow. The current Case Cover Sheet/Tray Card selector remains navigation
-and must not be reinterpreted as Case Template or Case Layout Presets.
+and is not reinterpreted as Case Template or Case Layout Presets.
 
-**TARGET REQUIREMENT —** A future menu item is a reveal/focus presentation
-adapter only. It never selects, plans, applies, reapplies, detaches, enables a
-role, switches the Case template, or changes the active surface. No menu
-descriptor, workflow router, host presentation, sidebar, or current Disc item
-is changed by the persistence checkpoint.
+**CURRENT FACT / TARGET REQUIREMENT —**
+`menu.tools.case-layout-presets`, labelled `Case Layout Presets…`, is a
+reveal/focus presentation adapter only and has no accelerator. It never selects,
+plans, applies, reapplies, detaches, enables a role, switches the Case template,
+or changes the active surface. No menu activation performs a preset operation.
 
-**OPEN QUESTION —** Final labels, menu presentation IDs, Case Template owner,
-scope-picker visual design, responsive review layout, and whether inactive
-editor-specific items are hidden or visibly disabled belong to focused
-presentation/Case Template implementation work. The active-editor pairing and
-non-mutating launcher boundary are not open.
+**CURRENT FACT —** The Case preset sidebar panel follows Template and precedes
+Game/semantic-role content. Its native selector is always present and
+focusable, status explicitly distinguishes current, stale, incompatible, and
+unavailable recovered definitions, error/review/status targets receive
+owner-directed focus, and the workflow host restores valid prior focus when it
+closes. A new session clears ephemeral selection and review; a changed source
+revision invalidates stale review rather than silently replanning.
+
+**OPEN QUESTION —** Case Template ownership and presentation remain separate
+future work. The Case preset label, item ID, navigation identity, complete-only
+first Apply scope, and non-mutating launcher boundary are no longer open.
 
 ## 16. Busy scopes, typed outcomes, feedback, focus, and accessibility
 
@@ -1547,7 +1562,9 @@ criteria.
    connected without operation replay or attachment inference.
 13. Add accessible Case workflow presentation and typed navigation IDs; then
    integrate the active-editor Tools pair without starting operations from menu
-   activation.
+   activation. **Implemented for Case Layout Presets:** the exact destination,
+   independent sidebar panel, shared-host movement, and reveal/focus-only Tools
+   launcher are connected; Case Template remains separate future work.
 14. Integrate reviewed Game/#149 composition and any separately contracted Case
    Guided consumer.
 15. Run focused source/integration/save-load/preview-export/accessibility tests
@@ -1560,11 +1577,12 @@ rerun planners, operation transitions, or adoption. It does not accept raw
 evidence or loose fields, expose partial setters, mint a replacement receipt,
 or increment either successor revision again.
 
-**CURRENT FACT —** The presentation-neutral orchestration slice is now
+**CURRENT FACT —** The presentation-neutral orchestration slice is
 implemented as described in section 1. It consumes recovered attachment/status,
 preserves exact-version/no-substitution behavior, consumes an injected catalog
-without owning its composition, and remains disconnected from visual design,
-Game composition, and editor presentation.
+without owning its composition, and remains disconnected from visual design and
+Game composition. The focused presentation adapter described in sections 5 and
+15 now consumes it without copying domain decisions.
 
 **CURRENT FACT —** The first reviewed production-definition slice is implemented
 as described in section 3. Catalog population alone neither selects nor applies
@@ -1574,10 +1592,11 @@ explicit exact selection can Apply through the existing command, persist and
 recover as `current`, Reapply revision 1 without implicit substitution even when
 a later test-only revision is available, and Detach without catalog access.
 
-**TARGET REQUIREMENT —** The next narrow Case preset slice is the accessible
-Case workflow presentation/invocation adapter. It must consume the existing
-catalog and immutable workflow review/outcome protocol without duplicating
-selection, planning, transition, adoption, lifecycle, or persistence decisions.
+**CURRENT FACT —** The accessible Case workflow presentation/invocation adapter
+is now connected through the existing catalog, application owner, lifecycle
+commands, typed navigation router, and shared host. It does not duplicate
+selection semantics, planning, transition, adoption, lifecycle, persistence,
+or feedback decisions.
 
 ## 18. Issue mapping, non-goals, open questions, and evidence index
 
@@ -1607,6 +1626,7 @@ selection, planning, transition, adoption, lifecycle, or persistence decisions.
 | CURRENT FACT | Lifecycle-store installation checkpoint | Registers `case.layoutPreset.apply`, `case.layoutPreset.reapply`, and `case.layoutPreset.detach` in the existing application command root; installs one complete authorized successor through final full-session and lifecycle-generation CAS under `project.mutation`; preserves content-only dirty semantics; returns the existing receipt through typed command results/feedback; and adds no catalog, UI, App/editor invocation, schema, persistence, preview, or export connection |
 | CURRENT FACT | Presentation-neutral workflow-orchestration checkpoint | Adds one application-layer owner that requires explicit exact selection, exposes immutable Apply/Reapply/Detach review artifacts and recovered status, rejects stale/cross-operation/cross-preset decisions, builds the existing complete authorization through existing pure owners, and dispatches the three existing commands once; no UI, App/editor invocation, schema, preview, export, Rust, or Tauri connection |
 | CURRENT FACT | First production-definition checkpoint | Adds only Jewel Case Essentials revision 1 through the existing built-in definition and catalog boundaries; proves safe geometry, exact-ID optional screenshots, explicit Apply, atomic lifecycle installation, exact Save/Open recovery, exact-revision Reapply, and catalog-independent Detach; adds no alias, automatic selection/application, UI, schema, renderer, package, Rust, or dependency change |
+| CURRENT FACT | Accessible presentation/invocation checkpoint | Adds the independent Case sidebar panel, exact typed destination and owner/control identities, `menu.tools.case-layout-presets`, one shared-host presentation, neutral explicit selection, complete-preset Apply review, explicit customized-field Reapply policies, catalog-independent Detach, typed status/feedback/focus handling, and no schema, catalog-definition, renderer, export, Rust, package, or dependency change |
 
 **CURRENT FACT —** Read-only review at this checkpoint confirmed the prerequisite
 work is merged into `origin/main` through the project-persistence prerequisite
@@ -1679,15 +1699,15 @@ and optional modal presentation require focused contracts/implementation.
 | CURRENT FACT | `src/lifecycle/caseInsertPresetSessionApplication.ts`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleStateStore.ts`, and focused tests | Case-only passive application companion with no aggregate copy; canonical unattached revision-zero New/Open initialization; strict hostile-input capture and deterministic pure-snapshot projection; preserved attachment and exact application-revision advancement during editor synchronization; explicit lifecycle equality without generic JSON identity; content-only dirty/baseline/Save semantics; exact Apply/Reapply/Detach successor representation, including unchanged-aggregate Detach; the representation owner itself performs no installation or dispatch |
 | CURRENT FACT | `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts` and `caseInsertPresetSessionApplicationCommit.test.ts` | Pure lifecycle-owned preparation and commit boundary from one exact Case source session plus one source-audited operation-discriminated adoption-success bundle; deterministic complete source/successor authorization envelope; exact full-session CAS; one content-revision advance only for aggregate change; preservation of exact one-step application revision and all unrelated project/session authorities; atomic return of the complete successor plus existing adoption receipt or neither; replay/staleness/hostile-input rejection; no store, persistence, schema, UI, catalog, renderer, workflow, busy, feedback, history, or runtime dependency |
 | CURRENT FACT | `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`, `applicationLifecycleCompositionRoot.ts`, `applicationCommandTypes.ts`, `commandBusyScopes.ts`, and `caseInsertPresetSessionApplicationCommand.test.ts` | Existing-root registration and capability projection for the three exact operation IDs; one exclusive `project.mutation` scope; final pure full-session CAS inside one lifecycle-store generation-CAS transition; complete successor installation and existing-receipt return once; typed stale/busy/failure results and shared feedback; cleanup after success/failure; aggregate-plus-attachment and attachment-only atomicity; no planner/operation/adoption rerun, catalog, UI, App/editor invocation, schema, persistence, preview, or export connection |
-| CURRENT FACT | `src/app/appCaseInsertPresetWorkflow.ts`, `appCaseInsertPresetWorkflow.test.ts`, and `jewelCaseEssentialsCasePreset.integration.test.ts` | Presentation-neutral explicit-selection, immutable review, exact decision, stale-session, recovered-status, Apply/Reapply/Detach orchestration; production-definition proof through existing pure transition/adoption/authorization owners and exact registered command dispatches; exact Save/Open recovery and catalog-independent Detach; no owned mutable workflow store, UI, App/editor invocation, schema, renderer, export, Rust, or Tauri connection |
+| CURRENT FACT | `src/app/appCaseInsertPresetWorkflow.ts`, `appCaseInsertPresetWorkflow.test.ts`, and `jewelCaseEssentialsCasePreset.integration.test.ts` | Presentation-neutral explicit-selection, immutable review, exact decision, stale-session, recovered-status, Apply/Reapply/Detach orchestration; production-definition proof through existing pure transition/adoption/authorization owners and exact registered command dispatches; exact Save/Open recovery and catalog-independent Detach; no owned mutable workflow store, schema, renderer, export, Rust, or Tauri behavior |
 | CURRENT FACT | `src/project/caseInsertPresetProjectPersistenceTypes.ts`, `caseInsertPresetProjectPersistence.ts`, `projectSchema.ts`, `src/app/appProjectLoad.ts`, `appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, and focused tests | Schema `0.3.0` explicit attached/unattached Case envelope; exact v1/v2 configuration/owner provenance and application-revision projection; coherent Save snapshot check; pure older-schema default-to-unattached migration; pre-install recovery validation and fresh session identity; status-only current/stale/incompatible/unavailable catalog assessment; no geometry/value inference, catalog substitution, operation replay, adoption, UI, or separate persistence owner |
-| CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/caseInsert/presetAssignmentSnapshot.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, lifecycle-detached assignment snapshot with distinct snapshot/context and full aggregate-content identities, exact fixed/repeated binding adapters, snapshot/restore, and current no-preset schema |
+| CURRENT FACT | `src/project/projectTypes.ts`, `src/caseInsert/defaults.ts`, `src/caseInsert/normalization.ts`, `src/project/caseInsertProjectAdapters.ts`, `src/caseInsert/presetAssignmentSnapshot.ts`, `src/project/projectSchema.ts` | Case owner containers, stable object IDs, defaults, normalization, lifecycle-detached assignment snapshot with distinct snapshot/context and full aggregate-content identities, exact fixed/repeated binding adapters, snapshot/restore, and the current schema boundary |
 | CURRENT FACT | `src/templates/caseInsertTemplates.ts`, `src/layout/jewelCaseLayout.ts`, `jewelCaseFrontLayout.ts`, `jewelCaseBackLayout.ts`, `jewelCaseSpineLayout.ts` | Two physical surfaces, explicit regions/safe bases, Back Panel versus complete Tray, deterministic owner geometry |
 | CURRENT FACT | `src/caseInsert/templateSurfaceTransitions.ts`, `src/caseInsert/jewelCaseTransitions.ts`, `src/hooks/useCaseInsertTemplateEditor.ts`, `src/hooks/useJewelCaseSpineEditor.ts` | Focused Cover/Tray and side-specific/mirrored editing transitions |
 | CURRENT FACT | `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`, `CaseInsertSpinePreviewLayer.tsx`, `CaseInsertPreview.tsx`, `src/export/caseInsertTemplateExportLayers.ts`, `exportCaseInsertPng.ts` | Preview/export owner separation, one complete Tray composition, and no standalone Spine PNG |
 | CURRENT FACT | `src/caseInsert/brandingMarkTargetSources.ts`, `brandingMarkSlots.ts`, `brandingLogoSlots.ts`, `src/editor/repeatedArtwork.ts` | Branding family projection and repeated object identity |
 | CURRENT FACT | Other `src/presets/` Disc definition/registry/resolution/application/fitting/targeted modules and focused tests | Disc-first reusable evidence; the pure Case lifecycle adapter itself remains store-free, the focused lifecycle command installs its complete authorized successor, and the application workflow owner coordinates existing Case owners without unifying or changing Disc preset behavior |
-| CURRENT FACT | `src/editor/editorNavigationRouter.ts`, `src/applicationMenu/applicationMenuRegistry.ts`, `src/components/editor/ApplicationWorkflowHost.tsx` | Current four Tools workflows and absence of Case Template/Layout Preset identities |
+| CURRENT FACT | `src/app/caseInsertPresetPresentationController.ts`, `src/components/caseInsert/CaseInsertLayoutPresetsPanel.tsx`, `src/components/caseInsert/CaseInsertEditorShell.tsx`, `src/editor/editorNavigationRouter.ts`, `src/applicationMenu/applicationMenuRegistry.ts`, and `src/components/editor/ApplicationWorkflowHost.tsx` | One transient presentation controller and one live accessible Case panel; exact Case preset workflow/area/owner/control identities; independent sidebar placement; shared-host movement; reveal/focus-only Tools launcher; explicit review decisions; catalog-independent Detach; no Case Template identity or operation |
 | TARGET REQUIREMENT | [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md), [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md) | Shared workflow invariants, roles, preservation, and application vocabulary |
 | TARGET REQUIREMENT | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md), [`GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md`](GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT.md), [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md) | Persistence, composed Game apply, and Guided boundaries |
 | CURRENT FACT | Issues #168, #149, #181, #281/#305 and merged PRs #336/#340/#341/#342/#343/#344/#345/#346/#347/#348/#349/#350, reviewed read-only on 2026-08-04 | Scope, open dependencies, shared workflow-host/planner/transition/configuration/Detach/adoption/evidence/lifecycle baselines, and absence of a newer exact lifecycle store-installation owner |

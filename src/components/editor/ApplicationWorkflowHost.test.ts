@@ -55,6 +55,8 @@ test('Disc and Case retain sidebar outlets for existing controlled panels', () =
     /workflowId="workflow\.game"[\s\S]*<GamePanel/)
   assert.match(caseSource,
     /workflowId="workflow\.export-options"[\s\S]*<CaseInsertExportOptionsPanel/)
+  assert.match(caseSource,
+    /workflowId="workflow\.case-layout-presets"[\s\S]*<CaseInsertLayoutPresetsPanel/)
   assert.equal((appSource.match(/<ApplicationWorkflowHostBoundary/g) ?? []).length, 2)
   assert.doesNotMatch(
     `${hostSource}\n${storeSource}`,

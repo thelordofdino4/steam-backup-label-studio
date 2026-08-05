@@ -19,6 +19,7 @@ const WORKFLOW_HEADINGS: Readonly<Record<EditorWorkflowId, string>> =
     'workflow.game': 'Game',
     'workflow.disc-template': 'Disc Template',
     'workflow.disc-layout-presets': 'Disc Layout Presets',
+    'workflow.case-layout-presets': 'Case Layout Presets',
     'workflow.export-options': 'Export Options',
   })
 

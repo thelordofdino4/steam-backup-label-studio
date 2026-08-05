@@ -8,6 +8,7 @@ export type CaseInsertSidebarPanelId =
   | 'exportOptions'
   | 'game'
   | 'template'
+  | 'layoutPresets'
 
 export type CaseInsertSidebarPanel = {
   id: CaseInsertSidebarPanelId
@@ -19,6 +20,7 @@ const CASE_INSERT_SETUP_PANEL_IDS = [
   'projectFile',
   'exportOptions',
   'template',
+  'layoutPresets',
   'game',
 ] as const
 
@@ -42,6 +44,7 @@ export function getCaseInsertSidebarWorkflow(
     { id: 'projectFile', label: 'Project File' },
     { id: 'exportOptions', label: 'Export Options' },
     { id: 'template', label: 'Template' },
+    { id: 'layoutPresets', label: 'Case Layout Presets' },
     { id: 'game', label: 'Game' },
   ]
 

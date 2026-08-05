@@ -42,6 +42,9 @@ import {
   type AppCaseInsertPresetWorkflowReview,
 } from './appCaseInsertPresetWorkflow.ts'
 import { stageProjectOpenContents } from './appProjectLoad.ts'
+import {
+  createCaseInsertPresetPresentationController,
+} from './caseInsertPresetPresentationController.ts'
 
 const PRESET = Object.freeze({
   id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
@@ -166,6 +169,65 @@ function workflowSetup() {
   })
   return { root, owner, commandIds }
 }
+
+test('presentation controller requires explicit selection and completes one production Apply', async () => {
+  const { root, owner, commandIds } = workflowSetup()
+  const feedback: string[] = []
+  const controller = createCaseInsertPresetPresentationController({
+    workflow: owner,
+    catalog: CASE_INSERT_PRESET_CATALOG,
+    publishDispatchFeedback: (dispatch) => feedback.push(dispatch.commandId),
+  })
+  const initial = controller.getSnapshot()
+  assert.equal(initial.inspection.ok, true)
+  assert.equal(initial.selectedOptionValue, '')
+  assert.equal(initial.options.length, 1)
+  assert.equal(controller.beginApplyReview().ok, false)
+  assert.deepEqual(commandIds, [])
+
+  assert.equal(controller.selectOption(initial.options[0]!.value).ok, true)
+  assert.equal(controller.beginApplyReview().ok, true)
+  const reviewed = controller.getSnapshot()
+  assert.equal(reviewed.review?.operation, 'apply')
+  assert.deepEqual(reviewed.review?.selectedPreset, PRESET)
+  assert.deepEqual(commandIds, [])
+  const incomplete = await controller.confirmReview()
+  assert.equal(incomplete.ok, false)
+  assert.equal(incomplete.code, 'case.layoutPreset.decision-incomplete')
+  assert.deepEqual(commandIds, [])
+  assert.equal(
+    controller.setWarningAcknowledged('unknown-warning', true).ok,
+    false,
+  )
+  for (const id of reviewed.review!.warningIds) {
+    assert.equal(controller.setWarningAcknowledged(id, true).ok, true)
+  }
+  for (const id of reviewed.review!.materialConsentRequirementIds) {
+    assert.equal(controller.setMaterialConsentAccepted(id, true).ok, true)
+  }
+
+  const first = controller.confirmReview()
+  const duplicate = await controller.confirmReview()
+  assert.equal(duplicate.ok, false)
+  assert.equal(duplicate.code, 'case.layoutPreset.confirmation-pending')
+  assert.equal((await first).ok, true)
+  assert.deepEqual(commandIds, ['case.layoutPreset.apply'])
+  assert.deepEqual(feedback, ['case.layoutPreset.apply'])
+  const completed = controller.getSnapshot()
+  assert.equal(completed.review, null)
+  assert.equal(completed.inspection.ok, true)
+  if (completed.inspection.ok) {
+    assert.equal(completed.inspection.status, 'attached')
+    if (completed.inspection.status === 'attached') {
+      assert.equal(completed.inspection.configuration.preset.revision, 1)
+    }
+  }
+  assert.equal(
+    requireCaseSession(root.getLifecycleState())
+      .caseInsertPresetApplication.attachment.status,
+    'attached',
+  )
+})
 
 test('explicit production Apply preserves content and dispatches one atomic lifecycle command', async () => {
   const { root, owner, commandIds } = workflowSetup()
@@ -424,15 +486,30 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
     2,
   )
   assert.deepEqual(commandIds, [])
-  const exactReview = requireReview(owner.beginReapply({
-    selectedPreset: PRESET,
-    customizedFieldPolicies: [],
-  }))
+  const reapplyFeedback: string[] = []
+  const reapplyController = createCaseInsertPresetPresentationController({
+    workflow: owner,
+    catalog: futureCatalog.catalog,
+    publishDispatchFeedback: (dispatch) =>
+      reapplyFeedback.push(dispatch.commandId),
+  })
+  assert.equal(reapplyController.beginReapplyReview().ok, true)
+  const exactReview = reapplyController.getSnapshot().review
+  assert.ok(exactReview)
+  assert.equal(exactReview.operation, 'reapply')
+  if (exactReview.operation !== 'reapply') return
   assert.equal(exactReview.selectedPreset.revision, 1)
   assert.equal(exactReview.plan.preset.selectedRevision, 1)
-  const reapplied = await owner.complete(exactReview, confirm(exactReview))
+  for (const id of exactReview.warningIds) {
+    reapplyController.setWarningAcknowledged(id, true)
+  }
+  for (const id of exactReview.materialConsentRequirementIds) {
+    reapplyController.setMaterialConsentAccepted(id, true)
+  }
+  const reapplied = await reapplyController.confirmReview()
   assert.equal(reapplied.ok, true, JSON.stringify(reapplied))
   assert.deepEqual(commandIds, ['case.layoutPreset.reapply'])
+  assert.deepEqual(reapplyFeedback, ['case.layoutPreset.reapply'])
 
   const detachRoot = createApplicationLifecycleCompositionRoot({
     initialState: createLoadedProjectSession({
@@ -465,14 +542,27 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
   const stillAttached = catalogFreeOwner.inspectCurrent()
   assert.equal(stillAttached.ok, true)
   if (stillAttached.ok) assert.equal(stillAttached.status, 'attached')
-  const detachReview = requireReview(catalogFreeOwner.beginDetach())
-  const detached = await catalogFreeOwner.complete(
-    detachReview,
-    confirm(detachReview),
-  )
+  const detachFeedback: string[] = []
+  const detachController = createCaseInsertPresetPresentationController({
+    workflow: catalogFreeOwner,
+    catalog: emptyCatalog.catalog,
+    publishDispatchFeedback: (dispatch) =>
+      detachFeedback.push(dispatch.commandId),
+  })
+  assert.equal(detachController.beginDetachReview().ok, true)
+  const detachReview = detachController.getSnapshot().review
+  assert.ok(detachReview)
+  for (const id of detachReview.warningIds) {
+    detachController.setWarningAcknowledged(id, true)
+  }
+  for (const id of detachReview.materialConsentRequirementIds) {
+    detachController.setMaterialConsentAccepted(id, true)
+  }
+  const detached = await detachController.confirmReview()
   assert.equal(detached.ok, true)
   assert.deepEqual(commandIds, ['case.layoutPreset.reapply'])
   assert.deepEqual(detachCommandIds, ['case.layoutPreset.detach'])
+  assert.deepEqual(detachFeedback, ['case.layoutPreset.detach'])
   const detachedSession = requireCaseSession(detachRoot.getLifecycleState())
   assert.equal(
     detachedSession.caseInsertPresetApplication.attachment.status,

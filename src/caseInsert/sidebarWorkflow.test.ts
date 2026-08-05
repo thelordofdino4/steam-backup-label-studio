@@ -21,6 +21,7 @@ test('cover sheet case sidebar mirrors the core editor flow', () => {
       'Project File',
       'Export Options',
       'Template',
+      'Case Layout Presets',
       'Game',
     ],
   )
@@ -33,6 +34,7 @@ test('tray card case sidebar keeps setup panels in the main workflow', () => {
       'Project File',
       'Export Options',
       'Template',
+      'Case Layout Presets',
       'Game',
     ],
   )
@@ -45,6 +47,7 @@ test('case sidebar exposes setup panels separately from legacy migration panels'
       'Project File',
       'Export Options',
       'Template',
+      'Case Layout Presets',
       'Game',
     ],
   )
@@ -61,11 +64,11 @@ test('case sidebar exposes setup panels separately from legacy migration panels'
 test('case sidebar panels start closed by default', () => {
   assert.deepEqual(
     getCaseInsertSidebarWorkflow('cover').map((panel) => panel.openByDefault),
-    [undefined, undefined, undefined, undefined],
+    [undefined, undefined, undefined, undefined, undefined],
   )
   assert.deepEqual(
     getCaseInsertSidebarWorkflow('tray').map((panel) => panel.openByDefault),
-    [undefined, undefined, undefined, undefined],
+    [undefined, undefined, undefined, undefined, undefined],
   )
 })
 

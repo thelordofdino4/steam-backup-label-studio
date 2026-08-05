@@ -83,6 +83,7 @@ function ownerCapabilities(
       'workflow.game',
       'workflow.disc-template',
       'workflow.disc-layout-presets',
+      'workflow.case-layout-presets',
       'workflow.export-options',
     ], ENABLED),
     focusedEdit: mappedCapabilities<ApplicationMenuFocusedEditOperationId>(
@@ -182,6 +183,10 @@ test('Disc and Case matrices enforce workflow-host and Disc-only destination bou
   assert.equal(projectedItem(disc, 'menu.tools.export-options').enabled, true)
   assert.equal(projectedItem(disc, 'menu.tools.disc-template').enabled, true)
   assert.equal(projectedItem(disc, 'menu.tools.disc-layout-presets').enabled, true)
+  assert.equal(
+    projectedItem(disc, 'menu.tools.case-layout-presets').unavailableReason,
+    'workflow.destination-unavailable',
+  )
 
   const caseLifecycle = lifecycleState('caseInsert', 'case-session')
   const caseProjection = projection(context(
@@ -191,6 +196,10 @@ test('Disc and Case matrices enforce workflow-host and Disc-only destination bou
   ))
   assert.equal(projectedItem(caseProjection, 'menu.tools.game').enabled, true)
   assert.equal(projectedItem(caseProjection, 'menu.tools.export-options').enabled, true)
+  assert.equal(
+    projectedItem(caseProjection, 'menu.tools.case-layout-presets').enabled,
+    true,
+  )
   assert.deepEqual(projectedItem(caseProjection, 'menu.tools.disc-template'), {
     itemId: 'menu.tools.disc-template',
     enabled: false,
@@ -214,6 +223,7 @@ test('Disc and Case matrices enforce workflow-host and Disc-only destination bou
     'menu.tools.export-options',
     'menu.tools.disc-template',
     'menu.tools.disc-layout-presets',
+    'menu.tools.case-layout-presets',
   ] as const) {
     assert.equal(projectedItem(home, id).enabled, false)
     assert.equal(projectedItem(home, id).unavailableReason,
@@ -231,6 +241,7 @@ test('semantic capabilities and exclusive modal boundaries retain stable reason 
         'workflow.game': disabled('game.search-busy'),
         'workflow.disc-template': ENABLED,
         'workflow.disc-layout-presets': ENABLED,
+        'workflow.case-layout-presets': ENABLED,
         'workflow.export-options': ENABLED,
       },
       exclusiveBoundaries: {

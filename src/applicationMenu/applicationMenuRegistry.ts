@@ -145,6 +145,40 @@ const DISC_LAYOUT_PRESETS_WORKFLOW_TARGET = workflowTarget(
   },
 )
 
+const CASE_LAYOUT_PRESETS_WORKFLOW_TARGET = workflowTarget(
+  'workflow.case-layout-presets',
+  {
+    'case-cover': editorDestination({
+      workspaceId: 'workspace.case',
+      surfaceId: 'surface.case.front',
+      areaId: 'area.layout-presets.case',
+      ownerId: 'owner.case-layout-presets',
+      controlId: 'control.case-layout-presets.selector',
+    }),
+    'case-tray': editorDestination({
+      workspaceId: 'workspace.case',
+      surfaceId: 'surface.case.back',
+      areaId: 'area.layout-presets.case',
+      ownerId: 'owner.case-layout-presets',
+      controlId: 'control.case-layout-presets.selector',
+    }),
+    'case-spine-left': editorDestination({
+      workspaceId: 'workspace.case',
+      surfaceId: 'surface.case.spine.left',
+      areaId: 'area.layout-presets.case',
+      ownerId: 'owner.case-layout-presets',
+      controlId: 'control.case-layout-presets.selector',
+    }),
+    'case-spine-right': editorDestination({
+      workspaceId: 'workspace.case',
+      surfaceId: 'surface.case.spine.right',
+      areaId: 'area.layout-presets.case',
+      ownerId: 'owner.case-layout-presets',
+      controlId: 'control.case-layout-presets.selector',
+    }),
+  },
+)
+
 const EXPORT_OPTIONS_WORKFLOW_TARGET = workflowTarget(
   'workflow.export-options',
   {
@@ -401,6 +435,16 @@ export const APPLICATION_MENU_ITEMS = Object.freeze([
     label: 'Disc Layout Presets…', parentMenuId: 'menu.tools',
     order: 40, group: 'tools-disc', semanticClass: 'workflow-launcher',
     semanticTarget: DISC_LAYOUT_PRESETS_WORKFLOW_TARGET,
+    acceleratorByPlatform: NO_ACCELERATORS,
+    placementByPlatform: PRODUCT_SUBMENU_PLACEMENT,
+    dynamicLabelPolicy: 'static', release: 'first-release',
+    eventRoutingOwner: 'editor-navigation-router',
+  }),
+  freezeItem({
+    kind: 'item', id: 'menu.tools.case-layout-presets',
+    label: 'Case Layout Presets…', parentMenuId: 'menu.tools',
+    order: 50, group: 'tools-case', semanticClass: 'workflow-launcher',
+    semanticTarget: CASE_LAYOUT_PRESETS_WORKFLOW_TARGET,
     acceleratorByPlatform: NO_ACCELERATORS,
     placementByPlatform: PRODUCT_SUBMENU_PLACEMENT,
     dynamicLabelPolicy: 'static', release: 'first-release',

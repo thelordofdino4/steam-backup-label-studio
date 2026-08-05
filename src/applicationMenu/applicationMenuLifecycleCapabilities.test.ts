@@ -42,6 +42,7 @@ function ownerCapabilities(
       'workflow.game',
       'workflow.disc-template',
       'workflow.disc-layout-presets',
+      'workflow.case-layout-presets',
       'workflow.export-options',
     ]),
     focusedEdit: mappedCapabilities<ApplicationMenuFocusedEditOperationId>(

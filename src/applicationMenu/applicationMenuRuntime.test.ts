@@ -530,6 +530,11 @@ test('native Tools ingress resolves descriptors and navigates once without lifec
     'menu.tools.export-options',
   ].every((itemId) => projection.items.find((item) =>
     item.itemId === itemId)?.enabled))
+  assert.equal(
+    projection.items.find((item) =>
+      item.itemId === 'menu.tools.case-layout-presets')?.enabled,
+    false,
+  )
 
   ;(invocationIngress as ((invocation: ApplicationMenuInvocation) => void))({
     invocationId: 'tools-game',

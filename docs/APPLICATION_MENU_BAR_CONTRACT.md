@@ -10,7 +10,7 @@
 > Focused lifecycle checkpoint: PR #327 merged at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172`; the later current-project synchronization, shared New/Open replacement guard, Home Return/Resume, exact route retention, and shared feedback boundary are recorded below without claiming native-menu implementation.
 > Focused native-runtime checkpoint: current worktree on 2026-07-30 implements descriptor-driven native construction, conservative state projection, a typed activation bridge, and bridge-scoped teardown without semantic command wiring.
 > Focused File/Export-routing checkpoint: PR #335 merged at `1619ef00e3913bb944e1d2c27b4459c55f411c20`, connecting seven implemented File lifecycle targets plus `export.png` through the existing application root and shared feedback owner; Close/termination, Edit, Tools, Window, and Help were still disconnected at that checkpoint.
-> Focused Tools-routing checkpoint: current worktree on 2026-07-31 connects the four descriptor-owned Tools launchers to one typed editor-navigation router and one shared nonmodal workflow host; launchers reveal/focus existing owners only, and sidebar compatibility presentations remain.
+> Focused Tools-routing checkpoint: current worktree on 2026-08-05 connects five descriptor-owned Tools launchers to one typed editor-navigation router and one shared nonmodal workflow host; launchers reveal/focus existing owners only, and sidebar compatibility presentations remain.
 > Focused Windows acceptance checkpoint: on 2026-07-31 the user completed the real native-Tauri manual checklist and reported all Tools-host, focus, input-ownership, modal, sidebar, File/Export regression, and representative responsive checks passing. This does not establish Linux or macOS acceptance.
 
 ## 1. Status, scope, and authority
@@ -23,9 +23,9 @@ disabled and unchecked, applies validated generation-ordered enabled, checked,
 and dynamic-label presentation state, and forwards typed activations to a
 frontend ingress. That ingress resolves the seven implemented File lifecycle
 commands plus `export.png` from their descriptor semantic targets and routes
-the four Tools descriptors through one typed editor-navigation router. One
+the five Tools descriptors through one typed editor-navigation router. One
 shared nonmodal host temporarily presents the existing Game, Disc Template,
-Disc Layout Presets, or Export Options controls and focuses their registered
+Disc Layout Presets, Case Layout Presets, or Export Options controls and focuses their registered
 control after commit. Close/termination, Edit, Window, application history,
 and Help surfaces remain unimplemented.
 
@@ -98,7 +98,7 @@ HTML/source editing into application menus.
 | TARGET REQUIREMENT | Semantic target | One lifecycle command, domain operation, typed editor destination, focused-edit role, native-window operation, or informational operation reached by a menu item. |
 | TARGET REQUIREMENT | Direct semantic command | A menu activation that dispatches one exact registered command, whose owner may still open its own guard or dialog. |
 | TARGET REQUIREMENT | Rich workflow launcher | A navigation-only item that reveals and focuses an owner-backed workflow surface without selecting, planning, applying, or otherwise mutating project content. |
-| TARGET REQUIREMENT | Application workflow host | One nonmodal, accessible app-shell region outside the main editor sidebar and contextual ribbon that hosts Game, Export Options, Disc Template, or Disc Layout Presets. |
+| TARGET REQUIREMENT | Application workflow host | One nonmodal, accessible app-shell region outside the main editor sidebar and contextual ribbon that hosts Game, Export Options, Disc Template, Disc Layout Presets, or Case Layout Presets. |
 | TARGET REQUIREMENT | Capability | An owner-computed `canExecute` or navigation-availability result, including a stable unavailable reason. |
 | TARGET REQUIREMENT | Capability projection | An ephemeral native-menu view of current semantic and focused-control capabilities. Projection is advisory and must be rechecked at dispatch. |
 | TARGET REQUIREMENT | Focused-edit role | Undo, Redo, Cut, Copy, Paste, or Select All delegated to the focused editable/native control; it is distinct from application project history. |
@@ -363,6 +363,8 @@ Tools
   Disc Template…
   Disc Layout Presets…
   ──────────────────────────────────────
+  Case Layout Presets…
+  ──────────────────────────────────────
   Export Options…
 
 Window
@@ -425,6 +427,7 @@ accelerator.
 | CURRENT FACT / TARGET REQUIREMENT | `menu.tools.game` | Game… | Tools 10 | tools-game | Rich workflow launcher | `area.game` / `owner.game.search` / `control.game.query` | — | — | Tools all platforms | Connected reveal/focus-only in Disc and Case; existing sidebar presentation retained; current immediate-import semantics unchanged |
 | CURRENT FACT / TARGET REQUIREMENT | `menu.tools.disc-template` | Disc Template… | Tools 30 | tools-disc | Rich workflow launcher | `area.template.disc` / `owner.disc-template` / `control.disc-template.selector` | — | — | Tools all platforms | Connected reveal/focus-only in Disc; disabled/incompatible in Case; existing sidebar presentation retained |
 | CURRENT FACT / TARGET REQUIREMENT | `menu.tools.disc-layout-presets` | Disc Layout Presets… | Tools 40 | tools-disc | Rich workflow launcher | `area.layout-presets.disc` / `owner.disc-layout-presets` / `control.disc-layout-presets.selector` | — | — | Tools all platforms | Connected reveal/focus-only in Disc; disabled/incompatible in Case; selection and Guided state remain owner-controlled |
+| CURRENT FACT / TARGET REQUIREMENT | `menu.tools.case-layout-presets` | Case Layout Presets… | Tools 50 | tools-case | Rich workflow launcher | `area.layout-presets.case` / `owner.case-layout-presets` / `control.case-layout-presets.selector` | — | — | Tools all platforms | Connected reveal/focus-only in Case; disabled/destination-unavailable in Disc; explicit selection, immutable review, Apply/Reapply/Detach, status, feedback, and focus remain owner-controlled |
 | CURRENT FACT / TARGET REQUIREMENT | `menu.tools.export-options` | Export Options… | Tools 60 | tools-export | Rich workflow launcher | Disc: `area.export` / `owner.export.disc-guides` / `control.export.disc.center-hole`; Case Cover: `owner.export.case-guides` / `control.export.case.cover-trim`; Case Tray/Back/Spine: same owner / `control.export.case.tray-trim` | — | — | Tools all platforms | Connected reveal/focus-only in Disc and Case; combined Spine safely resolves equivalent side descriptors to complete Tray controls; never executes `export.png` |
 | TARGET REQUIREMENT | `menu.window.minimize` | Minimize | Window 10 | window-size | Native-window operation | `native.window.minimize` | — | Command+M | Window all platforms | Native item present but disabled; window action not wired |
 | TARGET REQUIREMENT | `menu.window.toggle-maximize` | Maximize or Restore; Zoom on macOS | Window 20 | window-size | Native-window operation | `native.window.toggle-maximize` | — | — | Window all platforms | Native dynamic label present but disabled; window action not wired |
@@ -559,33 +562,27 @@ is designed here.
 
 ## 8. Tools menu
 
-**CURRENT FACT —** The four descriptor-owned launchers now use one typed
+**CURRENT FACT —** The five descriptor-owned launchers now use one typed
 editor-navigation ingress and one shared nonmodal host. The host moves the
 single existing owner presentation between its original sidebar slot and the
 host, focuses the exact registered control after commit, restores valid focus
 on close, and performs no Search, Import, Export, template selection, preset
 operation, or other project mutation. Sidebar removal has not begun.
 
-**TARGET REQUIREMENT —** Tools contains exactly four rich workflow launchers in
+**TARGET REQUIREMENT —** Tools contains exactly five rich workflow launchers in
 this order: `Game…`, separator, `Disc Template…`, `Disc Layout Presets…`,
-separator, `Export Options…`. They have no accelerators in the first release.
+separator, `Case Layout Presets…`, separator, `Export Options…`. They have no
+accelerators in the first release.
 
 **FUTURE EXTENSION —** The user-requested follow-up is to give the Disc and
 Case editors separate editor-specific Template and Layout Presets launchers,
-with only the active editor's pair available. The Case Layout Preset operation
-and navigation identities are now reserved by
-[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md):
-`case.layoutPreset.select`, `case.layoutPreset.plan`,
-`case.layoutPreset.apply`, `case.layoutPreset.reapply`,
-`case.layoutPreset.detach`,
-`workflow.case-layout-presets`, `area.layout-presets.case`,
-`owner.case-layout-presets`, and
-`control.case-layout-presets.selector`. Case Template ownership, final menu
-presentation IDs/labels, descriptor changes, migration, and implementation
-remain future work; the current Disc-only launchers and Case surface selector
-remain unchanged.
+with only the active editor's pair available. The Case Layout Preset half is now
+connected under the exact identities owned by
+[`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
+Case Template ownership and presentation remain future work; the Case surface
+selector remains navigation and is not a template or preset workflow.
 
-**TARGET REQUIREMENT —** All four launchers reveal one nonmodal application
+**TARGET REQUIREMENT —** All five launchers reveal one nonmodal application
 workflow host in persistent app-shell space outside the main editor sidebar,
 preview-local controls, and contextual ribbon. The host presents one active
 workflow at a time, has an accessible region name and visible heading, provides
@@ -600,21 +597,22 @@ capability, validation, progress, review, results, and controls.
 | TARGET REQUIREMENT | `menu.tools.export-options` | Disc: `area.export` + `owner.export.disc-guides` + `control.export.disc.center-hole`; Case Cover: `area.export` + `owner.export.case-guides` + `control.export.case.cover-trim`; Case Tray/Back/Spine: same area/owner + `control.export.case.tray-trim` | Disc, Case current physical output | Navigate/reveal/focus Export configuration host | Guide selections are persisted project configuration; they are not export execution or menu checkboxes | The exact control named by the resolved destination | Export execution does not hide the host after snapshot capture; export/lifecycle modal owns focus while open |
 | TARGET REQUIREMENT | `menu.tools.disc-template` | `workspace.disc` + `surface.disc` + `area.template.disc` + `owner.disc-template` + `control.disc-template.selector` | Disc only | Navigate/reveal/focus Disc geometry host | Choice/custom drafts may require validation, immutable impact plan, review, atomic apply, clamp/reflow, or recovery | Template selector; owner-declared invalid draft or review target may take precedence | Case is visibly disabled and dispatch-safe `editor-incompatible`; geometry progress remains revealable; lifecycle/modal conflict disables |
 | TARGET REQUIREMENT | `menu.tools.disc-layout-presets` | `workspace.disc` + `surface.disc` + `area.layout-presets.disc` + `owner.disc-layout-presets` + `control.disc-layout-presets.selector` | Disc only | Navigate/reveal/focus Disc preset host | Presets require candidate selection, compatibility, plan/review, explicit Apply/Reapply/Detach, and results | Preset selector; current reviewed plan/progress target may take precedence | Case is visibly disabled and dispatch-safe `editor-incompatible`; own busy state remains revealable; lifecycle/modal conflict disables |
+| CURRENT FACT / TARGET REQUIREMENT | `menu.tools.case-layout-presets` | `workspace.case` + current Case surface + `area.layout-presets.case` + `owner.case-layout-presets` + `control.case-layout-presets.selector` | Case only | Navigate/reveal/focus Case preset host | Explicit selection, compatibility/status, immutable review, customized-field policy, confirmation, Apply/Reapply/Detach, and results cannot be flattened into menu mutations | Preset selector; owner-directed error, status, or review heading may take precedence | Disc is disabled and dispatch-safe destination-unavailable; own pending review remains revealable; lifecycle/modal conflict disables |
 
 **TARGET REQUIREMENT —** Launcher behavior across contexts is fixed.
 
-| Claim | Context | Game… | Export Options… | Disc Template… | Disc Layout Presets… |
-| --- | --- | --- | --- | --- | --- |
-| TARGET REQUIREMENT | Home, no session | Disabled: no active editor workflow host | Disabled | Disabled | Disabled |
-| TARGET REQUIREMENT | Home, retained session | Disabled with “Resume Project to open workflows”; launcher does not auto-resume | Disabled with same rule | Disabled with same rule | Disabled with same rule |
-| TARGET REQUIREMENT | Active Disc | Enabled when destination/host capability permits | Enabled for Disc guide owner | Enabled | Enabled |
-| TARGET REQUIREMENT | Active Case | Enabled when destination/host capability permits | Enabled for the current Case physical output's guide owner | Disabled; dispatch recheck returns `editor-incompatible` | Disabled; dispatch recheck returns `editor-incompatible` |
-| TARGET REQUIREMENT | Incompatible/unknown project kind | Disabled; no guessed adapter | Disabled | Disabled | Disabled |
-| TARGET REQUIREMENT | Pathless project | Same as matching Disc/Case; path is irrelevant | Same | Same | Same |
-| TARGET REQUIREMENT | Clean project | Same as matching Disc/Case | Same | Same | Same |
-| TARGET REQUIREMENT | Dirty project | Same launcher availability; later owner mutation/result keeps lifecycle dirty semantics | Same | Same | Same |
-| TARGET REQUIREMENT | Owner busy, host nonmodal | Launcher focuses current owner progress/review; it starts no duplicate operation | Host remains revealable when export snapshot isolation permits | Host remains revealable; controls reflect geometry scopes | Host remains revealable; controls reflect preset scopes |
-| TARGET REQUIREMENT | Lifecycle transition or application modal | Disabled; dispatch recheck safely rejects | Disabled | Disabled | Disabled |
+| Claim | Context | Game… | Export Options… | Disc Template… | Disc Layout Presets… | Case Layout Presets… |
+| --- | --- | --- | --- | --- | --- | --- |
+| TARGET REQUIREMENT | Home, no session | Disabled: no active editor workflow host | Disabled | Disabled | Disabled | Disabled |
+| TARGET REQUIREMENT | Home, retained session | Disabled with “Resume Project to open workflows”; launcher does not auto-resume | Disabled with same rule | Disabled with same rule | Disabled with same rule | Disabled with same rule |
+| TARGET REQUIREMENT | Active Disc | Enabled when destination/host capability permits | Enabled for Disc guide owner | Enabled | Enabled | Disabled; dispatch recheck returns destination-unavailable |
+| TARGET REQUIREMENT | Active Case | Enabled when destination/host capability permits | Enabled for the current Case physical output's guide owner | Disabled; dispatch recheck returns `editor-incompatible` | Disabled; dispatch recheck returns `editor-incompatible` | Enabled when exact registered selector is available |
+| TARGET REQUIREMENT | Incompatible/unknown project kind | Disabled; no guessed adapter | Disabled | Disabled | Disabled | Disabled |
+| TARGET REQUIREMENT | Pathless project | Same as matching Disc/Case; path is irrelevant | Same | Same | Same | Same |
+| TARGET REQUIREMENT | Clean project | Same as matching Disc/Case | Same | Same | Same | Same |
+| TARGET REQUIREMENT | Dirty project | Same launcher availability; later owner mutation/result keeps lifecycle dirty semantics | Same | Same | Same | Same |
+| TARGET REQUIREMENT | Owner busy, host nonmodal | Launcher focuses current owner progress/review; it starts no duplicate operation | Host remains revealable when export snapshot isolation permits | Host remains revealable; controls reflect geometry scopes | Host remains revealable; controls reflect preset scopes | Host remains revealable; confirmation is single-flight and mutation capability remains command-owned |
+| TARGET REQUIREMENT | Lifecycle transition or application modal | Disabled; dispatch recheck safely rejects | Disabled | Disabled | Disabled | Disabled |
 
 **TARGET REQUIREMENT —** Game consumes the six exact operations `game.search`,
 `game.import.plan`, `game.import.apply`, `game.metadata.discover`,
@@ -639,6 +637,14 @@ apply, reapply, detach, reset Guided progress, or change any feature owner.
 the project-kind-specific guide configuration owner. File `Export PNG…`
 executes `export.png` against one immutable request and never toggles guide
 settings.
+
+**CURRENT FACT / TARGET REQUIREMENT —** Case Layout Presets consumes
+`case.layoutPreset.select`, `case.layoutPreset.plan`,
+`case.layoutPreset.apply`, `case.layoutPreset.reapply`, and
+`case.layoutPreset.detach` through the focused application workflow owner. The
+launcher itself only reveals and focuses the existing panel; it never selects,
+plans, applies, reapplies, detaches, substitutes a catalog definition, or
+changes a Case surface.
 
 ## 9. Window menu
 
@@ -735,6 +741,7 @@ mapping.
 | TARGET REQUIREMENT | `menu.tools.game` | Typed editor destination | `area.game` / `owner.game.search` / `control.game.query` | Reveal/focus only |
 | TARGET REQUIREMENT | `menu.tools.disc-template` | Typed editor destination | `area.template.disc` / `owner.disc-template` / `control.disc-template.selector` | Reveal/focus only |
 | TARGET REQUIREMENT | `menu.tools.disc-layout-presets` | Typed editor destination | `area.layout-presets.disc` / `owner.disc-layout-presets` / `control.disc-layout-presets.selector` | Reveal/focus only |
+| CURRENT FACT / TARGET REQUIREMENT | `menu.tools.case-layout-presets` | Typed editor destination | `area.layout-presets.case` / `owner.case-layout-presets` / `control.case-layout-presets.selector` | Reveal/focus only |
 | TARGET REQUIREMENT | `menu.tools.export-options` | Typed editor destination | Disc: `owner.export.disc-guides` / `control.export.disc.center-hole`; Case Cover: `owner.export.case-guides` / `control.export.case.cover-trim`; Case Tray/Back/Spine: same owner / `control.export.case.tray-trim`; all under `area.export` | Reveal/focus only |
 | TARGET REQUIREMENT | `menu.window.minimize` | Native-window operation | `native.window.minimize` on main window | Perform native window action only |
 | TARGET REQUIREMENT | `menu.window.toggle-maximize` | Native-window operation | `native.window.toggle-maximize` on main window | Perform native window action only |
@@ -775,6 +782,7 @@ means disabled, and `F` means focus-dependent.
 | TARGET REQUIREMENT | Undo, Redo, Cut, Copy, Paste, Select All | F | F | F | F |
 | TARGET REQUIREMENT | Game…, Export Options… | N | N | Y | Y |
 | TARGET REQUIREMENT | Disc Template…, Disc Layout Presets… | N | N | Y | N |
+| CURRENT FACT / TARGET REQUIREMENT | Case Layout Presets… | N | N | N | Y |
 | TARGET REQUIREMENT | Window items | Y for live window | Y | Y | Y |
 | TARGET REQUIREMENT | Help, About | Y after their owners exist | Y after their owners exist | Y after their owners exist | Y after their owners exist |
 | FUTURE EXTENSION | Report an Issue | N/omitted | N/omitted | N/omitted | N/omitted |
@@ -910,8 +918,9 @@ criteria.
 9. Each Tools item only reveals/focuses the shared workflow host. Game,
    geometry, and preset operations require explicit owner controls and typed
    results after navigation.
-10. Disc Template and Disc Layout Presets are visibly unavailable in Case and
-    are safely rejected if stale activation arrives; no Case owner is guessed.
+10. Disc Template and Disc Layout Presets are visibly unavailable in Case, and
+    Case Layout Presets is unavailable in Disc. Stale activations are safely
+    rejected; no incompatible owner is guessed.
 11. Undo/Redo/Cut/Copy/Paste/Select All respect modal and focused-edit ownership.
     No source or UI claim says application history exists before it does.
 12. Menu invocation, workflow-host entry, field errors/status, and modal
@@ -1044,6 +1053,7 @@ has been documented. Removal is the final step after adapter parity.
 | TARGET REQUIREMENT | Disc/Case Game | Tools `Game…` -> shared workflow host | Game search/import/metadata owners | Search, selection, plan/review/apply, manual metadata, candidates, feedback, accessibility, Disc/Case, and save/load parity pass |
 | TARGET REQUIREMENT | Disc Template | Tools `Disc Template…` -> Disc geometry host | Disc geometry owner | Built-in/custom drafting, validation, plan/review/apply, recovery, save/load, preview/export parity, and accessibility pass |
 | TARGET REQUIREMENT | Disc Layout Presets | Tools `Disc Layout Presets…` -> preset host | Disc preset and Guided progress owners | All five preset operations, Guided progress, configuration, focus, feedback, save/load, preview/export parity, and Case rejection pass |
+| CURRENT FACT / TARGET REQUIREMENT | Case Layout Presets | Tools `Case Layout Presets…` -> shared preset host; independent Case sidebar panel retained | Case preset presentation controller delegates to the presentation-neutral owner and lifecycle commands | Neutral explicit selection, complete-scope Apply review, explicit Reapply policies, catalog-independent Detach, current/stale/incompatible/unavailable status, focus/feedback, persistence recovery, Disc rejection, and no menu-started mutation pass |
 | TARGET REQUIREMENT | Case “Template” Cover/Tray selector | Case surface-navigation presentation, not Disc Template | Typed Case surface router | Do not remove as part of Disc Template migration; rebaseline only through Case navigation work |
 | TARGET REQUIREMENT | Contextual ribbon | No relocation | Selected preview/text owner through existing ribbon bridge | Must remain stable and contextual throughout menu work |
 | TARGET REQUIREMENT | Preview viewport, Design Check, Guide Legend | No relocation | Preview-local owners | Must remain preview-local and non-project state |

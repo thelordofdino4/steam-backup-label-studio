@@ -193,6 +193,11 @@ test('case insert editor shell renders setup panels before roles', () => {
     '{renderCaseInsertSteamBrandingPanel()}',
     '{roleSectionItems.map',
   ])
+  assert.match(shellSource, /case 'layoutPresets':/)
+  assert.match(
+    shellSource,
+    /workflowId="workflow\.case-layout-presets"[\s\S]*<CaseInsertLayoutPresetsPanel/,
+  )
 })
 
 test('case insert Background Image roles own template and spine background controls', () => {

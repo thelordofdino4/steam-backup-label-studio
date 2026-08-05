@@ -25,6 +25,12 @@ test('resolves every Tools item only through its authoritative descriptor', () =
       'control.disc-layout-presets.selector',
     ],
     [
+      'menu.tools.case-layout-presets',
+      'case-cover',
+      'workflow.case-layout-presets',
+      'control.case-layout-presets.selector',
+    ],
+    [
       'menu.tools.export-options',
       'disc',
       'workflow.export-options',
@@ -46,6 +52,7 @@ test('resolves equivalent combined Spine entries without inventing side state', 
   for (const [itemId, controlId] of [
     ['menu.tools.game', 'control.game.query'],
     ['menu.tools.export-options', 'control.export.case.tray-trim'],
+    ['menu.tools.case-layout-presets', 'control.case-layout-presets.selector'],
   ] as const) {
     const result = resolveApplicationMenuWorkflow(itemId, 'case-spine')
     assert.equal(result.status, 'resolved')
@@ -106,6 +113,6 @@ test('rejects malformed, unknown, non-Tools, wrong-owner, wrong-target, and non-
 test('routing owns no copied item-to-destination map or operation target', async () => {
   const source = await import('node:fs/promises').then(({ readFile }) =>
     readFile(new URL('./applicationMenuWorkflowRouting.ts', import.meta.url), 'utf8'))
-  assert.doesNotMatch(source, /menu\.tools\.(game|disc-template|disc-layout-presets|export-options)/)
+  assert.doesNotMatch(source, /menu\.tools\.(game|disc-template|disc-layout-presets|case-layout-presets|export-options)/)
   assert.doesNotMatch(source, /export\.png|\.apply|\.search|\.import/)
 })
