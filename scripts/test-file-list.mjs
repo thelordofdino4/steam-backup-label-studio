@@ -310,6 +310,7 @@ export const testFiles = [
   'src/presets/builtins/jewelCaseEssentialsCasePreset.test.ts',
   'src/presets/caseInsertPresetCompatibility.test.ts',
   'src/presets/caseInsertPresetAssignmentResolution.test.ts',
+  'src/presets/caseInsertPresetArtworkViewport.test.ts',
   'src/presets/caseInsertPresetApplyPlanning.test.ts',
   'src/presets/caseInsertPresetApplyTransition.test.ts',
   'src/presets/caseInsertPresetAppliedConfiguration.test.ts',

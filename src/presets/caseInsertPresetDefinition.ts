@@ -475,6 +475,27 @@ export const CASE_INSERT_PRESET_FIXED_OBJECT_IDS_BY_OWNER = Object.freeze(
   >>>,
 )
 
+/**
+ * Reuses the definition parser's canonical owner/region/role/binding rules for
+ * focused downstream validation without exposing or duplicating the rule map.
+ */
+export function isCaseInsertPresetOwnerBindingCompatible(
+  region: CaseInsertPresetConcreteRegionId,
+  roleId: CaseInsertPresetRoleId,
+  ownerId: CaseInsertPresetOwnerId,
+  object: CaseInsertPresetObjectBinding,
+) {
+  const ownerRule = CASE_INSERT_PRESET_OWNER_RULES[ownerId]
+  if (ownerRule.region !== region || ownerRule.bindingKind !== object.kind) {
+    return false
+  }
+  if (ownerRule.bindingKind === 'fixed') {
+    return ownerRule.objects[object.id] === roleId
+  }
+  return REPEATED_OBJECT_ID_PATTERN.test(object.id) &&
+    ownerRule.roles.includes(roleId as never)
+}
+
 function failure(
   code: CaseInsertPresetDefinitionParseErrorCode,
   path: string,

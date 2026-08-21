@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, schema `0.3.0` persistence/recovery, presentation-neutral workflow orchestration, first production-definition, and accessible presentation/invocation checkpoints through 2026-08-05.
+> Case preset ownership refresh: PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused pure reserved-artwork viewport/fitting-planning checkpoint through 2026-08-21.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -1475,6 +1475,24 @@ ignores mirror mode, coalesces only identical field writes, rejects conflicts,
 and fails closed for unsupported action-region or text-fitting work.
 `src/presets/caseInsertPresetApplyReviewIdentity.ts` binds review and exact
 material consent deterministically to plan contents.
+`src/presets/caseInsertPresetArtworkViewport.ts` is a separate, pure future-
+action owner. It reuses the canonical definition-v1 identity, basis, and owner-
+binding vocabulary without changing v1 syntax, parsing, identity, or production
+definitions. It binds one
+normalized reserved artwork frame to exact preset/slot/assignment/owner/object,
+template, validated caller-supplied preset/revision-bound template compatibility,
+and coordinate-basis
+identity, derives its physical dimensions and aspect from authoritative template
+millimeters, reads validated existing image content bounds without turning them
+into crop state, and returns immutable
+resolved or source-deferred Contain, Cover, or exact non-destructive source-
+window framing evidence. Explicit capability evidence gates viewport geometry,
+Contain, Cover, explicit framing, derived focal offset, and derived zoom.
+Material source exclusion yields deterministic clipping, warning, and consent-
+requirement identities; hostile, incompatible, or unsupported input fails
+closed. This owner reads no catalog or project state. Its project image-shape
+types are type-only; it has no schema, Apply/Reapply/Detach, lifecycle, renderer,
+export, React, Rust, Tauri, or runtime connection.
 `src/presets/caseInsertPresetApplyTransition.ts` consumes only one deeply frozen
 planned/no-op result, its exact review and consent records, a normalized current
 Case aggregate, current snapshot/preset/scope identity, and an explicit
@@ -1572,12 +1590,14 @@ customization detector, resolver, compatibility/catalog owners, aggregate
 writer, geometry, renderer, persistence, schema, UI, store, lifecycle, Rust, or
 Tauri. Back Panel/complete Tray and left/right Spine remain exact separate
 addresses, mirror mode cannot redirect execution, and repeated objects use only
-stable-ID lookup. Lifecycle/store attachment installation, persistence, schema,
-UI, and runtime integration remain absent. The production Case catalog remains
-empty.
+stable-ID lookup. Those absence claims apply to the pure Detach transition
+itself: later owners now provide lifecycle/store attachment installation and
+schema persistence, while production consumption of reserved-artwork viewport
+plans remains absent. The production Case catalog contains only Jewel Case
+Essentials revision 1.
 
 `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` now defines the
-pure session-only model preceding that absent runtime boundary. One canonical
+pure session model consumed by the later adoption and lifecycle/store owners. One canonical
 `unattached` wrapper and one exact-one `attached` wrapper leave the validated
 configuration's identity-bound `detached-uninstalled` field unchanged. One
 application snapshot pairs the complete normalized Case assignment snapshot
@@ -1757,8 +1777,10 @@ Back-Panel/spine separation and foreground non-overlap, explicit Apply through
 the existing application workflow and lifecycle command, content/payload/
 enablement preservation, exact Save/Open recovery, exact-revision Reapply, and
 catalog-independent Detach. No React, `App.tsx`, navigation, menu, import/Open
-auto-application, renderer, schema, package, Rust, or dependency path consumes
-the definition in this checkpoint.
+auto-application, renderer, schema, package, Rust, or dependency path applies
+the definition implicitly. The accessible presentation may list, select, and
+review the injected exact catalog entry, but mutation still requires explicit
+review and the existing operation/lifecycle chain.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -2066,6 +2088,8 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/hooks/useCaseInsertBrandingMarkSync.ts`
 - `src/caseInsert/*.ts`
 - `src/caseInsert/presetAggregateIdentity.ts`
+- `src/presets/caseInsertPresetArtworkViewport.ts`
+- `src/presets/caseInsertPresetArtworkViewport.test.ts`
 - `src/presets/caseInsertPresetApplyTransition.ts`
 - `src/presets/caseInsertPresetReapplyTransition.ts`
 - `src/presets/caseInsertPresetDetachTransition.ts`
@@ -2108,6 +2132,10 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Defaults and normalization live under `src/caseInsert/`.
 - Case insert saved-project adapters live in `src/project/caseInsertProjectAdapters.ts`.
 - `src/project/projectCaseInsert.ts` is a compatibility barrel and should not receive new behavior.
+- The pure preset artwork-viewport plan is transient evidence, not project,
+  applied-configuration, renderer, preview, or export state. Current schema
+  remains `0.3.0`; only a later ordinary-owner adoption/persistence slice may
+  make an approved frame visual or durable.
 
 ### 13.4 Render/Edit/Export Paths
 
@@ -2137,6 +2165,12 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Keep rectangular bounds, cover/tray/spine coordinate interpretation, and movement policy case-owned; shared layout helpers may own only neutral numeric range math.
 - Shared controls may render neutral UI, but target-specific geometry and source-slot mapping remain case-owned.
 - Parity work must cover all applicable target surfaces, not only one panel shape.
+- A preset assignment region, a physical reserved artwork viewport, stored
+  source content bounds, a fitting intent, and a derived visible source
+  rectangle are separate concepts. The preset viewport is also distinct from
+  the browser/preview viewport.
+- Pure viewport plans cannot become a second visual or persistence truth;
+  preview/export continue to consume only ordinary committed Case owner state.
 
 ### 13.6 Validation Expectations
 
@@ -2177,6 +2211,13 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   cancellation/stale-state no mutation, single-flight confirmation, one command
   and feedback result, typed destination registration, shared-host movement,
   responsive keyboard reachability, and Disc/Case launcher isolation.
+- Focused reserved-artwork viewport tests cover strict normalized geometry,
+  physical-basis dimensions/aspect, three equal Jewel screenshot test frames,
+  Back Panel/spine isolation, distinct left/right basis identity, deferred
+  source handling, Contain/Cover/explicit-framing math, content-bound authority,
+  deterministic clipping/warning/consent identity, target-bound capability
+  rejection, hostile input, immutability, and unchanged v1/catalog/schema
+  boundaries.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks

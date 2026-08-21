@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, schema `0.3.0` persistence/recovery, presentation-neutral workflow orchestration, first production-definition, and accessible presentation/invocation checkpoints through 2026-08-05.
+> Case preset ownership refresh: PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused pure reserved-artwork viewport/fitting-planning checkpoint through 2026-08-21.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -967,10 +967,26 @@ operation/context/plan/review/consent lineage, an operation-discriminated
 transition identity, one whole-success identity, and explicit non-adoption.
 Strict public validators recompute the entire operation-specific bundle and
 reject substituted aggregates, configurations, endpoints, releases, lineage,
-or mixed authentic fragments. No UI or menu connection exists. The production
-catalog contains only Jewel Case Essentials revision 1 and still requires
-explicit selection; lifecycle/store installation and focused schema/Save/Open persistence exist
-in their separate owners below.
+or mixed authentic fragments. An accessible Case panel and reveal/focus-only
+Tools launcher now consume the presentation-neutral workflow owner. The
+production catalog contains only Jewel Case Essentials revision 1 and still
+requires explicit selection; lifecycle/store installation and focused
+schema/Save/Open persistence exist in their separate owners below.
+
+`src/presets/caseInsertPresetArtworkViewport.ts` owns the separately versioned
+pure reserved-artwork viewport and fitting foundation. It depends inward only
+on exact preset/assignment identity, a validated caller-supplied preset/revision-
+bound template-compatibility declaration, canonical definition-v1 basis and
+owner-binding vocabulary, safe-input and digest helpers, the Case template
+registry's physical millimeter regions, and validated existing image-content
+bounds. It resolves an assignment-bound physical frame and
+returns immutable source-deferred, Contain, centered Cover, or exact explicit
+non-destructive source-window evidence, with target-bound capabilities and
+deterministic clipping/warning/consent identities. It does not read the preset
+catalog or change definition-v1 syntax, parsing, identity, or production
+definitions. It does not depend outward on Apply/Reapply/Detach,
+project/schema/persistence, lifecycle/store, React/presentation, preview/export
+renderers, Rust, Tauri, or runtime state.
 
 `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` is now the pure
 model owner for one canonical unattached wrapper, one exact validated attached
@@ -1102,8 +1118,9 @@ definition as the sole `builtin` summary with no aliases or automatic action.
 deep immutability, safe containment/non-overlap, explicit Apply through the
 existing lifecycle command, non-layout value preservation, exact Save/Open
 recovery, exact-revision Reapply, detached recovery, and catalog-independent
-Detach. No UI/App/editor, import/Open auto-application, renderer, schema,
-package, Rust, or dependency owner was added.
+Detach. The accessible Case workflow may list, select, and review this injected
+definition, but no import/Open auto-application, renderer, schema, package,
+Rust, or dependency owner was added.
 
 `src/project/caseInsertPresetProjectPersistenceTypes.ts` and
 `src/project/caseInsertPresetProjectPersistence.ts` own the schema `0.3.0`
@@ -1160,6 +1177,8 @@ Key files:
 - `src/presets/caseInsertPresetCatalog.ts`
 - `src/presets/caseInsertPresetCompatibility.ts`
 - `src/presets/caseInsertPresetAssignmentResolution.ts`
+- `src/presets/caseInsertPresetArtworkViewport.ts`
+- `src/presets/caseInsertPresetArtworkViewport.test.ts`
 - `src/presets/caseInsertPresetApplyPlanning.ts`
 - `src/presets/caseInsertPresetApplyReviewIdentity.ts`
 - `src/presets/caseInsertPresetApplyCandidate.ts`
@@ -1211,6 +1230,9 @@ Source-of-truth state:
 - Focused cover/tray action modules own image-slot, logo, Steam banner, and
   text-list transitions. Focused spine action modules own spine image-slot,
   logo, Steam banner, and text transitions.
+- Reserved-artwork viewport plans are transient pure evidence, not
+  `ProjectJewelCaseState`, schema `0.3.0`, applied configuration, or lifecycle
+  state. No owner currently adopts or persists them.
 
 Render path:
 
@@ -1218,6 +1240,8 @@ Render path:
 - `CaseInsertTemplatePreviewLayers` renders template background, artwork, branding, marks, and text.
 - `CaseInsertSpinePreviewLayer` renders left and right spine content.
 - Layer order is defined in `src/editor/layerOrder.ts`.
+- Current preview and export renderers do not consume reserved-artwork viewport
+  plans; ordinary Case owner state remains their only visual input.
 
 Edit/interaction path:
 
@@ -1270,6 +1294,8 @@ Tests:
 - `src/layout/jewelCaseSteamBannerLayout.test.ts`
 - Focused action tests under `src/caseInsert/templateSurface*.test.ts` and
   `src/caseInsert/jewelCaseSpine*.test.ts`.
+- `src/presets/caseInsertPresetArtworkViewport.test.ts` covers strict physical
+  viewport and fitting-plan semantics without renderer/runtime integration.
 
 Risks:
 
@@ -1281,8 +1307,8 @@ Risks:
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 - Issue `#168` and the Case preset workflow contract retain future additional
-  Case definitions, user-authored preset management, runtime presentation, and
-  broader product work. Jewel Case Essentials is the first bounded production
+  Case definitions, user-authored preset management, viewport owner/schema/
+  renderer integration, and broader product work. Jewel Case Essentials is the first bounded production
   definition; pure definition/catalog/compatibility owners reject
   malformed definitions; the pure snapshot/resolution boundary fails closed on
   stale, missing, disabled, ambiguous, incompatible, and unsupported exact
@@ -2035,6 +2061,12 @@ Current `npm run test` covers these broad areas:
   adapter's complete successor authorization, full-session staleness/replay
   rejection, exact content/application revision rules, atomic successor-session
   and existing-receipt result, hostile-input safety, and dependency isolation.
+- The pure Case reserved-artwork viewport boundary, including strict
+  assignment/basis/source/capability validation; template-millimeter physical
+  geometry; deferred, Contain, centered Cover, and exact explicit source-window
+  framing; derived focal/zoom and clipping evidence; deterministic warning/
+  consent identities; hostile-input immutability; and unchanged v1/catalog/
+  schema/runtime boundaries.
 - The sole Jewel Case Essentials production definition and catalog entry,
   including exact reviewed owner/object/basis mappings, optional stable-ID
   screenshots, physical safe-region containment and non-overlap, explicit
