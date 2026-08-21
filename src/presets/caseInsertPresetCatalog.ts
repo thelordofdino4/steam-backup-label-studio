@@ -7,6 +7,9 @@ import {
   type CaseInsertPresetDefinitionV1,
   type CaseInsertPresetId,
 } from './caseInsertPresetDefinition.ts'
+import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET,
+} from './builtins/jewelCaseEssentialsCasePreset.ts'
 
 export type CaseInsertPresetCatalogSource = 'builtin' | 'user'
 
@@ -336,11 +339,12 @@ export function createCaseInsertPresetCatalog(
   return Object.freeze({ ok: true, catalog })
 }
 
-const defaultCatalogResult = createCaseInsertPresetCatalog()
+const defaultCatalogResult = createCaseInsertPresetCatalog({
+  builtins: [JEWEL_CASE_ESSENTIALS_CASE_PRESET],
+})
 
 if (!defaultCatalogResult.ok) {
-  throw new Error('The empty Case Insert preset catalog is invalid.')
+  throw new Error('The production Case Insert preset catalog is invalid.')
 }
 
-// No starter Case Insert preset definitions are approved in this slice.
 export const CASE_INSERT_PRESET_CATALOG = defaultCatalogResult.catalog

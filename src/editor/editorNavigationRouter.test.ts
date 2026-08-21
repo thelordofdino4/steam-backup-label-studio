@@ -47,6 +47,15 @@ const DISC_PRESETS = Object.freeze({
   controlId: 'control.disc-layout-presets.selector',
 } as const satisfies EditorDestination)
 
+const CASE_PRESETS = Object.freeze({
+  kind: 'domain-area',
+  workspaceId: 'workspace.case',
+  surfaceId: 'surface.case.spine.left',
+  areaId: 'area.layout-presets.case',
+  ownerId: 'owner.case-layout-presets',
+  controlId: 'control.case-layout-presets.selector',
+} as const satisfies EditorDestination)
+
 const CASE_EXPORT = Object.freeze({
   kind: 'domain-area',
   workspaceId: 'workspace.case',
@@ -92,6 +101,11 @@ function environment(
         controlId: 'control.disc-layout-presets.selector',
       },
       {
+        workflowId: 'workflow.case-layout-presets',
+        ownerId: 'owner.case-layout-presets',
+        controlId: 'control.case-layout-presets.selector',
+      },
+      {
         workflowId: 'workflow.export-options',
         ownerId: 'owner.export.disc-guides',
         controlId: 'control.export.disc.center-hole',
@@ -106,6 +120,7 @@ test('validates exact workflow, workspace, surface, area, owner, and control rel
     intent('workflow.game', DISC_GAME),
     intent('workflow.disc-template', DISC_TEMPLATE),
     intent('workflow.disc-layout-presets', DISC_PRESETS),
+    intent('workflow.case-layout-presets', CASE_PRESETS),
     intent('workflow.export-options', CASE_EXPORT),
   ]) {
     assert.deepEqual(validateEditorNavigationDestination(candidate), {
@@ -174,6 +189,17 @@ test('returns every typed non-completed state and rechecks combined Spine safely
   assert.equal(evaluateEditorNavigationIntent(
     intent('workflow.game', CASE_GAME),
     caseEnvironment,
+  ).status, 'ready')
+  assert.equal(evaluateEditorNavigationIntent(
+    intent('workflow.case-layout-presets', CASE_PRESETS),
+    {
+      ...caseEnvironment,
+      registrations: [{
+        workflowId: 'workflow.case-layout-presets',
+        ownerId: 'owner.case-layout-presets',
+        controlId: 'control.case-layout-presets.selector',
+      }],
+    },
   ).status, 'ready')
 })
 

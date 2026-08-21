@@ -1043,5 +1043,5 @@ test('the planner has no execution, detector rerun, first-Apply planner, catalog
   assert.equal(source.includes('persist'), false)
   assert.equal(source.includes('applyCaseInsertPreset'), false)
   assert.equal(source.includes('detach'), false)
-  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 0)
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
 })

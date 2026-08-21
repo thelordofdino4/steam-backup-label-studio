@@ -516,5 +516,5 @@ test('transition source is pure and has no planner, executor, catalog, or runtim
   assert.doesNotMatch(source,
     /\b(?:localStorage|sessionStorage|fetch|invoke|listen|emit|writeFile|save)\s*\(/)
   assert.doesNotMatch(source, /async\s+function|\bawait\b|new Promise/)
-  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 0)
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
 })

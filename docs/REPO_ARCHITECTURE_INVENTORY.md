@@ -5,7 +5,7 @@
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
 > Last broad repository review against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package ownership refresh: PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` checkpoint on 2026-07-29.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, and schema `0.3.0` persistence/recovery checkpoints through 2026-08-04.
+> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, schema `0.3.0` persistence/recovery, presentation-neutral workflow orchestration, first production-definition, and accessible presentation/invocation checkpoints through 2026-08-05.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
@@ -271,7 +271,7 @@ Source-of-truth state:
   latest-projected-enabled items after earlier keyboard/modal owners, routes
   them into the same runtime ingress, deduplicates cross-source activation, and
   tears down with the runtime. It is window-local, not a system-global shortcut
-  owner. `applicationMenuWorkflowRouting.ts` now resolves the four Tools items
+  owner. `applicationMenuWorkflowRouting.ts` now resolves five Tools items
   only through those descriptors into `editorNavigationRouter.ts` and the
   shared `applicationWorkflowNavigationStore.ts`; the focused
   `applicationEditorFocusAdapter.ts` restores native WebView focus before the
@@ -280,7 +280,8 @@ Source-of-truth state:
   between its sidebar slot and the host, registers the exact focus control,
   and leaves all domain operations untouched. Game and Export Options are
   available for compatible Disc/Case contexts; Disc Template and Disc Layout
-  Presets are Disc-only. Combined Spine resolves only equivalent left/right
+  Presets are Disc-only; Case Layout Presets is Case-only. Combined Spine
+  resolves only equivalent left/right
   area/owner/control entries and retains the combined Spine route. Sidebar
   migration has not begun. Close/termination, Edit, native window actions,
   and Help remain disconnected and disabled. The user reported the complete
@@ -923,7 +924,7 @@ The target Case preset coordination boundary is documented in
 It defines future explicit Front Cover, complete Tray Card, Back Panel, and
 left/right-spine assignment and atomic workflow semantics. The pure definition,
 catalog, compatibility, normalized snapshot, and stable assignment-resolution
-foundation, immutable first-time Apply planner, content-bound review/consent
+foundation, first production definition, immutable first-time Apply planner, content-bound review/consent
 identity, pure atomic transition, authoritative detached applied-configuration
 domain, pure customization detector, pure same-ID Reapply planner, pure atomic
 Reapply transition, pure Detach planner/transition, pure atomic application-
@@ -966,8 +967,9 @@ operation/context/plan/review/consent lineage, an operation-discriminated
 transition identity, one whole-success identity, and explicit non-adoption.
 Strict public validators recompute the entire operation-specific bundle and
 reject substituted aggregates, configurations, endpoints, releases, lineage,
-or mixed authentic fragments. No UI or menu connection exists;
-lifecycle/store installation and focused schema/Save/Open persistence now exist
+or mixed authentic fragments. No UI or menu connection exists. The production
+catalog contains only Jewel Case Essentials revision 1 and still requires
+explicit selection; lifecycle/store installation and focused schema/Save/Open persistence exist
 in their separate owners below.
 
 `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` is now the pure
@@ -1041,8 +1043,8 @@ the complete authorization and compares the complete supplied current session
 to the source; success returns the detached successor `ProjectSession` and the
 existing adoption receipt atomically, while failure returns neither. This owner
 does not install the successor in a store and imports no persistence, schema,
-save/load, UI, catalog, renderer, Tauri, or runtime owner. The production Case
-catalog remains empty. Separate project persistence now saves and restores an
+save/load, UI, catalog, renderer, Tauri, or runtime owner. Production catalog
+composition remains separate. Project persistence saves and restores an
 explicit attachment without invoking this adoption boundary.
 
 `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts` now owns the
@@ -1055,8 +1057,53 @@ one lifecycle-store generation-CAS transition. Success installs the complete
 aggregate-plus-companion successor once and returns the existing receipt;
 stale session/revision, replay, wrong operation, invalid input, busy conflict,
 or store failure changes nothing, and busy cleanup is guaranteed. This adds no
-planner/transition rerun, second store, catalog entry, UI/App/editor invocation,
+planner/transition rerun, second store, catalog composition, UI/App/editor invocation,
 schema, persistence, preview, or export connection.
+
+`src/app/appCaseInsertPresetWorkflow.ts` now owns the presentation-neutral
+application sequence that consumes those existing boundaries. It reads the
+authoritative active Case session, exposes recovered attachment/status and
+customization without rewriting them, requires an explicit exact selection,
+and returns immutable Apply/Reapply/Detach review artifacts. A complete review
+decision is rebound to the exact session, content revision, application
+revision, application-state identity, assignment snapshot, operation, plan, and
+selected preset before the owner coordinates the existing pure transition,
+adoption, lifecycle authorization, and one exact registered command dispatch.
+It owns no second store or persisted workflow state, never constructs or
+installs a successor session, and leaves command busy/CAS/feedback behavior to
+the existing command layer. Detach is independent of catalog availability. The
+owner consumes the injected production catalog but does not construct it.
+
+`src/app/caseInsertPresetPresentationController.ts` owns the only transient
+selection/review/pending/notice/focus presentation state above that application
+owner. `src/components/caseInsert/CaseInsertLayoutPresetsPanel.tsx` is one live
+accessible panel independently ordered after Template in the Case setup sidebar
+and moved, never duplicated, through the shared `WorkflowPresentationOutlet`.
+It starts from “Choose a preset”, offers only complete-preset first Apply,
+requires explicit Reapply policy for customized fields, reports exact recovered
+status, and keeps Detach usable without catalog resolution. App constructs the
+production workflow owner/controller once against the existing lifecycle root.
+The exact typed destination is `workflow.case-layout-presets` /
+`area.layout-presets.case` / `owner.case-layout-presets` /
+`control.case-layout-presets.selector`, and
+`menu.tools.case-layout-presets` is reveal/focus-only with no accelerator.
+
+`src/presets/builtins/jewelCaseEssentialsCasePreset.ts` owns the first and only
+production Case definition: canonical ID
+`builtin:case-preset:jewel-case-essentials`, revision 1, name **Jewel Case
+Essentials**, v1 format, and exact `jewelCase` compatibility. It declares only
+supported normalized placement fields for full-surface backgrounds and safe
+Front/Back Panel/left/right foregrounds. Three optional Tray screenshots bind
+only exact persisted `tray-artwork-1` through `tray-artwork-3` IDs; absent slots
+skip without creation. `caseInsertPresetCatalog.ts` parses and registers that
+definition as the sole `builtin` summary with no aliases or automatic action.
+`src/presets/builtins/jewelCaseEssentialsCasePreset.test.ts` and
+`src/app/jewelCaseEssentialsCasePreset.integration.test.ts` prove exact identity,
+deep immutability, safe containment/non-overlap, explicit Apply through the
+existing lifecycle command, non-layout value preservation, exact Save/Open
+recovery, exact-revision Reapply, detached recovery, and catalog-independent
+Detach. No UI/App/editor, import/Open auto-application, renderer, schema,
+package, Rust, or dependency owner was added.
 
 `src/project/caseInsertPresetProjectPersistenceTypes.ts` and
 `src/project/caseInsertPresetProjectPersistence.ts` own the schema `0.3.0`
@@ -1075,6 +1122,8 @@ equality.
 Key files:
 
 - `src/components/caseInsert/CaseInsertEditorShell.tsx`
+- `src/components/caseInsert/CaseInsertLayoutPresetsPanel.tsx`
+- `src/components/caseInsert/CaseInsertLayoutPresetsPanel.test.ts`
 - `src/components/caseInsert/CaseInsertTemplateControls.tsx`
 - `src/components/caseInsert/CaseInsertTemplateControls.types.ts`
 - `src/components/caseInsert/CaseInsertTemplateGameTitleControls.tsx`
@@ -1107,6 +1156,7 @@ Key files:
 - `src/hooks/useJewelCaseSpineSteamBannerEditor.ts`
 - `src/hooks/useCaseInsertBrandingMarkSync.ts`
 - `src/presets/caseInsertPresetDefinition.ts`
+- `src/presets/builtins/jewelCaseEssentialsCasePreset.ts`
 - `src/presets/caseInsertPresetCatalog.ts`
 - `src/presets/caseInsertPresetCompatibility.ts`
 - `src/presets/caseInsertPresetAssignmentResolution.ts`
@@ -1133,6 +1183,10 @@ Key files:
 - `src/lifecycle/caseInsertPresetSessionApplicationCommit.test.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`
 - `src/lifecycle/caseInsertPresetSessionApplicationCommand.test.ts`
+- `src/app/appCaseInsertPresetWorkflow.ts`
+- `src/app/appCaseInsertPresetWorkflow.test.ts`
+- `src/app/caseInsertPresetPresentationController.ts`
+- `src/app/caseInsertPresetPresentationController.test.ts`
 - `src/project/caseInsertPresetProjectPersistenceTypes.ts`
 - `src/project/caseInsertPresetProjectPersistence.ts`
 - `src/project/caseInsertPresetProjectPersistence.test.ts`
@@ -1167,7 +1221,7 @@ Render path:
 
 Edit/interaction path:
 
-- `CaseInsertEditorShell` wires project, export, game, artwork, branding, text, and guide controls.
+- `CaseInsertEditorShell` wires project, export, Template navigation, the independent Case Layout Presets workflow, game, artwork, branding, text, and guide controls.
 - `useCaseInsertTemplateEditor` owns cover/tray actions.
 - `useJewelCaseSpineEditor` owns spine actions.
 - `useCaseInsertBrandingMarkSync` maps shared/global branding sources into case-insert slots.
@@ -1226,10 +1280,10 @@ Risks:
 - `exportCaseInsertPng.ts` is around 332 lines after delegating template layer,
   image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
-- Issue `#168` and the Case preset workflow contract retain future Case preset
-  starter definitions, installed configuration/release adoption, runtime
-  application, persistence, and
-  presentation work. Pure definition/catalog/compatibility owners reject
+- Issue `#168` and the Case preset workflow contract retain future additional
+  Case definitions, user-authored preset management, runtime presentation, and
+  broader product work. Jewel Case Essentials is the first bounded production
+  definition; pure definition/catalog/compatibility owners reject
   malformed definitions; the pure snapshot/resolution boundary fails closed on
   stale, missing, disabled, ambiguous, incompatible, and unsupported exact
   bindings. The first-time Apply planner consumes those bindings without
@@ -1279,9 +1333,13 @@ Risks:
   retains one complete source/successor authorization, reaudits it, and performs
   a full-session compare-and-swap that returns one atomic successor session plus
   the existing receipt. The focused command/store bridge installs that complete
-  authorized successor once under `project.mutation`; authorization-producing
-  workflow orchestration, UI/App/editor invocation, and a populated production
-  Case catalog remain absent. Schema `0.3.0` and the existing Save/Open path now
+  authorized successor once under `project.mutation`. The populated one-entry
+  production catalog has no automatic effect. A focused application workflow
+  owner performs explicit-selection and reviewed Apply/Reapply/Detach
+  orchestration through those exact owners; one transient controller and one
+  live Case sidebar/shared-host panel invoke that owner without copying its
+  authorization decisions.
+  Schema `0.3.0` and the existing Save/Open path now
   persist and atomically recover the explicit attachment/application state
   without replaying any preset operation.
 
@@ -1977,6 +2035,12 @@ Current `npm run test` covers these broad areas:
   adapter's complete successor authorization, full-session staleness/replay
   rejection, exact content/application revision rules, atomic successor-session
   and existing-receipt result, hostile-input safety, and dependency isolation.
+- The sole Jewel Case Essentials production definition and catalog entry,
+  including exact reviewed owner/object/basis mappings, optional stable-ID
+  screenshots, physical safe-region containment and non-overlap, explicit
+  workflow Apply, atomic lifecycle installation, Save/Open recovery,
+  exact-revision Reapply, detached/no-inference recovery, and catalog-independent
+  Detach without UI or renderer integration.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
 - The runtime-connected application lifecycle composition root, state store,
   command registry/dispatcher, busy coordinator, typed command ports,

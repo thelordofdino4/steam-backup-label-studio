@@ -784,7 +784,7 @@ test('planner accepts no review, consent, definition, report, policy, execution,
     'snapshot',
     'template',
   ])
-  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 0)
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
 
   const plannerSource = readFileSync(
     new URL('./caseInsertPresetDetachPlanning.ts', import.meta.url),

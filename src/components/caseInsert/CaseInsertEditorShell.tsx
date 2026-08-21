@@ -107,6 +107,10 @@ import {
   getEditorNavigationShellRoleSectionItems,
 } from '../editor/editorNavigationShellViewModel'
 import { GamePanel, type GamePanelProps } from '../sidebar/GamePanel'
+import { CaseInsertLayoutPresetsPanel } from './CaseInsertLayoutPresetsPanel'
+import type {
+  CaseInsertPresetPresentationController,
+} from '../../app/caseInsertPresetPresentationController'
 import { EditorPanel } from '../editor/EditorPanel'
 import {
   WorkflowPresentationOutlet,
@@ -147,6 +151,7 @@ export type CaseInsertEditorShellProps = {
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
   gamePanelProps: GamePanelProps
+  caseInsertPresetPresentation: CaseInsertPresetPresentationController
   projectStatus: string
   statusToasts: PreviewToast[]
   onMainMenu: () => void
@@ -226,6 +231,7 @@ function CaseInsertProjectPanel({
   | 'logoCandidateDiscovery'
   | 'handleFindLogoCandidates'
   | 'gamePanelProps'
+  | 'caseInsertPresetPresentation'
   | 'statusToasts'
   | 'onNavigationSurfaceChange'
   | 'onActiveTemplatePaneChange'
@@ -426,6 +432,7 @@ export function CaseInsertEditorShell({
   logoCandidateDiscovery,
   handleFindLogoCandidates,
   gamePanelProps,
+  caseInsertPresetPresentation,
   projectStatus,
   statusToasts,
   onMainMenu,
@@ -497,6 +504,17 @@ export function CaseInsertEditorShell({
             activeTemplatePane={activeTemplatePane}
             onActiveTemplatePaneChange={onActiveTemplatePaneChange}
           />
+        )
+      case 'layoutPresets':
+        return (
+          <WorkflowPresentationOutlet
+            key={panel.id}
+            workflowId="workflow.case-layout-presets"
+          >
+            <CaseInsertLayoutPresetsPanel
+              controller={caseInsertPresetPresentation}
+            />
+          </WorkflowPresentationOutlet>
         )
       default:
         return null

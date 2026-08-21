@@ -477,5 +477,8 @@ test('installation command imports no planner, operation transition, catalog, UI
     '../presets/caseInsertPresetCatalog.ts',
     import.meta.url,
   ), 'utf8')
-  assert.match(catalog, /createCaseInsertPresetCatalog\(\)/)
+  assert.match(
+    catalog,
+    /builtins:\s*\[JEWEL_CASE_ESSENTIALS_CASE_PRESET\]/,
+  )
 })

@@ -890,6 +890,12 @@ test('planner source has no React, DOM, store, renderer, filesystem, Tauri, or c
   assert.doesNotMatch(source, /commit|applyCaseInsert|updateProject|mutation/)
 })
 
-test('production Case catalog remains empty and no starter preset is added', () => {
-  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [])
+test('production Case catalog contains only the reviewed starter preset', () => {
+  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list().map(({ id, revision }) => ({
+    id,
+    revision,
+  })), [{
+    id: 'builtin:case-preset:jewel-case-essentials',
+    revision: 1,
+  }])
 })

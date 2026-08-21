@@ -156,7 +156,7 @@ slice.
 | Historical “Save Project” was dialog-only JSON Save As. The current Project File control dispatches `project.save`; `project.save-as` is a distinct semantic owner. Only a truthful package session with an eligible `.sbls` path writes directly, while pathless, legacy, and wrong-suffix sessions route internally through Save As. A successful clean direct write remains successful when baseline adoption is already a semantic no-op. | `src/app/appProjectSaveCommand.ts`, `src/app/App.tsx`, focused tests | The production bypass was removed without adding menu presentation. |
 | A project successfully accepted through `project.open` receives an authoritative session ID, selected path, content-recognized `legacy-json` or `sbls-package-v1`, exact normalized project and clean baseline, revision zero, and editor route. New Disc/New Case establish pathless, baseline-less, dirty sessions with null persistence identity. Successful package writes preserve the session ID and adopt `sbls-package-v1` only after commit. | `src/app/appProjectLoad.ts`, `src/app/appProjectOpenCommand.ts`, `src/app/appProjectNewCommand.ts`, `src/app/appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for Close, termination, and broader lifecycle completion. |
 | Disc and Case editor owners still own their editable React state. A committed-render adapter supplies one complete normalized aggregate to `synchronizeCurrentProject`; equal canonical content is a reference/state/revision/publication no-op, while a real content change preserves session metadata and advances revision once. | `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleCompositionRoot.ts`, focused tests | The lifecycle session is now the authoritative Save/dirty source without moving editor state into a reducer. Session-only route, pane, focus, zoom, selection, modal, and workflow-host state stays outside dirty comparison. |
-| `ProjectSession` is discriminated by project kind. A Case session keeps its sole complete persistable aggregate at `project.caseInsert` and carries one required `caseInsertPresetApplication` companion containing only session-scoped attachment, assignment-snapshot identity, distinct application revision, and application-state identity. New/Open Case sessions start unattached at application revision zero. The source adoption owner can now emit one validated versioned operation-discriminated success bundle; the pure lifecycle preparer binds it to the exact source session in a deterministic successor envelope, and the pure commit boundary applies full-session CAS before returning one successor session plus the existing receipt. | `src/lifecycle/projectSession.ts`, `src/lifecycle/caseInsertPresetSessionApplication.ts`, `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`, focused tests | An aggregate-changing adoption advances persisted-content `revision` once; attachment-only adoption retains that revision while its application revision has already advanced once. Store installation, workflow UI, schema/save/load/package persistence, and runtime wiring remain absent. |
+| `ProjectSession` is discriminated by project kind. A Case session keeps its sole complete persistable aggregate at `project.caseInsert` and carries one required `caseInsertPresetApplication` companion containing only session-scoped attachment, assignment-snapshot identity, distinct application revision, recovery status, and application-state identity. New Case sessions start unattached at application revision zero; Open reconstructs the explicit schema `0.3.0` projection. The source adoption owner emits one validated operation-discriminated bundle; the pure lifecycle boundary binds it to the exact source session; the existing command installs the complete authorized successor under full-session/store-generation CAS; and the presentation-neutral application owner now coordinates explicit selection/review through that command. | `src/lifecycle/projectSession.ts`, `src/lifecycle/caseInsertPresetSessionApplication.ts`, `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`, `src/project/caseInsertPresetProjectPersistence.ts`, `src/app/appCaseInsertPresetWorkflow.ts`, focused tests | An aggregate-changing adoption advances persisted-content `revision` once; attachment-only adoption retains that revision while its application revision advances once. The production Case catalog contains only Jewel Case Essentials revision 1 and remains explicitly selected; workflow UI and App/editor invocation remain absent. Orchestration reuses the existing installation owner rather than duplicating it. |
 | Home, Disc, and Case New controls dispatch `project.new-disc` or `project.new-case`; all current Load controls dispatch `project.open`. These three owners stage/prepare a complete candidate, consume one shared dirty-aware Save/Discard/Cancel guard when necessary, recheck session ID/revision, and commit lifecycle/editor state atomically. | `src/app/appProjectNewCommand.ts`, `src/app/appProjectReplacementGuard.ts`, `src/app/appProjectOpenCommand.ts`, `src/components/project/ProjectReplacementDialog.tsx`, `src/app/App.tsx` | #303's always-prompt direction is superseded in production for New/Open. Later Close/termination guarding remains separate #308 work. |
 | Open now completes dialog, read, parse, validation/migration, route resolution, Disc image inspection, restoration, preset reconstruction, and Case branding projection before returning one immutable discriminated candidate. Its lifecycle CAS and complete editor aggregate are then scheduled inside one React batch; stale CAS applies no editor state. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, `src/app/appProjectOpenCommand.ts`, focused tests | The two-phase Open and atomic application seam is runtime-connected for current Home, Disc, and Case Load controls. |
 | Production Open calls a focused native content recognizer, then either the legacy text reader or the bounded native package reader/codec. The package branch transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open without fallback after a package failure. | `src-tauri/src/project_format_recognition.rs`, `src-tauri/src/commands/project_files.rs`, `src-tauri/src/commands/project_packages.rs`, `src/tauri/projectFileFormat.ts`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing, restoration, and lifecycle commit stay shared. Extensions affect chooser visibility and Save eligibility, never Open identity. |
@@ -280,15 +280,17 @@ Until that decision is made, a compatibility serializer may continue to read
 or emit the coarse field, but lifecycle dirty comparison must treat navigation
 as session-only rather than as changed design content.
 
-The Case preset companion is likewise canonical session-only metadata. New and
-Open construct it as unattached at application revision zero from the accepted
-complete Case aggregate. It is deliberately absent from `SavedProject`, the
-clean baseline, canonical dirty comparison, Save snapshots, package projection,
-and schema/migration processing. Save therefore writes only the lifecycle-owned
-normalized project aggregate and never serializes preset attachment metadata.
-The pure adoption-commit adapter likewise returns a successor only in memory;
-it performs no store installation, serialization, package projection, or
-persistence operation.
+The live Case preset companion is canonical session-only metadata. New creates
+it unattached at application revision zero; Open reconstructs it from the
+explicit schema `0.3.0` persisted projection. The companion wrapper, recovery
+status, derived identities, and transient workflow reviews remain absent from
+the clean baseline and canonical dirty comparison. Save captures one coherent
+aggregate-plus-attachment application snapshot and serializes only the narrow
+project-file representation owned by `caseInsertPresetProjectPersistence.ts`.
+The pure adoption-commit adapter itself remains memory-only and performs no
+store installation, serialization, package projection, or persistence
+operation; the existing application command and project-file owners provide
+those separate boundaries.
 
 ## 6. Dirty State, Canonicalization, And Baseline Rules
 
@@ -899,11 +901,10 @@ current support for:
   [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md);
 - detailed Export, Game, Disc Template/physical-geometry, Layout Preset, or
   Guided Workflow behavior;
-- production Case preset adoption workflow or attachment persistence; the
-  current lifecycle checkpoint provides the validated session representation,
-  source-owned adoption bundle, and pure prepare/full-session-CAS commit
-  adapter, but no store installation, UI, runtime composition, schema, save/load,
-  or package wiring;
+- Case preset workflow UI or App/editor invocation; the current source includes
+  one explicitly selected production definition, presentation-neutral reviewed
+  orchestration, existing-command store installation, and schema `0.3.0`
+  attachment persistence/recovery without connecting a presentation;
 - schema reconstruction or new persisted fields beyond the authority boundary
   stated here.
 

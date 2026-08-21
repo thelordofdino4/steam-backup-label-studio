@@ -4,6 +4,7 @@ export const EDITOR_WORKFLOW_IDS = Object.freeze([
   'workflow.game',
   'workflow.disc-template',
   'workflow.disc-layout-presets',
+  'workflow.case-layout-presets',
   'workflow.export-options',
 ] as const)
 
@@ -28,12 +29,14 @@ export type EditorDomainAreaId =
   | 'area.game'
   | 'area.template.disc'
   | 'area.layout-presets.disc'
+  | 'area.layout-presets.case'
   | 'area.export'
 
 export type EditorFeatureOwnerId =
   | 'owner.game.search'
   | 'owner.disc-template'
   | 'owner.disc-layout-presets'
+  | 'owner.case-layout-presets'
   | 'owner.export.disc-guides'
   | 'owner.export.case-guides'
 
@@ -41,6 +44,7 @@ export type EditorRegisteredControlId =
   | 'control.game.query'
   | 'control.disc-template.selector'
   | 'control.disc-layout-presets.selector'
+  | 'control.case-layout-presets.selector'
   | 'control.export.disc.center-hole'
   | 'control.export.case.cover-trim'
   | 'control.export.case.tray-trim'
@@ -176,6 +180,13 @@ export function validateEditorNavigationDestination(
           destination.areaId === 'area.layout-presets.disc' &&
           destination.ownerId === 'owner.disc-layout-presets' &&
           destination.controlId === 'control.disc-layout-presets.selector'
+        ? Object.freeze({ status: 'ready' })
+        : invalid('invalid-owner-control')
+    case 'workflow.case-layout-presets':
+      return destination.workspaceId === 'workspace.case' &&
+          destination.areaId === 'area.layout-presets.case' &&
+          destination.ownerId === 'owner.case-layout-presets' &&
+          destination.controlId === 'control.case-layout-presets.selector'
         ? Object.freeze({ status: 'ready' })
         : invalid('invalid-owner-control')
     case 'workflow.export-options':

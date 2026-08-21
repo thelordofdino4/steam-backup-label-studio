@@ -5,12 +5,12 @@
 > Read when: Changing application/editor navigation, moving or adding controls, routing preview selections to controls, extending Disc or Case surfaces, changing contextual controls, or implementing workflow entry points.
 > Authoritative source: This document is normative for target editor-navigation and control-ownership semantics. Current as-built facts defer to source and the SDD; shared application-command IDs and lifecycle behavior defer to `APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`; final application-menu presentation and integration defer to `APPLICATION_MENU_BAR_CONTRACT.md`; focused `export.png` execution semantics defer to `EXPORT_WORKFLOW_CONTRACT.md`; serialized schema defers to `PROJECT_FILE_SPEC.md`; rich-text and source-editing behavior defers to `TEXT_EDITOR_CONTRACT.md`.
 > Last reviewed against commit: `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`.
-> Focused implementation checkpoint: current worktree on 2026-07-31, based on `main` at `1619ef00e3913bb944e1d2c27b4459c55f411c20`, implements the four Tools destinations through one typed router and one shared nonmodal host without re-baselining unrelated audit evidence.
+> Focused implementation checkpoint: current worktree on 2026-08-05 implements five Tools destinations, including the Case Layout Presets presentation, through one typed router and one shared nonmodal host without re-baselining unrelated audit evidence.
 
 ## 1. Status, Scope, And Authority
 
 This is a draft target-state contract. One focused subset is now implemented:
-the four application-menu Tools destinations use a typed navigation router,
+five application-menu Tools destinations use a typed navigation router,
 registered owner controls, and one shared nonmodal workflow host. The broader
 destination catalog and other host categories remain target state. Existing
 sidebar presentations remain compatibility adapters and are not yet migrated.
@@ -219,6 +219,8 @@ The matrix records every audited setup, navigation, contextual, viewport, legend
 | Case right spine | Current combined Spine tab/tray pane | Same plus spine-side feature owners | Editor navigation | Typed editor destination router | Workspace navigation | Activate/focus right physical spine context | S | No | Spine-capable Case session | No owner mutation | `surface.case.spine.right` | #306, #168 | Current fact (coarse route); target ownership rule |
 | Disc Layout Preset selection | Disc | local `DiscLayoutPresetsPanel` state | Domain workflow | Disc preset chooser state | Domain workflow | Select candidate preset only | E | No | Applicable Disc presets | May change while idle; does not apply | `area.layout-presets.disc` + `owner.disc-layout-presets` + `control.disc-layout-presets.selector` | #168, #281 | Current fact; target ownership rule |
 | Apply Disc Layout Preset | Disc | registered preset application boundary plus feature owners | Domain workflow | Disc preset application owner delegating typed updates | Domain workflow | Apply preset to ordinary feature owners | P | Yes | Compatible exact preset/template | One application at a time; structured no-update result | `control.disc-layout-presets.apply`; navigation success precedes apply result | #168, #281 | Current fact; target ownership rule |
+| Case Layout Preset selection and review | Case | `caseInsertPresetPresentationController.ts` + `CaseInsertLayoutPresetsPanel.tsx` | Domain workflow | `appCaseInsertPresetWorkflow.ts` plus existing pure planners | Domain workflow | Explicitly select the exact preset and construct immutable complete-scope Apply, explicit-policy Reapply, or Detach review | E | No until confirmed | Active Case session and exact workflow status | New session/revision invalidates transient review; navigation never confirms | `area.layout-presets.case` + `owner.case-layout-presets` + `control.case-layout-presets.selector` | #168 | Current fact; target ownership rule |
+| Confirm Case Layout Preset Apply/Reapply/Detach | Case | Same presentation controller | Domain workflow | Existing `case.layoutPreset.*` lifecycle command owner | Domain workflow | Dispatch one reviewed operation authorization; Detach does not consult catalog | P | Yes through command | Exact non-stale review and operation capability | Confirmation is single-flight; typed result and shared feedback | Navigation remains at the Case preset owner; status/review/error focus is owner-directed | #168 | Current fact; target ownership rule |
 | Include again / Show guide again | Disc Guided Progress | `discGuidedWorkflow.ts`; panel adapter | Domain workflow | Guided workflow owner | Domain workflow | Change omission/completion guidance only | P | Yes | Active guided layout/slot | Synchronous; never changes feature content/layout | `area.guided.disc` + owner + exact `control.disc-guided.include-again` / `.show-again`; slot identity comes from the guided registry | #281 | Current fact; target ownership rule |
 | Reset guided progress | Disc Guided Progress | Same | Domain workflow | Guided workflow owner | Domain workflow | Clear guided progress flags, not owner content | P | Yes | Active guided layout | Explicit reset; modal only if focused issue requires it | `control.disc-guided.reset-progress` | #281 | Current fact; target ownership rule |
 | Guided placeholder action / focus owner | Disc preview | Guided lifecycle resolver and typed role-focus controller | Editor navigation | General typed destination router adapted to existing role-focus owner | Preview interaction | Reveal/focus the exact owner; never fill/apply automatically | S/E | No | Reachable current slot and compatible owner | One request/one result; no timers, selector retries, or mutation | Typed `domain-area`/`selected-owner` destination; existing Disc focus IDs adapt underneath | #17, #175, #281 | Current fact; target ownership rule |
@@ -294,6 +296,13 @@ Disc and Case navigation identity map:
 | `workspace.case` | `surface.case.spine.right` | Combined Spine surface tab; Tray Card pane; right-side owner within preview | Current navigation retains only `spine`, while the project model has right-side content | Typed destination router preserves right physical-side identity |
 
 The current `cover`/`tray` pane model is a compatibility/rendering adapter: Front activates `cover`; Back and either spine side activate `tray`. The current combined Spine tab may continue presenting both sides, but semantic destinations and selected-owner identities must preserve which physical side was requested. Mirrored spine editing is a feature-owner operation, not navigation.
+
+**CURRENT FACT —** Case Layout Presets is an application workflow domain area,
+not another physical surface or the Case “Template” navigation selector. Its one
+live panel is independently ordered after Template in the Case sidebar and can
+move to the shared nonmodal host. The Tools destination retains the current
+Case surface, reveals the panel, and focuses its registered native selector
+without starting a preset operation.
 
 **CURRENT FACT —** The Tools router represents the currently visible combined
 Spine tab as ephemeral `surface.case.spine` context only while resolving a
@@ -371,6 +380,7 @@ type EditorDomainAreaId =
   | 'area.game'
   | 'area.template.disc'
   | 'area.layout-presets.disc'
+  | 'area.layout-presets.case'
   | 'area.guided.disc'
   | 'area.contextual-text'
   | 'area.guide-legend'
@@ -386,6 +396,7 @@ type EditorFeatureOwnerId =
   | 'owner.game.metadata-assistance'
   | 'owner.disc-template'
   | 'owner.disc-layout-presets'
+  | 'owner.case-layout-presets'
   | 'owner.disc-guided-workflow'
   | 'owner.contextual-text'
   | 'owner.preview-guide-legend'
@@ -439,6 +450,7 @@ type EditorRegisteredControlId =
   | 'control.disc-template.safe-diameter'
   | 'control.disc-layout-presets.selector'
   | 'control.disc-layout-presets.apply'
+  | 'control.case-layout-presets.selector'
   | 'control.disc-guided.include-again'
   | 'control.disc-guided.show-again'
   | 'control.disc-guided.reset-progress'
@@ -504,11 +516,12 @@ Minimum destination catalog:
 | Game workflow | `domain-area` | Active workspace | Active surface | `area.game` | `owner.game.search`, `.import`, `.metadata`, or `.metadata-assistance` | `control.game.query`, `.search`, or exact candidate control | Search/import/candidate generations remain workflow-owned |
 | Disc Template | `domain-area` | `workspace.disc` | `surface.disc` | `area.template.disc` | `owner.disc-template` | `control.disc-template.selector` or exact dimension control | Case returns `editor-incompatible` |
 | Disc Layout Presets | `domain-area` | `workspace.disc` | `surface.disc` | `area.layout-presets.disc` | `owner.disc-layout-presets` | `control.disc-layout-presets.selector` or `.apply` | Focus does not apply preset |
+| Case Layout Presets | `domain-area` | `workspace.case` | Current Case surface | `area.layout-presets.case` | `owner.case-layout-presets` | `control.case-layout-presets.selector` | Focus does not select, plan, apply, reapply, or detach; the same live panel moves between sidebar and shared host |
 | Disc Guided Workflow | `domain-area` | `workspace.disc` | `surface.disc` | `area.guided.disc` | `owner.disc-guided-workflow` | Exact registered slot/progress control | Focus does not change omission/completion/content |
 | Contextual text | `selected-owner` | Active compatible workspace | Selection’s surface | `area.contextual-text` | `owner.contextual-text` | Category and exact control IDs | Requires matching selected-owner reference; otherwise `hidden` |
 | Guide Legend | `overlay` | Active workspace | Active surface | `area.guide-legend` | `owner.preview-guide-legend` | `control.guide-legend.toggle` | Reveal/focus only; no project mutation |
 
-`EditorRegisteredFeatureOwnerId`, `EditorRegisteredControlId`, and `EditorSelectedOwnerRef` are closed registry-backed unions assembled from feature modules; they are not arbitrary strings. The minimum registered control catalog includes the exact controls named in section 6, including `control.game.search`, `control.disc-template.selector`, `control.disc-layout-presets.selector`, `control.contextual-text.source`, the contextual category IDs, and `control.guide-legend.toggle`.
+`EditorRegisteredFeatureOwnerId`, `EditorRegisteredControlId`, and `EditorSelectedOwnerRef` are closed registry-backed unions assembled from feature modules; they are not arbitrary strings. The minimum registered control catalog includes the exact controls named in section 6, including `control.game.search`, `control.disc-template.selector`, `control.disc-layout-presets.selector`, `control.case-layout-presets.selector`, `control.contextual-text.source`, the contextual category IDs, and `control.guide-legend.toggle`.
 
 `behavior: 'reveal'` changes semantic navigation state without moving focus and returns `focus: 'not-requested'`. `behavior: 'focus'` moves focus only after the registered target renders. The request ID provides one-shot stale/consumption ordering; it is session-only and not a DOM identity.
 

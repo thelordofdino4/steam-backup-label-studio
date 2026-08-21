@@ -1374,5 +1374,5 @@ test('model exports no executor and has no forbidden runtime dependency', () => 
     /CASE_INSERT_PRESET_VALIDATED_APPLICATION_ADOPTION_EVIDENCE/)
   assert.match(source,
     /declare const CASE_INSERT_PRESET_COHERENT_ADOPTION_SUCCESS/)
-  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 0)
+  assert.equal(CASE_INSERT_PRESET_CATALOG.list().length, 1)
 })

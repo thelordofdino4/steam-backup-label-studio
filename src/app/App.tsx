@@ -18,6 +18,13 @@ import '../styles/App.css'
 import '../styles/layoutFix.css'
 import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditorShell'
 import {
+  createAppCaseInsertPresetWorkflowOwner,
+} from './appCaseInsertPresetWorkflow'
+import {
+  createCaseInsertPresetPresentationController,
+} from './caseInsertPresetPresentationController'
+import { CASE_INSERT_PRESET_CATALOG } from '../presets/caseInsertPresetCatalog'
+import {
   DiscAdditionalTextRoleControls,
 } from '../components/editor/DiscAdditionalTextRoleControls'
 import {
@@ -1952,6 +1959,22 @@ function App() {
     applicationLifecycleRoot.getSnapshot,
     applicationLifecycleRoot.getSnapshot,
   )
+  const [caseInsertPresetWorkflowOwner] = useState(() =>
+    createAppCaseInsertPresetWorkflowOwner({
+      lifecycle: applicationLifecycleRoot,
+      catalog: CASE_INSERT_PRESET_CATALOG,
+    }))
+  const [caseInsertPresetPresentation] = useState(() =>
+    createCaseInsertPresetPresentationController({
+      workflow: caseInsertPresetWorkflowOwner,
+      catalog: CASE_INSERT_PRESET_CATALOG,
+      publishDispatchFeedback: (dispatch) => {
+        publishApplicationCommandFeedback(dispatch, {
+          announceStatus,
+          setHomeStatusMessage,
+        })
+      },
+    }))
   const exportPngDisabled =
     !applicationCommandSnapshot.capabilities['export.png'].canExecute
   const getWorkflowFallbackFocus = useCallback(() => {
@@ -2308,6 +2331,7 @@ function App() {
         logoCandidateDiscovery={logoCandidateDiscovery}
         handleFindLogoCandidates={findLogoCandidates}
         gamePanelProps={caseInsertGamePanelProps}
+        caseInsertPresetPresentation={caseInsertPresetPresentation}
         projectStatus={projectStatus}
         statusToasts={statusToasts}
         onMainMenu={handleReturnToHome}

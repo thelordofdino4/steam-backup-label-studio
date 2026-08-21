@@ -11,6 +11,9 @@ import {
   cloneFixture,
   createMinimalCaseInsertPresetDefinition,
 } from './caseInsertPresetTestFixtures.ts'
+import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+} from './builtins/jewelCaseEssentialsCasePreset.ts'
 
 const USER_ALPHA_ID =
   'user:case-preset:123e4567-e89b-42d3-a456-426614174000'
@@ -29,10 +32,17 @@ function createDefinition(
   return definition
 }
 
-test('the default catalog is immutable and intentionally has no starter presets', () => {
-  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [])
+test('the default catalog contains only the reviewed Jewel Case Essentials preset', () => {
+  assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [{
+    id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+    revision: 1,
+    name: 'Jewel Case Essentials',
+    surface: 'case-insert',
+    source: 'builtin',
+  }])
   assert.ok(Object.isFrozen(CASE_INSERT_PRESET_CATALOG))
   assert.ok(Object.isFrozen(CASE_INSERT_PRESET_CATALOG.list()))
+  assert.ok(Object.isFrozen(CASE_INSERT_PRESET_CATALOG.list()[0]))
 })
 
 test('resolves canonical latest and exact revision identities without substitution', () => {

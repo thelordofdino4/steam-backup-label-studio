@@ -41,6 +41,7 @@ const EXPECTED_ITEM_IDS = [
   'menu.tools.game',
   'menu.tools.disc-template',
   'menu.tools.disc-layout-presets',
+  'menu.tools.case-layout-presets',
   'menu.tools.export-options',
   'menu.window.minimize',
   'menu.window.toggle-maximize',
@@ -161,7 +162,9 @@ test('parent, numeric order, group, and derived separators match the contract', 
     'separator:tools-game->tools-disc',
     'menu.tools.disc-template',
     'menu.tools.disc-layout-presets',
-    'separator:tools-disc->tools-export',
+    'separator:tools-disc->tools-case',
+    'menu.tools.case-layout-presets',
+    'separator:tools-case->tools-export',
     'menu.tools.export-options',
   ])
   assert.deepEqual(entryTokens(windows, 'menu.window'), [
@@ -239,15 +242,18 @@ test('workflow targets resolve exact owner-backed destinations without mutation 
   const game = item('menu.tools.game').semanticTarget
   const discTemplate = item('menu.tools.disc-template').semanticTarget
   const presets = item('menu.tools.disc-layout-presets').semanticTarget
+  const casePresets = item('menu.tools.case-layout-presets').semanticTarget
   const exportOptions = item('menu.tools.export-options').semanticTarget
   assert.equal(game.kind, 'workflow-navigation')
   assert.equal(discTemplate.kind, 'workflow-navigation')
   assert.equal(presets.kind, 'workflow-navigation')
+  assert.equal(casePresets.kind, 'workflow-navigation')
   assert.equal(exportOptions.kind, 'workflow-navigation')
   if (
     game.kind !== 'workflow-navigation' ||
     discTemplate.kind !== 'workflow-navigation' ||
     presets.kind !== 'workflow-navigation' ||
+    casePresets.kind !== 'workflow-navigation' ||
     exportOptions.kind !== 'workflow-navigation'
   ) return
 
@@ -261,6 +267,23 @@ test('workflow targets resolve exact owner-backed destinations without mutation 
   })
   assert.equal(resolveApplicationMenuWorkflowDestination(discTemplate, 'case-cover'), null)
   assert.equal(resolveApplicationMenuWorkflowDestination(presets, 'case-tray'), null)
+  assert.deepEqual(
+    resolveApplicationMenuWorkflowDestination(casePresets, 'case-tray'),
+    {
+      kind: 'domain-area',
+      workspaceId: 'workspace.case',
+      surfaceId: 'surface.case.back',
+      areaId: 'area.layout-presets.case',
+      ownerId: 'owner.case-layout-presets',
+      controlId: 'control.case-layout-presets.selector',
+    },
+  )
+  assert.equal(resolveApplicationMenuWorkflowDestination(casePresets, 'disc'), null)
+  assert.equal(
+    resolveApplicationMenuWorkflowDestination(casePresets, 'case-spine')
+      ?.controlId,
+    'control.case-layout-presets.selector',
+  )
   assert.deepEqual(resolveApplicationMenuWorkflowDestination(exportOptions, 'disc'), {
     kind: 'domain-area',
     workspaceId: 'workspace.disc',
@@ -291,7 +314,7 @@ test('workflow targets resolve exact owner-backed destinations without mutation 
     'control.export.case.tray-trim',
   )
   assert.doesNotMatch(
-    JSON.stringify([game, discTemplate, presets, exportOptions]),
+    JSON.stringify([game, discTemplate, presets, casePresets, exportOptions]),
     /control\.[^"]*\.apply|control\.game\.search|control\.game\.results|export\.png/,
   )
 })
@@ -330,6 +353,16 @@ test('Windows, Linux, and macOS projections preserve logical order and exact pla
   )
   assert.equal(get(windows, 'menu.window.minimize').accelerator, null)
   assert.equal(get(macos, 'menu.window.minimize').accelerator, 'Command+M')
+  for (const descriptor of [windows, linux, macos]) {
+    assert.equal(
+      get(descriptor, 'menu.tools.case-layout-presets').label,
+      'Case Layout Presets…',
+    )
+    assert.equal(
+      get(descriptor, 'menu.tools.case-layout-presets').accelerator,
+      null,
+    )
+  }
   assert.equal(get(windows, 'menu.window.toggle-maximize').label, 'Maximize')
   assert.equal(get(linux, 'menu.window.toggle-maximize').label, 'Maximize')
   assert.equal(get(macos, 'menu.window.toggle-maximize').label, 'Zoom')
