@@ -28,9 +28,13 @@ import {
   createEmbeddedProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
 import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
+import type {
+  ProjectCaseInsertReservedArtworkViewport,
+} from '../project/projectTypes.ts'
 import {
   CASE_INSERT_PRESET_CATALOG,
   createCaseInsertPresetCatalog,
+  type CaseInsertPresetCatalog,
 } from '../presets/caseInsertPresetCatalog.ts'
 import {
   JEWEL_CASE_ESSENTIALS_CASE_PRESET,
@@ -53,6 +57,18 @@ const PRESET = Object.freeze({
 
 const SAMPLE_PNG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+XMRdAAAAAElFTkSuQmCC'
+
+const CUSTOM_ARTWORK_VIEWPORT: ProjectCaseInsertReservedArtworkViewport = {
+  kind: 'sbls/case-insert-artwork-viewport',
+  formatVersion: 1,
+  templateId: 'jewelCase',
+  templateRevision: null,
+  coordinateBasis: 'backPanelSafe',
+  widthPercent: 24,
+  heightPercent: 16,
+  focalPosition: { xPercent: 43, yPercent: 57 },
+  zoom: 1.3,
+}
 
 function requireCaseSession(
   state: ApplicationLifecycleState,
@@ -141,11 +157,14 @@ function createRepresentativeProject() {
     slot.imageSize = { width: 1, height: 1 }
     return slot
   })
-  tray.artworkSlots.splice(1, 0, createDefaultCaseInsertImageSlot(
+  const customArtwork = createDefaultCaseInsertImageSlot(
     'tray-artwork-custom',
     'Untargeted user artwork',
     { enabled: true, layout: { x: 91, y: 9, scale: 0.42 } },
-  ))
+  )
+  customArtwork.reservedArtworkViewport =
+    structuredClone(CUSTOM_ARTWORK_VIEWPORT)
+  tray.artworkSlots.splice(1, 0, customArtwork)
   return project
 }
 
@@ -306,6 +325,29 @@ test('explicit production Apply preserves content and dispatches one atomic life
       ({ id }) => id === 'tray-artwork-custom',
     ),
   )
+  const customArtwork = installed.project.caseInsert.templates.tray
+    .artworkSlots.find(({ id }) => id === 'tray-artwork-custom')
+  assert.deepEqual(
+    customArtwork?.reservedArtworkViewport,
+    CUSTOM_ARTWORK_VIEWPORT,
+  )
+  if (installed.caseInsertPresetApplication.attachment.status === 'attached') {
+    assert.equal(
+      installed.caseInsertPresetApplication.attachment.configuration.ownedFields
+        .some(({ address }) =>
+          address.bindingId === 'tray-artwork-custom' ||
+          address.runtimeObjectId === 'tray-artwork-custom'),
+      false,
+    )
+  }
+  const inspection = owner.inspectCurrent()
+  assert.equal(inspection.ok, true)
+  if (inspection.ok && inspection.status === 'attached') {
+    assert.equal(inspection.customization.ok, true)
+    if (inspection.customization.ok) {
+      assert.equal(inspection.customization.status, 'clean')
+    }
+  }
   assert.deepEqual(
     installed.project.caseInsert.templates.tray.titleArtwork,
     sourceProject.caseInsert.templates.tray.titleArtwork,
@@ -409,11 +451,91 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
     confirm(applyReview),
   )).ok, true)
   const appliedSession = requireCaseSession(applied.root.getLifecycleState())
+  assert.equal(
+    appliedSession.caseInsertPresetApplication.attachment.status,
+    'attached',
+  )
+  if (appliedSession.caseInsertPresetApplication.attachment.status !==
+      'attached') return
   const saved = createCaseInsertProjectSaveSnapshot(
     appliedSession.project,
     appliedSession.caseInsertPresetApplication,
   )
   assert.equal(saved.schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION)
+
+  const catalogUnavailableStaged = await stageProjectOpenContents({
+    selectedPath: 'C:\\projects\\jewel-case-essentials-no-catalog.sbls',
+    contents: JSON.stringify(saved),
+    persistenceFormat: 'sbls-package-v1',
+    caseInsertBrandingSources: createBrandingSources(),
+    caseInsertPresetCatalog: {
+      getExact: () => { throw new Error('Catalog unavailable.') },
+      getLatest: () => { throw new Error('Catalog unavailable.') },
+      resolve: () => { throw new Error('Catalog unavailable.') },
+      list: () => { throw new Error('Catalog unavailable.') },
+    } satisfies CaseInsertPresetCatalog,
+  })
+  assert.equal(
+    catalogUnavailableStaged.status,
+    'success',
+    JSON.stringify(catalogUnavailableStaged),
+  )
+  if (catalogUnavailableStaged.status !== 'success' ||
+      catalogUnavailableStaged.value.projectType !== 'caseInsert') return
+  assert.deepEqual(
+    catalogUnavailableStaged.value.caseInsertPresetRecovery.recoveryStatus,
+    { status: 'unavailable', code: 'catalog-unavailable' },
+  )
+  assert.deepEqual(
+    catalogUnavailableStaged.value.normalizedProject.caseInsert.templates.tray
+      .artworkSlots.find(({ id }) => id === 'tray-artwork-custom')
+      ?.reservedArtworkViewport,
+    CUSTOM_ARTWORK_VIEWPORT,
+  )
+  const catalogUnavailableSession = createLoadedProjectSession({
+    sessionId: 'jewel-case-essentials-no-catalog-recovered',
+    project: catalogUnavailableStaged.value.normalizedProject,
+    currentPath: catalogUnavailableStaged.value.selectedPath,
+    persistenceFormat: catalogUnavailableStaged.value.persistenceFormat,
+    lastEditorRoute: catalogUnavailableStaged.value.editorRoute,
+    caseInsertPresetRecovery:
+      catalogUnavailableStaged.value.caseInsertPresetRecovery,
+  })
+  const catalogUnavailableCaseSession = requireCaseSession(
+    catalogUnavailableSession,
+  )
+  assert.deepEqual(
+    catalogUnavailableCaseSession.project.caseInsert.templates.tray
+      .artworkSlots.find(({ id }) => id === 'tray-artwork-custom')
+      ?.reservedArtworkViewport,
+    CUSTOM_ARTWORK_VIEWPORT,
+  )
+  assert.equal(
+    catalogUnavailableCaseSession.caseInsertPresetApplication.attachment.status,
+    'attached',
+  )
+  if (catalogUnavailableCaseSession.caseInsertPresetApplication.attachment
+    .status === 'attached') {
+    assert.deepEqual(
+      catalogUnavailableCaseSession.caseInsertPresetApplication.attachment
+        .configuration.ownedFields,
+      appliedSession.caseInsertPresetApplication.attachment.configuration
+        .ownedFields,
+    )
+    assert.deepEqual(
+      catalogUnavailableCaseSession.caseInsertPresetApplication.attachment
+        .configuration.preset,
+      appliedSession.caseInsertPresetApplication.attachment.configuration
+        .preset,
+    )
+  }
+  assert.deepEqual(
+    createCaseInsertProjectSaveSnapshot(
+      catalogUnavailableCaseSession.project,
+      catalogUnavailableCaseSession.caseInsertPresetApplication,
+    ).caseInsertLayoutPreset,
+    saved.caseInsertLayoutPreset,
+  )
 
   const staged = await stageProjectOpenContents({
     selectedPath: 'C:\\projects\\jewel-case-essentials.sbls',
@@ -569,6 +691,12 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
     'unattached',
   )
   assert.deepEqual(detachedSession.project, beforeDetach)
+  assert.deepEqual(
+    detachedSession.project.caseInsert.templates.tray.artworkSlots.find(
+      ({ id }) => id === 'tray-artwork-custom',
+    )?.reservedArtworkViewport,
+    CUSTOM_ARTWORK_VIEWPORT,
+  )
 })
 
 test('visually matching explicit detached persistence remains detached after Open', async () => {

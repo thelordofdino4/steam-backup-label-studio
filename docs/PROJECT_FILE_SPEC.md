@@ -3,10 +3,10 @@
 > Purpose: Hydrated `SavedProject` schema, current/legacy JSON compatibility, validation, normalization, and migrations.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
 > Authoritative source: This document for hydrated saved-project fields and migrations; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for target package/container behavior; SDD for architecture boundaries.
-> Last reviewed against `origin/main` at `fcde6d9fef8efa25719761b538eda0ad2bca2ed6` plus the focused Case preset project-persistence checkpoint documented below.
+> Last reviewed against `origin/main` at `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused Case reserved-artwork viewport runtime checkpoint documented below.
 
 
-Last refreshed: 2026-08-04.
+Last refreshed: 2026-08-21.
 
 ## Purpose
 
@@ -33,7 +33,7 @@ The active `ProjectSession` model has one Case-only
 state, a distinct application revision, assignment/context identity, recovery
 status, and the deterministic application-state identity. It deliberately
 contains no second Case aggregate: authoritative visual content remains solely
-at `ProjectSession.project.caseInsert`. Schema `0.3.0` persists a narrow
+at `ProjectSession.project.caseInsert`. Schema `0.4.0` persists a narrow
 projection of that companion as `caseInsertLayoutPreset`; the lifecycle owner
 reconstructs transient assignment/session identity from the complete recovered
 aggregate. The persisted companion projection and application revision are not
@@ -55,16 +55,20 @@ attachment-only adoption retains it while the application revision advances
 once. There is no exact application-domain adoption no-op. These pure owners do
 not install the successor themselves. The focused lifecycle command/store
 bridge can install the complete authorized session in memory. Save/Open now
-project and recover its explicit attachment/configuration state, but no UI or
-production workflow invocation is connected.
+project and recover its explicit attachment/configuration state, and the
+existing Case workflow presentation invokes those semantic owners. Jewel Case
+Essentials revision 1 does not emit reserved-artwork viewport actions. The pure
+compatible-owner adoption adapter can populate the ordinary owner field, and
+Save/Open preserve it; ordinary revision-1 Apply/Reapply does not populate it.
 
 The draft target
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
 owns the package manifest, projection, bindings, hydration, and container
 rules. Those are transport-only codec artifacts. Only a fully hydrated,
 schema-accepted, normalized `SavedProject` is editor content and the lifecycle
-project/baseline authority. Package v1 transports current schema `0.3.0` and
-continues to decode registered `0.1.0` and `0.2.0` payloads before migration.
+project/baseline authority. Package v1 transports current schema `0.4.0` and
+continues to decode registered `0.1.0`, `0.2.0`, and `0.3.0` payloads before
+migration.
 The package contract's target canonical data-URL spelling is a package-snapshot
 normalization rule shared with canonical dirty comparison, not a new field or a
 claim about current plain-JSON normalization. Implementing it must preserve
@@ -93,14 +97,14 @@ The draft target
 defines which applied/customized/detached Disc preset configuration semantics
 would affect later editing. This specification still owns any eventual JSON
 shape, schema version, validation, normalization, and migration. No such
-generic Disc preset configuration is present in schema `0.3.0`, and a migration must
+generic Disc preset configuration is present in schema `0.4.0`, and a migration must
 never infer it from owner coordinates or Guided progress.
 
 The Case-specific sibling,
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md),
 defines exact preset references, explicit Front Cover/complete Tray/Back
 Panel/left/right-spine assignments, accepted scopes, stable owner/object
-bindings, and attached/customized/detached semantics. Schema `0.3.0` stores one
+bindings, and attached/customized/detached semantics. Schema `0.4.0` stores one
 explicit `caseInsertLayoutPreset` envelope beside the authoritative Case
 content. Save captures both from one validated lifecycle application snapshot;
 Open validates and reconstructs both before installing one complete successor
@@ -232,13 +236,13 @@ JSON and passes its complete owned package buffer directly to the atomic
 writer. The package codec does not consume TypeScript ports or filesystem paths.
 `write_binary_file` and PNG export behavior are unchanged; that direct writer
 is not an atomic project-package writer. These infrastructure boundaries add no
-schema fields. The focused production Save checkpoint adds only session-owned
-format/path/baseline transitions and lifecycle command behavior under #308;
-replacement guards, Resume, menu, shortcuts, and history remain absent.
+schema fields. Lifecycle replacement, Resume, menu, shortcut, and history
+behavior is owned by the lifecycle and menu contracts; this project-schema
+checkpoint does not redefine it.
 
 ## Current Saved State
 
-Current disc project files use schema version `0.3.0` and include:
+Current disc project files use schema version `0.4.0` and include:
 
 - top-level title and saved timestamp
 - selected Steam game data and manual title
@@ -278,7 +282,7 @@ This sketch is intentionally descriptive. `src/project/projectTypes.ts` remains 
 
 ```ts
 type SavedDiscProject = {
-  schemaVersion: '0.3.0'
+  schemaVersion: '0.4.0'
   title: string
   savedAt: string
   game: {
@@ -343,7 +347,7 @@ type SavedDiscProject = {
 
 ## Current Case Insert State
 
-Jewel case projects are active current JSON projects in the same `0.3.0`
+Jewel case projects are active current JSON projects in the same `0.4.0`
 project family. The case insert editor supports cover, tray, left spine, and
 right spine state, preview, save/load, guide settings, and PNG export paths.
 This does not mean jewel case alpha is complete; #126 and #149 still track the
@@ -363,6 +367,9 @@ The jewel case state stores:
 - editor-only state, including the active case insert pane, so reopening returns
   to Cover Sheet or Tray Card without changing saved design content
 - image asset data, image size, fit/layout settings, and provenance where present
+- a canonical reserved-artwork viewport on repeated Cover, Tray, left-spine,
+  and right-spine artwork slots when that ordinary artwork owner has adopted
+  preset viewport/fitting state
 - update helpers that can disable optional visual/text elements without dropping their remembered values or uploaded assets
 - focused cover/tray/spine action state covered by
   `src/project/projectCaseInsert*.test.ts`,
@@ -373,7 +380,7 @@ The current descriptive shape is:
 
 ```ts
 type SavedCaseInsertProject = {
-  schemaVersion: '0.3.0'
+  schemaVersion: '0.4.0'
   projectType: 'caseInsert'
   title: string
   savedAt: string
@@ -443,6 +450,61 @@ catalog access produce `unavailable`. None substitutes a different definition,
 reruns a transition, blocks faithful owner-value recovery merely because a
 catalog entry is missing, or mutates the recovered configuration.
 
+### Case Reserved-Artwork Viewport State
+
+Schema `0.4.0` adds one optional `reservedArtworkViewport` field to the
+ordinary Case image-slot shape. Only repeated `artworkSlots` on Cover, Tray,
+left spine, and right spine may retain a present value. Background, title,
+logo, and mark owners omit the field after normalization; the field does not
+add a second visual owner or a preset-specific asset binding.
+
+The exact present representation is:
+
+```ts
+type ProjectCaseInsertReservedArtworkViewport = {
+  kind: 'sbls/case-insert-artwork-viewport'
+  formatVersion: 1
+  templateId: 'jewelCase'
+  templateRevision: null
+  coordinateBasis:
+    | 'front'
+    | 'frontSafe'
+    | 'backPanel'
+    | 'backPanelSafe'
+    | 'leftSpine'
+    | 'leftSpineSafe'
+    | 'rightSpine'
+    | 'rightSpineSafe'
+  widthPercent: number
+  heightPercent: number
+  focalPosition: {
+    xPercent: number
+    yPercent: number
+  }
+  zoom: number
+}
+```
+
+The value is a closed format-1 record. `templateId`/`templateRevision` bind it
+to the current Jewel Case geometry contract; `coordinateBasis` must match the
+owning repeated-artwork surface; width and height are finite percentages in
+`[0.01, 100]`; focal coordinates are finite percentages in `[0, 100]`; and zoom
+is finite in `[1, 1000]`. The slot's existing `fit` field remains the fitting
+mode owner. Its existing `layout.x`/`layout.y` own the viewport center,
+`layout.scale` owns the outer-frame scale, and `layout.rotation` owns rotation.
+The new value owns only the reserved frame's basis, normalized size, focal
+position, and zoom; it does not replace source bytes or content bounds.
+
+An omitted property, explicit `null` input, malformed record, out-of-profile
+width, height, or zoom, unsupported format/template identity, or
+owner-incompatible coordinate basis normalizes deterministically to canonical
+property omission. That tolerant omission rule applies only to this
+repeated-artwork metadata:
+normal project validation and normalization still govern every other image
+slot field. Loading never infers a viewport from geometry, `fit`, source
+aspect, visual similarity, preset attachment, or catalog data. Canonical
+omission therefore preserves the exact legacy rendering path.
+
 ## Normalization Rules
 
 Project loading now has a small schema validation and migration gate before
@@ -473,8 +535,8 @@ the stable guided layout ID, its positive contract version, stable omitted slot
 IDs, and stable completed slot IDs in canonical layout order. The two arrays are
 independent and may contain the same semantic slot ID. An inactive workflow
 omits `editor` rather than writing an empty no-op object. An active supported
-layout remains active when both progress arrays are empty. A valid `0.2.0` or
-`0.3.0`
+layout remains active when both progress arrays are empty. A valid `0.2.0`,
+`0.3.0`, or `0.4.0`
 payload that predates completion and omits `completedSlotIds` normalizes it to
 an empty array.
 
@@ -504,19 +566,23 @@ That reconstruction restores guidance and targeted OS/Legal behavior without
 reapplying placement to any restored owner. The resulting preset reference and
 resolved geometry remain runtime-only.
 
-### Schema 0.1.0 And 0.2.0 Migration
+### Schema 0.1.0 Through 0.4.0 Migration
 
 `src/project/projectSchema.ts` registers pure one-step migrations `0.1.0 ->
-0.2.0 -> 0.3.0`. The first preserves all existing project fields and changes
-only `schemaVersion`; it does not add `editor`, infer Classic Top Title from
-current coordinates, create omissions or completions, enable owners, or change
-rendering/export. The second advances every project to `0.3.0` and adds only an
-explicit unattached revision-zero `caseInsertLayoutPreset` envelope to Case
-projects. Disc projects receive no new field. Neither step mutates the decoded
-input or infers Case attachment from legacy content.
+0.2.0 -> 0.3.0 -> 0.4.0`. The first preserves all existing project fields and
+changes only `schemaVersion`; it does not add `editor`, infer Classic Top Title
+from current coordinates, create omissions or completions, enable owners, or
+change rendering/export. The second advances every project to `0.3.0` and adds
+only an explicit unattached revision-zero `caseInsertLayoutPreset` envelope to
+Case projects. The third is likewise pure and changes only `schemaVersion`;
+current Case normalization then preserves canonical omission of
+`reservedArtworkViewport` for repeated artwork that predates the field.
+Disc projects receive no new content field. No step mutates the decoded input
+or infers Case preset attachment or viewport state from legacy content,
+geometry, field values, or visual similarity.
 
-Legacy `0.1.0` and `0.2.0` JSON remain accepted through this chain; new
-snapshots use `0.3.0`.
+Legacy `0.1.0`, `0.2.0`, and `0.3.0` JSON remain accepted through this chain;
+new snapshots use `0.4.0`.
 
 ## Future Package Direction
 
@@ -536,7 +602,7 @@ package v1 authorizes no such union.
 
 ## Future Schema Work
 
-- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), the role-based preset definition/model vocabulary is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md), and application-level configuration semantics are documented in the editor-specific [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md) and [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md). Schema `0.3.0` adds only the Case persistence envelope described above; it does not add generic Disc preset configuration or a catalog definition.
+- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), the role-based preset definition/model vocabulary is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md), and application-level configuration semantics are documented in the editor-specific [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md) and [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md). Schema `0.4.0` retains the focused Case preset persistence envelope and adds only the ordinary repeated-artwork viewport metadata described above; it does not add generic Disc preset configuration, copy a catalog definition, or change package format 1.
 - Register focused project schema migrations in `src/project/projectSchema.ts`
   before changing saved-project semantics.
 - Keep migrations one version step at a time and make each migration produce the

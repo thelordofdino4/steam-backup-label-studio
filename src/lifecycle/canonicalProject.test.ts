@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
 import { createCaseInsertProjectSnapshot } from '../project/caseInsertProjectAdapters.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
 import type {
   SavedCaseInsertProject,
   SavedDiscProject,
@@ -14,7 +16,7 @@ function createDiscProject(
   overrides: Partial<SavedDiscProject> = {},
 ): SavedDiscProject {
   return {
-    schemaVersion: '0.2.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'disc',
     title: 'Canonical Disc',
     savedAt: '2026-07-26T12:00:00.000Z',
@@ -77,7 +79,7 @@ test('canonical project comparison sorts records while preserving array order', 
     savedAt: '2026-07-26T12:00:00.000Z',
     title: 'Canonical Disc',
     projectType: 'disc',
-    schemaVersion: '0.2.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     editor: {
       guidedLayout: {
         completedSlotIds: ['title', 'rating'],
@@ -147,6 +149,57 @@ test('canonical comparison excludes only volatile save time and coarse Case pane
           },
         },
       }),
+    ),
+  )
+})
+
+test('reserved artwork viewport state participates in canonical Case identity', () => {
+  const base = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Viewport Identity',
+    savedAt: '2026-08-21T12:00:00.000Z',
+  })
+  const caseInsert = structuredClone(base.caseInsert)
+  caseInsert.templates.tray.artworkSlots = [{
+    ...createDefaultCaseInsertImageSlot('tray-artwork-1', 'Artwork 1'),
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport',
+      formatVersion: 1,
+      templateId: 'jewelCase',
+      templateRevision: null,
+      coordinateBasis: 'backPanelSafe',
+      widthPercent: 26,
+      heightPercent: 16,
+      focalPosition: { xPercent: 50, yPercent: 50 },
+      zoom: 1,
+    },
+  }]
+  const first = createCaseInsertProjectSnapshot({
+    manualGameTitle: base.game.manualTitle,
+    savedAt: base.savedAt,
+    caseInsert,
+  })
+  const changedCaseInsert = structuredClone(caseInsert)
+  changedCaseInsert.templates.tray.artworkSlots[0]!
+    .reservedArtworkViewport!.zoom = 1.25
+  const changed = createCaseInsertProjectSnapshot({
+    manualGameTitle: base.game.manualTitle,
+    savedAt: base.savedAt,
+    caseInsert: changedCaseInsert,
+  })
+
+  const firstComparison = createCanonicalProjectComparisonValue(
+    captureNormalizedProjectSnapshot(first),
+  )
+  assert.equal(
+    firstComparison,
+    createCanonicalProjectComparisonValue(
+      captureNormalizedProjectSnapshot(structuredClone(first)),
+    ),
+  )
+  assert.notEqual(
+    firstComparison,
+    createCanonicalProjectComparisonValue(
+      captureNormalizedProjectSnapshot(changed),
     ),
   )
 })

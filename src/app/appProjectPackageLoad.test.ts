@@ -5,10 +5,14 @@ import test from 'node:test'
 import {
   createBrandingSources,
 } from '../caseInsert/brandingMarkTargetSourcesFixtures.ts'
+import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
 import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
+import type {
+  ProjectCaseInsertReservedArtworkViewport,
+} from '../project/projectTypes.ts'
 import {
   PROJECT_PACKAGE_FAILURE_REGISTRY,
   createProjectPackageCommandFailure,
@@ -85,6 +89,18 @@ function discProjectWithBackground(imageDataUrl: string): string {
   })
 }
 
+const PACKAGE_CASE_VIEWPORT: ProjectCaseInsertReservedArtworkViewport = {
+  kind: 'sbls/case-insert-artwork-viewport',
+  formatVersion: 1,
+  templateId: 'jewelCase',
+  templateRevision: null,
+  coordinateBasis: 'frontSafe',
+  widthPercent: 32,
+  heightPercent: 24,
+  focalPosition: { xPercent: 40, yPercent: 60 },
+  zoom: 1.4,
+}
+
 test('package staging accepts current and migrated Disc JSON through the shared owner', async () => {
   for (const fixturePath of [
     'fixtures/projects/full-branding.sbls.json',
@@ -137,6 +153,57 @@ test('package staging accepts Case JSON through the same route and restore owner
     result.value.restoredProject.caseInsert,
   )
   assert.equal(Object.isFrozen(result.value.normalizedProject), true)
+})
+
+test('hydrated Case package JSON restores exact viewport state with its artwork', async () => {
+  const project = createBlankJewelCaseSavedProject('Packaged Viewport Case')
+  project.caseInsert.templates.cover.artworkSlots = [{
+    ...createDefaultCaseInsertImageSlot('cover-artwork-1', 'Artwork 1', {
+      enabled: true,
+      fit: 'contain',
+    }),
+    imageDataUrl: 'data:image/png;base64,cGFja2FnZS12aWV3cG9ydA==',
+    imageSource: {
+      source: 'embedded',
+      sourceId: null,
+      sourceLabel: 'Hydrated package artwork',
+      sourceUrl: null,
+    },
+    imageSize: { width: 1200, height: 900 },
+    reservedArtworkViewport: structuredClone(PACKAGE_CASE_VIEWPORT),
+  }]
+
+  const result = await stageProjectPackageOpen(packageParams(
+    new TextEncoder().encode(JSON.stringify(project)),
+  ))
+
+  assert.equal(result.status, 'success')
+  if (result.status !== 'success') return
+  assert.equal(result.value.projectType, 'caseInsert')
+  const normalizedSlot = result.value.normalizedProject.caseInsert
+    .templates.cover.artworkSlots[0]
+  const restoredSlot = result.value.restoredProject.caseInsert
+    .templates.cover.artworkSlots[0]
+  assert.deepEqual(
+    normalizedSlot?.reservedArtworkViewport,
+    PACKAGE_CASE_VIEWPORT,
+  )
+  assert.deepEqual(
+    restoredSlot?.reservedArtworkViewport,
+    PACKAGE_CASE_VIEWPORT,
+  )
+  assert.equal(
+    restoredSlot?.imageDataUrl,
+    'data:image/png;base64,cGFja2FnZS12aWV3cG9ydA==',
+  )
+  assert.equal(
+    restoredSlot?.imageSource?.sourceLabel,
+    'Hydrated package artwork',
+  )
+  assert.deepEqual(
+    result.value.caseInsertPresetRecovery?.persistedState.attachment,
+    { status: 'unattached' },
+  )
 })
 
 test('production composition restores representative full Disc package state immutably', async () => {

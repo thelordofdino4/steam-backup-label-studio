@@ -18,7 +18,9 @@ import {
 import {
   createCaseInsertTextAvoidanceRegionFromRect,
 } from './caseInsertTextAvoidance.ts'
+import { getCenteredRectLayoutSliderRanges } from './caseInsertElementSafeZone.ts'
 import {
+  createCaseInsertSpineTextAvoidanceRegions,
   createCaseInsertTemplateTextAvoidanceRegions,
 } from './caseInsertTextOccupiedRegions.ts'
 import {
@@ -34,6 +36,13 @@ import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.t
 import {
   createDefaultProjectTechnicalMarks,
 } from '../project/projectTechnicalMarks.ts'
+import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../render/caseInsertArtworkViewportRenderArtifact.ts'
+import {
+  getCaseInsertArtworkViewportLayoutSliderRanges,
+} from '../caseInsert/artworkViewportPlacement.ts'
+import type { ProjectCaseInsertImageSlot } from '../project/projectTypes.ts'
 
 function rectsOverlap(
   a: { x: number; y: number; width: number; height: number },
@@ -362,4 +371,161 @@ test('cover artwork slider ranges shrink to the front safe area', () => {
     maxXRect.x + maxXRect.width <= frontSafe.bounds.x + frontSafe.bounds.width,
     true,
   )
+})
+
+test('reserved artwork text avoidance follows fixed Cover viewport geometry and ignores source aspect', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const baseSlot = {
+    ...state.templates.cover.titleArtwork,
+    id: 'cover-artwork-1',
+    label: 'Screenshot',
+    enabled: true,
+    imageDataUrl: 'data:image/png;base64,screenshot',
+    imageSize: { width: 1600, height: 900 },
+    fit: 'cover' as const,
+    layout: { scale: 1, x: 50, y: 50, rotation: 23 },
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport' as const,
+      formatVersion: 1 as const,
+      templateId: 'jewelCase' as const,
+      templateRevision: null,
+      coordinateBasis: 'frontSafe' as const,
+      widthPercent: 26,
+      heightPercent: 16,
+      focalPosition: { xPercent: 50, yPercent: 50 },
+      zoom: 1,
+    },
+  }
+  const createRegions = (imageSize: ProjectCaseInsertImageSlot['imageSize']) =>
+    createCaseInsertTemplateTextAvoidanceRegions({
+      paneId: 'cover',
+      templateState: {
+        ...state.templates.cover,
+        additionalArtworkEnabled: true,
+        artworkSlots: [{ ...baseSlot, imageSize }],
+      },
+      layout,
+      brandingSources: createBrandingSources(),
+    })
+  const wideRegion = createRegions({ width: 1600, height: 900 }).find(
+    ({ id }) => id === 'cover-artwork-cover-artwork-1',
+  )
+  const standardRegion = createRegions({ width: 1200, height: 900 }).find(
+    ({ id }) => id === 'cover-artwork-cover-artwork-1',
+  )
+  const resolved = resolveCaseInsertArtworkViewportRenderArtifact({
+    owner: 'cover',
+    slot: baseSlot,
+    layout,
+  })
+  const ranges = getCaseInsertArtworkViewportLayoutSliderRanges({
+    owner: 'cover',
+    slot: baseSlot,
+    layout,
+  })
+
+  assert.ok(wideRegion)
+  assert.ok(standardRegion)
+  assert.equal(resolved.status, 'resolved')
+  assert.ok(ranges)
+  assert.deepEqual(wideRegion.bounds, standardRegion.bounds)
+  if (resolved.status === 'resolved') {
+    assert.deepEqual(wideRegion.bounds, resolved.artifact.boundingRect)
+    assert.notDeepEqual(wideRegion.bounds, resolved.artifact.outerRect)
+    assert.deepEqual(
+      ranges,
+      getCenteredRectLayoutSliderRanges(
+        resolved.artifact.basisRect,
+        resolved.artifact.boundingRect,
+      ),
+    )
+  }
+
+  const transparentRegions = createRegions({
+    width: 1600,
+    height: 900,
+    contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+  })
+  assert.equal(
+    transparentRegions.some(
+      ({ id }) => id === 'cover-artwork-cover-artwork-1',
+    ),
+    false,
+  )
+
+  const legacySlot: ProjectCaseInsertImageSlot = {
+    ...baseSlot,
+    reservedArtworkViewport: null,
+  }
+  const legacyRegion = createCaseInsertTemplateTextAvoidanceRegions({
+    paneId: 'cover',
+    templateState: {
+      ...state.templates.cover,
+      additionalArtworkEnabled: true,
+      artworkSlots: [legacySlot],
+    },
+    layout,
+    brandingSources: createBrandingSources(),
+  }).find(({ id }) => id === 'cover-artwork-cover-artwork-1')
+
+  assert.deepEqual(
+    legacyRegion?.bounds,
+    getJewelCaseFrontImageSlotPreviewRect(
+      legacySlot,
+      layout,
+      'calloutArtwork',
+    ),
+  )
+})
+
+test('reserved Spine artwork text avoidance uses the rotated viewport bounding rectangle', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const slot = {
+    ...state.spine.left.titleArtwork,
+    id: 'left-spine-artwork-1',
+    label: 'Spine artwork',
+    enabled: true,
+    imageDataUrl: 'data:image/png;base64,spine-artwork',
+    imageSize: { width: 1200, height: 900 },
+    fit: 'contain' as const,
+    layout: { scale: 1, x: 50, y: 50, rotation: 37 },
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport' as const,
+      formatVersion: 1 as const,
+      templateId: 'jewelCase' as const,
+      templateRevision: null,
+      coordinateBasis: 'leftSpineSafe' as const,
+      widthPercent: 80,
+      heightPercent: 24,
+      focalPosition: { xPercent: 50, yPercent: 50 },
+      zoom: 1,
+    },
+  }
+  const regions = createCaseInsertSpineTextAvoidanceRegions({
+    side: 'left',
+    spineSide: {
+      ...state.spine.left,
+      additionalArtworkEnabled: true,
+      artworkSlots: [slot],
+    },
+    layout,
+    brandingSources: createBrandingSources(),
+  })
+  const region = regions.find(
+    ({ id }) => id === 'left-spine-artwork-left-spine-artwork-1',
+  )
+  const resolved = resolveCaseInsertArtworkViewportRenderArtifact({
+    owner: 'left-spine',
+    slot,
+    layout,
+  })
+
+  assert.ok(region)
+  assert.equal(resolved.status, 'resolved')
+  if (resolved.status === 'resolved') {
+    assert.deepEqual(region.bounds, resolved.artifact.boundingRect)
+    assert.notDeepEqual(region.bounds, resolved.artifact.outerRect)
+  }
 })

@@ -10,6 +10,7 @@ import {
   selectIsActiveProjectDirty,
 } from '../lifecycle/projectSession.ts'
 import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
@@ -79,7 +80,7 @@ test('navigation owners fail safely without React dependencies', async () => {
     initialState: createLoadedProjectSession({
       sessionId: 'retained-disc',
       project: {
-        schemaVersion: '0.3.0',
+        schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
         projectType: 'disc',
         title: 'Retained Disc',
         savedAt: '2026-07-30T12:00:00.000Z',

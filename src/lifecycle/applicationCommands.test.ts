@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createCaseInsertProjectSnapshot } from '../project/caseInsertProjectAdapters.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
 import type { SavedDiscProject } from '../project/projectTypes.ts'
 import {
   APPLICATION_LIFECYCLE_COMMAND_IDS,
@@ -36,7 +37,7 @@ const RETURN_ONLY_FEEDBACK: ApplicationCommandFeedbackPolicy = Object.freeze({
 
 function createDiscProject(): SavedDiscProject {
   return {
-    schemaVersion: '0.2.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'disc',
     title: 'Command Disc',
     savedAt: '2026-07-26T12:00:00.000Z',

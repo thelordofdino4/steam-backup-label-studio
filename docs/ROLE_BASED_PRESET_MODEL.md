@@ -3,12 +3,14 @@
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused pure Case reserved-artwork viewport checkpoint on 2026-08-21.
+> Last reviewed against PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused Case reserved-artwork viewport adoption/schema/render checkpoint on 2026-08-21.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
-#292, #293, and #296. It does not introduce broader role/preset persistence, change
-renderers or export behavior, or move existing controls.
+#292, #293, and #296. It does not introduce broader generic role/preset
+persistence or move existing controls; the Case-specific contract remains the
+authority for the focused viewport schema and renderer/export integration now
+recorded here.
 
 The draft target application workflow in
 [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md)
@@ -24,11 +26,12 @@ left/right-spine, multi-region atomicity, preservation, and recovery semantics.
 Pure Case definition-through-Detach, strengthened transition evidence, atomic
 application adoption, passive `ProjectSession` application-unit foundations,
 source-owned validated adoption-success bundles, a pure lifecycle-owned full-
-session adoption-commit adapter, store installation, schema `0.3.0` recovery,
+session adoption-commit adapter, store installation, schema `0.4.0` recovery,
 one production definition, presentation-neutral workflow orchestration, and an
-accessible panel/invocation path now exist. A separate pure reserved-artwork
-viewport/fitting owner is implemented but remains unconnected to definition
-v1, ordinary owner state, persistence, renderer/export, and UI behavior. The
+accessible panel/invocation path now exist. The reserved-artwork viewport path
+now includes a separate pure planner, pure ordinary repeated-artwork adoption,
+schema persistence, and shared preview/export/text/preflight render geometry.
+It remains unconnected to definition v1 and production workflow controls. The
 Case workflow contract records those exact connected and unconnected
 boundaries.
 This document remains the neutral/Disc-first model and current implementation
@@ -56,13 +59,15 @@ This document covers:
 - save/load normalization expectations;
 - disc-first implementation guidance for #270.
 
-This document does not cover:
+This document does not define:
 
 - a marketplace or arbitrary user-authored preset editor;
-- renderer or export-layer changes;
-- broader saved role/preset identity beyond schema `0.3.0`'s focused Disc
+- renderer or export-layer ownership beyond the focused current Case viewport
+  facts delegated to the Case workflow contract and SDD;
+- broader saved role/preset identity beyond schema `0.4.0`'s focused Disc
   guided state and explicit Case applied-configuration envelope;
-- additional Case/spine definitions or viewport owner/render integration;
+- additional Case definitions, revision-2 viewport action consumption, or
+  interactive viewport/framing controls;
 - UI control placement or visible panel migration.
 
 ## 2. Relationship To Packaging Role Model
@@ -315,12 +320,13 @@ role-based packaging presets:
 - `RATING_BADGE_LAYOUT_PRESETS` applies to rating-badge placement.
 - Case insert text controls reuse/adapt text-layout presets for case text.
 
-Current saved projects use schema version `0.3.0`. The schema retains the Disc
+Current saved projects use schema version `0.4.0`. The schema retains the Disc
 guided layout ID/version plus independent canonical omitted/completed slot IDs
-and adds the focused explicit Case applied-configuration envelope. It does not
-persist generic role-layout geometry or the pure reserved-artwork viewport
-plan. `PROJECT_FILE_SPEC.md` remains authoritative, and broader role or preset
-persistence must go through explicit schema and migration work.
+and the focused explicit Case applied-configuration envelope. It additionally
+persists source-independent reserved-artwork viewport state on ordinary Case
+repeated artwork slots, never the pure plan. `PROJECT_FILE_SPEC.md` remains
+authoritative, and broader role or preset persistence must go through explicit
+schema and migration work.
 
 Current optional-feature behavior is state-preserving. Helpers such as
 `setOptionalVisualFeatureEnabled` and `setOptionalLayoutFeatureEnabled` toggle
@@ -468,13 +474,15 @@ not interchangeable:
   preservation.
 
 Current persisted owner `fit` values must not be silently redefined. The Case
-foundation now uses a separately versioned, nonpersisted preset-facing action
+foundation uses a separately versioned preset-facing action
 model for a physical reserved viewport plus Contain, centered Cover, or exact
-non-destructive source-window framing. Focal position and zoom are derived from
-one explicit window rather than stored as competing editable values. Exact
-target capability evidence is mandatory, and bytes, provenance, and stored
-content bounds remain unchanged. Ordinary-owner adoption, schema persistence,
-renderer/export consumption, and UI controls remain later focused work.
+non-destructive source-window framing. Pure adoption maps the accepted mode to
+ordinary `slot.fit`; schema `0.4.0` stores source-independent focal position and
+zoom with the viewport, while bytes, provenance, and stored content bounds
+remain unchanged. Exact target capability evidence is mandatory. One shared
+numeric artifact now drives preview/export, drag/slider bounds, text occupied
+regions, and preflight; definition-v1 consumption and UI framing controls remain
+later focused work.
 
 Applying an artwork preset should not replace user-selected images. It may set
 layout, fit, and enablement fields for intended visible roles. Source changes
@@ -755,16 +763,18 @@ preset-scoped reset command.
 
 Open design decision: whether a future generic Disc preset model stores "last
 applied preset" or "dirty since preset" metadata. Case is no longer evidence
-for that open question: schema `0.3.0` explicitly persists the focused Case
+for that open question: schema `0.4.0` explicitly persists the focused Case
 attachment/configuration projection while excluding it from content-only dirty
 comparison.
 
 ## 14. Save/Load Normalization Expectations
 
-Current schema `0.3.0` does not store generic role-preset identity or resolved
+Current schema `0.4.0` does not store generic role-preset identity or resolved
 preset geometry. It stores resulting feature-owned state, retains the focused
 Disc guided-workflow metadata introduced in schema `0.2.0`, and adds one narrow
-Case `caseInsertLayoutPreset` persistence envelope.
+Case `caseInsertLayoutPreset` persistence envelope. It also stores one exact
+format-1 `reservedArtworkViewport` on supported Case repeated-artwork slots;
+that value is ordinary owner state, not a catalog definition or plan.
 
 The Case lifecycle companion contains canonical attachment state and an
 application revision but no shadow aggregate. Save captures its validated
@@ -772,10 +782,13 @@ persisted projection coherently with the authoritative Case aggregate at
 `ProjectSession.project.caseInsert`; derived identities, authorization/CAS
 data, and adoption evidence remain session-only. Opening legacy schema `0.1.0`
 or `0.2.0` creates an explicit unattached revision-zero Case application unit
-without inferring attachment from saved values. Opening schema `0.3.0`
-validates and reconstructs the explicit envelope without running planning,
+without inferring attachment from saved values. Opening either schema `0.3.0`
+or `0.4.0` validates and reconstructs the explicit envelope without running planning,
 Apply, Reapply, Detach, adoption, or catalog rediscovery. Attachment and its
 application revision remain excluded from content-only dirty comparison.
+The pure `0.3.0 -> 0.4.0` migration changes only the version; Case normalization
+supplies canonical omitted viewport state and never infers it from geometry,
+`fit`, source aspect, attachment, or catalog data.
 
 The implemented Disc preset application writes normal existing
 layout/enablement fields. In the current model:
@@ -783,7 +796,7 @@ layout/enablement fields. In the current model:
 - the generic selected preset identity and resolved definition are not
   persisted;
 - save/load persists the resulting role layout through existing project fields;
-- schema `0.2.0` introduced, and schema `0.3.0` retains, active guided layout
+- schema `0.2.0` introduced, and schema `0.4.0` retains, active guided layout
   identity/version and independent canonical `omittedSlotIds` and
   `completedSlotIds`;
 - a missing completion array in an otherwise valid `0.2.0` project normalizes
@@ -803,10 +816,10 @@ layout/enablement fields. In the current model:
   remain definition/runtime data rather than new project-schema fields; and
 - fitted `x`, `y`, scale, and text layout persist through their existing feature
   owners, preserving preview, export, and save/load parity under current schema
-  `0.3.0`.
+  `0.4.0`.
 
 Any future generic Disc persistence or Case persistence beyond the focused
-schema `0.3.0` envelope must:
+schema `0.4.0` envelope and repeated-artwork viewport field must:
 
 - update `PROJECT_FILE_SPEC.md`;
 - register schema/version/migration behavior in the project schema layer;
@@ -893,7 +906,7 @@ contain, not cover: its final scale stops when the first X or Y rectangle edge
 is reached without stretching or preset-driven cropping. Generic preset
 identity, resolved runtime definitions, geometry, and derived live owner-filled
 lifecycle facts are not persisted. Schema `0.2.0` introduced, and current
-schema `0.3.0` retains, the focused Disc guided-workflow layout ID/version plus
+schema `0.4.0` retains, the focused Disc guided-workflow layout ID/version plus
 independent omitted and completed slot IDs.
 
 ## 16. Disc-First Implementation Guidance For #270
@@ -974,14 +987,16 @@ template continuity. Unsupported action-region and text-fitting work fails
 closed, so issue #181 remains authoritative.
 
 The separately versioned pure reserved-artwork viewport owner does not alter
-that v1 failure behavior. It can independently resolve an exact assignment-
-bound physical frame through exact preset/revision-bound template compatibility
+that definition-v1 failure behavior. It can independently resolve an exact
+assignment-bound physical frame through exact preset/revision-bound template compatibility
 and template millimeters, then return source-deferred,
 Contain, centered Cover, or exact non-destructive source-window evidence with
-strict target capabilities and clipping/consent identities. Jewel Case
-Essentials remains revision 1; no definition field, Apply/Reapply/Detach action,
-schema field, ordinary artwork owner, renderer, export path, or UI consumes the
-new plan yet.
+strict target capabilities and clipping/consent identities. A pure adapter can
+now adopt canonical success into ordinary repeated-artwork fit/layout/viewport
+state, schema `0.4.0` can persist it, and one shared artifact drives runtime
+preview/export/text/preflight geometry. Jewel Case Essentials remains revision
+1 and emits no viewport action; production Apply/Reapply consumption requires a
+reviewed revision 2, while UI framing controls remain separately absent.
 
 Reapply planning consumes the
 validated configuration and still-current report, one exact current normalized
@@ -1203,11 +1218,11 @@ Open decisions before or during #270:
   visibility in a preset.
 - Whether Steam Branding belongs in disc role presets later.
 - Whether broader Disc/generic role-preset identity and customization metadata
-  should gain schema ownership beyond the focused schema `0.3.0` Case envelope.
-- How an approved Case reserved-artwork viewport plan should be installed into
-  ordinary artwork ownership and persisted by a future schema while preserving
-  preview/export parity. The pure action representation is settled; production
-  ownership integration is not.
+  should gain schema ownership beyond the focused schema `0.4.0` Case envelope.
+- How a reviewed Case definition revision 2 should declare viewport actions and
+  join their warning/consent evidence to the existing Apply/Reapply footprint.
+  Pure adoption, persistence, and shared runtime geometry are settled; revision
+  1 cannot be reinterpreted.
 - How case back Screenshots and Additional Artwork should diverge in state and
   UI.
 - How spine mirroring should interact with preset application if spine presets

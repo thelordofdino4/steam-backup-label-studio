@@ -46,6 +46,9 @@ import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes'
 import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../render/caseInsertArtworkViewportRenderArtifact'
+import {
   createBoxPositionedImageRenderArtifact,
 } from '../render/imageRenderArtifact'
 import { DEFAULT_TEMPLATE_EXPORT_DPI } from '../templates/templateModel'
@@ -66,6 +69,7 @@ import {
   drawComputedTextLayout,
   getCaseInsertTextCanvasOptions,
 } from './caseInsertPngText'
+import { drawCaseInsertArtworkViewportArtifact } from './caseInsertArtworkViewportCanvas'
 
 type CaseInsertExportLayerRenderer = Record<
   CaseInsertEditorExportLayerId,
@@ -149,6 +153,23 @@ async function drawSpineSide(
     [state.titleArtwork, 'titleArtwork'],
     ...artworkSlots.map((slot) => [slot, 'artwork'] as const),
   ] as const) {
+    if (role === 'artwork') {
+      const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+        owner: side === 'left' ? 'left-spine' : 'right-spine',
+        slot,
+        layout,
+      })
+      if (viewportResult.status === 'resolved') {
+        await drawCaseInsertArtworkViewportArtifact(
+          context,
+          viewportResult.artifact,
+          slot.frame,
+        )
+        continue
+      }
+      if (viewportResult.status !== 'legacy') continue
+    }
+
     const artifact = createBoxPositionedImageRenderArtifact({
       imageDataUrl: slot.imageDataUrl,
       imageSize: slot.imageSize,

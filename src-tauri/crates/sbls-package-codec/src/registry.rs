@@ -14,23 +14,28 @@ pub(crate) const MAX_BINDING_POINTER_BYTES: usize = 1_024;
 const SUPPORTED_SCHEMA_0_1: &str = "0.1.0";
 const SUPPORTED_SCHEMA_0_2: &str = "0.2.0";
 const SUPPORTED_SCHEMA_0_3: &str = "0.3.0";
+const SUPPORTED_SCHEMA_0_4: &str = "0.4.0";
+
+pub(crate) const CURRENT_WRITABLE_PROJECT_SCHEMA_VERSION: &str = SUPPORTED_SCHEMA_0_4;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(crate) enum ProjectSchemaVersion {
     V0_1_0,
     V0_2_0,
     V0_3_0,
+    V0_4_0,
 }
 
 impl ProjectSchemaVersion {
     #[cfg(test)]
-    pub(crate) const ALL: [Self; 3] = [Self::V0_1_0, Self::V0_2_0, Self::V0_3_0];
+    pub(crate) const ALL: [Self; 4] = [Self::V0_1_0, Self::V0_2_0, Self::V0_3_0, Self::V0_4_0];
 
     pub(crate) fn parse(value: &str) -> Result<Self, RegistryError> {
         match value {
             SUPPORTED_SCHEMA_0_1 => Ok(Self::V0_1_0),
             SUPPORTED_SCHEMA_0_2 => Ok(Self::V0_2_0),
             SUPPORTED_SCHEMA_0_3 => Ok(Self::V0_3_0),
+            SUPPORTED_SCHEMA_0_4 => Ok(Self::V0_4_0),
             _ => Err(RegistryError::UnsupportedSchemaVersion),
         }
     }
@@ -40,6 +45,7 @@ impl ProjectSchemaVersion {
             Self::V0_1_0 => SUPPORTED_SCHEMA_0_1,
             Self::V0_2_0 => SUPPORTED_SCHEMA_0_2,
             Self::V0_3_0 => SUPPORTED_SCHEMA_0_3,
+            Self::V0_4_0 => SUPPORTED_SCHEMA_0_4,
         }
     }
 }
@@ -1836,7 +1842,7 @@ mod tests {
     use super::*;
     use crate::{json::parse_json_with_limits, limits::PackageLimits};
 
-    const SCHEMAS: [&str; 3] = ["0.1.0", "0.2.0", "0.3.0"];
+    const SCHEMAS: [&str; 4] = ["0.1.0", "0.2.0", "0.3.0", "0.4.0"];
 
     fn resolve(kind: ProjectKind, pointer: &str) -> Result<AssetOwner, RegistryError> {
         resolve_registered_owner("0.2.0", kind, pointer)
@@ -2174,10 +2180,11 @@ mod tests {
 
     #[test]
     fn schema_registry_support_is_exact_and_version_independent() {
-        assert_eq!(ProjectSchemaVersion::ALL.len(), 3);
+        assert_eq!(ProjectSchemaVersion::ALL.len(), 4);
         assert_eq!(ProjectSchemaVersion::V0_1_0.as_str(), "0.1.0");
         assert_eq!(ProjectSchemaVersion::V0_2_0.as_str(), "0.2.0");
         assert_eq!(ProjectSchemaVersion::V0_3_0.as_str(), "0.3.0");
+        assert_eq!(ProjectSchemaVersion::V0_4_0.as_str(), "0.4.0");
 
         for schema in SCHEMAS {
             assert_eq!(
@@ -2186,7 +2193,7 @@ mod tests {
             );
         }
 
-        for unsupported in ["", "0.0.0", "0.1", "0.4.0", "1.0.0"] {
+        for unsupported in ["", "0.0.0", "0.1", "0.5.0", "1.0.0"] {
             assert_eq!(
                 resolve_registered_owner(
                     unsupported,

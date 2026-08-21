@@ -74,6 +74,9 @@ import {
   createPreviewEditableElementId,
 } from '../../editor/previewElementOverlay'
 import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../../render/caseInsertArtworkViewportRenderArtifact'
+import {
   createBoxPositionedImageRenderArtifact,
 } from '../../render/imageRenderArtifact'
 import {
@@ -95,6 +98,7 @@ import {
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
+import { CaseInsertArtworkViewportPreview } from './CaseInsertArtworkViewportPreview'
 import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
@@ -593,43 +597,6 @@ function CaseInsertSpineOverlaySlot({
       }
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
 }) {
-  const slotLayout = getJewelCaseSpineImageSlotPreviewLayout(
-    side,
-    slot,
-    layout,
-    role,
-  )
-
-  const logoRenderInfo = role === 'logo'
-    ? getCaseInsertLogoSlotRenderInfo(slot)
-    : null
-  const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
-  const imageSize = logoRenderInfo?.imageSize ?? slot.imageSize
-  const artifact = createBoxPositionedImageRenderArtifact({
-    imageDataUrl,
-    imageSize,
-    label: slot.label,
-    alt: '',
-    box: slotLayout,
-  })
-
-  if (!artifact) {
-    return null
-  }
-
-  const className = [
-    'case-insert-spine-overlay-box',
-    `case-insert-spine-overlay-${role}`,
-    role === 'artwork' &&
-      slot.frame.enabled &&
-      slot.frame.shape === 'circle' &&
-      !artifact.contentShape
-      ? 'case-insert-image-slot-frame-host--circle'
-      : '',
-    artifact.contentBounds ? 'case-insert-spine-overlay-box--content-bounded' : '',
-    artifact.contentShape ? 'case-insert-spine-overlay-box--content-shaped' : '',
-  ].filter(Boolean).join(' ')
-  const style = getTransformedBoxStyle(artifact.box, layout)
   const pointerProps = {
     onPointerDown: (event: PointerEvent<Element>) =>
       dragTarget.kind === 'primary'
@@ -660,6 +627,62 @@ function CaseInsertSpineOverlaySlot({
     label: slot.label,
     kind: role === 'logo' ? 'logo' : role === 'mark' ? 'mark' : 'artwork',
   })
+
+  if (role === 'artwork') {
+    const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+      owner: side === 'left' ? 'left-spine' : 'right-spine',
+      slot,
+      layout,
+    })
+
+    if (viewportResult.status === 'resolved') {
+      return (
+        <CaseInsertArtworkViewportPreview
+          artifact={viewportResult.artifact}
+          editableAttributes={editableAttributes}
+          layout={layout}
+          slot={slot}
+          {...pointerProps}
+        />
+      )
+    }
+    if (viewportResult.status !== 'legacy') return null
+  }
+
+  const slotLayout = getJewelCaseSpineImageSlotPreviewLayout(
+    side,
+    slot,
+    layout,
+    role,
+  )
+  const logoRenderInfo = role === 'logo'
+    ? getCaseInsertLogoSlotRenderInfo(slot)
+    : null
+  const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+  const imageSize = logoRenderInfo?.imageSize ?? slot.imageSize
+  const artifact = createBoxPositionedImageRenderArtifact({
+    imageDataUrl,
+    imageSize,
+    label: slot.label,
+    alt: '',
+    box: slotLayout,
+  })
+
+  if (!artifact) return null
+
+  const className = [
+    'case-insert-spine-overlay-box',
+    `case-insert-spine-overlay-${role}`,
+    role === 'artwork' &&
+      slot.frame.enabled &&
+      slot.frame.shape === 'circle' &&
+      !artifact.contentShape
+      ? 'case-insert-image-slot-frame-host--circle'
+      : '',
+    artifact.contentBounds ? 'case-insert-spine-overlay-box--content-bounded' : '',
+    artifact.contentShape ? 'case-insert-spine-overlay-box--content-shaped' : '',
+  ].filter(Boolean).join(' ')
+  const style = getTransformedBoxStyle(artifact.box, layout)
 
   return (
     <div

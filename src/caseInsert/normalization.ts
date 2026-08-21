@@ -54,6 +54,10 @@ import {
   normalizeCaseInsertSteamBanner,
 } from './steamBanner.ts'
 import {
+  normalizeProjectCaseInsertReservedArtworkViewport,
+  type CaseInsertReservedArtworkViewportOwner,
+} from './artworkViewportState.ts'
+import {
   getCaseInsertTextBlockStyleRole,
   getCaseInsertTextListStyleRole,
   normalizeCaseInsertTextStyle,
@@ -281,7 +285,10 @@ function normalizeCaseInsertTextLayout(
 function normalizeCaseInsertImageSlot(
   value: unknown,
   defaults: ProjectCaseInsertImageSlot,
-  options: { supportsSteamDefaultLogo?: boolean } = {},
+  options: {
+    supportsSteamDefaultLogo?: boolean
+    reservedArtworkViewportOwner?: CaseInsertReservedArtworkViewportOwner
+  } = {},
 ): ProjectCaseInsertImageSlot {
   const record = asRecord(value)
 
@@ -307,6 +314,12 @@ function normalizeCaseInsertImageSlot(
       ) ??
       defaults.defaultSteamLogo
     : null
+  const reservedArtworkViewport = options.reservedArtworkViewportOwner
+    ? normalizeProjectCaseInsertReservedArtworkViewport(
+        record.reservedArtworkViewport,
+        options.reservedArtworkViewportOwner,
+      )
+    : null
 
   return {
     id: getCanonicalCaseInsertTextBlockId(
@@ -322,6 +335,7 @@ function normalizeCaseInsertImageSlot(
     fit: normalizeCaseInsertImageFit(record.fit, defaults.fit),
     layout: normalizeCaseInsertLayout(record.layout, defaults.layout),
     frame: normalizeAdditionalArtworkFrame(record.frame, defaults.frame),
+    ...(reservedArtworkViewport ? { reservedArtworkViewport } : {}),
   }
 }
 
@@ -330,6 +344,9 @@ function normalizeCaseInsertImageSlotArray(
   idPrefix: string,
   labelPrefix: string,
   defaults: ProjectCaseInsertImageSlot[] = [],
+  options: Readonly<{
+    reservedArtworkViewportOwner?: CaseInsertReservedArtworkViewportOwner
+  }> = {},
 ) {
   const slots = asArray(value)
 
@@ -349,6 +366,7 @@ function normalizeCaseInsertImageSlotArray(
             ? createRepeatedArtworkLabel(index + 1)
             : `${labelPrefix} ${index + 1}`,
         ),
+      options,
     ),
   )
 }
@@ -577,6 +595,10 @@ function normalizeCaseInsertSurfaceState(
   defaults: ProjectCaseInsertSurfaceState,
   idPrefix: string,
   labelPrefix: string,
+  reservedArtworkViewportOwner: Extract<
+    CaseInsertReservedArtworkViewportOwner,
+    'cover' | 'tray'
+  >,
 ): ProjectCaseInsertSurfaceState {
   const record = asRecord(value)
 
@@ -589,6 +611,7 @@ function normalizeCaseInsertSurfaceState(
     `${idPrefix}-artwork`,
     'Artwork',
     defaults.artworkSlots,
+    { reservedArtworkViewportOwner },
   )
 
   return {
@@ -669,6 +692,7 @@ ProjectCaseInsertSurfaceState {
     defaults,
     'cover',
     'Cover sheet',
+    'cover',
   )
 }
 
@@ -717,6 +741,7 @@ ProjectCaseInsertSurfaceState {
     defaults,
     'tray',
     'Tray card',
+    'tray',
   )
 }
 
@@ -742,6 +767,10 @@ function getJewelCaseSpineSideIdPrefix(
 function normalizeJewelCaseSpineSideState(
   value: unknown,
   defaults: ProjectJewelCaseSpineSideState,
+  reservedArtworkViewportOwner: Extract<
+    CaseInsertReservedArtworkViewportOwner,
+    'leftSpine' | 'rightSpine'
+  >,
 ): ProjectJewelCaseSpineSideState {
   const record = asRecord(value)
 
@@ -755,6 +784,7 @@ function normalizeJewelCaseSpineSideState(
     `${idPrefix}-artwork`,
     'Artwork',
     defaults.artworkSlots,
+    { reservedArtworkViewportOwner },
   )
   const logoSlotsValue = record.logoSlots ??
     record.logos ??
@@ -817,8 +847,16 @@ function normalizeJewelCaseSpineState(
       record.mirrored ?? record.mirror,
       defaults.mirrored,
     ),
-    left: normalizeJewelCaseSpineSideState(record.left, defaults.left),
-    right: normalizeJewelCaseSpineSideState(record.right, defaults.right),
+    left: normalizeJewelCaseSpineSideState(
+      record.left,
+      defaults.left,
+      'leftSpine',
+    ),
+    right: normalizeJewelCaseSpineSideState(
+      record.right,
+      defaults.right,
+      'rightSpine',
+    ),
   }
 }
 

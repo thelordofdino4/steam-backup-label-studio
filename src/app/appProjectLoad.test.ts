@@ -4,10 +4,17 @@ import test from 'node:test'
 import {
   createBrandingSources,
 } from '../caseInsert/brandingMarkTargetSourcesFixtures.ts'
+import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
-import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
+import {
+  CURRENT_PROJECT_SCHEMA_VERSION,
+  PREVIOUS_PROJECT_SCHEMA_VERSION,
+} from '../project/projectSchema.ts'
+import type {
+  ProjectCaseInsertReservedArtworkViewport,
+} from '../project/projectTypes.ts'
 import { createProjectPackageCommandFailure } from '../tauri/packageProjectFile.ts'
 import { createProjectFormatRecognitionFailure } from '../tauri/projectFileFormat.ts'
 import {
@@ -40,6 +47,38 @@ function createDiscProjectContents(
       note: 'two-phase Open fixture',
     },
   })
+}
+
+const CASE_VIEWPORT: ProjectCaseInsertReservedArtworkViewport = {
+  kind: 'sbls/case-insert-artwork-viewport',
+  formatVersion: 1,
+  templateId: 'jewelCase',
+  templateRevision: null,
+  coordinateBasis: 'backPanelSafe',
+  widthPercent: 26,
+  heightPercent: 16,
+  focalPosition: { xPercent: 42, yPercent: 58 },
+  zoom: 1.2,
+}
+
+function createCaseProjectWithViewport() {
+  const project = createBlankJewelCaseSavedProject('Viewport Case Candidate')
+  project.caseInsert.templates.tray.artworkSlots = [{
+    ...createDefaultCaseInsertImageSlot('tray-artwork-1', 'Screenshot 1', {
+      enabled: true,
+      fit: 'cover',
+    }),
+    imageDataUrl: 'data:image/png;base64,dmlld3BvcnQ=',
+    imageSource: {
+      source: 'embedded',
+      sourceId: null,
+      sourceLabel: 'Viewport screenshot',
+      sourceUrl: null,
+    },
+    imageSize: { width: 1600, height: 900 },
+    reservedArtworkViewport: structuredClone(CASE_VIEWPORT),
+  }]
+  return project
 }
 
 function paramsFor(
@@ -268,6 +307,59 @@ test('Case Insert Open staging derives normalized lifecycle and editor state tog
   assert.equal(Object.isFrozen(candidate), true)
   assert.equal(Object.isFrozen(candidate.normalizedProject), true)
   assert.equal(Object.isFrozen(candidate.restoredProject), true)
+})
+
+test('current Case JSON stages exact viewport, image, and provenance without applying a preset', async () => {
+  const project = createCaseProjectWithViewport()
+  const result = await stageAppProjectOpen(paramsFor(JSON.stringify(project)))
+
+  assert.equal(result.status, 'success')
+  if (result.status !== 'success') return
+  assert.equal(result.value.projectType, 'caseInsert')
+  const normalizedSlot = result.value.normalizedProject.caseInsert
+    .templates.tray.artworkSlots[0]
+  const restoredSlot = result.value.restoredProject.caseInsert
+    .templates.tray.artworkSlots[0]
+  assert.deepEqual(normalizedSlot?.reservedArtworkViewport, CASE_VIEWPORT)
+  assert.deepEqual(restoredSlot?.reservedArtworkViewport, CASE_VIEWPORT)
+  assert.equal(
+    restoredSlot?.imageDataUrl,
+    'data:image/png;base64,dmlld3BvcnQ=',
+  )
+  assert.equal(restoredSlot?.imageSource?.sourceLabel, 'Viewport screenshot')
+  assert.deepEqual(
+    result.value.caseInsertPresetRecovery?.persistedState.attachment,
+    { status: 'unattached' },
+  )
+})
+
+test('legacy 0.3.0 Case JSON migrates missing viewport state to canonical omission', async () => {
+  const current = createCaseProjectWithViewport()
+  const legacy = JSON.parse(JSON.stringify(
+    current,
+    (key, value: unknown) => key === 'reservedArtworkViewport'
+      ? undefined
+      : value,
+  )) as Record<string, unknown>
+  legacy.schemaVersion = PREVIOUS_PROJECT_SCHEMA_VERSION
+
+  const result = await stageAppProjectOpen(paramsFor(JSON.stringify(legacy)))
+
+  assert.equal(result.status, 'success')
+  if (result.status !== 'success') return
+  assert.equal(result.value.projectType, 'caseInsert')
+  assert.equal(
+    result.value.normalizedProject.schemaVersion,
+    CURRENT_PROJECT_SCHEMA_VERSION,
+  )
+  const normalizedSlot = result.value.normalizedProject.caseInsert
+    .templates.tray.artworkSlots[0]
+  const restoredSlot = result.value.restoredProject.caseInsert
+    .templates.tray.artworkSlots[0]
+  assert.ok(normalizedSlot)
+  assert.ok(restoredSlot)
+  assert.equal(Object.hasOwn(normalizedSlot, 'reservedArtworkViewport'), false)
+  assert.equal(Object.hasOwn(restoredSlot, 'reservedArtworkViewport'), false)
 })
 
 test('Open staging preserves typed read, parse, validation, migration, and image failures', async () => {

@@ -22,7 +22,6 @@ import {
 } from '../caseInsert/textContent.ts'
 import {
   isOptionalVisualFeatureEnabled,
-  shouldRenderOptionalVisualFeature,
 } from '../editor/optionalVisualFeature.ts'
 import {
   getFeatureVisibleRepeatedArtworkItems,
@@ -37,6 +36,7 @@ import type {
   ProjectMetadata,
 } from '../project/projectTypes.ts'
 import { buildCaseInsertExportWarnings } from './caseInsertExportPreflight.ts'
+import { slotWillRender } from './caseInsertPreflightVisibility.ts'
 import {
   createDesignCheckItem,
   getDesignCheckItemNotes,
@@ -54,17 +54,18 @@ export function buildCaseInsertDesignCheckSummary(params: {
   brandingSources: CaseInsertBrandingSourceCatalog
 }): CaseInsertDesignCheckSummary {
   const paneConfig = getCaseInsertTemplatePaneConfig(params.activeTemplatePane)
+  const layout = createCaseInsertPngExportLayout(
+    params.caseInsert,
+    params.activeTemplatePane,
+  )
   const exportWarnings = buildCaseInsertExportWarnings({
     caseInsert: params.caseInsert,
     activeTemplatePane: params.activeTemplatePane,
     brandingSources: params.brandingSources,
-    layout: createCaseInsertPngExportLayout(
-      params.caseInsert,
-      params.activeTemplatePane,
-    ),
+    layout,
     enabledGuideNames: [],
   })
-  const checklistItems = getCaseInsertGuideChecklistItems(params)
+  const checklistItems = getCaseInsertGuideChecklistItems(params, layout)
   const warnings = getDesignCheckItemWarnings(checklistItems)
   const notes = mergeUniqueWarnings(
     getDesignCheckItemNotes(checklistItems),
@@ -89,11 +90,14 @@ export function buildCaseInsertDesignCheckSummary(params: {
   }
 }
 
-function getCaseInsertGuideChecklistItems(params: {
-  caseInsert: ProjectJewelCaseState
-  activeTemplatePane: CaseInsertTemplatePaneId
-  brandingSources: CaseInsertBrandingSourceCatalog
-}): DesignCheckItem[] {
+function getCaseInsertGuideChecklistItems(
+  params: {
+    caseInsert: ProjectJewelCaseState
+    activeTemplatePane: CaseInsertTemplatePaneId
+    brandingSources: CaseInsertBrandingSourceCatalog
+  },
+  layout: ReturnType<typeof createCaseInsertPngExportLayout>,
+): DesignCheckItem[] {
   const surface = params.caseInsert.templates[params.activeTemplatePane]
 
   return params.activeTemplatePane === 'cover'
@@ -102,6 +106,7 @@ function getCaseInsertGuideChecklistItems(params: {
         surface,
         params.caseInsert,
         params.brandingSources,
+        layout,
       )
 }
 
@@ -109,7 +114,7 @@ function getCoverGuideChecklistItems(
   surface: ProjectCaseInsertSurfaceState,
   brandingSources: CaseInsertBrandingSourceCatalog,
 ): DesignCheckItem[] {
-  const hasTitleArtwork = imageSlotWillRender(surface.titleArtwork)
+  const hasTitleArtwork = slotWillRender(surface.titleArtwork)
   const hasTitleText = hasVisibleTextBlock(
     surface.textBlocks,
     brandingSources.projectMetadata,
@@ -120,7 +125,7 @@ function getCoverGuideChecklistItems(
     createDesignCheckItem({
       id: 'cover-background',
       label: 'Background artwork',
-      passes: imageSlotWillRender(surface.background),
+      passes: slotWillRender(surface.background),
       passDetail: 'Front background artwork is in place.',
       warningDetail:
         'Add front background artwork so the cover does not export as mostly blank space.',
@@ -167,12 +172,13 @@ function getTrayGuideChecklistItems(
   surface: ProjectCaseInsertSurfaceState,
   caseInsert: ProjectJewelCaseState,
   brandingSources: CaseInsertBrandingSourceCatalog,
+  layout: ReturnType<typeof createCaseInsertPngExportLayout>,
 ): DesignCheckItem[] {
   return [
     createDesignCheckItem({
       id: 'tray-background',
       label: 'Background artwork',
-      passes: imageSlotWillRender(surface.background),
+      passes: slotWillRender(surface.background),
       passDetail: 'Back background artwork is in place.',
       warningDetail:
         'Add back background artwork so the tray card does not export as mostly blank space.',
@@ -203,7 +209,10 @@ function getTrayGuideChecklistItems(
       passes: getFeatureVisibleRepeatedArtworkItems(
         surface,
         surface.artworkSlots,
-      ).some(imageSlotWillRender),
+      ).some((slot) => slotWillRender(
+        slot,
+        { owner: 'tray', layout },
+      )),
       passDetail: 'Screenshot or supporting artwork is visible.',
       warningDetail:
         'Add at least one screenshot or supporting artwork slot so the back cover is not only text.',
@@ -253,7 +262,7 @@ function getTrayGuideChecklistItems(
       id: 'tray-spine-title',
       label: 'Spine title',
       passes: everySpineSideHas(caseInsert, (spineSide) =>
-        imageSlotWillRender(spineSide.titleArtwork) ||
+        slotWillRender(spineSide.titleArtwork) ||
         textBlockWillRender(spineSide.title, brandingSources.projectMetadata)),
       passDetail: 'Both spines have a visible title or logo.',
       warningDetail:
@@ -271,13 +280,6 @@ function getTrayGuideChecklistItems(
   ]
 }
 
-function imageSlotWillRender(slot: ProjectCaseInsertImageSlot) {
-  return shouldRenderOptionalVisualFeature(
-    slot,
-    Boolean(slot.imageDataUrl && slot.imageSize),
-  )
-}
-
 function logoSlotWillRender(slot: ProjectCaseInsertImageSlot) {
   return Boolean(getCaseInsertLogoSlotRenderInfo(slot))
 }
@@ -289,7 +291,7 @@ function hasVisibleMarkSlot(
   return surface.markSlots.some((slot) => {
     const kind = getCaseInsertMarkLayerKind(slot.imageSource?.sourceId)
 
-    return imageSlotWillRender(slot) &&
+    return slotWillRender(slot) &&
       isCaseInsertMarkSlotVisible(slot, kind, brandingSources)
   })
 }

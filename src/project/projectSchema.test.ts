@@ -6,6 +6,7 @@ import {
   CURRENT_PROJECT_SCHEMA_VERSION,
   LEGACY_PROJECT_SCHEMA_VERSION,
   PREVIOUS_PROJECT_SCHEMA_VERSION,
+  PROJECT_SCHEMA_VERSION_0_2_0,
   ProjectSchemaError,
   getAcceptedProjectSchemaVersions,
   getSavedProjectSchemaIssues,
@@ -76,7 +77,7 @@ test('project parse adapters preserve saved project payload compatibility', () =
 
 test('registered 0.2.0 migration preserves Disc content without inventing editor state', () => {
   const legacyProject = createDiscProjectFixture({
-    schemaVersion: PREVIOUS_PROJECT_SCHEMA_VERSION,
+    schemaVersion: PROJECT_SCHEMA_VERSION_0_2_0,
     title: 'Legacy Disc',
     logoAssets: {
       publisherLogoDataUrl: 'data:image/png;base64,cHVibGlzaGVy',
@@ -86,7 +87,7 @@ test('registered 0.2.0 migration preserves Disc content without inventing editor
   const { schemaVersion: legacyVersion, ...legacyContent } = legacyProject
   const { schemaVersion: migratedVersion, ...migratedContent } = migratedProject
 
-  assert.equal(legacyVersion, PREVIOUS_PROJECT_SCHEMA_VERSION)
+  assert.equal(legacyVersion, PROJECT_SCHEMA_VERSION_0_2_0)
   assert.equal(migratedVersion, CURRENT_PROJECT_SCHEMA_VERSION)
   assert.deepEqual(migratedContent, legacyContent)
   assert.equal(migratedProject.editor, undefined)
@@ -98,8 +99,49 @@ test('registered 0.2.0 migration preserves Disc content without inventing editor
   assert.deepEqual(getAcceptedProjectSchemaVersions(), [
     CURRENT_PROJECT_SCHEMA_VERSION,
     PREVIOUS_PROJECT_SCHEMA_VERSION,
+    PROJECT_SCHEMA_VERSION_0_2_0,
     LEGACY_PROJECT_SCHEMA_VERSION,
   ])
+})
+
+test('registered 0.3.0 migration advances only the schema version', () => {
+  const previousProject = createDiscProjectFixture({
+    schemaVersion: PREVIOUS_PROJECT_SCHEMA_VERSION,
+    title: 'Schema 0.3 Disc',
+  })
+  const before = structuredClone(previousProject)
+  const migratedProject = migrateProjectSchemaRecord(previousProject)
+  const { schemaVersion: previousVersion, ...previousContent } = previousProject
+  const { schemaVersion: migratedVersion, ...migratedContent } = migratedProject
+
+  assert.equal(previousVersion, PREVIOUS_PROJECT_SCHEMA_VERSION)
+  assert.equal(migratedVersion, CURRENT_PROJECT_SCHEMA_VERSION)
+  assert.deepEqual(migratedContent, previousContent)
+  assert.deepEqual(previousProject, before)
+})
+
+test('schema 0.3.0 Case migration does not infer a reserved artwork viewport', () => {
+  const previousProject = structuredClone(createCaseInsertProjectSnapshot({
+    manualGameTitle: 'No Inferred Viewport',
+  })) as unknown as Record<string, unknown>
+  previousProject.schemaVersion = PREVIOUS_PROJECT_SCHEMA_VERSION
+  const serializedPrevious = JSON.stringify(
+    previousProject,
+    (key, value: unknown) => key === 'reservedArtworkViewport'
+      ? undefined
+      : value,
+  )
+  const withoutViewport = JSON.parse(serializedPrevious) as Record<string, unknown>
+  const before = structuredClone(withoutViewport)
+
+  const migratedProject = migrateProjectSchemaRecord(withoutViewport)
+
+  assert.equal(migratedProject.schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION)
+  assert.equal(
+    JSON.stringify(migratedProject).includes('reservedArtworkViewport'),
+    false,
+  )
+  assert.deepEqual(withoutViewport, before)
 })
 
 test('older Case schemas migrate to explicit unattached preset state without inference', () => {
@@ -142,7 +184,7 @@ test('malformed optional guided editor metadata does not block project parsing',
   }
 })
 
-test('schema 0.2.0 accepts guided completion and same-version payloads without it', () => {
+test('the current schema accepts guided completion and payloads without it', () => {
   const guidedLayout = {
     id: 'disc:guided-layout:classic-top-title',
     version: 1,

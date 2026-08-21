@@ -1844,19 +1844,19 @@ mod tests {
 
     #[test]
     fn schema_support_and_agreement_are_separate() {
-        let current = ManifestV1::new("0.2.0", creator(), project(), vec![], vec![]).unwrap();
+        let current = ManifestV1::new("0.4.0", creator(), project(), vec![], vec![]).unwrap();
         assert_eq!(
             current.supported_schema_version().unwrap(),
-            ProjectSchemaVersion::V0_2_0
+            ProjectSchemaVersion::V0_4_0
         );
-        current.require_project_schema_agreement("0.2.0").unwrap();
+        current.require_project_schema_agreement("0.4.0").unwrap();
         let disagreement = current
             .require_project_schema_agreement("0.1.0")
             .unwrap_err();
         assert_eq!(disagreement.code, FailureCode::ManifestInvalid);
         assert_eq!(disagreement.stage, FailureStage::Project);
 
-        let projection = json_object(vec![("schemaVersion", json_string("0.2.0"))]).unwrap();
+        let projection = json_object(vec![("schemaVersion", json_string("0.4.0"))]).unwrap();
         current
             .require_projection_schema_agreement(&projection)
             .unwrap();

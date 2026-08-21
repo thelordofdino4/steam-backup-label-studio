@@ -8,6 +8,7 @@ import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
 import type {
   ProjectJewelCaseState,
   SavedCaseInsertProject,
@@ -769,7 +770,10 @@ test('lifecycle equality observes attachment and application revision while dirt
   ]) {
     assert.equal(serializedProject.includes(name), false)
   }
-  assert.equal(attachedSession.project.schemaVersion, '0.3.0')
+  assert.equal(
+    attachedSession.project.schemaVersion,
+    CURRENT_PROJECT_SCHEMA_VERSION,
+  )
 
   const reopened = createLoadedProjectSession({
     sessionId: 'reopened-without-inference',

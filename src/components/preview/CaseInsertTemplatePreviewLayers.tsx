@@ -13,6 +13,9 @@ import {
   getCaseInsertLogoSlotRenderInfo,
 } from '../../caseInsert/brandingLogoSlots'
 import {
+  partitionCaseInsertArtworkViewportSlots,
+} from '../../caseInsert/artworkViewportLayerOrder'
+import {
   getFeatureVisibleRepeatedArtworkItems,
 } from '../../editor/repeatedArtwork'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
@@ -35,8 +38,12 @@ import type {
   CaseInsertTemplatePreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
 import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../../render/caseInsertArtworkViewportRenderArtifact'
+import {
   createRectPositionedImageRenderArtifact,
 } from '../../render/imageRenderArtifact'
+import { CaseInsertArtworkViewportPreview } from './CaseInsertArtworkViewportPreview'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { ContentBoundedImage } from './ContentBoundedImage'
 import type {
@@ -62,6 +69,7 @@ function CaseInsertTemplateImageSlot({
   group,
   dragTarget,
   pointerHandlers,
+  mixedLegacyAboveTitle = false,
 }: {
   paneId: CaseInsertTemplatePaneId
   slot: ProjectCaseInsertImageSlot
@@ -78,38 +86,8 @@ function CaseInsertTemplateImageSlot({
         slotId: string
       }
   pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
+  mixedLegacyAboveTitle?: boolean
 }) {
-  const rect = paneId === 'cover'
-    ? getJewelCaseFrontImageSlotPreviewRect(
-        slot,
-        layout,
-        group === 'titleArtwork' ? 'titleArtwork' :
-          group === 'artwork' ? 'calloutArtwork' : group,
-      )
-    : getJewelCaseBackImageSlotPreviewRect(
-        slot,
-        layout,
-        group === 'artwork' ? 'artwork' : group === 'mark' ? 'mark' : 'logo',
-      )
-
-  const logoRenderInfo = group === 'logo'
-    ? getCaseInsertLogoSlotRenderInfo(slot)
-    : null
-  const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
-  const imageSize = logoRenderInfo?.imageSize ?? slot.imageSize
-
-  const artifact = createRectPositionedImageRenderArtifact({
-    imageDataUrl,
-    imageSize,
-    label: slot.label,
-    alt: '',
-    rect,
-  })
-
-  if (!artifact) {
-    return null
-  }
-
   const pointerProps = {
     onPointerDown: (event: PointerEvent<Element>) =>
       dragTarget.kind === 'primary'
@@ -141,6 +119,55 @@ function CaseInsertTemplateImageSlot({
   })
 
   if (group === 'artwork') {
+    const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+      owner: paneId,
+      slot,
+      layout,
+    })
+
+    if (viewportResult.status === 'resolved') {
+      return (
+        <CaseInsertArtworkViewportPreview
+          artifact={viewportResult.artifact}
+          editableAttributes={editableAttributes}
+          layout={layout}
+          slot={slot}
+          {...pointerProps}
+        />
+      )
+    }
+    if (viewportResult.status !== 'legacy') return null
+  }
+
+  const rect = paneId === 'cover'
+    ? getJewelCaseFrontImageSlotPreviewRect(
+        slot,
+        layout,
+        group === 'titleArtwork' ? 'titleArtwork' :
+          group === 'artwork' ? 'calloutArtwork' : group,
+      )
+    : getJewelCaseBackImageSlotPreviewRect(
+        slot,
+        layout,
+        group === 'artwork' ? 'artwork' : group === 'mark' ? 'mark' : 'logo',
+      )
+
+  const logoRenderInfo = group === 'logo'
+    ? getCaseInsertLogoSlotRenderInfo(slot)
+    : null
+  const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+  const imageSize = logoRenderInfo?.imageSize ?? slot.imageSize
+  const artifact = createRectPositionedImageRenderArtifact({
+    imageDataUrl,
+    imageSize,
+    label: slot.label,
+    alt: '',
+    rect,
+  })
+
+  if (!artifact) return null
+
+  if (group === 'artwork') {
     const className = [
       'case-insert-template-framed-artwork',
       slot.frame.enabled && slot.frame.shape === 'circle' && !artifact.contentShape
@@ -151,6 +178,9 @@ function CaseInsertTemplateImageSlot({
         : '',
       artifact.contentShape
         ? 'case-insert-template-framed-artwork--content-shaped'
+        : '',
+      mixedLegacyAboveTitle
+        ? 'case-insert-template-framed-artwork--mixed-legacy'
         : '',
     ].filter(Boolean).join(' ')
 
@@ -245,18 +275,44 @@ export function CaseInsertTemplateArtworkLayer({
     templateState,
     templateState.artworkSlots,
   )
+  const {
+    activeViewportSlots,
+    legacySlots,
+  } = partitionCaseInsertArtworkViewportSlots(artworkSlots)
+
+  if (activeViewportSlots.length === 0) {
+    return (
+      <div className="case-insert-content-layer" aria-hidden="true">
+        <CaseInsertTemplateImageSlot
+          paneId={paneId}
+          slot={templateState.titleArtwork}
+          layout={layout}
+          group="titleArtwork"
+          dragTarget={{ kind: 'primary', slotKey: 'titleArtwork' }}
+          pointerHandlers={pointerHandlers}
+        />
+        {artworkSlots.map((slot) => (
+          <CaseInsertTemplateImageSlot
+            key={slot.id}
+            paneId={paneId}
+            slot={slot}
+            layout={layout}
+            group="artwork"
+            dragTarget={{
+              kind: 'group',
+              slotKey: 'artworkSlots',
+              slotId: slot.id,
+            }}
+            pointerHandlers={pointerHandlers}
+          />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="case-insert-content-layer" aria-hidden="true">
-      <CaseInsertTemplateImageSlot
-        paneId={paneId}
-        slot={templateState.titleArtwork}
-        layout={layout}
-        group="titleArtwork"
-        dragTarget={{ kind: 'primary', slotKey: 'titleArtwork' }}
-        pointerHandlers={pointerHandlers}
-      />
-      {artworkSlots.map((slot) => (
+      {activeViewportSlots.map((slot) => (
         <CaseInsertTemplateImageSlot
           key={slot.id}
           paneId={paneId}
@@ -269,6 +325,30 @@ export function CaseInsertTemplateArtworkLayer({
             slotId: slot.id,
           }}
           pointerHandlers={pointerHandlers}
+        />
+      ))}
+      <CaseInsertTemplateImageSlot
+        paneId={paneId}
+        slot={templateState.titleArtwork}
+        layout={layout}
+        group="titleArtwork"
+        dragTarget={{ kind: 'primary', slotKey: 'titleArtwork' }}
+        pointerHandlers={pointerHandlers}
+      />
+      {legacySlots.map((slot) => (
+        <CaseInsertTemplateImageSlot
+          key={slot.id}
+          paneId={paneId}
+          slot={slot}
+          layout={layout}
+          group="artwork"
+          dragTarget={{
+            kind: 'group',
+            slotKey: 'artworkSlots',
+            slotId: slot.id,
+          }}
+          pointerHandlers={pointerHandlers}
+          mixedLegacyAboveTitle
         />
       ))}
     </div>

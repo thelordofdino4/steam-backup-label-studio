@@ -2,9 +2,13 @@ import type {
   CaseInsertImageSlotGroupKey,
   CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
-import type {
-  CaseInsertLayoutSliderRanges,
+import {
+  CASE_INSERT_PERCENT_LAYOUT_RANGES,
+  type CaseInsertLayoutSliderRanges,
 } from '../../layout/caseInsertElementSafeZone'
+import {
+  getCaseInsertArtworkViewportLayoutSliderRanges,
+} from '../../caseInsert/artworkViewportPlacement'
 import {
   createJewelCasePreviewLayout,
 } from '../../layout/caseInsertPreviewLayout'
@@ -103,8 +107,16 @@ export function getTemplateGroupedImagePlacementFields(
   slot: ProjectCaseInsertImageSlot,
 ) {
   const layout = getTemplatePreviewLayout(paneId)
+  const viewportRanges = slotKey === 'artworkSlots' &&
+      slot.reservedArtworkViewport != null
+    ? getCaseInsertArtworkViewportLayoutSliderRanges({
+        owner: paneId === 'cover' ? 'cover' : 'tray',
+        slot,
+        layout,
+      }) ?? CASE_INSERT_PERCENT_LAYOUT_RANGES
+    : null
 
-  const ranges = paneId === 'cover'
+  const ranges = viewportRanges ?? (paneId === 'cover'
     ? getJewelCaseFrontImageSlotLayoutSliderRanges(
         slot,
         layout,
@@ -118,7 +130,7 @@ export function getTemplateGroupedImagePlacementFields(
         slotKey === 'artworkSlots'
           ? 'artwork'
           : slotKey === 'markSlots' ? 'mark' : 'logo',
-      )
+      ))
 
   return applyLayoutSliderRanges(TEMPLATE_OVERLAY_PLACEMENT_FIELDS, ranges)
 }

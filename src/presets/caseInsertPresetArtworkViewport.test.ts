@@ -17,9 +17,11 @@ import {
 import {
   CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_FORMAT_VERSION,
   CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_KIND,
+  CASE_INSERT_PRESET_ARTWORK_VIEWPORT_OWNER_IDS_V1,
   CASE_INSERT_PRESET_ARTWORK_VIEWPORT_PLAN_FORMAT_VERSION,
   CASE_INSERT_PRESET_ARTWORK_VIEWPORT_PLAN_KIND,
   planCaseInsertPresetArtworkViewport,
+  validateCaseInsertPresetArtworkViewportPlanningSuccess,
   type CaseInsertPresetArtworkViewportPlanningResult,
 } from './caseInsertPresetArtworkViewport.ts'
 import {
@@ -28,6 +30,7 @@ import {
 import {
   CASE_INSERT_PRESET_DEFINITION_KIND,
   CASE_INSERT_PRESET_FORMAT_VERSION,
+  CASE_INSERT_PRESET_OWNER_IDS,
 } from './caseInsertPresetDefinition.ts'
 import {
   JEWEL_CASE_ESSENTIALS_CASE_PRESET,
@@ -171,6 +174,35 @@ function planningInput(index = 0) {
     SCREENSHOT_SLOT_ID,
     SCREENSHOT_ASSIGNMENT_IDS[index]!,
   )
+}
+
+function spineArtworkInput(side: 'left' | 'right'): TestPlanningInput {
+  const input = planningInput()
+  const sideName = side === 'left' ? 'left' : 'right'
+  const ownerId = `case.spine.${sideName}.artwork-slots`
+  const objectId = `${sideName}-spine-artwork-1`
+  input.assignment = {
+    ...input.assignment,
+    slotId: `case:preset-slot:${sideName}-spine-artwork`,
+    assignmentId: `case:preset-assignment:${sideName}-spine-artwork-one`,
+    roleId: 'additional-artwork',
+    region: `${sideName}-spine`,
+    coordinateBasis: `${sideName}SpineSafe`,
+    ownerId,
+    object: { kind: 'repeated', id: objectId },
+  }
+  input.capabilities = {
+    ...input.capabilities,
+    ownerId,
+    object: { kind: 'repeated', id: objectId },
+  }
+  input.action.viewport = {
+    centerXPercent: 50,
+    centerYPercent: 50,
+    widthPercent: 60,
+    heightPercent: 50,
+  }
+  return input
 }
 
 function mutableClone(value: unknown): MutableRecord {
@@ -374,6 +406,39 @@ test('keeps left and right coordinate bases independently identified', () => {
   assert.notEqual(leftPlan.viewport.basisRectMm.xMm,
     rightPlan.viewport.basisRectMm.xMm)
   assert.equal(leftPlan.template.surfaceId, rightPlan.template.surfaceId)
+})
+
+test('extends only viewport action v1 with repeated left and right Spine artwork owners', () => {
+  assert.equal(
+    CASE_INSERT_PRESET_OWNER_IDS.includes(
+      'case.spine.left.artwork-slots' as never,
+    ),
+    false,
+  )
+  assert.equal(
+    CASE_INSERT_PRESET_OWNER_IDS.includes(
+      'case.spine.right.artwork-slots' as never,
+    ),
+    false,
+  )
+  assert.ok(CASE_INSERT_PRESET_ARTWORK_VIEWPORT_OWNER_IDS_V1.includes(
+    'case.spine.left.artwork-slots',
+  ))
+  assert.ok(CASE_INSERT_PRESET_ARTWORK_VIEWPORT_OWNER_IDS_V1.includes(
+    'case.spine.right.artwork-slots',
+  ))
+
+  for (const side of ['left', 'right'] as const) {
+    const plan = assertSuccess(
+      planCaseInsertPresetArtworkViewport(spineArtworkInput(side)),
+    )
+    assert.equal(plan.assignment.ownerId,
+      `case.spine.${side}.artwork-slots`)
+    assert.equal(plan.assignment.region, `${side}-spine`)
+    assert.equal(plan.assignment.roleId, 'additional-artwork')
+    assert.equal(plan.assignment.object.kind, 'repeated')
+    assert.equal(plan.viewport.coordinateBasis, `${side}SpineSafe`)
+  }
 })
 
 test('returns a stable deferred plan without inventing source geometry', () => {
@@ -1212,6 +1277,87 @@ test('does not mutate inputs and deeply freezes success and failure results', ()
   assertDeeplyFrozen(failure)
 })
 
+test('reconstructs and returns only canonical planner success evidence', () => {
+  const resolved = planCaseInsertPresetArtworkViewport(planningInput())
+  assert.equal(resolved.ok, true)
+  const resolvedValidation =
+    validateCaseInsertPresetArtworkViewportPlanningSuccess(resolved)
+  assert.equal(resolvedValidation.ok, true)
+  if (!resolvedValidation.ok) assert.fail('Expected canonical resolved evidence.')
+  assert.deepEqual(resolvedValidation.canonicalResult, resolved)
+  assert.notEqual(resolvedValidation.canonicalResult, resolved)
+  assertDeeplyFrozen(resolvedValidation)
+
+  const deferredInput = planningInput()
+  deferredInput.source = null
+  const deferred = planCaseInsertPresetArtworkViewport(deferredInput)
+  const deferredValidation =
+    validateCaseInsertPresetArtworkViewportPlanningSuccess(deferred)
+  assert.equal(deferredValidation.ok, true)
+  if (!deferredValidation.ok) assert.fail('Expected canonical deferred evidence.')
+  assert.deepEqual(deferredValidation.canonicalResult, deferred)
+
+  const planningFailure = planCaseInsertPresetArtworkViewport(null)
+  const failureValidation =
+    validateCaseInsertPresetArtworkViewportPlanningSuccess(planningFailure)
+  assert.equal(failureValidation.ok, false)
+  if (failureValidation.ok) assert.fail('Expected failure evidence rejection.')
+  assert.equal(failureValidation.error.code, 'evidence-not-success')
+})
+
+test('rejects tampered and hostile planner success evidence', () => {
+  const canonical = planCaseInsertPresetArtworkViewport(planningInput())
+  assert.equal(canonical.ok, true)
+
+  const mutations: Array<(value: MutableRecord) => void> = [
+    (value) => {
+      const plan = value.plan as MutableRecord
+      plan.identity = 'case:preset-artwork-fitting-plan:v1:tampered'
+    },
+    (value) => {
+      const plan = value.plan as MutableRecord
+      const viewport = plan.viewport as MutableRecord
+      viewport.physicalWidthMm = (viewport.physicalWidthMm as number) + 1
+    },
+    (value) => {
+      const plan = value.plan as MutableRecord
+      const assignment = plan.assignment as MutableRecord
+      assignment.object = { kind: 'repeated', id: 'other-artwork-slot' }
+    },
+    (value) => {
+      const plan = value.plan as MutableRecord
+      const capabilities = plan.capabilities as MutableRecord
+      capabilities.zoom = !capabilities.zoom
+    },
+    (value) => {
+      const plan = value.plan as MutableRecord
+      plan.unexpected = true
+    },
+  ]
+
+  for (const mutate of mutations) {
+    const tampered = structuredClone(canonical) as MutableRecord
+    mutate(tampered)
+    const validation =
+      validateCaseInsertPresetArtworkViewportPlanningSuccess(tampered)
+    assert.equal(validation.ok, false)
+    if (validation.ok) assert.fail('Expected tampered evidence rejection.')
+    assert.equal(validation.error.code, 'evidence-noncanonical')
+  }
+
+  const cyclic = structuredClone(canonical) as MutableRecord
+  cyclic.self = cyclic
+  const accessor = structuredClone(canonical) as MutableRecord
+  Object.defineProperty(accessor, 'computed', { get: () => true })
+  for (const hostile of [cyclic, accessor]) {
+    const validation =
+      validateCaseInsertPresetArtworkViewportPlanningSuccess(hostile)
+    assert.equal(validation.ok, false)
+    if (validation.ok) assert.fail('Expected hostile evidence rejection.')
+    assert.equal(validation.error.code, 'evidence-not-plain')
+  }
+})
+
 test('rejects cyclic, aliased, accessor, function, symbol, and BigInt hostile inputs', () => {
   const cyclic = mutableClone(planningInput())
   cyclic.self = cyclic
@@ -1315,7 +1461,7 @@ test('keeps action and plan versions separate from unchanged definition, catalog
   assert.ok(screenshotSlot().assignments.every(
     (assignment) => !('actionRegion' in assignment),
   ))
-  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.3.0')
+  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.4.0')
   assert.equal(CASE_INSERT_LAYOUT_PRESET_PROJECT_STATE_VERSION, 1)
   assert.equal(PROJECT_PACKAGE_WRITE_REQUEST_MAGIC, 'SBLSPSV1')
 })

@@ -5,6 +5,7 @@ import { createProjectSnapshot } from '../project/createProjectSnapshot.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
 import type {
   ProjectCaseInsertImageSlot,
   SavedCaseInsertProject,
@@ -26,7 +27,7 @@ function byOwner(
 
 function createDiscProject(title: string): SavedDiscProject {
   return {
-    schemaVersion: '0.2.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'disc',
     title,
     savedAt: '2026-07-29T00:00:00.000Z',
@@ -245,6 +246,42 @@ test('Case traversal covers all four surfaces and disabled remembered arrays', (
       .map(({ ownerId }) => ownerId),
     expectedOwners,
   )
+})
+
+test('Case reserved artwork viewport remains non-asset state beside its captured image', () => {
+  const withoutViewport = createBlankJewelCaseSavedProject('Viewport Case')
+  withoutViewport.caseInsert.templates.tray.artworkSlots = [
+    customSlot(
+      withoutViewport.caseInsert.templates.tray.background,
+      'reserved-back-panel-artwork',
+      true,
+    ),
+  ]
+  const withViewport = structuredClone(withoutViewport)
+  withViewport.caseInsert.templates.tray.artworkSlots[0].reservedArtworkViewport = {
+    kind: 'sbls/case-insert-artwork-viewport',
+    formatVersion: 1,
+    templateId: 'jewelCase',
+    templateRevision: null,
+    coordinateBasis: 'backPanelSafe',
+    widthPercent: 26,
+    heightPercent: 16,
+    focalPosition: {
+      xPercent: 50,
+      yPercent: 50,
+    },
+    zoom: 1,
+  }
+
+  const withoutPlan = createProjectPackageCapturePlan(withoutViewport)
+  const withPlan = createProjectPackageCapturePlan(withViewport)
+  assert.deepEqual(withPlan, withoutPlan)
+  assert.deepEqual(
+    byOwner(withPlan.captures, 'case.tray.artwork.0')?.decision,
+    { kind: 'project-owned-data-url' },
+  )
+  assert.equal(JSON.stringify(withPlan).includes('reservedArtworkViewport'), false)
+  assert.equal(JSON.stringify(withPlan).includes('backPanelSafe'), false)
 })
 
 test('unsafe accepted-owner values fail closed while unrelated candidates are ignored', () => {

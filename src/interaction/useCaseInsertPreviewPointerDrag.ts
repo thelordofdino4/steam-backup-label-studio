@@ -65,8 +65,11 @@ import {
 } from './textMoveHandleDrag.ts'
 import { usePercentPointerDrag } from './usePointerDragAdapters.ts'
 import type { PointerDragActivationOptions } from './usePointerDrag.ts'
+import {
+  getCaseInsertArtworkViewportDragPlacement,
+} from './caseInsertArtworkViewportDrag.ts'
 
-type CaseInsertDragRange = 'offset' | 'percent'
+type CaseInsertDragRange = 'offset' | 'percent' | DragPointRange
 
 type TemplatePrimaryImageDragTarget = {
   scope: 'templatePrimaryImage'
@@ -201,6 +204,10 @@ type UseCaseInsertPreviewPointerDragOptions = {
 function getCaseInsertDragPointRange(
   range: CaseInsertDragRange,
 ): DragPointRange {
+  if (typeof range !== 'string') {
+    return range
+  }
+
   return range === 'offset'
     ? OFFSET_DRAG_POINT_RANGE
     : PERCENT_DRAG_POINT_RANGE
@@ -598,11 +605,26 @@ export function useCaseInsertPreviewPointerDrag({
         return
       }
 
+      const hasActiveViewport = slotKey === 'artworkSlots' &&
+        slot.reservedArtworkViewport != null
+      const viewportPlacement = hasActiveViewport
+        ? getCaseInsertArtworkViewportDragPlacement({
+            owner: paneId === 'cover' ? 'cover' : 'tray',
+            slot,
+            layout,
+          })
+        : null
+
+      if (hasActiveViewport && !viewportPlacement) {
+        return
+      }
+
       beginDrag(
         event,
-        getTemplateGroupedImageDragRegion(paneId, layout),
+        viewportPlacement?.region ??
+          getTemplateGroupedImageDragRegion(paneId, layout),
         slot.layout,
-        getTemplateGroupedImageRange(),
+        viewportPlacement?.pointRange ?? getTemplateGroupedImageRange(),
         {
           scope: 'templateGroupedImage',
           paneId,
@@ -706,11 +728,25 @@ export function useCaseInsertPreviewPointerDrag({
         return
       }
 
+      const hasActiveViewport = slotKey === 'artworkSlots' &&
+        slot.reservedArtworkViewport != null
+      const viewportPlacement = hasActiveViewport
+        ? getCaseInsertArtworkViewportDragPlacement({
+            owner: side === 'left' ? 'left-spine' : 'right-spine',
+            slot,
+            layout,
+          })
+        : null
+
+      if (hasActiveViewport && !viewportPlacement) {
+        return
+      }
+
       beginDrag(
         event,
-        getSpineOverlayDragRegion(side, layout),
+        viewportPlacement?.region ?? getSpineOverlayDragRegion(side, layout),
         slot.layout,
-        'percent',
+        viewportPlacement?.pointRange ?? 'percent',
         {
           scope: 'spineGroupedImage',
           side,

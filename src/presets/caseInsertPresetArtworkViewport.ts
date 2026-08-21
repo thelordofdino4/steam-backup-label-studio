@@ -41,18 +41,37 @@ export const CASE_INSERT_PRESET_ARTWORK_VIEWPORT_PLAN_KIND =
 export const CASE_INSERT_PRESET_ARTWORK_VIEWPORT_PLAN_FORMAT_VERSION = 1 as const
 export const CASE_INSERT_PRESET_ARTWORK_CROP_ASPECT_TOLERANCE = 1e-12
 
+/**
+ * Viewport action v1 extends the definition-v1 owner vocabulary only for
+ * ordinary repeated Spine artwork. Definition v1, its canonical owner list,
+ * and its Apply/Reapply/Detach resolvers intentionally remain unchanged.
+ */
+export const CASE_INSERT_PRESET_ARTWORK_VIEWPORT_OWNER_IDS_V1 = Object.freeze([
+  ...CASE_INSERT_PRESET_OWNER_IDS,
+  'case.spine.left.artwork-slots',
+  'case.spine.right.artwork-slots',
+] as const)
+
+export type CaseInsertPresetArtworkViewportOwnerIdV1 =
+  typeof CASE_INSERT_PRESET_ARTWORK_VIEWPORT_OWNER_IDS_V1[number]
+
 const CASE_INSERT_PRESET_ARTWORK_NUMERIC_TOLERANCE = Number.EPSILON * 64
 const CASE_INSERT_PRESET_ARTWORK_MAX_IDENTITY_LENGTH = 512
 
 const SLOT_ID_PATTERN = /^case:preset-slot:[a-z0-9]+(?:-[a-z0-9]+)*$/
 const ASSIGNMENT_ID_PATTERN =
   /^case:preset-assignment:[a-z0-9]+(?:-[a-z0-9]+)*$/
+const REPEATED_OBJECT_ID_PATTERN =
+  /^[a-z][a-z0-9]*(?:(?:-|:)[a-z0-9]+)*$/
 
 const REGION_IDS = new Set<string>(CASE_INSERT_PRESET_CONCRETE_REGION_IDS)
 const COORDINATE_BASES = new Set<string>(CASE_INSERT_PRESET_COORDINATE_BASES)
 const ROLE_IDS = new Set<string>(CASE_INSERT_PRESET_ROLE_IDS)
-const OWNER_IDS = new Set<string>(CASE_INSERT_PRESET_OWNER_IDS)
-const ARTWORK_OWNER_IDS = new Set<CaseInsertPresetOwnerId>([
+const DEFINITION_OWNER_IDS = new Set<string>(CASE_INSERT_PRESET_OWNER_IDS)
+const OWNER_IDS = new Set<string>(
+  CASE_INSERT_PRESET_ARTWORK_VIEWPORT_OWNER_IDS_V1,
+)
+const ARTWORK_OWNER_IDS = new Set<CaseInsertPresetArtworkViewportOwnerIdV1>([
   'case.cover.background',
   'case.cover.title-artwork',
   'case.cover.artwork-slots',
@@ -65,10 +84,12 @@ const ARTWORK_OWNER_IDS = new Set<CaseInsertPresetOwnerId>([
   'case.tray.mark-slots',
   'case.spine.left.background',
   'case.spine.left.title-artwork',
+  'case.spine.left.artwork-slots',
   'case.spine.left.logo-slots',
   'case.spine.left.mark-slots',
   'case.spine.right.background',
   'case.spine.right.title-artwork',
+  'case.spine.right.artwork-slots',
   'case.spine.right.logo-slots',
   'case.spine.right.mark-slots',
 ])
@@ -131,6 +152,7 @@ const CAPABILITY_FIELDS = Object.freeze([
   'focalOffset',
   'zoom',
 ])
+const SUCCESS_RESULT_FIELDS = Object.freeze(['ok', 'status', 'plan'])
 
 export type CaseInsertPresetArtworkViewportAssignmentIdentity = Readonly<{
   presetId: CaseInsertPresetId
@@ -140,7 +162,7 @@ export type CaseInsertPresetArtworkViewportAssignmentIdentity = Readonly<{
   roleId: CaseInsertPresetRoleId
   region: CaseInsertPresetConcreteRegionId
   coordinateBasis: CaseInsertPresetCoordinateBasis
-  ownerId: CaseInsertPresetOwnerId
+  ownerId: CaseInsertPresetArtworkViewportOwnerIdV1
   object: CaseInsertPresetObjectBinding
 }>
 
@@ -169,7 +191,7 @@ export type CaseInsertPresetArtworkViewportSource = Readonly<{
 }>
 
 export type CaseInsertPresetArtworkViewportCapabilities = Readonly<{
-  ownerId: CaseInsertPresetOwnerId
+  ownerId: CaseInsertPresetArtworkViewportOwnerIdV1
   object: CaseInsertPresetObjectBinding
   viewportGeometry: boolean
   contain: boolean
@@ -416,8 +438,34 @@ export type CaseInsertPresetArtworkViewportPlanningResult =
         code: CaseInsertPresetArtworkViewportUnsupportedCode
         path: string
         capability?: CaseInsertPresetArtworkViewportCapability
-        ownerId?: CaseInsertPresetOwnerId
+        ownerId?: CaseInsertPresetArtworkViewportOwnerIdV1
         objectId?: string
+      }>
+    }>
+
+export type CaseInsertPresetArtworkViewportPlanningSuccess = Extract<
+  CaseInsertPresetArtworkViewportPlanningResult,
+  Readonly<{ ok: true }>
+>
+
+export type CaseInsertPresetArtworkViewportSuccessEvidenceValidationCode =
+  | 'evidence-not-plain'
+  | 'evidence-not-success'
+  | 'evidence-noncanonical'
+
+export type CaseInsertPresetArtworkViewportSuccessEvidenceValidationResult =
+  | Readonly<{
+      ok: true
+      status: 'canonical'
+      canonicalResult: CaseInsertPresetArtworkViewportPlanningSuccess
+    }>
+  | Readonly<{
+      ok: false
+      status: 'invalid'
+      error: Readonly<{
+        code: CaseInsertPresetArtworkViewportSuccessEvidenceValidationCode
+        path: string
+        detail?: string
       }>
     }>
 
@@ -469,7 +517,7 @@ function unsupported(
   path: string,
   evidence: Readonly<{
     capability?: CaseInsertPresetArtworkViewportCapability
-    ownerId?: CaseInsertPresetOwnerId
+    ownerId?: CaseInsertPresetArtworkViewportOwnerIdV1
     objectId?: string
   }> = {},
 ): CaseInsertPresetArtworkViewportPlanningResult {
@@ -579,7 +627,7 @@ function parseAssignment(
     roleId: value.roleId as CaseInsertPresetRoleId,
     region: value.region as CaseInsertPresetConcreteRegionId,
     coordinateBasis: value.coordinateBasis as CaseInsertPresetCoordinateBasis,
-    ownerId: value.ownerId as CaseInsertPresetOwnerId,
+    ownerId: value.ownerId as CaseInsertPresetArtworkViewportOwnerIdV1,
     object: object.value,
   })
 }
@@ -829,7 +877,7 @@ function parseCapabilities(
     ))
   }
   return success({
-    ownerId: value.ownerId as CaseInsertPresetOwnerId,
+    ownerId: value.ownerId as CaseInsertPresetArtworkViewportOwnerIdV1,
     object: object.value,
     viewportGeometry: value.viewportGeometry,
     contain: value.contain,
@@ -847,10 +895,37 @@ function sameObjectBinding(
   return left.kind === right.kind && left.id === right.id
 }
 
+function isViewportOwnerBindingCompatible(
+  region: CaseInsertPresetConcreteRegionId,
+  roleId: CaseInsertPresetRoleId,
+  ownerId: CaseInsertPresetArtworkViewportOwnerIdV1,
+  object: CaseInsertPresetObjectBinding,
+) {
+  if (DEFINITION_OWNER_IDS.has(ownerId)) {
+    return isCaseInsertPresetOwnerBindingCompatible(
+      region,
+      roleId,
+      ownerId as CaseInsertPresetOwnerId,
+      object,
+    )
+  }
+
+  if (object.kind !== 'repeated' ||
+      !REPEATED_OBJECT_ID_PATTERN.test(object.id) ||
+      roleId !== 'additional-artwork') {
+    return false
+  }
+
+  return ownerId === 'case.spine.left.artwork-slots'
+    ? region === 'left-spine'
+    : ownerId === 'case.spine.right.artwork-slots' &&
+        region === 'right-spine'
+}
+
 function validateCompatibility(
   input: PlanCaseInsertPresetArtworkViewportInput,
 ): CaseInsertPresetArtworkViewportPlanningResult | null {
-  if (!isCaseInsertPresetOwnerBindingCompatible(
+  if (!isViewportOwnerBindingCompatible(
     input.assignment.region,
     input.assignment.roleId,
     input.assignment.ownerId,
@@ -1671,4 +1746,121 @@ export function planCaseInsertPresetArtworkViewport(
     content.value,
     requiredCapabilities,
   )
+}
+
+function canonicalEvidenceValuesMatch(left: unknown, right: unknown): boolean {
+  if (typeof left !== typeof right) return false
+  if (left === null || right === null || typeof left !== 'object') {
+    return Object.is(left, right)
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) =>
+        canonicalEvidenceValuesMatch(item, right[index]))
+  }
+  const leftRecord = left as Readonly<Record<string, unknown>>
+  const rightRecord = right as Readonly<Record<string, unknown>>
+  const leftKeys = Object.keys(leftRecord).sort()
+  const rightKeys = Object.keys(rightRecord).sort()
+  return leftKeys.length === rightKeys.length &&
+    leftKeys.every((key, index) =>
+      key === rightKeys[index] &&
+      canonicalEvidenceValuesMatch(leftRecord[key], rightRecord[key]))
+}
+
+function reconstructSourceFromSuccessPlan(
+  plan: CaseInsertPresetPlainRecord,
+  status: 'resolved' | 'deferred',
+) {
+  if (status === 'deferred') return null
+  const source = isRecord(plan.source) ? plan.source : {}
+  const imageRect = isRecord(source.imageRect) ? source.imageRect : {}
+  return {
+    assetIdentity: source.assetIdentity,
+    provenanceIdentity: source.provenanceIdentity,
+    width: imageRect.width,
+    height: imageRect.height,
+    contentBounds: source.contentRect,
+  }
+}
+
+function reconstructInputFromSuccessEvidence(
+  evidence: CaseInsertPresetPlainRecord,
+  status: 'resolved' | 'deferred',
+) {
+  const plan = isRecord(evidence.plan) ? evidence.plan : {}
+  const template = isRecord(plan.template) ? plan.template : {}
+  const viewport = isRecord(plan.viewport) ? plan.viewport : {}
+  const intent = isRecord(plan.intent) ? plan.intent : {}
+  return {
+    assignment: plan.assignment,
+    template: {
+      id: template.id,
+      revision: template.revision,
+      presetCompatibility: template.presetCompatibility,
+    },
+    action: {
+      kind: CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_KIND,
+      formatVersion:
+        CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_FORMAT_VERSION,
+      viewport: viewport.normalizedRegion,
+      fitting: intent.declaration,
+    },
+    source: reconstructSourceFromSuccessPlan(plan, status),
+    capabilities: plan.capabilities,
+  }
+}
+
+function invalidSuccessEvidence(
+  code: CaseInsertPresetArtworkViewportSuccessEvidenceValidationCode,
+  path: string,
+  detail?: string,
+): CaseInsertPresetArtworkViewportSuccessEvidenceValidationResult {
+  return deepFreezeCaseInsertPresetValue({
+    ok: false,
+    status: 'invalid',
+    error: { code, path, ...(detail ? { detail } : {}) },
+  })
+}
+
+/**
+ * Reconstructs and reruns the pure planner, then returns that canonical result.
+ * A structurally similar or merely frozen object is not accepted as validated
+ * success evidence.
+ */
+export function validateCaseInsertPresetArtworkViewportPlanningSuccess(
+  value: unknown,
+): CaseInsertPresetArtworkViewportSuccessEvidenceValidationResult {
+  const cloned = cloneCaseInsertPresetPlainInput(value)
+  if (!cloned.ok) {
+    return invalidSuccessEvidence(
+      'evidence-not-plain',
+      '$',
+      cloned.code,
+    )
+  }
+  if (!isRecord(cloned.value) ||
+      !hasExactCaseInsertPresetKeys(cloned.value, SUCCESS_RESULT_FIELDS) ||
+      cloned.value.ok !== true ||
+      (cloned.value.status !== 'resolved' &&
+        cloned.value.status !== 'deferred') ||
+      !isRecord(cloned.value.plan)) {
+    return invalidSuccessEvidence('evidence-not-success', '$')
+  }
+
+  const canonicalResult = planCaseInsertPresetArtworkViewport(
+    reconstructInputFromSuccessEvidence(cloned.value, cloned.value.status),
+  )
+  if (!canonicalResult.ok ||
+      canonicalResult.status !== cloned.value.status ||
+      !canonicalEvidenceValuesMatch(cloned.value, canonicalResult)) {
+    return invalidSuccessEvidence('evidence-noncanonical', '$')
+  }
+
+  return deepFreezeCaseInsertPresetValue({
+    ok: true,
+    status: 'canonical',
+    canonicalResult,
+  })
 }

@@ -624,7 +624,7 @@ test('a recovered Save/Open attachment is immediately inspectable, detachable, a
   assert.equal(owner.beginDetach().ok, true)
 })
 
-test('the production catalog remains exact, schema stays 0.3.0, and App injects one presentation owner', () => {
+test('the production catalog remains exact, schema stays 0.4.0, and App injects one presentation owner', () => {
   assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [{
     id: 'builtin:case-preset:jewel-case-essentials',
     revision: 1,
@@ -632,7 +632,7 @@ test('the production catalog remains exact, schema stays 0.3.0, and App injects 
     surface: 'case-insert',
     source: 'builtin',
   }])
-  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.3.0')
+  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.4.0')
   const appSource = readFileSync('src/app/App.tsx', 'utf8')
   assert.match(appSource, /createAppCaseInsertPresetWorkflowOwner/)
   assert.match(appSource, /createCaseInsertPresetPresentationController/)

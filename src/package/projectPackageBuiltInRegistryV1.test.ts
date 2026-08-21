@@ -39,7 +39,7 @@ test('package-v1 built-in registry has exact checked-in bytes and complete IDs',
   assert.equal(registry.status, 'normative')
   assert.deepEqual(
     registry.supportedProjectSchemaVersions,
-    ['0.1.0', '0.2.0', '0.3.0'],
+    ['0.1.0', '0.2.0', '0.3.0', '0.4.0'],
   )
   assert.match(registry.compatibilityLifetime, /remains reconstructible/)
   assert.ok(registry.ownerMappings.length >= 10)

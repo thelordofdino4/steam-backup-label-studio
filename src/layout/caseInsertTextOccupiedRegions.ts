@@ -49,6 +49,9 @@ import {
   getJewelCaseSpineImageSlotPreviewLayout,
   type JewelCaseSpineOverlayRole,
 } from './jewelCaseSpineLayout.ts'
+import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../caseInsert/artworkViewportRenderArtifact.ts'
 
 export type { CaseInsertTextAvoidanceRegion } from './caseInsertTextAvoidance.ts'
 
@@ -133,6 +136,19 @@ function getTemplateImageSlotPreviewRect(
   role: TemplateSlotRole,
 ) {
   const renderableSlot = role === 'logo' ? getRenderableLogoSlot(slot) : slot
+
+  if (role === 'artwork') {
+    const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+      owner: paneId,
+      slot: renderableSlot,
+      layout,
+    })
+
+    if (viewportResult.status === 'resolved') {
+      return viewportResult.artifact.boundingRect
+    }
+    if (viewportResult.status !== 'legacy') return null
+  }
 
   return paneId === 'cover'
     ? getJewelCaseFrontImageSlotPreviewRect(
@@ -239,6 +255,19 @@ function getSpineImageSlotPreviewRect(
   role: JewelCaseSpineOverlayRole,
 ) {
   const renderableSlot = role === 'logo' ? getRenderableLogoSlot(slot) : slot
+
+  if (role === 'artwork') {
+    const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+      owner: side === 'left' ? 'left-spine' : 'right-spine',
+      slot: renderableSlot,
+      layout,
+    })
+
+    if (viewportResult.status === 'resolved') {
+      return viewportResult.artifact.boundingRect
+    }
+    if (viewportResult.status !== 'legacy') return null
+  }
 
   return getJewelCaseSpineImageSlotPreviewLayout(
     side,

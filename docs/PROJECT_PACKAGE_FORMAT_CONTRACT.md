@@ -4,8 +4,8 @@
 > Purpose: Define the implementation-ready version 1 `.sbls` package, its portability and security invariants, and its integration with the existing project schema and application lifecycle.
 > Read when: Implementing or reviewing project package encoding, decoding, asset collection, binary persistence, legacy conversion, Open, Save, or Save As.
 > Authoritative source: This contract for target package/container behavior; [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md) for hydrated saved-project fields and migrations; [`APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md`](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md) for session, command, path, baseline, revision, dirty, and commit semantics.
-> Current implementation: The Rust-owned `sbls-package-codec` implements the protocol-bounded in-memory v1 encoder/decoder, including crate-private vendored native JPEG/WebP validation shims. Lifecycle-owned production Save and Save As capture one closed asset plan from authoritative current snapshot `R`, call a native borrowed-input encoder, atomically write only `.sbls` package-v1 bytes, protect an active legacy source by native file identity, and adopt truthful package format/path/baseline `R` only after commit without post-write editor recapture. Production Open exposes `.sbls` and `.json`, recognizes content through a bounded native adapter, keeps raw package bytes native-owned, reuses the immutable Disc/Case staging and lifecycle compare-and-swap owners, and shares the dirty-aware New/Open replacement guard.
-> Evidence baseline: PR #326 merged to `main` at `4db227266695ee0b35d33e1f88e82cd88ad85034`, plus the focused current-project synchronization and replacement-guard checkpoint on `agent/project-session-dirty-replacement-guard`, reviewed on 2026-07-29.
+> Current implementation: The Rust-owned `sbls-package-codec` implements the protocol-bounded in-memory v1 encoder/decoder, including crate-private vendored native JPEG/WebP validation shims. Lifecycle-owned production Save and Save As capture one closed asset plan from authoritative current snapshot `R`, call a native borrowed-input encoder, atomically write only `.sbls` package-v1 bytes, protect an active legacy source by native file identity, and adopt truthful package format/path/baseline `R` only after commit without post-write editor recapture. Production Open exposes `.sbls` and `.json`, recognizes content through a bounded native adapter, keeps raw package bytes native-owned, reuses the immutable Disc/Case staging and lifecycle compare-and-swap owners, and shares the dirty-aware New/Open replacement guard. Package version 1 now reads registered project schemas `0.1.0` through `0.4.0` and writes only current schema `0.4.0`; the Case reserved-artwork viewport is ordinary project JSON and adds no package binding.
+> Evidence baseline: PR #326 merged to `main` at `4db227266695ee0b35d33e1f88e82cd88ad85034`, later merged architecture through PR #353 at `dde67fac36de8f473c4ca7082e123ef801810a95`, and the focused Case reserved-artwork viewport runtime checkpoint reviewed on 2026-08-21.
 
 ## 1. Status, purpose, authority, and document relationships
 
@@ -73,7 +73,7 @@ ID, and package asset ID are distinct concepts.
 | Claim | Current behavior at the evidence baseline | Evidence |
 | --- | --- | --- |
 | CURRENT FACT | Frontend package metadata, Tauri configuration, and Rust crate metadata report application version `0.1.0`; this value is diagnostic and independent of package/project schema versions. | [`package.json`](../package.json), [`tauri.conf.json`](../src-tauri/tauri.conf.json), [`Cargo.toml`](../src-tauri/Cargo.toml) |
-| CURRENT FACT | Projects use schema `0.2.0`; schema `0.1.0` has an explicit migration to `0.2.0`. | [`projectSchema.ts`](../src/project/projectSchema.ts) |
+| CURRENT FACT | Projects use schema `0.4.0`; package v1 recognizes project schemas `0.1.0`, `0.2.0`, `0.3.0`, and `0.4.0`, while the encoder accepts only current `0.4.0`. The pure TypeScript migration chain advances older hydrated projects to `0.4.0`. | [`projectSchema.ts`](../src/project/projectSchema.ts), [`registry.rs`](../src-tauri/crates/sbls-package-codec/src/registry.rs), [`encode.rs`](../src-tauri/crates/sbls-package-codec/src/encode.rs) |
 | CURRENT FACT | Production Open exposes `.sbls` and `.json`, recognizes content natively, then dispatches to legacy text staging or native package decode/hydration. Production Save/Save As exposes only `.sbls`, validates the exact suffix, and never creates new JSON projects. | [`project_format_recognition.rs`](../src-tauri/src/project_format_recognition.rs), [`projectFileFormat.ts`](../src/tauri/projectFileFormat.ts), [`appProjectSaveCommand.ts`](../src/app/appProjectSaveCommand.ts), [`appProjectLoad.ts`](../src/app/appProjectLoad.ts), [`fileSystem.ts`](../src/tauri/fileSystem.ts) |
 | CURRENT FACT | Two-phase Open stages file selection, read, parse, migrate, normalize, route, and restore before the lifecycle compare-and-swap/apply step. | [`appProjectLoad.ts`](../src/app/appProjectLoad.ts), [`applicationLifecycleStateStore.ts`](../src/lifecycle/applicationLifecycleStateStore.ts) |
 | CURRENT FACT | The legacy `write_project_file` command accepts a UTF-8 `String` and `read_project_file` uses text decoding. Separate dormant generic `read_binary_project_file` and `write_binary_project_file` commands carry arbitrary bounded bytes. `recognize_project_file_format` returns only a strict two-value format DTO; `decode_project_package_file` reuses the bounded read/path/body owner, borrows its owned package buffer into the codec, and returns only moved hydrated JSON bytes as a raw response. None changes either legacy command. | [`files.rs`](../src-tauri/src/commands/files.rs), [`project_files.rs`](../src-tauri/src/commands/project_files.rs), [`project_format_recognition.rs`](../src-tauri/src/project_format_recognition.rs), [`project_packages.rs`](../src-tauri/src/commands/project_packages.rs), [`project_binary_io.rs`](../src-tauri/src/project_binary_io.rs) |
@@ -98,7 +98,7 @@ ID, and package asset ID are distinct concepts.
 | native write | CURRENT FACT | `encode_and_write_project_package_file` validates one bounded raw request, fully encodes a package, and passes its owned bytes directly to the atomic writer. The legacy string and generic raw commands remain registered but are not production Save owners. | Preserve the focused composition and atomic-writer delegation |
 | lifecycle format | CURRENT FACT / TARGET REQUIREMENT | Session-only `legacy-json`, `sbls-package-v1`, or null identity is implemented and excluded from `SavedProject` | Preserve recognized identity independently from extension eligibility |
 | new saves | CURRENT FACT / TARGET REQUIREMENT | `.sbls` only | Preserve `.sbls` only |
-| compatibility | CURRENT FACT / TARGET REQUIREMENT | JSON `0.1.0` and `0.2.0` read support | Preserve those reads; hydrate supported packages before schema migration |
+| compatibility | CURRENT FACT / TARGET REQUIREMENT | JSON/package project schemas `0.1.0` through `0.4.0` read; package writes require current schema `0.4.0` | Preserve older reads; hydrate supported packages before schema migration; write only the current hydrated schema |
 
 **CURRENT FACT.** Static audit also found two pre-existing fidelity risks that a
 container cannot silently repair: deselected primary Platform/Technical custom
@@ -219,7 +219,7 @@ without fractions or exponent notation.
     "path": "project.json",
     "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   },
-  "projectSchemaVersion": "0.2.0"
+  "projectSchemaVersion": "0.4.0"
 }
 ```
 
@@ -345,11 +345,12 @@ accepted asset. A semantic built-in selector plus `null` leaf must enter the
 built-in compatibility policy; it must never disappear through a generic
 "null means absent" shortcut.
 
-**TARGET REQUIREMENT.** Package v1 applies this same registry to declared schema
-`0.1.0` and `0.2.0` because the registered `0.1.0` to `0.2.0` migration changes
-only `schemaVersion` and introduces no alternate asset-bearing path. V1 writers
-emit only the current schema. Supporting any other schema requires an explicit
-schema-specific pointer/built-in registry before that package can be accepted.
+**CURRENT FACT / TARGET REQUIREMENT.** Package v1 applies this same registry to
+declared schemas `0.1.0`, `0.2.0`, `0.3.0`, and `0.4.0`. Their migrations add
+no alternate asset-bearing path; schema `0.4.0`'s viewport record is ordinary
+JSON metadata with no asset leaf. V1 writers emit only current `0.4.0`.
+Supporting any other schema requires an explicit schema-specific pointer/
+built-in registry decision before that package can be accepted.
 
 ### Hydration
 
@@ -458,6 +459,16 @@ incomplete package.
 existing feature owners before a later Save traversal. Legacy aliases are not
 added to the binding registry; package v1 is written only from the current
 canonical schema.
+
+**CURRENT FACT.** Schema `0.4.0`'s Case `reservedArtworkViewport` is bounded
+ordinary JSON metadata on repeated artwork slots. It contains no asset bytes,
+data URL, package pointer, digest, or built-in identity, so package format 1
+preserves it inside `project.json` without a manifest asset or binding record.
+The schema-registry update admits `0.4.0` for decode/hydration and makes it the
+only writable schema. The package and built-in compatibility registries add
+only equivalent schema-`0.4.0` support; the package identifier, package version,
+archive layout, asset-owner/binding vocabulary, and binding traversal do not
+change.
 
 **FUTURE EXTENSION.** Custom fonts require a separate asset class, licensing
 policy, schema representation, MIME validation, and renderer support. Future
@@ -789,8 +800,8 @@ Case project filename must end exactly in `.sbls` rather than `.json` or
 ## 11. Legacy JSON import and conversion behavior
 
 **CURRENT FACT.** Plain `.json` and `.sbls.json` projects remain implemented
-legacy imports, including the `0.1.0` to `0.2.0` schema migration. Production
-Open recognizes them by content rather than name.
+legacy imports, including the pure `0.1.0 -> 0.2.0 -> 0.3.0 -> 0.4.0` schema
+migration chain. Production Open recognizes them by content rather than name.
 
 **TARGET REQUIREMENT.** Legacy JSON remains a read-only import representation
 during alpha. No command writes new legacy JSON, no “Export legacy JSON” command
@@ -1078,8 +1089,8 @@ this checkpoint makes no new whole-application 1.77.2 compatibility claim.
 | package v1 + supported older schema | TARGET REQUIREMENT | Validate/hydrate under that schema's approved binding/asset registry, then run existing schema migration and normalization. |
 | package v1 + unsupported future schema | TARGET REQUIREMENT | Reject `project.schema.unsupported`; do not guess or partially restore. |
 | unknown package version | TARGET REQUIREMENT | Reject before interpreting its manifest/project semantics. |
-| safety-eligible legacy schema `0.2.0` | TARGET REQUIREMENT | Preserve current legacy import behavior after section 10's bounded duplicate-key, resource, asset, and network-inertness gate. |
-| legacy schema `0.1.0` | TARGET REQUIREMENT | Preserve explicit migration to `0.2.0`; later Save converts through Save As to package v1. |
+| safety-eligible legacy schemas `0.2.0` and `0.3.0` | TARGET REQUIREMENT | Preserve current legacy import behavior and migrate purely to `0.4.0` after section 10's bounded duplicate-key, resource, asset, and network-inertness gate. |
+| legacy schema `0.1.0` | TARGET REQUIREMENT | Preserve the explicit `0.1.0 -> 0.2.0 -> 0.3.0 -> 0.4.0` migration chain; later Save converts through Save As to package v1. |
 | package made by another app version | TARGET REQUIREMENT | Ignore creating version for gating; use package and project schema versions only. |
 | unknown manifest field in v1 | TARGET REQUIREMENT | Reject; additive fields require a future package-version contract. |
 | unsupported required future feature | TARGET REQUIREMENT | Reject with the version/manifest/schema-specific typed code; never ignore required semantics. |
@@ -1358,7 +1369,7 @@ controls in section 9, not system or dynamically selected runtime dependencies.
 | --- | --- | --- |
 | [#56](https://github.com/thelordofdino4/steam-backup-label-studio/issues/56) | CURRENT FACT | Closed decision owner that selected a ZIP-compatible package; this contract supplies the normative details and the pure codec implements the first bounded package-domain slice. |
 | [#58](https://github.com/thelordofdino4/steam-backup-label-studio/issues/58) | CURRENT FACT | Closed duplicate of #56; not a second format owner. |
-| [#48](https://github.com/thelordofdino4/steam-backup-label-studio/issues/48) | CURRENT FACT | Closed schema-validation/migration work that established the current `0.2.0` parser and `0.1.0` migration consumed after hydration. |
+| [#48](https://github.com/thelordofdino4/steam-backup-label-studio/issues/48) | CURRENT FACT | Closed schema-validation/migration work that established the initial `0.2.0` parser and `0.1.0` migration foundation consumed after hydration; current schema and the extended chain defer to `PROJECT_FILE_SPEC.md`. |
 | [#308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308) | CURRENT FACT / TARGET REQUIREMENT | Open lifecycle parent for implemented session/path/baseline and Open/Save/Save As owners, plus future dirty integration, replacement guards, and Resume. Package work consumes that owner. |
 | [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | CURRENT FACT / TARGET REQUIREMENT | Issue remains open, but its atomic byte writer was merged by PR #317 and is now consumed by production package Save/Save As as well as the retained legacy/dormant adapters. Package work reuses rather than bypasses that primitive. |
 | [PR #317](https://github.com/thelordofdino4/steam-backup-label-studio/pull/317) | CURRENT FACT | Merged #312 atomic byte writer reused by both legacy text-project and dormant binary-project writes. |
@@ -1399,9 +1410,12 @@ reads.
 ### Non-goals of the completed infrastructure checkpoints
 
 **CURRENT FACT / TARGET REQUIREMENT.** The package-domain, binary-I/O, and
-production Open/Save/Save As checkpoints do not change `SavedProject` or its
-schema version, add replacement guards or menus, remove legacy/data-URL read
-compatibility, or alter preview/export pixels. Open commits session
+production Open/Save/Save As checkpoints do not independently define
+`SavedProject`, add package bindings for ordinary metadata, remove
+legacy/data-URL read compatibility, or alter preview/export pixels. The focused
+Case viewport checkpoint advances the separately owned project schema to
+`0.4.0`; package v1 merely adds that schema to its read registry and makes it
+the sole writable schema. Open commits session
 path/format/route/baseline only with the accepted candidate; Save mutates only
 session path/format/baseline
 after atomic commit. Native JPEG/WebP code is linked through production package
@@ -1449,7 +1463,8 @@ invariants. No speculative manifest field is reserved for a future consumer.
 | Claim | Evidence |
 | --- | --- |
 | CURRENT FACT | Project types and all persisted Disc/Case visual leaves: [`projectTypes.ts`](../src/project/projectTypes.ts) |
-| CURRENT FACT | Schema `0.2.0`, validation, and migration routing: [`projectSchema.ts`](../src/project/projectSchema.ts) |
+| CURRENT FACT | Schema `0.4.0`, validation, and pure `0.1.0 -> 0.2.0 -> 0.3.0 -> 0.4.0` migration routing: [`projectSchema.ts`](../src/project/projectSchema.ts) |
+| CURRENT FACT | Package-v1 project-schema and built-in compatibility registries support `0.1.0` through `0.4.0`, the encoder accepts only `0.4.0`, and Case viewport metadata adds no binding: [`registry.rs`](../src-tauri/crates/sbls-package-codec/src/registry.rs), [`encode.rs`](../src-tauri/crates/sbls-package-codec/src/encode.rs), [`PROJECT_PACKAGE_BUILT_IN_REGISTRY_V1.json`](PROJECT_PACKAGE_BUILT_IN_REGISTRY_V1.json), [`projectTypes.ts`](../src/project/projectTypes.ts) |
 | CURRENT FACT | Canonical project normalization/baseline behavior: [`canonicalProject.ts`](../src/lifecycle/canonicalProject.ts), [`projectSession.ts`](../src/lifecycle/projectSession.ts) |
 | CURRENT FACT | Snapshot and restore ownership: [`createProjectSnapshot.ts`](../src/project/createProjectSnapshot.ts), [`restoreProjectState.ts`](../src/project/restoreProjectState.ts), [`caseInsertProjectAdapters.ts`](../src/project/caseInsertProjectAdapters.ts) |
 | CURRENT FACT | Disc visual owner normalization: [`projectLogoAssets.ts`](../src/project/projectLogoAssets.ts), [`projectTitleArtwork.ts`](../src/project/projectTitleArtwork.ts), [`projectAdditionalArtwork.ts`](../src/project/projectAdditionalArtwork.ts), [`projectPlatformMarks.ts`](../src/project/projectPlatformMarks.ts), [`projectTechnicalMarks.ts`](../src/project/projectTechnicalMarks.ts) |
