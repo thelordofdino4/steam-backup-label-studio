@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { DEFAULT_CASE_INSERT_TEMPLATE_TYPE } from '../editor/editorTypes.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema.ts'
 import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   createBlankJewelCaseSavedProject,
@@ -68,7 +69,7 @@ test('creates blank jewel case saved project data with generic template panes', 
   const cover = project.caseInsert.templates.cover
   const tray = project.caseInsert.templates.tray
 
-  assert.equal(project.schemaVersion, '0.3.0')
+  assert.equal(project.schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION)
   assert.deepEqual(project.caseInsertLayoutPreset, {
     kind: 'sbls/case-insert-layout-preset-project-state',
     formatVersion: 1,

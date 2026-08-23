@@ -12,7 +12,7 @@ import {
 } from '../presets/caseInsertPresetConfigurationAdoptionModel.ts'
 import {
   createCaseInsertPresetDeterministicIdentityDigest,
-} from '../presets/caseInsertPresetReapplyIdentity.ts'
+} from '../presets/caseInsertPresetDeterministicIdentity.ts'
 import {
   deepFreezeCaseInsertPresetValue,
   sameCaseInsertPresetValue,
@@ -25,7 +25,7 @@ import {
   CASE_INSERT_PRESET_SESSION_APPLICATION_KIND,
   CASE_INSERT_PRESET_SESSION_APPLICATION_VERSION,
   projectCaseInsertPresetSessionApplicationSnapshot,
-  representCaseInsertPresetApplicationSnapshot,
+  representCaseInsertPresetTransitionSuccessor,
 } from './caseInsertPresetSessionApplication.ts'
 import {
   applicationLifecycleStatesAreSemanticallyEqual,
@@ -404,6 +404,7 @@ function advanceContentRevision(
 function buildSuccessorSession(
   source: CaseInsertProjectSession,
   adoption: AdoptionSuccess,
+  successorRecoveryStatusInput: unknown,
 ): CaseInsertProjectSession |
   CaseInsertPresetSessionApplicationCommitFailure {
   const aggregateChanged = !sameCaseInsertPresetValue(
@@ -429,10 +430,12 @@ function buildSuccessorSession(
     )
   }
 
-  const represented = representCaseInsertPresetApplicationSnapshot({
+  const represented = representCaseInsertPresetTransitionSuccessor({
     sessionId: source.id,
     project,
     snapshot: adoption.state,
+    operation: adoption.operation,
+    successorRecoveryStatus: successorRecoveryStatusInput,
   })
   if (!represented.ok) {
     return failure(
@@ -497,12 +500,17 @@ function createSnapshotIdentity(
 function prepareValidated(
   sourceInput: unknown,
   adoptionBundleInput: unknown,
+  successorRecoveryStatusInput: unknown,
 ): PrepareCaseInsertPresetSessionAdoptionCommitResult {
   const source = captureCaseSession(sourceInput, 'source')
   if (isFailure(source)) return source
   const bundle = validateAdoptionBundle(source, adoptionBundleInput)
   if (isFailure(bundle)) return bundle
-  const successor = buildSuccessorSession(source, bundle.adoption)
+  const successor = buildSuccessorSession(
+    source,
+    bundle.adoption,
+    successorRecoveryStatusInput,
+  )
   if (isFailure(successor)) return successor
 
   const identityInput = snapshotIdentityInput({
@@ -535,13 +543,14 @@ export function prepareCaseInsertPresetSessionAdoptionCommit(
   try {
     const input = captureInputRecord(
       value,
-      ['sourceSession', 'adoptionBundle'],
+      ['sourceSession', 'adoptionBundle', 'successorRecoveryStatus'],
       'prepare-application-commit-input',
     )
     if (isFailure(input)) return input
     return prepareValidated(
       input.sourceSession,
       input.adoptionBundle,
+      input.successorRecoveryStatus,
     )
   } catch {
     return failure(
@@ -594,9 +603,15 @@ function validateCommitSnapshot(
     )
   }
 
+  const suppliedSuccessor = captureCaseSession(
+    candidate.successorSession,
+    'successor',
+  )
+  if (isFailure(suppliedSuccessor)) return suppliedSuccessor
   const expected = prepareValidated(
     candidate.sourceSession,
     candidate.adoptionBundle,
+    suppliedSuccessor.caseInsertPresetApplication.recoveryStatus,
   )
   if (!expected.ok) return expected
   if (candidate.operation !== expected.snapshot.operation) {
@@ -613,11 +628,6 @@ function validateCommitSnapshot(
       { operation: candidate.operation },
     )
   }
-  const suppliedSuccessor = captureCaseSession(
-    candidate.successorSession,
-    'successor',
-  )
-  if (isFailure(suppliedSuccessor)) return suppliedSuccessor
   if (!sessionsAreExactlyEqual(
     suppliedSuccessor,
     expected.snapshot.successorSession,

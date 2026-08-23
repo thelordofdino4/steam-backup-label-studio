@@ -6,7 +6,7 @@ import type {
 } from './caseInsertPresetAttachmentEndpoint.ts'
 import {
   encodeCaseInsertPresetDeterministicIdentity,
-} from './caseInsertPresetReapplyIdentity.ts'
+} from './caseInsertPresetDeterministicIdentity.ts'
 import {
   deepFreezeCaseInsertPresetValue,
 } from './caseInsertPresetSafeInput.ts'

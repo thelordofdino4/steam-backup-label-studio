@@ -19,6 +19,13 @@ import {
   getJewelCaseBackScreenshotLayoutSliderRanges,
 } from './jewelCaseBackLayout.ts'
 import { isPixelRectInsideBounds } from './jewelCaseLayout.ts'
+import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../render/caseInsertArtworkViewportRenderArtifact.ts'
+import { getCenteredRectLayoutSliderRanges } from './caseInsertElementSafeZone.ts'
+import {
+  getCaseInsertArtworkViewportLayoutSliderRanges,
+} from '../caseInsert/artworkViewportPlacement.ts'
 
 function getRegionBounds(
   layout: ReturnType<typeof createJewelCasePreviewLayout>,
@@ -158,6 +165,74 @@ test('tray card overlay slider ranges follow rendered image size', () => {
   )
   assert.equal(
     maxYRect.y + maxYRect.height <= safeBounds.y + safeBounds.height,
+    true,
+  )
+})
+
+test('tray reserved-artwork viewport ranges stay inside the Back Panel basis', () => {
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const slot = {
+    ...setCaseInsertImageSlotImage(
+      createDefaultCaseInsertImageSlot('tray-artwork-1', 'Screenshot 1', {
+        enabled: true,
+        fit: 'cover',
+        layout: { scale: 1, x: 50, y: 50 },
+      }),
+      {
+        imageDataUrl: 'data:image/png;base64,screenshot',
+        imageSize: { width: 1600, height: 900 },
+      },
+    ),
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport' as const,
+      formatVersion: 1 as const,
+      templateId: 'jewelCase' as const,
+      templateRevision: null,
+      coordinateBasis: 'backPanelSafe' as const,
+      widthPercent: 26,
+      heightPercent: 16,
+      focalPosition: { xPercent: 50, yPercent: 50 },
+      zoom: 1,
+    },
+  }
+  const result = resolveCaseInsertArtworkViewportRenderArtifact({
+    owner: 'tray',
+    slot,
+    layout,
+  })
+  const ranges = getCaseInsertArtworkViewportLayoutSliderRanges({
+    owner: 'tray',
+    slot,
+    layout,
+  })
+
+  assert.equal(result.status, 'resolved')
+  assert.ok(ranges)
+  if (result.status !== 'resolved') return
+
+  assert.deepEqual(
+    ranges,
+    getCenteredRectLayoutSliderRanges(
+      result.artifact.basisRect,
+      result.artifact.boundingRect,
+    ),
+  )
+  assert.deepEqual(ranges, {
+    x: { min: 13, max: 87 },
+    y: { min: 8, max: 92 },
+  })
+
+  const leftSpine = getRegionBounds(layout, 'leftSpine')
+  const rightSpine = getRegionBounds(layout, 'rightSpine')
+  assert.ok(leftSpine)
+  assert.ok(rightSpine)
+  assert.equal(
+    result.artifact.basisRect.x >= leftSpine.x + leftSpine.width,
+    true,
+  )
+  assert.equal(
+    result.artifact.basisRect.x + result.artifact.basisRect.width <=
+      rightSpine.x,
     true,
   )
 })

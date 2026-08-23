@@ -21,6 +21,7 @@ import { createProjectImageAssetProvenance } from
   '../project/projectAssetStatus.ts'
 import type { ProjectJewelCaseState } from '../project/projectTypes.ts'
 import { createDefaultCaseInsertImageSlot } from './defaults.ts'
+import { normalizeProjectJewelCaseState } from './normalization.ts'
 import {
   createCaseInsertPresetAssignmentSnapshot,
   isCaseInsertPresetAssignmentSnapshot,
@@ -300,6 +301,42 @@ test('equivalent clones and record order share one detached immutable identity',
     `${CASE_INSERT_PRESET_AGGREGATE_CONTENT_IDENTITY_PREFIX}` +
       '2c15753089b1a0d7c049d62cb41e29f9af7b6c7dc6fefda07cbdbb5571fcba4f',
   )
+})
+
+test('canonical viewport absence preserves legacy identity while active state participates', () => {
+  const omitted = createBlankJewelCaseSavedProject().caseInsert
+  omitted.templates.cover.artworkSlots.push(
+    createDefaultCaseInsertImageSlot('identity-artwork', 'Identity artwork'),
+  )
+  const explicitNull = structuredClone(omitted)
+  explicitNull.templates.cover.artworkSlots[0]!.reservedArtworkViewport = null
+  const normalizedNull = normalizeProjectJewelCaseState(explicitNull)
+
+  assert.equal(
+    identity(normalizedNull),
+    identity(omitted),
+  )
+  assert.equal(
+    Object.hasOwn(
+      normalizedNull.templates.cover.artworkSlots[0]!,
+      'reservedArtworkViewport',
+    ),
+    false,
+  )
+
+  const active = structuredClone(omitted)
+  active.templates.cover.artworkSlots[0]!.reservedArtworkViewport = {
+    kind: 'sbls/case-insert-artwork-viewport',
+    formatVersion: 1,
+    templateId: 'jewelCase',
+    templateRevision: null,
+    coordinateBasis: 'frontSafe',
+    widthPercent: 26,
+    heightPercent: 16,
+    focalPosition: { xPercent: 44, yPercent: 56 },
+    zoom: 1.25,
+  }
+  assert.notEqual(identity(active), identity(omitted))
 })
 
 test('the complete normalized Case aggregate projection binds every owner domain', () => {

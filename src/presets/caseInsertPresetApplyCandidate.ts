@@ -12,11 +12,17 @@ import type {
   CaseInsertPresetPlanFieldId,
   CaseInsertPresetPlanSourceAssignment,
 } from './caseInsertPresetApplyPlanning.ts'
+import type {
+  CaseInsertAppliedPresetOwnedFieldId,
+  CaseInsertAppliedPresetOwnedValue,
+} from './caseInsertPresetOwnedField.ts'
 
 export const CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND =
   'sbls/case-insert-preset-applied-configuration-candidate' as const
 export const CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION =
   1 as const
+export const CASE_INSERT_PRESET_TYPED_CONFIGURATION_CANDIDATE_VERSION =
+  2 as const
 
 type DeepReadonly<T> = T extends readonly (infer Item)[]
   ? readonly DeepReadonly<Item>[]
@@ -27,9 +33,8 @@ type DeepReadonly<T> = T extends readonly (infer Item)[]
 export type ImmutableProjectJewelCaseState =
   DeepReadonly<ProjectJewelCaseState>
 
-export type CaseInsertPresetAppliedConfigurationCandidate = Readonly<{
+type CaseInsertPresetAppliedConfigurationCandidateBase = Readonly<{
   kind: typeof CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND
-  formatVersion: typeof CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION
   installationStatus: 'candidate-uninstalled'
   operation: 'apply'
   preset: Readonly<{
@@ -42,14 +47,39 @@ export type CaseInsertPresetAppliedConfigurationCandidate = Readonly<{
   template: Readonly<{ id: string; revision: null }>
   reviewedPlanIdentity: string
   sourceSnapshotIdentity: CaseInsertPresetAssignmentSnapshotIdentity
-  ownedFields: readonly Readonly<{
-    featureOwnerId: CaseInsertPresetOwnerId
-    object: CaseInsertPresetPlanSourceAssignment['object']
-    fieldId: CaseInsertPresetPlanFieldId
-    lastAppliedValue: number
-    sources: readonly CaseInsertPresetPlanSourceAssignment[]
-  }>[]
   reviewedWarningIds: readonly string[]
   acceptedMaterialConsentRequirementIds:
     readonly `case:preset-consent:${string}`[]
 }>
+
+export type CaseInsertPresetAppliedConfigurationCandidateV1 = Readonly<
+  CaseInsertPresetAppliedConfigurationCandidateBase & {
+    formatVersion:
+      typeof CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION
+    ownedFields: readonly Readonly<{
+      featureOwnerId: CaseInsertPresetOwnerId
+      object: CaseInsertPresetPlanSourceAssignment['object']
+      fieldId: CaseInsertPresetPlanFieldId
+      lastAppliedValue: number
+      sources: readonly CaseInsertPresetPlanSourceAssignment[]
+    }>[]
+  }
+>
+
+export type CaseInsertPresetAppliedConfigurationCandidateV2 = Readonly<
+  CaseInsertPresetAppliedConfigurationCandidateBase & {
+    formatVersion:
+      typeof CASE_INSERT_PRESET_TYPED_CONFIGURATION_CANDIDATE_VERSION
+    ownedFields: readonly Readonly<{
+      featureOwnerId: CaseInsertPresetOwnerId
+      object: CaseInsertPresetPlanSourceAssignment['object']
+      fieldId: CaseInsertAppliedPresetOwnedFieldId
+      lastAppliedValue: CaseInsertAppliedPresetOwnedValue
+      sources: readonly CaseInsertPresetPlanSourceAssignment[]
+    }>[]
+  }
+>
+
+export type CaseInsertPresetAppliedConfigurationCandidate =
+  | CaseInsertPresetAppliedConfigurationCandidateV1
+  | CaseInsertPresetAppliedConfigurationCandidateV2

@@ -16,6 +16,9 @@ import {
   createCoordinatedCaseInsertPresetDefinition,
   createMinimalCaseInsertPresetDefinition,
 } from './caseInsertPresetTestFixtures.ts'
+import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+} from './builtins/jewelCaseEssentialsCasePresetV2.ts'
 
 type MutableRecord = Record<string, unknown>
 
@@ -184,9 +187,22 @@ test('checks trusted owner and repeated-object availability by stable ID', () =>
   assert.equal(available.status, 'compatible')
 })
 
+test('treats only reviewed revision-2 create-empty targets as provisionable', () => {
+  const context = createCompatibilityContext({
+    requestedScope: { kind: 'complete' },
+  })
+  const result = evaluateCaseInsertPresetCompatibility(
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+    context,
+  )
+
+  assert.equal(result.status, 'compatible')
+  assert.deepEqual(result.reasons, [])
+})
+
 test('malformed definitions fail before compatibility can reach any owner', () => {
   const malformed = createMinimalCaseInsertPresetDefinition()
-  malformed.formatVersion = 2
+  malformed.formatVersion = 3
   const result = evaluateCaseInsertPresetCompatibility(
     malformed,
     createCompatibilityContext(),

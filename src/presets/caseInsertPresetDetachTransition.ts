@@ -12,15 +12,20 @@ import type { ProjectJewelCaseState } from '../project/projectTypes.ts'
 import {
   canonicalizeCaseInsertAppliedPresetConfigurationOrdering,
   getCaseInsertPresetOwnedFieldCurrentValue,
+  getCaseInsertPresetTypedOwnedFieldCurrentValue,
+  isCaseInsertAppliedPresetOwnedValueForField,
   isCaseInsertPresetOwnedFieldSemanticValue,
   validateCaseInsertAppliedPresetConfiguration,
   type CaseInsertAppliedPresetConfiguration,
   type CaseInsertAppliedPresetOwnedFieldAddress,
+  type CaseInsertAppliedPresetOwnedFieldAddressV3,
+  type CaseInsertPresetOwnedFieldObservation,
 } from './caseInsertPresetAppliedConfiguration.ts'
 import {
   CASE_INSERT_PRESET_DETACH_OWNERSHIP_PROJECTION_KIND,
   CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION,
   CASE_INSERT_PRESET_DETACH_PLAN_KIND,
+  CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION,
   canonicalizeCaseInsertPresetDetachPlanContent,
   createCaseInsertPresetDetachConfigurationReleaseIdentity,
   createCaseInsertPresetDetachPlanIdentity,
@@ -83,7 +88,7 @@ export type CaseInsertPresetDetachConfigurationReleaseResult = Readonly<{
   transitionIdentity: string
   transitionClassification: 'meaningful-configuration-ownership-release'
   sourceConfigurationIdentity: string
-  sourceConfigurationFormatVersion: 1 | 2
+  sourceConfigurationFormatVersion: 1 | 2 | 3
   preset: CaseInsertAppliedPresetConfiguration['preset']
   planIdentity: string
   planReviewIdentity: string
@@ -175,7 +180,9 @@ export type CaseInsertPresetDetachTransitionResult =
       status: CaseInsertPresetDetachTransitionFailureStatus
       code: string
       dimensions?: readonly string[]
-      address?: CaseInsertAppliedPresetOwnedFieldAddress
+      address?:
+        | CaseInsertAppliedPresetOwnedFieldAddress
+        | CaseInsertAppliedPresetOwnedFieldAddressV3
       requirementId?: string
     }>
 
@@ -212,6 +219,9 @@ export type CaseInsertPresetDetachTransitionSuccessValidationResult =
     }>
 
 type Failure = Extract<CaseInsertPresetDetachTransitionResult, { ok: false }>
+type DetachAddress =
+  | CaseInsertAppliedPresetOwnedFieldAddress
+  | CaseInsertAppliedPresetOwnedFieldAddressV3
 
 const PLAN_KEYS = [
   'kind', 'formatVersion', 'operation', 'source', 'preset', 'requestedScope',
@@ -318,7 +328,7 @@ function failure(
   code: string,
   options: Readonly<{
     dimensions?: readonly string[]
-    address?: CaseInsertAppliedPresetOwnedFieldAddress
+    address?: DetachAddress
     requirementId?: string
   }> = {},
 ): Failure {
@@ -332,7 +342,7 @@ function failure(
   })
 }
 
-function addressKey(address: CaseInsertAppliedPresetOwnedFieldAddress) {
+function addressKey(address: DetachAddress) {
   return [
     address.region,
     address.featureOwnerId,
@@ -358,6 +368,47 @@ function validEnablement(value: unknown) {
     typeof value.objectEnabled === 'boolean' &&
     (value.ownerEnabled === null || typeof value.ownerEnabled === 'boolean') &&
     typeof value.effectiveEnabled === 'boolean'
+}
+
+function validTypedObservation(
+  address: CaseInsertAppliedPresetOwnedFieldAddressV3,
+  value: unknown,
+): value is CaseInsertPresetOwnedFieldObservation {
+  if (!isRecord(value)) return false
+  if (value.status === 'present') {
+    return hasExactKeys(value, ['status', 'value']) &&
+      isCaseInsertAppliedPresetOwnedValueForField(address, value.value)
+  }
+  if (!hasExactKeys(value, ['status'])) return false
+  if (value.status === 'absent-owned-object') {
+    return address.fieldId === 'object-presence'
+  }
+  if (value.status === 'unavailable-object-absent') {
+    return address.fieldId !== 'object-presence'
+  }
+  return value.status === 'value-absent' &&
+    address.fieldId !== 'object-presence'
+}
+
+function validPlanFieldState(
+  planVersion: unknown,
+  address: unknown,
+  currentValue: unknown,
+  enablement: unknown,
+) {
+  if (!validAddress(address)) return false
+  if (planVersion === CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION) {
+    return typeof currentValue === 'number' && validEnablement(enablement)
+  }
+  if (planVersion !== CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION) {
+    return false
+  }
+  const typedAddress = address as CaseInsertAppliedPresetOwnedFieldAddressV3
+  if (!validTypedObservation(typedAddress, currentValue)) return false
+  return currentValue.status === 'absent-owned-object' ||
+      currentValue.status === 'unavailable-object-absent'
+    ? enablement === null
+    : validEnablement(enablement)
 }
 
 function validatePlanShape(value: unknown): value is CaseInsertPresetDetachPlan {
@@ -398,17 +449,30 @@ function validatePlanShape(value: unknown): value is CaseInsertPresetDetachPlan 
       typeof value.planIdentity !== 'string') return false
   return value.releaseFootprint.every((release) =>
     isRecord(release) && hasExactKeys(release, RELEASE_KEYS) &&
-    validAddress(release.address) && Array.isArray(release.sources) &&
-    validEnablement(release.enablement)) &&
+    validPlanFieldState(
+      value.formatVersion,
+      release.address,
+      release.currentValue,
+      release.enablement,
+    ) && Array.isArray(release.sources)) &&
     value.aggregatePreservations.every((preservation) =>
       isRecord(preservation) && hasExactKeys(preservation, PRESERVATION_KEYS) &&
-      validAddress(preservation.address) &&
-      validEnablement(preservation.enablement)) &&
+      validPlanFieldState(
+        value.formatVersion,
+        preservation.address,
+        preservation.currentValue,
+        preservation.enablement,
+      )) &&
     value.warnings.every((warning) =>
       isRecord(warning) && hasExactKeys(warning, WARNING_KEYS)) &&
     value.preconditions.fields.every((field) =>
       isRecord(field) && hasExactKeys(field, FIELD_PRECONDITION_KEYS) &&
-      validAddress(field.address) && validEnablement(field.enablement))
+      validPlanFieldState(
+        value.formatVersion,
+        field.address,
+        field.currentValue,
+        field.enablement,
+      ))
 }
 
 function planContent(plan: CaseInsertPresetDetachPlan) {
@@ -421,7 +485,8 @@ function planContent(plan: CaseInsertPresetDetachPlan) {
 
 function canonicalPlan(value: unknown): CaseInsertPresetDetachPlan | Failure {
   if (isRecord(value) && value.kind === CASE_INSERT_PRESET_DETACH_PLAN_KIND &&
-      value.formatVersion !== CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION) {
+      value.formatVersion !== CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION &&
+      value.formatVersion !== CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION) {
     return failure('unsupported-plan-version', 'detach-plan-version-unsupported')
   }
   if (!validatePlanShape(value)) {
@@ -514,6 +579,9 @@ function validatePlanSemantics(
     return failure('configuration-mismatch', 'plan-configuration-mismatch')
   }
   if (plan.source.configurationFormatVersion !== configuration.formatVersion ||
+      (configuration.formatVersion === 3
+        ? plan.formatVersion !== CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION
+        : plan.formatVersion !== CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION) ||
       plan.source.projectKind !== 'caseInsert' ||
       plan.preconditions.projectKind !== 'caseInsert' ||
       !sameValue(plan.source.configurationSnapshotIdentity,
@@ -546,10 +614,17 @@ function validatePlanSemantics(
         address: release.address,
       })
     }
-    if (!isCaseInsertPresetOwnedFieldSemanticValue(
-      release.address.fieldId,
-      release.currentValue,
-    ) || release.previousLastAppliedValue !== field.lastAppliedValue ||
+    const currentValueValid = configuration.formatVersion === 3
+      ? validTypedObservation(
+          release.address as CaseInsertAppliedPresetOwnedFieldAddressV3,
+          release.currentValue,
+        )
+      : isCaseInsertPresetOwnedFieldSemanticValue(
+          (release.address as CaseInsertAppliedPresetOwnedFieldAddress).fieldId,
+          release.currentValue,
+        )
+    if (!currentValueValid ||
+        !sameValue(release.previousLastAppliedValue, field.lastAppliedValue) ||
         !sameValue(release.sources, field.sources) ||
         release.ownershipDisposition !==
           'release-complete-configuration-ownership' ||
@@ -578,9 +653,13 @@ function validatePlanSemantics(
       })
     }
     const release = releaseByAddress.get(key)
-    if (!release || preservation.currentValue !== release.currentValue ||
-        preservation.previousLastAppliedValue !==
-          release.previousLastAppliedValue ||
+    if (!release || !sameValue(
+      preservation.currentValue,
+      release.currentValue,
+    ) || !sameValue(
+      preservation.previousLastAppliedValue,
+      release.previousLastAppliedValue,
+    ) ||
         !sameValue(preservation.enablement, release.enablement) ||
         preservation.preservation !== 'exact-current-value-no-write') {
       return failure(
@@ -607,8 +686,13 @@ function validatePlanSemantics(
       })
     }
     const release = releaseByAddress.get(key)
-    if (!release || precondition.bindingMatch !== 'exactly-one' ||
-        precondition.currentValue !== release.currentValue ||
+    const expectedBindingMatch = isRecord(release?.currentValue) &&
+        (release.currentValue.status === 'absent-owned-object' ||
+          release.currentValue.status === 'unavailable-object-absent')
+      ? 'absent-owned-object'
+      : 'exactly-one'
+    if (!release || precondition.bindingMatch !== expectedBindingMatch ||
+        !sameValue(precondition.currentValue, release.currentValue) ||
         !sameValue(precondition.enablement, release.enablement)) {
       return failure('invalid-plan', 'field-precondition-incoherent', {
         address: precondition.address,
@@ -808,6 +892,17 @@ function preflightCurrent(
   const preconditionByAddress = new Map(plan.preconditions.fields.map(
     (precondition) => [addressKey(precondition.address), precondition],
   ))
+  const presenceOwnedObjectKeys = plan.formatVersion ===
+      CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION
+    ? new Set(plan.releaseFootprint
+        .filter(({ address }) => address.fieldId === 'object-presence')
+        .map(({ address }) => [
+          address.featureOwnerId,
+          address.bindingKind,
+          address.bindingId,
+          address.runtimeObjectId,
+        ].join('\u0000')))
+    : new Set<string>()
   for (const release of plan.releaseFootprint) {
     let binding: ReturnType<typeof resolveCaseInsertPresetAggregateBinding>
     try {
@@ -820,6 +915,33 @@ function preflightCurrent(
       return failure('transition-conflict', 'detach-target-lookup-failed', {
         address: release.address,
       })
+    }
+    const objectKey = [
+      release.address.featureOwnerId,
+      release.address.bindingKind,
+      release.address.bindingId,
+      release.address.runtimeObjectId,
+    ].join('\u0000')
+    if (binding.status === 'missing' &&
+        plan.formatVersion === CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION &&
+        presenceOwnedObjectKeys.has(objectKey)) {
+      const currentValue: CaseInsertPresetOwnedFieldObservation =
+        release.address.fieldId === 'object-presence'
+          ? { status: 'absent-owned-object' }
+          : { status: 'unavailable-object-absent' }
+      const preservation = preservationByAddress.get(addressKey(release.address))!
+      const precondition = preconditionByAddress.get(addressKey(release.address))!
+      if (!sameValue(currentValue, release.currentValue) ||
+          !sameValue(currentValue, preservation.currentValue) ||
+          !sameValue(currentValue, precondition.currentValue) ||
+          release.enablement !== null || preservation.enablement !== null ||
+          precondition.enablement !== null ||
+          precondition.bindingMatch !== 'absent-owned-object') {
+        return failure('stale-detach-plan', 'field-precondition-stale', {
+          address: release.address,
+        })
+      }
+      continue
     }
     if (binding.status === 'missing' || binding.status === 'unsupported') {
       return failure('target-missing', 'detach-target-missing', {
@@ -837,24 +959,47 @@ function preflightCurrent(
         address: release.address,
       })
     }
-    const currentValue = getCaseInsertPresetOwnedFieldCurrentValue(
-      binding.currentState,
-      release.address.fieldId,
-    )
-    if (!isCaseInsertPresetOwnedFieldSemanticValue(
-      release.address.fieldId,
-      currentValue,
-    )) return failure('invalid-current-value', 'current-value-invalid', {
-      address: release.address,
-    })
+    let currentValue: number | CaseInsertPresetOwnedFieldObservation
+    if (plan.formatVersion === CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION) {
+      const typedAddress = release.address as
+        CaseInsertAppliedPresetOwnedFieldAddressV3
+      const typedValue = getCaseInsertPresetTypedOwnedFieldCurrentValue(
+        binding.currentState,
+        typedAddress,
+      )
+      if (!typedValue && typedAddress.fieldId !==
+          'reserved-artwork-viewport') {
+        return failure('invalid-current-value', 'current-value-invalid', {
+          address: release.address,
+        })
+      }
+      currentValue = typedValue
+        ? { status: 'present', value: typedValue }
+        : { status: 'value-absent' }
+    } else {
+      const legacyAddress = release.address as
+        CaseInsertAppliedPresetOwnedFieldAddress
+      const legacyValue = getCaseInsertPresetOwnedFieldCurrentValue(
+        binding.currentState,
+        legacyAddress.fieldId,
+      )
+      if (!isCaseInsertPresetOwnedFieldSemanticValue(
+        legacyAddress.fieldId,
+        legacyValue,
+      )) return failure('invalid-current-value', 'current-value-invalid', {
+        address: release.address,
+      })
+      currentValue = legacyValue
+    }
     const preservation = preservationByAddress.get(addressKey(release.address))!
     const precondition = preconditionByAddress.get(addressKey(release.address))!
-    if (currentValue !== release.currentValue ||
-        currentValue !== preservation.currentValue ||
-        currentValue !== precondition.currentValue ||
+    if (!sameValue(currentValue, release.currentValue) ||
+        !sameValue(currentValue, preservation.currentValue) ||
+        !sameValue(currentValue, precondition.currentValue) ||
         !sameValue(binding.enablement, release.enablement) ||
         !sameValue(binding.enablement, preservation.enablement) ||
-        !sameValue(binding.enablement, precondition.enablement)) {
+        !sameValue(binding.enablement, precondition.enablement) ||
+        precondition.bindingMatch !== 'exactly-one') {
       return failure('stale-detach-plan', 'field-precondition-stale', {
         address: release.address,
       })
@@ -1241,8 +1386,10 @@ export function validateCaseInsertPresetDetachTransitionSuccess(
   }
   for (const field of configuration.ownedFields) {
     const releaseRecord = releaseByAddress.get(addressKey(field.address))
-    if (!releaseRecord || releaseRecord.previousLastAppliedValue !==
-        field.lastAppliedValue || !sameCaseInsertPresetValue(
+    if (!releaseRecord || !sameCaseInsertPresetValue(
+      releaseRecord.previousLastAppliedValue,
+      field.lastAppliedValue,
+    ) || !sameCaseInsertPresetValue(
           releaseRecord.sources,
           field.sources,
         )) {

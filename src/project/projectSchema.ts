@@ -7,8 +7,9 @@ import {
 } from '../editor/editorTypes.ts'
 
 export const LEGACY_PROJECT_SCHEMA_VERSION = '0.1.0' as const
-export const PREVIOUS_PROJECT_SCHEMA_VERSION = '0.2.0' as const
-export const CURRENT_PROJECT_SCHEMA_VERSION = '0.3.0' as const
+export const PROJECT_SCHEMA_VERSION_0_2_0 = '0.2.0' as const
+export const PREVIOUS_PROJECT_SCHEMA_VERSION = '0.3.0' as const
+export const CURRENT_PROJECT_SCHEMA_VERSION = '0.4.0' as const
 
 export type CurrentProjectSchemaVersion = typeof CURRENT_PROJECT_SCHEMA_VERSION
 
@@ -28,14 +29,22 @@ const PROJECT_SCHEMA_MIGRATIONS: readonly ProjectSchemaMigration[] = [
   {
     from: PREVIOUS_PROJECT_SCHEMA_VERSION,
     to: CURRENT_PROJECT_SCHEMA_VERSION,
+    migrate: (project) => ({
+      ...project,
+      schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
+    }),
+  },
+  {
+    from: PROJECT_SCHEMA_VERSION_0_2_0,
+    to: PREVIOUS_PROJECT_SCHEMA_VERSION,
     migrate: migrateProjectSchemaFrom02To03,
   },
   {
     from: LEGACY_PROJECT_SCHEMA_VERSION,
-    to: PREVIOUS_PROJECT_SCHEMA_VERSION,
+    to: PROJECT_SCHEMA_VERSION_0_2_0,
     migrate: (project) => ({
       ...project,
-      schemaVersion: PREVIOUS_PROJECT_SCHEMA_VERSION,
+      schemaVersion: PROJECT_SCHEMA_VERSION_0_2_0,
     }),
   },
 ]
@@ -186,7 +195,7 @@ function migrateProjectSchemaFrom02To03(project: JsonRecord): JsonRecord {
     : null
   return {
     ...project,
-    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
+    schemaVersion: PREVIOUS_PROJECT_SCHEMA_VERSION,
     ...(projectType === 'caseInsert'
       ? {
           caseInsertLayoutPreset: {

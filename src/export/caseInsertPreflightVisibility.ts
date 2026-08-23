@@ -12,9 +12,15 @@ import {
   getRenderedCaseInsertTextBlock,
 } from '../caseInsert/textContent.ts'
 import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+  type CaseInsertArtworkViewportLayout,
+  type CaseInsertArtworkViewportRenderOwner,
+} from '../caseInsert/artworkViewportRenderArtifact.ts'
+import {
   isOptionalVisualFeatureEnabled,
   shouldRenderOptionalVisualFeature,
 } from '../editor/optionalVisualFeature.ts'
+import { hasActiveImageContent } from '../image/imageContentBounds.ts'
 import {
   getFeatureVisibleRepeatedArtworkItems,
 } from '../editor/repeatedArtwork.ts'
@@ -29,15 +35,40 @@ import type {
   ProjectMetadata,
 } from '../project/projectTypes.ts'
 
-export function slotWillRender(slot: ProjectCaseInsertImageSlot) {
+export function slotHasEnabledImageContent(slot: ProjectCaseInsertImageSlot) {
   return shouldRenderOptionalVisualFeature(
     slot,
-    Boolean(slot.imageDataUrl && slot.imageSize),
+    Boolean(
+      slot.imageDataUrl &&
+      slot.imageSize &&
+      hasActiveImageContent(slot.imageSize),
+    ),
   )
 }
 
+export type CaseInsertArtworkViewportVisibilityContext = Readonly<{
+  owner: CaseInsertArtworkViewportRenderOwner
+  layout: CaseInsertArtworkViewportLayout
+}>
+
+export function slotWillRender(
+  slot: ProjectCaseInsertImageSlot,
+  viewportContext?: CaseInsertArtworkViewportVisibilityContext,
+) {
+  if (!slotHasEnabledImageContent(slot)) return false
+  if (slot.reservedArtworkViewport == null) return true
+  if (!viewportContext) return false
+
+  return resolveCaseInsertArtworkViewportRenderArtifact({
+    owner: viewportContext.owner,
+    slot,
+    layout: viewportContext.layout,
+  }).status === 'resolved'
+}
+
 export function logoSlotWillRender(slot: ProjectCaseInsertImageSlot) {
-  return Boolean(getCaseInsertLogoSlotRenderInfo(slot))
+  return slot.reservedArtworkViewport == null &&
+    Boolean(getCaseInsertLogoSlotRenderInfo(slot))
 }
 
 export function steamBannerWillRender(banner: ProjectCaseInsertSteamBanner) {
@@ -88,6 +119,9 @@ export function textListWillRender(textList: ProjectCaseInsertTextList) {
 export function surfaceHasVisibleContent(
   surface: ProjectCaseInsertSurfaceState,
   brandingSources: CaseInsertBrandingSourceCatalog,
+  viewportContext?: CaseInsertArtworkViewportVisibilityContext & Readonly<{
+    owner: 'cover' | 'tray'
+  }>,
 ) {
   return (
     slotWillRender(surface.background) ||
@@ -96,7 +130,7 @@ export function surfaceHasVisibleContent(
     getFeatureVisibleRepeatedArtworkItems(
       surface,
       surface.artworkSlots,
-    ).some(slotWillRender) ||
+    ).some((slot) => slotWillRender(slot, viewportContext)) ||
     surface.logoSlots.some(logoSlotWillRender) ||
     surface.markSlots.some((slot) => markSlotWillRender(slot, brandingSources)) ||
     surface.textBlocks.some((textBlock) =>
@@ -119,6 +153,9 @@ export function getVisibleSpineMarkSlots(
 export function spineSideHasVisibleContent(
   spineSide: ProjectJewelCaseSpineSideState,
   brandingSources: CaseInsertBrandingSourceCatalog,
+  viewportContext?: CaseInsertArtworkViewportVisibilityContext & Readonly<{
+    owner: 'left-spine' | 'right-spine'
+  }>,
 ) {
   return (
     slotWillRender(spineSide.background) ||
@@ -127,7 +164,7 @@ export function spineSideHasVisibleContent(
     getFeatureVisibleRepeatedArtworkItems(
       spineSide,
       spineSide.artworkSlots,
-    ).some(slotWillRender) ||
+    ).some((slot) => slotWillRender(slot, viewportContext)) ||
     textBlockWillRender(spineSide.title, brandingSources.projectMetadata) ||
     spineSide.textBlocks.some((textBlock) =>
       textBlockWillRender(textBlock, brandingSources.projectMetadata)) ||
@@ -135,7 +172,7 @@ export function spineSideHasVisibleContent(
     getVisibleSpineMarkSlots(
       spineSide,
       brandingSources,
-    ).some(slotWillRender)
+    ).some((slot) => slotWillRender(slot))
   )
 }
 
@@ -143,6 +180,9 @@ export function formatVisibleElementStatus(
   surface: ProjectCaseInsertSurfaceState,
   spine: ProjectJewelCaseState['spine'] | null,
   brandingSources: CaseInsertBrandingSourceCatalog,
+  viewportContext?: CaseInsertArtworkViewportVisibilityContext & Readonly<{
+    owner: 'cover' | 'tray'
+  }>,
 ) {
   const visibleCount =
     Number(slotWillRender(surface.background)) +
@@ -151,7 +191,7 @@ export function formatVisibleElementStatus(
     getFeatureVisibleRepeatedArtworkItems(
       surface,
       surface.artworkSlots,
-    ).filter(slotWillRender).length +
+    ).filter((slot) => slotWillRender(slot, viewportContext)).length +
     surface.logoSlots.filter(logoSlotWillRender).length +
     surface.markSlots.filter((slot) =>
       markSlotWillRender(slot, brandingSources)).length +
@@ -162,7 +202,16 @@ export function formatVisibleElementStatus(
       ? (['left', 'right'] as const).reduce(
           (count, side) =>
             count + (
-              spineSideHasVisibleContent(spine[side], brandingSources)
+              spineSideHasVisibleContent(
+                spine[side],
+                brandingSources,
+                viewportContext
+                  ? {
+                      owner: side === 'left' ? 'left-spine' : 'right-spine',
+                      layout: viewportContext.layout,
+                    }
+                  : undefined,
+              )
                 ? 1
                 : 0
             ),
@@ -177,6 +226,7 @@ export function formatImageSlotStatus(slot: ProjectCaseInsertImageSlot) {
   if (!isOptionalVisualFeatureEnabled(slot)) return 'Disabled'
   if (!slot.imageDataUrl) return 'None'
   if (!slot.imageSize) return 'Present'
+  if (!hasActiveImageContent(slot.imageSize)) return 'None'
 
   return `Present (${slot.imageSize.width} x ${slot.imageSize.height}px)`
 }

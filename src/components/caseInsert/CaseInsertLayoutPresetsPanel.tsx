@@ -15,6 +15,7 @@ import type {
 } from '../../app/caseInsertPresetPresentationController.ts'
 import type {
   CaseInsertAppliedPresetOwnedFieldAddress,
+  CaseInsertAppliedPresetOwnedFieldAddressV3,
 } from '../../presets/caseInsertPresetAppliedConfiguration.ts'
 import type {
   CaseInsertPresetPlanWarning,
@@ -31,7 +32,11 @@ function words(value: string): string {
     .join(' ')
 }
 
-function addressLabel(address: CaseInsertAppliedPresetOwnedFieldAddress) {
+function addressLabel(
+  address:
+    | CaseInsertAppliedPresetOwnedFieldAddress
+    | CaseInsertAppliedPresetOwnedFieldAddressV3,
+) {
   return `${words(address.region)} · ${words(address.fieldId)} · ${address.runtimeObjectId}`
 }
 
@@ -63,6 +68,10 @@ function planWarningLabel(warning: CaseInsertPresetPlanWarning): string {
       return `Text-height fitting remains deferred to issue #${warning.issue}.`
     case 'multiple-concrete-regions':
       return `This complete preset affects ${warning.regions.map(words).join(', ')}.`
+    case 'material-visible-clipping':
+      return `The reviewed artwork for ${warning.assignmentId} has material visible clipping.`
+    case 'artwork-cover-fitting-deferred':
+      return warning.reviewMessage
   }
 }
 
@@ -72,9 +81,32 @@ function reviewWarningLabel(
 ): string {
   if (review.operation === 'apply') {
     const warning = review.plan.warnings[index]
-    return warning ? planWarningLabel(warning) : 'Review this preset warning.'
+    if (!warning) return 'Review this preset warning.'
+    if (warning.kind === 'material-visible-clipping' ||
+        warning.kind === 'artwork-cover-fitting-deferred') {
+      const target = review.plan.artworkViewportActions.find(({ source }) =>
+        source.assignmentId === warning.assignmentId)?.review.targetLabel
+      return warning.kind === 'artwork-cover-fitting-deferred'
+        ? `${target ?? warning.objectId}: ${warning.reviewMessage}`
+        : `${target ?? warning.assignmentId}: reviewed artwork has material visible clipping.`
+    }
+    return planWarningLabel(warning)
   }
   if (review.operation === 'reapply') {
+    if (review.plan.formatVersion === 3) {
+      const warning = review.plan.warnings[index]
+      if (!warning) return 'Review this Reapply warning.'
+      switch (warning.kind) {
+        case 'material-visible-clipping':
+          return 'The reviewed artwork has material visible clipping.'
+        case 'artwork-cover-fitting-deferred':
+          return 'Future artwork will use Cover fitting and may be cropped.'
+        case 'customization-preserved':
+          return 'The reviewed current customization will be preserved.'
+        default:
+          return `${words(warning.kind)}.`
+      }
+    }
     const warning = review.plan.warnings[index]
     if (!warning) return 'Review this Reapply warning.'
     return warning.kind === 'selected-layout-warning'
@@ -93,11 +125,32 @@ function materialConsentLabel(
 ): string {
   if (review.operation === 'apply') {
     const requirement = review.plan.materialConsentRequirements[index]
-    return requirement
-      ? `Allow the complete preset to update ${requirement.regions.map(words).join(', ')}.`
-      : 'Accept this material layout change.'
+    if (!requirement) return 'Accept this material layout change.'
+    if (requirement.kind === 'multiple-concrete-regions') {
+      return `Allow the complete preset to update ${requirement.regions.map(words).join(', ')}.`
+    }
+    const target = review.plan.artworkViewportActions.find(({ source }) =>
+      source.assignmentId === requirement.assignmentId)?.review.targetLabel
+    return `Accept the reviewed material visible clipping for ${target ?? requirement.assignmentId}.`
   }
   if (review.operation === 'reapply') {
+    if (review.plan.formatVersion === 3) {
+      const requirement = review.plan.materialConsentRequirements[index]
+      if (!requirement) return 'Accept this material Reapply change.'
+      const target = requirement.address
+        ? addressLabel(requirement.address)
+        : 'the reviewed complete-preset regions'
+      switch (requirement.kind) {
+        case 'material-visible-clipping':
+          return `Accept the reviewed material visible clipping for ${target}.`
+        case 'overwrite-customized-owned-field':
+          return `Overwrite the current customization for ${target}.`
+        case 'new-field-claim-with-value-change':
+          return `Allow the preset to claim and change ${target}.`
+        case 'multiple-concrete-regions':
+          return `Allow Reapply across ${target}.`
+      }
+    }
     const requirement = review.plan.materialConsentRequirements[index]
     if (!requirement) return 'Accept this material Reapply change.'
     if (requirement.kind === 'multiple-concrete-regions') {
@@ -126,7 +179,7 @@ function ReviewEvidence({
         <p className="hint">
           {review.planningStatus === 'semantic-no-op'
             ? 'The current aggregate already matches this reviewed layout; attachment still requires explicit confirmation.'
-            : `${review.plan.fieldActions.length} field action(s), ${review.plan.preservationDecisions.length} preserved decision(s), and ${review.plan.skips.length} skipped optional assignment(s).`}
+            : `${review.plan.fieldActions.length} direct field action(s), ${review.plan.objectCreationActions.length} empty slot creation(s), ${review.plan.artworkViewportActions.length} reserved artwork frame action(s), ${review.plan.preservationDecisions.length} preserved decision(s), and ${review.plan.skips.length} skipped optional assignment(s).`}
         </p>
         <ul className="case-layout-preset-evidence-list">
           {review.plan.assignments.map((assignment) => (
@@ -137,6 +190,49 @@ function ReviewEvidence({
             </li>
           ))}
         </ul>
+        {review.plan.objectCreationActions.length > 0 ? (
+          <>
+            <h4>Reviewed empty slot creation</h4>
+            <ul className="case-layout-preset-evidence-list">
+              {review.plan.objectCreationActions.map((action) => (
+                <li key={action.id}>
+                  <strong>{action.review.actionLabel}</strong>
+                  {' · '}{action.review.initialStateLabel}
+                  {' · '}{action.review.insertionLabel}
+                  {' · '}{action.review.preservationLabel}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        {review.plan.artworkViewportActions.length > 0 ? (
+          <>
+            <h4>Reviewed reserved artwork frames</h4>
+            <ul className="case-layout-preset-evidence-list">
+              {review.plan.artworkViewportActions.map((action) => {
+                const viewport = action.evidence.plan.viewport
+                const clipping = action.evidence.plan.clipping
+                const clippedArea = clipping.clippedSourceFractions?.area
+                return (
+                  <li key={action.id}>
+                    <strong>{action.review.actionLabel}</strong>
+                    {' · '}{viewport.physicalWidthMm} mm ×{' '}
+                    {viewport.physicalHeightMm} mm
+                    {' · aspect '}{viewport.physicalAspectRatio}
+                    {' · '}{action.review.fittingLabel}
+                    {' · '}{action.review.sourceStateLabel}
+                    {clipping.material === true
+                      ? ` · material clipping${clippedArea === undefined
+                        ? ''
+                        : ` (${(clippedArea * 100).toFixed(2)}% of source area)`}`
+                      : ''}
+                    {' · '}{action.review.preservationLabel}
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        ) : null}
       </>
     )
   }
@@ -158,6 +254,51 @@ function ReviewEvidence({
             </li>
           ))}
         </ul>
+        {review.plan.formatVersion === 3 &&
+        review.plan.objectCreationActions.length > 0 ? (
+          <>
+            <h4>Reviewed empty slot recreation</h4>
+            <ul className="case-layout-preset-evidence-list">
+              {review.plan.objectCreationActions.map((action) => (
+                <li key={action.id}>
+                  <strong>{action.review.actionLabel}</strong>
+                  {' · '}{action.review.initialStateLabel}
+                  {' · '}{action.review.insertionLabel}
+                  {' · '}{action.review.preservationLabel}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        {review.plan.formatVersion === 3 &&
+        review.plan.artworkViewportActions.length > 0 ? (
+          <>
+            <h4>Reviewed reserved artwork frames</h4>
+            <ul className="case-layout-preset-evidence-list">
+              {review.plan.artworkViewportActions.map((action) => {
+                const viewport = action.evidence.plan.viewport
+                const clipping = action.evidence.plan.clipping
+                const clippedArea = clipping.clippedSourceFractions?.area
+                return (
+                  <li key={action.id}>
+                    <strong>{action.review.actionLabel}</strong>
+                    {' · '}{viewport.physicalWidthMm} mm ×{' '}
+                    {viewport.physicalHeightMm} mm
+                    {' · aspect '}{viewport.physicalAspectRatio}
+                    {' · '}{action.review.fittingLabel}
+                    {' · '}{action.review.sourceStateLabel}
+                    {clipping.material === true
+                      ? ` · material clipping${clippedArea === undefined
+                        ? ''
+                        : ` (${(clippedArea * 100).toFixed(2)}% of source area)`}`
+                      : ''}
+                    {' · '}{action.review.preservationLabel}
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        ) : null}
       </>
     )
   }

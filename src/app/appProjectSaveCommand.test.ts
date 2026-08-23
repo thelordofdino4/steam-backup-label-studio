@@ -27,6 +27,9 @@ import type { ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
+import {
+  createDefaultCaseInsertImageSlot,
+} from '../caseInsert/defaults.ts'
 import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
 import type { SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
 import {
@@ -322,6 +325,65 @@ test('direct Save uses the lifecycle-owned project without an editor capture por
   if (result.disposition === 'executed') {
     assert.equal(result.result.status, 'success')
   }
+})
+
+test('Case Save preserves lifecycle-owned reserved artwork viewport and asset evidence in the package write input', async () => {
+  const imageDataUrl = 'data:image/png;base64,YXJ0d29yay1ieXRlcw=='
+  const project = createBlankJewelCaseSavedProject('Viewport Save')
+  project.caseInsert.templates.tray.artworkSlots = [{
+    ...createDefaultCaseInsertImageSlot(
+      'tray-artwork-viewport',
+      'Tray artwork viewport',
+      { enabled: true },
+    ),
+    imageDataUrl,
+    imageSource: {
+      source: 'uploaded',
+      sourceId: 'upload:tray-artwork-viewport',
+      sourceLabel: 'Tray artwork upload',
+      sourceUrl: null,
+    },
+    imageSize: { width: 1600, height: 900 },
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport',
+      formatVersion: 1,
+      templateId: 'jewelCase',
+      templateRevision: null,
+      coordinateBasis: 'backPanelSafe',
+      widthPercent: 42,
+      heightPercent: 28,
+      focalPosition: { xPercent: 37, yPercent: 61 },
+      zoom: 1.35,
+    },
+  }]
+  const initial = stateFor(
+    project,
+    'sbls-package-v1',
+    'viewport-save.sbls',
+  )
+  const current = initial.activeSession
+  assert.equal(current?.kind, 'caseInsert')
+  if (!current || current.kind !== 'caseInsert') return
+  const currentSlot = current.project.caseInsert.templates.tray.artworkSlots[0]
+  assert.ok(currentSlot)
+  const harness = createHarness({ state: initial })
+
+  const result = await harness.root.dispatch('project.save')
+
+  assert.equal(result.disposition, 'executed')
+  assert.equal(harness.writeCalls.length, 1)
+  const normalizedProject = harness.writeCalls[0].normalizedProject
+  assert.equal(normalizedProject.projectType, 'caseInsert')
+  if (normalizedProject.projectType !== 'caseInsert') return
+  const savedSlot = normalizedProject.caseInsert.templates.tray.artworkSlots[0]
+  assert.ok(savedSlot)
+  assert.deepEqual(savedSlot, currentSlot)
+  assert.equal(savedSlot.imageDataUrl, imageDataUrl)
+  assert.deepEqual(savedSlot.imageSource, currentSlot.imageSource)
+  assert.deepEqual(
+    savedSlot.reservedArtworkViewport,
+    currentSlot.reservedArtworkViewport,
+  )
 })
 
 test('Case Save projects explicit preset persistence and preserves session application metadata', async () => {

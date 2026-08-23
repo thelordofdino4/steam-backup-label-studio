@@ -220,3 +220,66 @@ test('tray text avoidance wraps around other visible text lists', () => {
     false,
   )
 })
+
+test('reserved Tray artwork avoidance is source-independent and remains outside both spines', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const baseSlot = {
+    ...state.templates.tray.titleArtwork,
+    id: 'tray-artwork-1',
+    label: 'Screenshot',
+    enabled: true,
+    imageDataUrl: 'data:image/png;base64,screenshot',
+    fit: 'cover' as const,
+    layout: { scale: 1, x: 50, y: 50, rotation: 0 },
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport' as const,
+      formatVersion: 1 as const,
+      templateId: 'jewelCase' as const,
+      templateRevision: null,
+      coordinateBasis: 'backPanelSafe' as const,
+      widthPercent: 26,
+      heightPercent: 16,
+      focalPosition: { xPercent: 50, yPercent: 50 },
+      zoom: 1,
+    },
+  }
+  const createArtworkRegion = (imageSize: { width: number; height: number }) =>
+    createCaseInsertTemplateTextAvoidanceRegions({
+      paneId: 'tray',
+      templateState: {
+        ...state.templates.tray,
+        additionalArtworkEnabled: true,
+        artworkSlots: [{ ...baseSlot, imageSize }],
+      },
+      layout,
+      brandingSources: createBrandingSources(),
+    }).find(({ id }) => id === 'tray-artwork-tray-artwork-1')
+
+  const wideRegion = createArtworkRegion({ width: 1600, height: 900 })
+  const standardRegion = createArtworkRegion({ width: 1200, height: 900 })
+  const backPanelSafe = layout.regions.find(
+    ({ regionId }) => regionId === 'backPanelSafe',
+  )
+  const leftSpineSafe = layout.regions.find(
+    ({ regionId }) => regionId === 'leftSpineSafe',
+  )
+  const rightSpineSafe = layout.regions.find(
+    ({ regionId }) => regionId === 'rightSpineSafe',
+  )
+
+  assert.ok(wideRegion)
+  assert.ok(standardRegion)
+  assert.ok(backPanelSafe)
+  assert.ok(leftSpineSafe)
+  assert.ok(rightSpineSafe)
+  assert.deepEqual(wideRegion.bounds, standardRegion.bounds)
+  assert.equal(rectsOverlap(wideRegion.bounds, leftSpineSafe.bounds), false)
+  assert.equal(rectsOverlap(wideRegion.bounds, rightSpineSafe.bounds), false)
+  assert.equal(
+    wideRegion.bounds.x >= backPanelSafe.bounds.x &&
+      wideRegion.bounds.x + wideRegion.bounds.width <=
+        backPanelSafe.bounds.x + backPanelSafe.bounds.width,
+    true,
+  )
+})

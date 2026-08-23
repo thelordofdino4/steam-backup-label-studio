@@ -13,16 +13,21 @@ import type {
 } from './caseInsertPresetDefinition.ts'
 import {
   getCaseInsertPresetOwnedFieldCurrentValue,
+  getCaseInsertPresetTypedOwnedFieldCurrentValue,
   isCaseInsertPresetOwnedFieldSemanticValue,
   canonicalizeCaseInsertAppliedPresetConfigurationOrdering,
   validateCaseInsertAppliedPresetConfiguration,
   type CaseInsertAppliedPresetConfiguration,
+  type CaseInsertAppliedPresetOwnedValue,
   type CaseInsertAppliedPresetOwnedFieldAddress,
+  type CaseInsertAppliedPresetOwnedFieldAddressV3,
+  type CaseInsertPresetOwnedFieldObservation,
 } from './caseInsertPresetAppliedConfiguration.ts'
 import {
   CASE_INSERT_PRESET_DETACH_OWNERSHIP_PROJECTION_KIND,
   CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION,
   CASE_INSERT_PRESET_DETACH_PLAN_KIND,
+  CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION,
   canonicalizeCaseInsertPresetDetachPlanContent,
   createCaseInsertPresetDetachPlanIdentity,
   createCaseInsertPresetDetachPreservationIdentity,
@@ -35,6 +40,7 @@ export {
   CASE_INSERT_PRESET_DETACH_OWNERSHIP_PROJECTION_KIND,
   CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION,
   CASE_INSERT_PRESET_DETACH_PLAN_KIND,
+  CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION,
 } from './caseInsertPresetDetachIdentity.ts'
 
 export type PlanCaseInsertPresetDetachInput = Readonly<{
@@ -50,23 +56,27 @@ export type PlanCaseInsertPresetDetachInput = Readonly<{
   }>
 }>
 
+type CaseInsertPresetDetachOwnedFieldAddress =
+  | CaseInsertAppliedPresetOwnedFieldAddress
+  | CaseInsertAppliedPresetOwnedFieldAddressV3
+
 export type CaseInsertPresetDetachReleaseRecord = Readonly<{
   id: string
-  address: CaseInsertAppliedPresetOwnedFieldAddress
-  currentValue: number
-  previousLastAppliedValue: number
+  address: CaseInsertPresetDetachOwnedFieldAddress
+  currentValue: number | CaseInsertPresetOwnedFieldObservation
+  previousLastAppliedValue: number | CaseInsertAppliedPresetOwnedValue
   sources: CaseInsertAppliedPresetConfiguration['ownedFields'][number]['sources']
-  enablement: CaseInsertPresetSnapshotEnablement
+  enablement: CaseInsertPresetSnapshotEnablement | null
   ownershipDisposition: 'release-complete-configuration-ownership'
   aggregateDisposition: 'preserve-exact-current-value'
 }>
 
 export type CaseInsertPresetDetachAggregatePreservation = Readonly<{
   id: string
-  address: CaseInsertAppliedPresetOwnedFieldAddress
-  currentValue: number
-  previousLastAppliedValue: number
-  enablement: CaseInsertPresetSnapshotEnablement
+  address: CaseInsertPresetDetachOwnedFieldAddress
+  currentValue: number | CaseInsertPresetOwnedFieldObservation
+  previousLastAppliedValue: number | CaseInsertAppliedPresetOwnedValue
+  enablement: CaseInsertPresetSnapshotEnablement | null
   preservation: 'exact-current-value-no-write'
 }>
 
@@ -81,19 +91,22 @@ export type CaseInsertPresetDetachWarning = Readonly<{
 }>
 
 export type CaseInsertPresetDetachFieldPrecondition = Readonly<{
-  address: CaseInsertAppliedPresetOwnedFieldAddress
-  bindingMatch: 'exactly-one'
-  currentValue: number
-  enablement: CaseInsertPresetSnapshotEnablement
+  address: CaseInsertPresetDetachOwnedFieldAddress
+  bindingMatch: 'exactly-one' | 'absent-owned-object'
+  currentValue: number | CaseInsertPresetOwnedFieldObservation
+  enablement: CaseInsertPresetSnapshotEnablement | null
 }>
 
 export type CaseInsertPresetDetachPlan = Readonly<{
   kind: typeof CASE_INSERT_PRESET_DETACH_PLAN_KIND
-  formatVersion: typeof CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION
+  formatVersion:
+    | typeof CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION
+    | typeof CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION
   operation: 'detach'
   source: Readonly<{
     configurationIdentity: string
-    configurationFormatVersion: 1 | 2
+    configurationFormatVersion:
+      CaseInsertAppliedPresetConfiguration['formatVersion']
     projectKind: 'caseInsert'
     sessionId: string
     projectRevision: number
@@ -167,7 +180,7 @@ export type CaseInsertPresetDetachPlanningResult =
       ok: false
       status: CaseInsertPresetDetachPlanningFailureStatus
       code: string
-      address?: CaseInsertAppliedPresetOwnedFieldAddress
+      address?: CaseInsertPresetDetachOwnedFieldAddress
       dimensions?: readonly string[]
     }>
 
@@ -215,7 +228,7 @@ function failure(
   status: CaseInsertPresetDetachPlanningFailureStatus,
   code: string,
   options: Readonly<{
-    address?: CaseInsertAppliedPresetOwnedFieldAddress
+    address?: CaseInsertPresetDetachOwnedFieldAddress
     dimensions?: readonly string[]
   }> = {},
 ): Failure {
@@ -228,7 +241,7 @@ function failure(
   })
 }
 
-function addressKey(address: CaseInsertAppliedPresetOwnedFieldAddress) {
+function addressKey(address: CaseInsertPresetDetachOwnedFieldAddress) {
   return [
     address.region,
     address.featureOwnerId,
@@ -351,8 +364,8 @@ function validateCurrentContext(
 
 function buildReleaseRecord(
   field: CaseInsertAppliedPresetConfiguration['ownedFields'][number],
-  currentValue: number,
-  enablement: CaseInsertPresetSnapshotEnablement,
+  currentValue: number | CaseInsertPresetOwnedFieldObservation,
+  enablement: CaseInsertPresetSnapshotEnablement | null,
 ): CaseInsertPresetDetachReleaseRecord {
   const content = {
     address: cloneMutable(field.address),
@@ -372,8 +385,8 @@ function buildReleaseRecord(
 
 function buildPreservationRecord(
   field: CaseInsertAppliedPresetConfiguration['ownedFields'][number],
-  currentValue: number,
-  enablement: CaseInsertPresetSnapshotEnablement,
+  currentValue: number | CaseInsertPresetOwnedFieldObservation,
+  enablement: CaseInsertPresetSnapshotEnablement | null,
 ): CaseInsertPresetDetachAggregatePreservation {
   const content = {
     address: cloneMutable(field.address),
@@ -418,6 +431,36 @@ export function planCaseInsertPresetDetach(
   const fieldPreconditions: CaseInsertPresetDetachFieldPrecondition[] = []
   const addresses = new Set<string>()
 
+  const recordField = (
+    field: CaseInsertAppliedPresetConfiguration['ownedFields'][number],
+    currentValue: number | CaseInsertPresetOwnedFieldObservation,
+    enablement: CaseInsertPresetSnapshotEnablement | null,
+    bindingMatch: CaseInsertPresetDetachFieldPrecondition['bindingMatch'],
+  ) => {
+    releaseFootprint.push(buildReleaseRecord(field, currentValue, enablement))
+    aggregatePreservations.push(buildPreservationRecord(
+      field,
+      currentValue,
+      enablement,
+    ))
+    fieldPreconditions.push(deepFreeze({
+      address: cloneMutable(field.address),
+      bindingMatch,
+      currentValue: cloneMutable(currentValue),
+      enablement: cloneMutable(enablement),
+    }))
+  }
+  const presenceOwnedObjectKeys = configuration.formatVersion === 3
+    ? new Set(configuration.ownedFields
+        .filter(({ address }) => address.fieldId === 'object-presence')
+        .map(({ address }) => [
+          address.featureOwnerId,
+          address.bindingKind,
+          address.bindingId,
+          address.runtimeObjectId,
+        ].join('\u0000')))
+    : new Set<string>()
+
   for (const field of configuration.ownedFields) {
     const key = addressKey(field.address)
     if (addresses.has(key)) {
@@ -441,6 +484,25 @@ export function planCaseInsertPresetDetach(
         address: field.address,
       })
     }
+    if (binding.status === 'missing' && configuration.formatVersion === 3) {
+      const objectKey = [
+        field.address.featureOwnerId,
+        field.address.bindingKind,
+        field.address.bindingId,
+        field.address.runtimeObjectId,
+      ].join('\u0000')
+      if (!presenceOwnedObjectKeys.has(objectKey)) {
+        return failure('target-missing', 'detach-target-missing', {
+          address: field.address,
+        })
+      }
+      const observation: CaseInsertPresetOwnedFieldObservation =
+        field.address.fieldId === 'object-presence'
+          ? { status: 'absent-owned-object' }
+          : { status: 'unavailable-object-absent' }
+      recordField(field, observation, null, 'absent-owned-object')
+      continue
+    }
     if (binding.status === 'missing' || binding.status === 'unsupported') {
       return failure('target-missing', 'detach-target-missing', {
         address: field.address,
@@ -457,33 +519,40 @@ export function planCaseInsertPresetDetach(
         address: field.address,
       })
     }
-    const currentValue = getCaseInsertPresetOwnedFieldCurrentValue(
-      binding.currentState,
-      field.address.fieldId,
-    )
-    if (!isCaseInsertPresetOwnedFieldSemanticValue(
-      field.address.fieldId,
-      currentValue,
-    )) return failure('invalid-current-value', 'detach-current-value-invalid', {
-      address: field.address,
-    })
-
-    releaseFootprint.push(buildReleaseRecord(
-      field,
-      currentValue,
-      binding.enablement,
-    ))
-    aggregatePreservations.push(buildPreservationRecord(
-      field,
-      currentValue,
-      binding.enablement,
-    ))
-    fieldPreconditions.push(deepFreeze({
-      address: cloneMutable(field.address),
-      bindingMatch: 'exactly-one' as const,
-      currentValue,
-      enablement: cloneMutable(binding.enablement),
-    }))
+    if (configuration.formatVersion === 3) {
+      const currentValue = getCaseInsertPresetTypedOwnedFieldCurrentValue(
+        binding.currentState,
+        field.address,
+      )
+      if (!currentValue && field.address.fieldId !==
+          'reserved-artwork-viewport') {
+        return failure(
+          'invalid-current-value',
+          'detach-current-value-invalid',
+          { address: field.address },
+        )
+      }
+      const observation: CaseInsertPresetOwnedFieldObservation = currentValue
+        ? { status: 'present', value: currentValue }
+        : { status: 'value-absent' }
+      recordField(field, observation, binding.enablement, 'exactly-one')
+    } else {
+      const legacyAddress = field.address as
+        CaseInsertAppliedPresetOwnedFieldAddress
+      const currentValue = getCaseInsertPresetOwnedFieldCurrentValue(
+        binding.currentState,
+        legacyAddress.fieldId,
+      )
+      if (!isCaseInsertPresetOwnedFieldSemanticValue(
+        legacyAddress.fieldId,
+        currentValue,
+      )) return failure(
+        'invalid-current-value',
+        'detach-current-value-invalid',
+        { address: field.address },
+      )
+      recordField(field, currentValue, binding.enablement, 'exactly-one')
+    }
   }
 
   if (releaseFootprint.length !== configuration.ownedFields.length ||
@@ -510,7 +579,9 @@ export function planCaseInsertPresetDetach(
 
   const planContent = canonicalizeCaseInsertPresetDetachPlanContent({
     kind: CASE_INSERT_PRESET_DETACH_PLAN_KIND,
-    formatVersion: CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION,
+    formatVersion: configuration.formatVersion === 3
+      ? CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION
+      : CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION,
     operation: 'detach' as const,
     source: {
       configurationIdentity: configuration.configurationIdentity,

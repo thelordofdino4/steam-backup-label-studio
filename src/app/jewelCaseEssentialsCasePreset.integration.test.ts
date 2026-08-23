@@ -11,6 +11,7 @@ import {
 import {
   createLoadedProjectSession,
   createNewProjectSession,
+  isProjectSessionDirty,
   type ApplicationLifecycleState,
   type CaseInsertProjectSession,
 } from '../lifecycle/projectSession.ts'
@@ -28,14 +29,23 @@ import {
   createEmbeddedProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
 import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
+import type {
+  ProjectCaseInsertReservedArtworkViewport,
+} from '../project/projectTypes.ts'
 import {
   CASE_INSERT_PRESET_CATALOG,
   createCaseInsertPresetCatalog,
+  type CaseInsertPresetCatalog,
 } from '../presets/caseInsertPresetCatalog.ts'
 import {
-  JEWEL_CASE_ESSENTIALS_CASE_PRESET,
   JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
 } from '../presets/builtins/jewelCaseEssentialsCasePreset.ts'
+import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+} from '../presets/builtins/jewelCaseEssentialsCasePresetV2.ts'
+import {
+  createCaseInsertPresetReapplyWarningIdentity,
+} from '../presets/caseInsertPresetReapplyIdentity.ts'
 import {
   createAppCaseInsertPresetWorkflowOwner,
   type AppCaseInsertPresetWorkflowDecision,
@@ -51,8 +61,25 @@ const PRESET = Object.freeze({
   revision: 1,
 })
 
+const LATEST_PRESET = Object.freeze({
+  id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+  revision: 2,
+})
+
 const SAMPLE_PNG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+XMRdAAAAAElFTkSuQmCC'
+
+const CUSTOM_ARTWORK_VIEWPORT: ProjectCaseInsertReservedArtworkViewport = {
+  kind: 'sbls/case-insert-artwork-viewport',
+  formatVersion: 1,
+  templateId: 'jewelCase',
+  templateRevision: null,
+  coordinateBasis: 'backPanelSafe',
+  widthPercent: 24,
+  heightPercent: 16,
+  focalPosition: { xPercent: 43, yPercent: 57 },
+  zoom: 1.3,
+}
 
 function requireCaseSession(
   state: ApplicationLifecycleState,
@@ -141,11 +168,14 @@ function createRepresentativeProject() {
     slot.imageSize = { width: 1, height: 1 }
     return slot
   })
-  tray.artworkSlots.splice(1, 0, createDefaultCaseInsertImageSlot(
+  const customArtwork = createDefaultCaseInsertImageSlot(
     'tray-artwork-custom',
     'Untargeted user artwork',
     { enabled: true, layout: { x: 91, y: 9, scale: 0.42 } },
-  ))
+  )
+  customArtwork.reservedArtworkViewport =
+    structuredClone(CUSTOM_ARTWORK_VIEWPORT)
+  tray.artworkSlots.splice(1, 0, customArtwork)
   return project
 }
 
@@ -189,7 +219,7 @@ test('presentation controller requires explicit selection and completes one prod
   assert.equal(controller.beginApplyReview().ok, true)
   const reviewed = controller.getSnapshot()
   assert.equal(reviewed.review?.operation, 'apply')
-  assert.deepEqual(reviewed.review?.selectedPreset, PRESET)
+  assert.deepEqual(reviewed.review?.selectedPreset, LATEST_PRESET)
   assert.deepEqual(commandIds, [])
   const incomplete = await controller.confirmReview()
   assert.equal(incomplete.ok, false)
@@ -210,7 +240,8 @@ test('presentation controller requires explicit selection and completes one prod
   const duplicate = await controller.confirmReview()
   assert.equal(duplicate.ok, false)
   assert.equal(duplicate.code, 'case.layoutPreset.confirmation-pending')
-  assert.equal((await first).ok, true)
+  const firstResult = await first
+  assert.equal(firstResult.ok, true, JSON.stringify(firstResult))
   assert.deepEqual(commandIds, ['case.layoutPreset.apply'])
   assert.deepEqual(feedback, ['case.layoutPreset.apply'])
   const completed = controller.getSnapshot()
@@ -219,7 +250,7 @@ test('presentation controller requires explicit selection and completes one prod
   if (completed.inspection.ok) {
     assert.equal(completed.inspection.status, 'attached')
     if (completed.inspection.status === 'attached') {
-      assert.equal(completed.inspection.configuration.preset.revision, 1)
+      assert.equal(completed.inspection.configuration.preset.revision, 2)
     }
   }
   assert.equal(
@@ -227,6 +258,60 @@ test('presentation controller requires explicit selection and completes one prod
       .caseInsertPresetApplication.attachment.status,
     'attached',
   )
+})
+
+test('latest selection, Apply review, and review cancellation leave a clean blank Case session unchanged', () => {
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createLoadedProjectSession({
+      sessionId: 'jewel-case-essentials-nonmutating-review',
+      currentPath: 'C:\\projects\\clean-case.sbls',
+      persistenceFormat: 'sbls-package-v1',
+      project: createBlankJewelCaseSavedProject('Clean Case'),
+    }),
+  })
+  const commandIds: string[] = []
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: {
+      getLifecycleState: () => root.getLifecycleState(),
+      dispatch: async <Value = void>(commandId: string, input?: unknown) => {
+        commandIds.push(commandId)
+        return root.dispatch<Value>(commandId, input)
+      },
+    },
+    catalog: CASE_INSERT_PRESET_CATALOG,
+  })
+  const controller = createCaseInsertPresetPresentationController({
+    workflow: owner,
+    catalog: CASE_INSERT_PRESET_CATALOG,
+    publishDispatchFeedback: () => {
+      throw new Error('Review-only interaction must not publish feedback.')
+    },
+  })
+  const before = root.getLifecycleState()
+  const source = requireCaseSession(before)
+  assert.equal(isProjectSessionDirty(source), false)
+  assert.deepEqual(
+    source.project.caseInsert.templates.tray.artworkSlots,
+    [],
+  )
+
+  const option = controller.getSnapshot().options[0]
+  assert.ok(option)
+  assert.equal(option.revision, 2)
+  assert.equal(controller.selectOption(option.value).ok, true)
+  assert.strictEqual(root.getLifecycleState(), before)
+  assert.equal(controller.beginApplyReview().ok, true)
+  assert.strictEqual(root.getLifecycleState(), before)
+  assert.equal(controller.getSnapshot().review?.operation, 'apply')
+
+  controller.cancelReview()
+  assert.equal(controller.getSnapshot().review, null)
+  assert.strictEqual(root.getLifecycleState(), before)
+  const after = requireCaseSession(root.getLifecycleState())
+  assert.equal(isProjectSessionDirty(after), false)
+  assert.deepEqual(after.project.caseInsert.templates.tray.artworkSlots, [])
+  assert.deepEqual(commandIds, [])
+  root.dispose()
 })
 
 test('explicit production Apply preserves content and dispatches one atomic lifecycle command', async () => {
@@ -306,6 +391,29 @@ test('explicit production Apply preserves content and dispatches one atomic life
       ({ id }) => id === 'tray-artwork-custom',
     ),
   )
+  const customArtwork = installed.project.caseInsert.templates.tray
+    .artworkSlots.find(({ id }) => id === 'tray-artwork-custom')
+  assert.deepEqual(
+    customArtwork?.reservedArtworkViewport,
+    CUSTOM_ARTWORK_VIEWPORT,
+  )
+  if (installed.caseInsertPresetApplication.attachment.status === 'attached') {
+    assert.equal(
+      installed.caseInsertPresetApplication.attachment.configuration.ownedFields
+        .some(({ address }) =>
+          address.bindingId === 'tray-artwork-custom' ||
+          address.runtimeObjectId === 'tray-artwork-custom'),
+      false,
+    )
+  }
+  const inspection = owner.inspectCurrent()
+  assert.equal(inspection.ok, true)
+  if (inspection.ok && inspection.status === 'attached') {
+    assert.equal(inspection.customization.ok, true)
+    if (inspection.customization.ok) {
+      assert.equal(inspection.customization.status, 'clean')
+    }
+  }
   assert.deepEqual(
     installed.project.caseInsert.templates.tray.titleArtwork,
     sourceProject.caseInsert.templates.tray.titleArtwork,
@@ -409,11 +517,91 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
     confirm(applyReview),
   )).ok, true)
   const appliedSession = requireCaseSession(applied.root.getLifecycleState())
+  assert.equal(
+    appliedSession.caseInsertPresetApplication.attachment.status,
+    'attached',
+  )
+  if (appliedSession.caseInsertPresetApplication.attachment.status !==
+      'attached') return
   const saved = createCaseInsertProjectSaveSnapshot(
     appliedSession.project,
     appliedSession.caseInsertPresetApplication,
   )
   assert.equal(saved.schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION)
+
+  const catalogUnavailableStaged = await stageProjectOpenContents({
+    selectedPath: 'C:\\projects\\jewel-case-essentials-no-catalog.sbls',
+    contents: JSON.stringify(saved),
+    persistenceFormat: 'sbls-package-v1',
+    caseInsertBrandingSources: createBrandingSources(),
+    caseInsertPresetCatalog: {
+      getExact: () => { throw new Error('Catalog unavailable.') },
+      getLatest: () => { throw new Error('Catalog unavailable.') },
+      resolve: () => { throw new Error('Catalog unavailable.') },
+      list: () => { throw new Error('Catalog unavailable.') },
+    } satisfies CaseInsertPresetCatalog,
+  })
+  assert.equal(
+    catalogUnavailableStaged.status,
+    'success',
+    JSON.stringify(catalogUnavailableStaged),
+  )
+  if (catalogUnavailableStaged.status !== 'success' ||
+      catalogUnavailableStaged.value.projectType !== 'caseInsert') return
+  assert.deepEqual(
+    catalogUnavailableStaged.value.caseInsertPresetRecovery.recoveryStatus,
+    { status: 'unavailable', code: 'catalog-unavailable' },
+  )
+  assert.deepEqual(
+    catalogUnavailableStaged.value.normalizedProject.caseInsert.templates.tray
+      .artworkSlots.find(({ id }) => id === 'tray-artwork-custom')
+      ?.reservedArtworkViewport,
+    CUSTOM_ARTWORK_VIEWPORT,
+  )
+  const catalogUnavailableSession = createLoadedProjectSession({
+    sessionId: 'jewel-case-essentials-no-catalog-recovered',
+    project: catalogUnavailableStaged.value.normalizedProject,
+    currentPath: catalogUnavailableStaged.value.selectedPath,
+    persistenceFormat: catalogUnavailableStaged.value.persistenceFormat,
+    lastEditorRoute: catalogUnavailableStaged.value.editorRoute,
+    caseInsertPresetRecovery:
+      catalogUnavailableStaged.value.caseInsertPresetRecovery,
+  })
+  const catalogUnavailableCaseSession = requireCaseSession(
+    catalogUnavailableSession,
+  )
+  assert.deepEqual(
+    catalogUnavailableCaseSession.project.caseInsert.templates.tray
+      .artworkSlots.find(({ id }) => id === 'tray-artwork-custom')
+      ?.reservedArtworkViewport,
+    CUSTOM_ARTWORK_VIEWPORT,
+  )
+  assert.equal(
+    catalogUnavailableCaseSession.caseInsertPresetApplication.attachment.status,
+    'attached',
+  )
+  if (catalogUnavailableCaseSession.caseInsertPresetApplication.attachment
+    .status === 'attached') {
+    assert.deepEqual(
+      catalogUnavailableCaseSession.caseInsertPresetApplication.attachment
+        .configuration.ownedFields,
+      appliedSession.caseInsertPresetApplication.attachment.configuration
+        .ownedFields,
+    )
+    assert.deepEqual(
+      catalogUnavailableCaseSession.caseInsertPresetApplication.attachment
+        .configuration.preset,
+      appliedSession.caseInsertPresetApplication.attachment.configuration
+        .preset,
+    )
+  }
+  assert.deepEqual(
+    createCaseInsertProjectSaveSnapshot(
+      catalogUnavailableCaseSession.project,
+      catalogUnavailableCaseSession.caseInsertPresetApplication,
+    ).caseInsertLayoutPreset,
+    saved.caseInsertLayoutPreset,
+  )
 
   const staged = await stageProjectOpenContents({
     selectedPath: 'C:\\projects\\jewel-case-essentials.sbls',
@@ -427,7 +615,9 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
     return
   }
   assert.deepEqual(staged.value.caseInsertPresetRecovery.recoveryStatus, {
-    status: 'current',
+    status: 'stale',
+    savedRevision: 1,
+    latestAvailableRevision: 2,
     customization: 'clean',
   })
   const recoveredSession = createLoadedProjectSession({
@@ -450,23 +640,18 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
     },
   }
 
-  const revisionTwo = structuredClone(JEWEL_CASE_ESSENTIALS_CASE_PRESET)
-  ;(revisionTwo as { revision: number }).revision = 2
-  const futureCatalog = createCaseInsertPresetCatalog({
-    builtins: [JEWEL_CASE_ESSENTIALS_CASE_PRESET, revisionTwo],
-  })
-  assert.equal(futureCatalog.ok, true)
-  if (!futureCatalog.ok) return
   const owner = createAppCaseInsertPresetWorkflowOwner({
     lifecycle,
-    catalog: futureCatalog.catalog,
+    catalog: CASE_INSERT_PRESET_CATALOG,
   })
   const inspection = owner.inspectCurrent()
   assert.equal(inspection.ok, true)
   if (inspection.ok) {
     assert.equal(inspection.status, 'attached')
     assert.deepEqual(inspection.recoveryStatus, {
-      status: 'current',
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
       customization: 'clean',
     })
     if (inspection.status === 'attached') {
@@ -480,7 +665,7 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
   assert.deepEqual(commandIds, [])
 
   assert.equal(
-    futureCatalog.catalog.getLatest(
+    CASE_INSERT_PRESET_CATALOG.getLatest(
       JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
     )?.revision,
     2,
@@ -489,7 +674,7 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
   const reapplyFeedback: string[] = []
   const reapplyController = createCaseInsertPresetPresentationController({
     workflow: owner,
-    catalog: futureCatalog.catalog,
+    catalog: CASE_INSERT_PRESET_CATALOG,
     publishDispatchFeedback: (dispatch) =>
       reapplyFeedback.push(dispatch.commandId),
   })
@@ -510,6 +695,19 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
   assert.equal(reapplied.ok, true, JSON.stringify(reapplied))
   assert.deepEqual(commandIds, ['case.layoutPreset.reapply'])
   assert.deepEqual(reapplyFeedback, ['case.layoutPreset.reapply'])
+  const afterExactReapply = reapplyController.getSnapshot().inspection
+  assert.equal(afterExactReapply.ok, true)
+  if (afterExactReapply.ok) {
+    assert.deepEqual(afterExactReapply.recoveryStatus, {
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
+      customization: 'clean',
+    })
+    if (afterExactReapply.status === 'attached') {
+      assert.equal(afterExactReapply.configuration.preset.revision, 1)
+    }
+  }
 
   const detachRoot = createApplicationLifecycleCompositionRoot({
     initialState: createLoadedProjectSession({
@@ -569,6 +767,464 @@ test('Save/Open recovers exact production identity, Reapply stays exact, and cat
     'unattached',
   )
   assert.deepEqual(detachedSession.project, beforeDetach)
+  assert.deepEqual(
+    detachedSession.project.caseInsert.templates.tray.artworkSlots.find(
+      ({ id }) => id === 'tray-artwork-custom',
+    )?.reservedArtworkViewport,
+    CUSTOM_ARTWORK_VIEWPORT,
+  )
+})
+
+test('revision-1 exact Reapply stays stale without creating slots, viewports, or upgrading', async () => {
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({
+      sessionId: 'jewel-case-essentials-v1-exact-reapply',
+      project: createBlankJewelCaseSavedProject('Exact revision 1'),
+    }),
+  })
+  const commandIds: string[] = []
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: {
+      getLifecycleState: () => root.getLifecycleState(),
+      dispatch: async <Value = void>(commandId: string, input?: unknown) => {
+        commandIds.push(commandId)
+        return root.dispatch<Value>(commandId, input)
+      },
+    },
+    catalog: CASE_INSERT_PRESET_CATALOG,
+  })
+  const applyReview = requireReview(owner.beginApply({
+    selectedPreset: PRESET,
+    requestedScope: { kind: 'complete' },
+  }))
+  assert.equal((await owner.complete(
+    applyReview,
+    confirm(applyReview),
+  )).ok, true)
+  const applied = requireCaseSession(root.getLifecycleState())
+  assert.deepEqual(
+    applied.caseInsertPresetApplication.recoveryStatus,
+    {
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
+      customization: 'clean',
+    },
+  )
+  assert.deepEqual(
+    applied.project.caseInsert.templates.tray.artworkSlots,
+    [],
+  )
+
+  const inspection = owner.inspectCurrent()
+  assert.equal(inspection.ok, true)
+  if (!inspection.ok || inspection.status !== 'attached') return
+  assert.equal(inspection.configuration.preset.revision, 1)
+  assert.deepEqual(inspection.recoveryStatus, {
+    status: 'stale',
+    savedRevision: 1,
+    latestAvailableRevision: 2,
+    customization: 'clean',
+  })
+
+  const reapplyReview = requireReview(owner.beginReapply({
+    selectedPreset: PRESET,
+    customizedFieldPolicies: [],
+  }))
+  assert.equal(reapplyReview.operation, 'reapply')
+  if (reapplyReview.operation !== 'reapply') return
+  assert.equal(reapplyReview.plan.preset.selectedRevision, 1)
+  assert.equal('objectCreationActions' in reapplyReview.plan, false)
+  assert.equal('artworkViewportActions' in reapplyReview.plan, false)
+  assert.equal((await owner.complete(
+    reapplyReview,
+    confirm(reapplyReview),
+  )).ok, true)
+
+  const reapplied = requireCaseSession(root.getLifecycleState())
+  assert.deepEqual(commandIds, [
+    'case.layoutPreset.apply',
+    'case.layoutPreset.reapply',
+  ])
+  assert.deepEqual(reapplied.project.caseInsert.templates.tray.artworkSlots, [])
+  assert.equal(reapplied.caseInsertPresetApplication.attachment.status,
+    'attached')
+  if (reapplied.caseInsertPresetApplication.attachment.status === 'attached') {
+    assert.equal(
+      reapplied.caseInsertPresetApplication.attachment.configuration.preset
+        .revision,
+      1,
+    )
+  }
+  assert.deepEqual(
+    reapplied.caseInsertPresetApplication.recoveryStatus,
+    {
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
+      customization: 'clean',
+    },
+  )
+  root.dispose()
+})
+
+test('revision-2 review plans three exact empty screenshot slots and one atomic Apply creates their Cover viewports', async () => {
+  assert.deepEqual(
+    CASE_INSERT_PRESET_CATALOG.getExact(
+      JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+      2,
+    ),
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+  )
+  const project = createBlankJewelCaseSavedProject('Viewport-aware preset')
+  assert.deepEqual(project.caseInsert.templates.tray.artworkSlots, [])
+  const sourceAdditionalArtworkEnabled =
+    project.caseInsert.templates.tray.additionalArtworkEnabled
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({
+      sessionId: 'jewel-case-essentials-v2-missing-screenshots',
+      project,
+    }),
+  })
+  const commandIds: string[] = []
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: {
+      getLifecycleState: () => root.getLifecycleState(),
+      dispatch: async <Value = void>(commandId: string, input?: unknown) => {
+        commandIds.push(commandId)
+        return root.dispatch<Value>(commandId, input)
+      },
+    },
+    catalog: CASE_INSERT_PRESET_CATALOG,
+  })
+  const beforeReview = root.getLifecycleState()
+  const review = requireReview(owner.beginApply({
+    selectedPreset: LATEST_PRESET,
+    requestedScope: { kind: 'complete' },
+  }))
+
+  assert.strictEqual(root.getLifecycleState(), beforeReview)
+  assert.deepEqual(commandIds, [])
+  assert.deepEqual(
+    review.plan.objectCreationActions.map((action) => ({
+      objectId: action.target.runtimeObjectId,
+      label: action.canonicalInitialObject.label,
+      review: action.review.actionLabel,
+      initialState: action.review.initialStateLabel,
+    })).sort((left, right) => left.objectId.localeCompare(right.objectId)),
+    [1, 2, 3].map((number) => ({
+      objectId: `tray-artwork-${number}`,
+      label: `Artwork ${number}`,
+      review: `Create empty Screenshot ${number} slot`,
+      initialState: 'Empty and disabled',
+    })),
+  )
+  assert.deepEqual(
+    review.plan.artworkViewportActions.map(({ target, targetOrigin, review }) => ({
+      objectId: target.runtimeObjectId,
+      targetOrigin,
+      fitting: review.fittingLabel,
+      sourceState: review.sourceStateLabel,
+    })).sort((left, right) => left.objectId.localeCompare(right.objectId)),
+    [1, 2, 3].map((number) => ({
+      objectId: `tray-artwork-${number}`,
+      targetOrigin: 'planned-creation',
+      fitting: 'Cover',
+      sourceState:
+        'Future artwork fitting is deferred until an image is selected',
+    })),
+  )
+  assert.equal(
+    review.plan.warnings.filter(({ kind }) =>
+      kind === 'artwork-cover-fitting-deferred').length,
+    3,
+  )
+  assert.equal(
+    review.plan.materialConsentRequirements.some(({ kind }) =>
+      kind === 'material-visible-clipping'),
+    false,
+  )
+
+  const completed = await owner.complete(review, confirm(review))
+  assert.equal(completed.ok, true, JSON.stringify(completed))
+  assert.deepEqual(commandIds, ['case.layoutPreset.apply'])
+  const installed = requireCaseSession(root.getLifecycleState())
+  const tray = installed.project.caseInsert.templates.tray
+  assert.deepEqual(
+    tray.artworkSlots.map(({ id }) => id),
+    ['tray-artwork-1', 'tray-artwork-2', 'tray-artwork-3'],
+  )
+  assert.equal(
+    tray.additionalArtworkEnabled,
+    sourceAdditionalArtworkEnabled,
+  )
+  const screenshotSlots = tray.artworkSlots
+    .filter(({ id }) => /^tray-artwork-[123]$/.test(id))
+    .sort((left, right) => left.id.localeCompare(right.id))
+  assert.equal(screenshotSlots.length, 3)
+  for (const [index, slot] of screenshotSlots.entries()) {
+    const number = index + 1
+    assert.equal(slot.id, `tray-artwork-${number}`)
+    assert.equal(slot.label, `Artwork ${number}`)
+    assert.equal(slot.enabled, false)
+    assert.equal(slot.imageDataUrl, null)
+    assert.equal(slot.imageSource, null)
+    assert.equal(slot.imageSize, null)
+    assert.equal(slot.defaultSteamLogo, null)
+    assert.equal(slot.fit, 'cover')
+    assert.deepEqual(slot.layout, {
+      x: [17, 50, 83][index],
+      y: 78,
+      scale: 1,
+      rotation: 0,
+    })
+    assert.deepEqual(slot.reservedArtworkViewport, {
+      kind: 'sbls/case-insert-artwork-viewport',
+      formatVersion: 1,
+      templateId: 'jewelCase',
+      templateRevision: null,
+      coordinateBasis: 'backPanelSafe',
+      widthPercent: 26,
+      heightPercent: 16,
+      focalPosition: { xPercent: 50, yPercent: 50 },
+      zoom: 1,
+    })
+  }
+  const attachment = installed.caseInsertPresetApplication.attachment
+  assert.equal(attachment.status, 'attached')
+  if (attachment.status !== 'attached') return
+  assert.equal(attachment.configuration.preset.revision, 2)
+  assert.equal(attachment.configuration.formatVersion, 3)
+  const screenshotOwnedFields = attachment.configuration.ownedFields
+    .filter(({ address }) => /^tray-artwork-[123]$/.test(address.bindingId))
+  for (const number of [1, 2, 3]) {
+    const ownedFieldIds = screenshotOwnedFields
+      .filter(({ address }) => address.bindingId === `tray-artwork-${number}`)
+      .map(({ address }) => address.fieldId)
+      .sort()
+    assert.deepEqual(ownedFieldIds, [
+      'image-fit',
+      'layout-scale',
+      'layout-x',
+      'layout-y',
+      'object-presence',
+      'reserved-artwork-viewport',
+    ])
+  }
+})
+
+test('production revision-2 Reapply recomputes current Cover clipping and installs once after exact review consent', async () => {
+  const project = createBlankJewelCaseSavedProject('Viewport Reapply')
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({
+      sessionId: 'jewel-case-essentials-v2-reapply',
+      project,
+    }),
+  })
+  const commandIds: string[] = []
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: {
+      getLifecycleState: () => root.getLifecycleState(),
+      dispatch: async <Value = void>(commandId: string, input?: unknown) => {
+        commandIds.push(commandId)
+        return root.dispatch<Value>(commandId, input)
+      },
+    },
+    catalog: CASE_INSERT_PRESET_CATALOG,
+  })
+  const applyReview = requireReview(owner.beginApply({
+    selectedPreset: LATEST_PRESET,
+    requestedScope: { kind: 'complete' },
+  }))
+  assert.equal((await owner.complete(
+    applyReview,
+    confirm(applyReview),
+  )).ok, true)
+  assert.deepEqual(commandIds, ['case.layoutPreset.apply'])
+
+  const applied = requireCaseSession(root.getLifecycleState())
+  const withCurrentArtwork = structuredClone(applied.project)
+  const screenshot = withCurrentArtwork.caseInsert.templates.tray.artworkSlots
+    .find(({ id }) => id === 'tray-artwork-1')
+  assert.ok(screenshot)
+  if (!screenshot) throw new Error('Expected the first screenshot slot.')
+  screenshot.imageDataUrl = SAMPLE_PNG
+  screenshot.imageSource = createEmbeddedProjectImageAssetProvenance(
+    'Current square screenshot',
+  )
+  screenshot.imageSize = { width: 1, height: 1 }
+  assert.equal(root.synchronizeCurrentProject({
+    sessionId: applied.id,
+    kind: 'caseInsert',
+    project: withCurrentArtwork,
+  }), 'synchronized')
+  commandIds.length = 0
+
+  const sourceBeforeReapply = requireCaseSession(root.getLifecycleState())
+  const imageBeforeReapply = structuredClone(
+    sourceBeforeReapply.project.caseInsert.templates.tray.artworkSlots.find(
+      ({ id }) => id === 'tray-artwork-1',
+    ),
+  )
+  const reapplyReview = requireReview(owner.beginReapply({
+    selectedPreset: LATEST_PRESET,
+    customizedFieldPolicies: [],
+  }))
+  assert.equal(reapplyReview.operation, 'reapply')
+  if (reapplyReview.operation !== 'reapply') return
+  assert.equal(reapplyReview.plan.formatVersion, 3)
+  assert.deepEqual(reapplyReview.selectedPreset, LATEST_PRESET)
+  const clippingWarnings = reapplyReview.plan.warnings.filter(
+    ({ kind }) => kind === 'material-visible-clipping',
+  )
+  const clippingRequirements =
+    reapplyReview.plan.materialConsentRequirements.filter(
+      ({ kind }) => kind === 'material-visible-clipping',
+    )
+  assert.equal(clippingWarnings.length, 1)
+  assert.equal(clippingRequirements.length, 1)
+  assert.deepEqual(
+    reapplyReview.warningIds,
+    reapplyReview.plan.warnings.map(
+      createCaseInsertPresetReapplyWarningIdentity,
+    ),
+  )
+  assert.deepEqual(
+    reapplyReview.materialConsentRequirementIds,
+    reapplyReview.plan.materialConsentRequirements.map(({ id }) => id),
+  )
+  assert.equal(
+    clippingRequirements[0]?.evidence.warningId,
+    clippingWarnings[0]?.id,
+  )
+  assert.match(
+    clippingWarnings[0]!.id,
+    /^case:preset-warning:v1:artwork-visible-clipping:/,
+  )
+  assert.match(
+    clippingRequirements[0]!.id,
+    /^case:preset-consent:v1:artwork-visible-clipping:/,
+  )
+  assert.deepEqual(commandIds, [])
+
+  const completed = await owner.complete(
+    reapplyReview,
+    confirm(reapplyReview),
+  )
+  assert.equal(completed.ok, true, JSON.stringify(completed))
+  assert.deepEqual(commandIds, ['case.layoutPreset.reapply'])
+  const installed = requireCaseSession(root.getLifecycleState())
+  assert.equal(installed.id, sourceBeforeReapply.id)
+  assert.notStrictEqual(installed, sourceBeforeReapply)
+  assert.equal(installed.caseInsertPresetApplication.attachment.status, 'attached')
+  if (installed.caseInsertPresetApplication.attachment.status === 'attached') {
+    assert.equal(
+      installed.caseInsertPresetApplication.attachment.configuration.preset
+        .revision,
+      2,
+    )
+  }
+  assert.deepEqual(
+    installed.project.caseInsert.templates.tray.artworkSlots.find(
+      ({ id }) => id === 'tray-artwork-1',
+    ),
+    imageBeforeReapply,
+  )
+  root.dispose()
+})
+
+test('production revision-2 Detach is catalog-independent and preserves every created slot value', async () => {
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({
+      sessionId: 'jewel-case-essentials-v2-detach',
+      project: createBlankJewelCaseSavedProject('Viewport Detach'),
+    }),
+  })
+  const applyOwner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: root,
+    catalog: CASE_INSERT_PRESET_CATALOG,
+  })
+  const applyReview = requireReview(applyOwner.beginApply({
+    selectedPreset: LATEST_PRESET,
+    requestedScope: { kind: 'complete' },
+  }))
+  assert.equal((await applyOwner.complete(
+    applyReview,
+    confirm(applyReview),
+  )).ok, true)
+
+  const applied = requireCaseSession(root.getLifecycleState())
+  const customized = structuredClone(applied.project)
+  const screenshot = customized.caseInsert.templates.tray.artworkSlots.find(
+    ({ id }) => id === 'tray-artwork-2',
+  )
+  assert.ok(screenshot)
+  if (!screenshot) throw new Error('Expected the second screenshot slot.')
+  screenshot.label = 'User screenshot label'
+  screenshot.enabled = true
+  screenshot.imageDataUrl = SAMPLE_PNG
+  screenshot.imageSource = createEmbeddedProjectImageAssetProvenance(
+    'User screenshot source',
+  )
+  screenshot.imageSize = { width: 1, height: 1 }
+  screenshot.frame = {
+    ...screenshot.frame,
+    enabled: true,
+    color: '#123456',
+  }
+  screenshot.fit = 'contain'
+  screenshot.layout = {
+    ...screenshot.layout,
+    x: 41,
+    y: 67,
+    scale: 0.82,
+    rotation: 13,
+  }
+  screenshot.reservedArtworkViewport = structuredClone(CUSTOM_ARTWORK_VIEWPORT)
+  assert.equal(root.synchronizeCurrentProject({
+    sessionId: applied.id,
+    kind: 'caseInsert',
+    project: customized,
+  }), 'synchronized')
+
+  const emptyCatalog = createCaseInsertPresetCatalog()
+  assert.equal(emptyCatalog.ok, true)
+  if (!emptyCatalog.ok) return
+  const commandIds: string[] = []
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: {
+      getLifecycleState: () => root.getLifecycleState(),
+      dispatch: async <Value = void>(commandId: string, input?: unknown) => {
+        commandIds.push(commandId)
+        return root.dispatch<Value>(commandId, input)
+      },
+    },
+    catalog: emptyCatalog.catalog,
+  })
+  const beforeDetach = requireCaseSession(root.getLifecycleState())
+  const expectedProject = structuredClone(beforeDetach.project)
+  const review = requireReview(owner.beginDetach())
+  assert.equal(review.operation, 'detach')
+  assert.deepEqual(commandIds, [])
+
+  const completed = await owner.complete(review, confirm(review))
+  assert.equal(completed.ok, true, JSON.stringify(completed))
+  assert.deepEqual(commandIds, ['case.layoutPreset.detach'])
+  const detached = requireCaseSession(root.getLifecycleState())
+  assert.equal(detached.caseInsertPresetApplication.attachment.status,
+    'unattached')
+  assert.deepEqual(detached.project, expectedProject)
+  assert.deepEqual(
+    detached.project.caseInsert.templates.tray.artworkSlots.map(({ id }) => id),
+    ['tray-artwork-1', 'tray-artwork-2', 'tray-artwork-3'],
+  )
+  assert.deepEqual(
+    detached.project.caseInsert.templates.tray.artworkSlots.find(
+      ({ id }) => id === 'tray-artwork-2',
+    ),
+    screenshot,
+  )
+  root.dispose()
 })
 
 test('visually matching explicit detached persistence remains detached after Open', async () => {

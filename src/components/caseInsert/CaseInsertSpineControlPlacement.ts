@@ -5,9 +5,13 @@ import type { JewelCaseSpineSide } from '../../caseInsert/types'
 import {
   createCaseInsertSpineGuideLayout,
 } from '../../layout/caseInsertGuideLayout'
-import type {
-  CaseInsertLayoutSliderRanges,
+import {
+  CASE_INSERT_PERCENT_LAYOUT_RANGES,
+  type CaseInsertLayoutSliderRanges,
 } from '../../layout/caseInsertElementSafeZone'
+import {
+  getCaseInsertArtworkViewportLayoutSliderRanges,
+} from '../../caseInsert/artworkViewportPlacement'
 import {
   createJewelCasePreviewLayout,
 } from '../../layout/caseInsertPreviewLayout'
@@ -86,9 +90,17 @@ export function getSpineImageSlotPlacementFields(
     : role === 'background'
       ? SPINE_BACKGROUND_PLACEMENT_FIELDS
       : SPINE_OVERLAY_PLACEMENT_FIELDS
-  const ranges = role === 'background'
+  const viewportRanges = role === 'artwork' &&
+      slot.reservedArtworkViewport != null
+    ? getCaseInsertArtworkViewportLayoutSliderRanges({
+        owner: side === 'left' ? 'left-spine' : 'right-spine',
+        slot,
+        layout,
+      }) ?? CASE_INSERT_PERCENT_LAYOUT_RANGES
+    : null
+  const ranges = viewportRanges ?? (role === 'background'
     ? getJewelCaseSpineBackgroundLayoutSliderRanges(side, slot, layout)
-    : getJewelCaseSpineImageSlotLayoutSliderRanges(side, slot, layout, role)
+    : getJewelCaseSpineImageSlotLayoutSliderRanges(side, slot, layout, role))
 
   return applyLayoutSliderRanges(fields, ranges)
 }

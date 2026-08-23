@@ -103,8 +103,13 @@ function findCycles(graph) {
   const seenCycles = new Set()
   const stack = []
   const stackSet = new Set()
+  const completed = new Set()
 
   function visit(filePath) {
+    if (completed.has(filePath)) {
+      return
+    }
+
     stack.push(filePath)
     stackSet.add(filePath)
 
@@ -127,6 +132,7 @@ function findCycles(graph) {
 
     stackSet.delete(filePath)
     stack.pop()
+    completed.add(filePath)
   }
 
   for (const filePath of [...graph.keys()].sort()) {

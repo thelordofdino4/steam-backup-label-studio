@@ -317,7 +317,7 @@ test('plans a minimal Front Apply with exact typed direct owner fields', () => {
   )
   assert.equal(value.operation, 'apply')
   assert.equal(value.kind, 'sbls/case-insert-preset-apply-plan')
-  assert.equal(value.formatVersion, 2)
+  assert.equal(value.formatVersion, 3)
 })
 
 test('converts a template coordinate basis into the authoritative owner basis', () => {
@@ -896,6 +896,6 @@ test('production Case catalog contains only the reviewed starter preset', () => 
     revision,
   })), [{
     id: 'builtin:case-preset:jewel-case-essentials',
-    revision: 1,
+    revision: 2,
   }])
 })

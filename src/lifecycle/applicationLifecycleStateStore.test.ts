@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from '../project/projectSchema.ts'
 import type { SavedDiscProject } from '../project/projectTypes.ts'
 import {
   createApplicationLifecycleStateStore,
@@ -12,7 +13,7 @@ import {
 
 function createDiscProject(): SavedDiscProject {
   return {
-    schemaVersion: '0.2.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'disc',
     title: 'Lifecycle Store Disc',
     savedAt: '2026-07-26T12:00:00.000Z',

@@ -3,7 +3,6 @@ import {
 } from '../caseInsert/brandingLogoSlots.ts'
 import {
   isOptionalVisualFeatureEnabled,
-  shouldRenderOptionalVisualFeature,
 } from '../editor/optionalVisualFeature.ts'
 import type {
   JewelCaseImageFitResult,
@@ -12,6 +11,13 @@ import type {
 import type {
   ProjectCaseInsertImageSlot,
 } from '../project/projectTypes.ts'
+import type {
+  CaseInsertArtworkViewportRenderResult,
+} from '../render/caseInsertArtworkViewportRenderArtifact.ts'
+import {
+  slotHasEnabledImageContent,
+  slotWillRender,
+} from './caseInsertPreflightVisibility.ts'
 import {
   buildLayoutValueWarnings,
   buildUpscaleWarnings,
@@ -67,6 +73,7 @@ export function getRenderedImageSlotWarnings(params: {
   rect: JewelCasePixelRect | null
   safeBounds: JewelCasePixelRect | null
   edge?: EdgeWarningOptions
+  viewportResult?: CaseInsertArtworkViewportRenderResult
 }) {
   const { slot, label, rect } = params
   const warnings = getImageSlotDataWarnings(label, slot)
@@ -74,13 +81,38 @@ export function getRenderedImageSlotWarnings(params: {
 
   warnings.push(...buildLayoutValueWarnings(label, slot.layout))
 
-  if (
-    !shouldRenderOptionalVisualFeature(
-      slot,
-      Boolean(slot.imageDataUrl && imageSize),
-    ) ||
-    !imageSize
-  ) {
+  if (params.viewportResult && params.viewportResult.status !== 'legacy') {
+    if (!slotHasEnabledImageContent(slot) || !imageSize) return warnings
+
+    if (params.viewportResult.status !== 'resolved') {
+      warnings.push(createUnresolvedPlacementWarning(label))
+      return warnings
+    }
+
+    const artifact = params.viewportResult.artifact
+    warnings.push(
+      ...buildUpscaleWarnings(
+        label,
+        artifact.visibleSourceRect,
+        artifact.destinationRect,
+      ),
+    )
+
+    if (params.safeBounds && params.edge) {
+      warnings.push(
+        ...getSafeEdgeWarnings(
+          label,
+          artifact.boundingRect,
+          params.safeBounds,
+          params.edge,
+        ),
+      )
+    }
+
+    return warnings
+  }
+
+  if (!slotWillRender(slot) || !imageSize) {
     return warnings
   }
 
@@ -135,6 +167,9 @@ export function getSpineImageSlotWarnings(params: {
   label: string
   layout: { width: number; height: number } | null
   hasTextFallback: boolean
+  viewportResult?: CaseInsertArtworkViewportRenderResult
+  edge?: EdgeWarningOptions
+  safeBounds?: JewelCasePixelRect | null
 }) {
   const warnings = getImageSlotDataWarnings(
     params.label,
@@ -144,12 +179,47 @@ export function getSpineImageSlotWarnings(params: {
 
   warnings.push(...buildLayoutValueWarnings(params.label, params.slot.layout))
 
+  if (params.viewportResult && params.viewportResult.status !== 'legacy') {
+    if (!slotHasEnabledImageContent(params.slot) || !params.slot.imageSize) {
+      return warnings
+    }
+
+    if (params.viewportResult.status !== 'resolved') {
+      warnings.push(createUnresolvedPlacementWarning(params.label))
+      return warnings
+    }
+
+    const artifact = params.viewportResult.artifact
+    warnings.push(
+      ...buildUpscaleWarnings(
+        params.label,
+        artifact.visibleSourceRect,
+        artifact.destinationRect,
+      ),
+    )
+
+    if (params.safeBounds && params.edge) {
+      warnings.push(
+        ...getSafeEdgeWarnings(
+          params.label,
+          artifact.boundingRect,
+          params.safeBounds,
+          params.edge,
+        ),
+      )
+    }
+
+    return warnings
+  }
+
   if (
-    !isOptionalVisualFeatureEnabled(params.slot) ||
-    !params.slot.imageDataUrl ||
-    !params.slot.imageSize ||
-    !params.layout
+    !slotWillRender(params.slot) ||
+    !params.slot.imageSize
   ) {
+    return warnings
+  }
+
+  if (!params.layout) {
     return warnings
   }
 
@@ -183,10 +253,7 @@ export function getImageFitWarnings(
   warnings.push(...buildLayoutValueWarnings(label, slot.layout))
 
   if (
-    !shouldRenderOptionalVisualFeature(
-      slot,
-      Boolean(slot.imageDataUrl && imageSize),
-    ) ||
+    !slotWillRender(slot) ||
     !imageSize
   ) {
     return warnings

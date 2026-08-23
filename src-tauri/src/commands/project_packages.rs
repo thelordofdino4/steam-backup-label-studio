@@ -851,7 +851,7 @@ mod tests {
     fn minimal_disc_project() -> Vec<u8> {
         let asset = one_pixel_bmp_data_url();
         serde_json::to_vec(&json!({
-            "schemaVersion": "0.2.0",
+            "schemaVersion": "0.4.0",
             "projectType": "disc",
             "template": {"type": "disc"},
             "background": {"imageDataUrl": &asset, "imageSource": {"source": "uploaded"}},
@@ -925,7 +925,7 @@ mod tests {
 
     fn minimal_case_project() -> Vec<u8> {
         serde_json::to_vec(&json!({
-            "schemaVersion": "0.2.0",
+            "schemaVersion": "0.4.0",
             "projectType": "caseInsert",
             "template": {"type": "caseInsert"},
             "caseInsert": {
@@ -944,7 +944,7 @@ mod tests {
 
     fn default_disc_project() -> Vec<u8> {
         serde_json::to_vec(&json!({
-            "schemaVersion": "0.2.0",
+            "schemaVersion": "0.4.0",
             "projectType": "disc",
             "template": {"type": "disc"},
             "background": {"imageDataUrl": null},
@@ -978,7 +978,7 @@ mod tests {
 
     fn default_case_project() -> Vec<u8> {
         serde_json::to_vec(&json!({
-            "schemaVersion": "0.2.0",
+            "schemaVersion": "0.4.0",
             "projectType": "caseInsert",
             "template": {"type": "caseInsert"},
             "caseInsert": {

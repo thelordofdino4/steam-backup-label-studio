@@ -5,11 +5,12 @@ import {
   createDefaultDiscTextStyles,
 } from '../discText/styles.ts'
 import { createDefaultProjectMetadata } from './projectMetadata.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema.ts'
 import { restoreSavedProjectState } from './restoreProjectState.ts'
 import type { SavedDiscProject } from './projectTypes.ts'
 
 const baseProject: SavedDiscProject = {
-  schemaVersion: '0.2.0',
+  schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
   title: 'Saved Title',
   savedAt: '2026-01-01T00:00:00.000Z',
   game: {

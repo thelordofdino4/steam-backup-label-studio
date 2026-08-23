@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #349 merge commit `e9ae6f9d3002816aeb48f85281211f07b3b22996` plus the focused Case lifecycle session-application-model, pure adoption-commit, lifecycle-store installation, schema `0.3.0` persistence/recovery, presentation-neutral workflow orchestration, first production-definition, and accessible presentation/invocation checkpoints through 2026-08-05.
+> Case preset ownership refresh: PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused reserved-artwork viewport adoption/schema/render and Jewel Case Essentials revision-2 checkpoints through 2026-08-22.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -502,8 +502,10 @@ extensions are chooser affordances rather than decoder selectors. Save and Save
 As write `.sbls` package-v1 files only. Existing plain `.json` and `.sbls.json`
 projects remain readable legacy imports. The hydrated
 saved-project type remains a union of Disc and Case Insert shapes under schema
-version `0.3.0`; package/session metadata does not enter it. The Case branch now
-includes one narrow explicit applied-preset persistence envelope.
+version `0.4.0`; package/session metadata does not enter it. The Case branch
+includes one narrow explicit applied-preset persistence envelope and one
+source-independent reserved-artwork viewport field on ordinary repeated
+artwork slots.
 
 The ZIP-compatible `.sbls` package format is defined in
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md). Its
@@ -531,6 +533,10 @@ original format-choice rationale remains in
 - `src/project/projectRouting.ts`
 - `src/project/savedProjectNormalization.ts`
 - `src/project/projectCaseInsert.ts`
+- `src/caseInsert/artworkViewportState.ts`
+- `src/caseInsert/artworkViewportAdoption.ts`
+- `src/caseInsert/artworkViewportRenderArtifact.ts`
+- `src/render/caseInsertArtworkViewportRenderArtifact.ts`
 - `src/diagnostics/projectParityHarness.ts`
 - `src/diagnostics/projectParityHarnessDisc.test.ts`
 - `src/diagnostics/projectParityHarnessCaseInsert.test.ts`
@@ -559,10 +565,12 @@ original format-choice rationale remains in
 ### 7.3 Source-Of-Truth State
 
 - `SavedProject`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case insert project state types live in `src/project/projectTypes.ts`.
-- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.3.0` in `src/project/projectSchema.ts`.
-- `PROJECT_SCHEMA_MIGRATIONS` registers pure `0.1.0 -> 0.2.0 -> 0.3.0`
-  compatibility steps; the last adds explicit unattached Case preset state and
-  no Disc field.
+- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.4.0` in `src/project/projectSchema.ts`.
+- `PROJECT_SCHEMA_MIGRATIONS` registers pure `0.1.0 -> 0.2.0 -> 0.3.0 ->
+  0.4.0` compatibility steps. The `0.2.0 -> 0.3.0` step adds explicit
+  unattached Case preset state and no Disc field; the final step changes only
+  the version, after which Case normalization supplies canonical omitted viewport
+  metadata to older repeated artwork without inference.
 - `sbls-package-codec` owns package bytes, manifest/projection/bindings,
   content-addressed raster assets, strict ZIP/JSON validation, hydration, and
   package failures. It returns hydrated JSON bytes to the later schema boundary
@@ -575,6 +583,18 @@ original format-choice rationale remains in
   envelope from the same validated lifecycle snapshot as the Case aggregate.
   Open reconstructs transient identity and assesses catalog compatibility before
   one coherent session install; it does not replay preset operations.
+- The Case envelope accepts exact applied-configuration formats 1, 2, and 3.
+  Formats 1/2 retain their numeric-layout ownership. Format 3 adds tagged
+  object-presence, numeric layout, image-fit, and reserved-viewport ownership
+  without changing schema `0.4.0`; planner, visible-source, catalog, renderer,
+  lifecycle-authorization, and transition objects remain excluded.
+- Repeated Case artwork may additionally own one exact format-1
+  `reservedArtworkViewport`. Cover, Tray, left Spine, and right Spine validate
+  distinct basis sets; width/height each use `[0.01, 100]` percent and zoom uses
+  `[1, 1000]`. Unsupported owner families, malformed values, and out-of-profile
+  values canonicalize to omission. Mode remains in `slot.fit`, center/outer
+  scale/rotation remain in `slot.layout`, and no state is inferred from geometry
+  or catalog similarity.
 
 ### 7.4 Render/Edit/Export Paths
 
@@ -587,6 +607,10 @@ original format-choice rationale remains in
   branches route, normalize, and restore through the shared immutable staging
   owner before one lifecycle compare-and-swap/apply.
 - Export reads current runtime state; PNG bytes are not part of project serialization.
+- Adopted repeated-artwork viewport rendering derives one shared immutable
+  numeric artifact for preview, PNG export, drag/slider bounds, text occupied
+  regions, and preflight. A missing property or explicit `null` input normalizes
+  to property omission, and the omitted state takes the existing legacy path.
 
 ### 7.5 Serialization Contract
 
@@ -602,6 +626,9 @@ original format-choice rationale remains in
 - The package-domain encoder writes deterministic Store-only ZIP32 bytes in
   memory; its reader accepts only the contract's bounded Store/Deflate profile
   and returns isolated hydrated JSON. Neither operation reads or writes a path.
+- Package format 1 reads registered project schemas `0.1.0` through `0.4.0`
+  and writes only `0.4.0`. Reserved viewport metadata stays in `project.json`
+  and adds no asset binding or package-version change.
 
 ### 7.6 Invariants And Future-Change Rules
 
@@ -630,7 +657,7 @@ original format-choice rationale remains in
 
 - Top-level schema validation is intentionally shallow.
 - Migration coverage is intentionally limited to the registered `0.1.0` to
-  `0.2.0` and `0.2.0` to `0.3.0` compatibility steps.
+  `0.2.0`, `0.2.0` to `0.3.0`, and `0.3.0` to `0.4.0` compatibility steps.
 - Issue `#48` is closed; future validation/migration changes remain governed by
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 
@@ -1436,7 +1463,7 @@ The disc editor is the first alpha-capable app surface.
 - Persisted state is `SavedDiscProject`.
 - Disc layer order lives in `src/editor/layerOrder.ts`.
 
-The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, or generic Disc preset schema exists. Current schema `0.3.0` retains the focused Disc guided-workflow layout ID/version plus independent canonical omitted/completed slot IDs introduced in `0.2.0`; it does not persist generic Disc preset identity or geometry.
+The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, or generic Disc preset schema exists. Current schema `0.4.0` retains the focused Disc guided-workflow layout ID/version plus independent canonical omitted/completed slot IDs introduced in `0.2.0`; it does not persist generic Disc preset identity or geometry.
 
 The proposed target application-level Disc Layout Preset workflow—stable
 catalog references, non-mutating selection, immutable impact planning, review,
@@ -1452,9 +1479,10 @@ The proposed Case-specific sibling workflow is documented in
 It preserves the same Select/Plan/Review/Apply/Reapply/Detach protocol while
 binding every assignment to an explicit Front Cover, complete Tray Card, Back
 Panel, left-spine, or right-spine region and owner-derived coordinate basis.
-Its pure foundation under `src/presets/` now strictly parses and freezes the v1
-definition shape, resolves canonical exact revisions and boundary-only aliases
-through one immutable production catalog, validates the five concrete-region/basis
+Its pure foundation under `src/presets/` now strictly parses and freezes
+definition formats 1 and 2, preserves historical format-1 semantics, resolves
+canonical exact revisions and boundary-only aliases through one immutable
+production catalog, validates the five concrete-region/basis
 pairings and trusted owner/object identities, and evaluates supplied template,
 scope, owner, and repeated-object capabilities without project mutation.
 `src/caseInsert/presetAssignmentSnapshot.ts` detaches the lifecycle-owned
@@ -1463,72 +1491,148 @@ complete content, and exposes fixed and repeated owner bindings;
 `src/presets/caseInsertPresetAssignmentResolution.ts` reuses catalog and
 compatibility authority, expands explicit scopes to concrete regions, and
 returns deterministic immutable current binding facts with typed disabled,
-missing, ambiguous, stale, incompatible, invalid, and unsupported outcomes.
+missing, capability-gated create-empty, ambiguous, stale, incompatible,
+invalid, and unsupported outcomes. Resolution never creates an object.
 `src/presets/caseInsertPresetApplyPlanning.ts` consumes only that frozen exact
 resolution and produces a deeply immutable first-time Apply plan: direct typed
-layout-field proposals, preservation decisions, optional skips, required
-blockers, warnings, material-consent requirements, semantic no-op state,
-staleness/identity preconditions, and a deterministic future customization
-footprint. It converts template bases through authoritative Case region
+layout-field proposals, reviewed exact object-creation and reserved-viewport
+actions, preservation decisions, optional skips, required/duplicate/unsupported
+blockers, deferred/clipping warnings, material-consent requirements, semantic
+no-op state, staleness/identity/source preconditions, and a deterministic future
+customization footprint. It converts template bases through authoritative Case region
 geometry, keeps complete Tray/Back Panel and left/right identity explicit,
 ignores mirror mode, coalesces only identical field writes, rejects conflicts,
-and fails closed for unsupported action-region or text-fitting work.
+and fails closed for unsupported format-1 action-region, creation, or text-
+fitting work.
+`src/presets/caseInsertPresetArtworkViewportSource.ts` is the shared Apply/
+Reapply source-evidence boundary. It classifies exact source absence or derives
+a content-bound identity from encoded artwork, normalized provenance,
+dimensions, and semantic content bounds while excluding label, enablement,
+layout, frame, and current viewport state.
 `src/presets/caseInsertPresetApplyReviewIdentity.ts` binds review and exact
 material consent deterministically to plan contents.
+`src/presets/caseInsertPresetArtworkViewport.ts` is a separate pure action
+owner. It reuses definition-v1 identity and basis vocabulary without changing
+v1 syntax, parsing, identity, or production definitions. Its action-v1-local
+owner registry adds repeated left/right Spine artwork IDs without adding those
+IDs to definition v1. It binds one
+normalized reserved artwork frame to exact preset/slot/assignment/owner/object,
+template, validated caller-supplied preset/revision-bound template compatibility,
+and coordinate-basis
+identity, derives its physical dimensions and aspect from authoritative template
+millimeters, reads validated existing image content bounds without turning them
+into crop state, and returns immutable
+resolved or source-deferred Contain, Cover, or exact non-destructive source-
+window framing evidence. Explicit capability evidence gates viewport geometry,
+Contain, Cover, explicit framing, derived focal offset, and derived zoom.
+Material source exclusion yields deterministic clipping, warning, and consent-
+requirement identities; hostile, incompatible, or unsupported input fails
+closed. This owner reads no catalog or project state. Its project image-shape
+types are type-only; it has no Apply/Reapply/Detach, lifecycle, renderer,
+export, React, Rust, Tauri, or mutation dependency. Its public success validator
+reconstructs and reruns the planner rather than trusting structural evidence.
+`src/caseInsert/artworkViewportAdoption.ts` then provides one pure adapter from
+that canonical success to an exact repeated Cover/Tray/left/right Spine artwork
+slot. It writes fit, basis-relative center, initial outer-frame scale, and the
+format-1 viewport record while preserving rotation, source/provenance, content
+bounds, frame, and unrelated state. Deferred explicit framing is unsupported;
+viewport dimensions outside `[0.01, 100]` percent and resolved explicit-crop
+zoom outside `[1, 1000]` return typed `viewport-size-unsupported` or
+`viewport-zoom-unsupported` results before any successor state is constructed.
+This adapter still performs no application/lifecycle command or side effect.
+Jewel Case Essentials revision 1 retains that no-viewport/no-creation path
+exactly. The separately defined strict revision 2 now declares three
+`backPanelSafe` screenshot viewports and closed exact missing-slot creation
+policies. `src/caseInsert/presetArtworkSlotProvisioning.ts` authorizes only
+`tray-artwork-1`, `tray-artwork-2`, and `tray-artwork-3` for that exact preset,
+revision, template, role, owner, object, region, and basis. It uses the ordinary
+repeated-artwork default factory, emits empty disabled canonical slots, and
+appends them numerically without reordering existing slots. It has no generic
+object-creation, image import, source selection, feature enablement, catalog,
+renderer, or lifecycle authority.
+`src/presets/caseInsertPresetArtworkActionTransition.ts` is the shared pure
+executor for an already reviewed subset of repeated-artwork creation and
+reserved-artwork viewport writes. It validates the closed creation capability,
+action linkage, exact source/current-value preconditions, and optional per-field
+write masks before returning one successor aggregate or one typed failure.
 `src/presets/caseInsertPresetApplyTransition.ts` consumes only one deeply frozen
 planned/no-op result, its exact review and consent records, a normalized current
 Case aggregate, current snapshot/preset/scope identity, and an explicit
 unattached assertion. It defensively validates and preflights all exact stable
-addresses/current values before applying the exhaustive supported layout-field
-actions to a detached draft. Success is one deeply frozen aggregate plus an
+addresses/current values before applying the exhaustive supported actions to a
+detached draft. The historical path writes numeric layout fields only; the
+strict revision-2 path creates every reviewed missing exact slot and adopts
+authentic viewport evidence through the focused owners before returning one
+complete result. Success is one deeply frozen aggregate plus an
 immutable uninstalled configuration candidate; every typed failure returns
 neither. It does not rerun resolution or planning.
 `src/presets/caseInsertPresetAppliedConfiguration.ts` validates only a complete
 successful transition output into one content-identified, deeply immutable,
 detached/uninstalled authoritative configuration. Its pure detector compares
 that configuration's exact stable-address field footprint and last-applied
-values against a later normalized Case aggregate, records the current
+values against a later normalized Case aggregate. Configuration formats 1/2
+retain numeric layout values; format 3 uses tagged object-presence, numeric
+layout, image-fit, and reserved-artwork-viewport values. A missing presence-
+owned slot is a supported customized state. Image/source/provenance/dimensions,
+label, enabled/group state, frame/material, rotation, and array position remain
+unowned. The detector records the current
 session/revision/template in a deterministic report identity, and distinguishes
 clean/customized from missing, ambiguous, unsupported, invalid, incompatible,
 or attachment-context failures. It shares direct address semantics with
 `presetAssignmentSnapshot.ts` and does not execute resolution, planning,
 catalog, geometry, renderer, persistence, or UI behavior. That module owns no
-built-in definitions, installed attachment, application/lifecycle commit, Detach,
-schema, workflow presentation, menu routing, renderer access, or runtime
-behavior is provided.
-`src/presets/caseInsertPresetReapplyPlanning.ts` is the pure next consumer. It
-validates the authoritative configuration and still-current report against one
-exact normalized aggregate/snapshot/context, resolves only a directly supplied
+built-in definitions, installed attachment, application/lifecycle commit,
+Detach, schema, workflow presentation, menu routing, renderer access, or
+runtime behavior.
+`src/presets/caseInsertPresetReapplyPlanning.ts` retains the legacy numeric
+planner and delegates configuration-format-3 ownership to
+`src/presets/caseInsertPresetTypedReapplyPlanning.ts`. Together they are pure
+next consumers. They validate the authoritative configuration and still-current
+report against one exact normalized aggregate/snapshot/context, resolve only a directly supplied
 same-canonical-ID definition revision through the shared compatibility/resolver
-owner, and reuses the shared resolved-layout proposal without invoking the
-first-time Apply planner or detector. It requires explicit overwrite/preserve
-policy for every retained customized address; keeps retained clean,
+owner, and reuse the shared resolved-layout proposal without invoking the
+first-time Apply planner or detector. They require explicit overwrite/preserve
+policy for every retained customized address; keep retained clean,
 customized-overwrite, customized-preserve, new, retired, and moved addresses
-distinct; and emits deterministic exact writes, preservation facts, warnings,
+distinct; and emit deterministic exact writes, preservation facts, warnings,
 material-consent requirements, complete preconditions, review identity, and a
-non-authoritative uninstalled footprint projection. It performs no aggregate
+non-authoritative uninstalled footprint projection. They perform no aggregate
 write, review/consent acceptance, transition, installation, persistence,
 schema, UI, renderer, store, or runtime work. The production Case catalog
-contains only Jewel Case Essentials revision 1, but Reapply consumes one
-explicit exact supplied definition and never substitutes the catalog's latest
-revision implicitly.
-`src/presets/caseInsertPresetReapplyIdentity.ts` and
-`src/presets/caseInsertPresetReapplyTransition.ts` form the pure atomic
-execution boundary. They canonicalize order-independent plan evidence, require
+contains one Jewel Case Essentials identity with exact revisions 1 and 2 and
+one latest revision-2 summary, but Reapply consumes the attached explicit exact
+definition and never substitutes the catalog's latest revision implicitly.
+`src/presets/caseInsertPresetDeterministicIdentity.ts` supplies shared generic
+deterministic encoding and digest semantics.
+`src/presets/caseInsertPresetReapplyIdentity.ts` retains the Reapply-specific
+canonicalization, prefix, acceptance, and transition-identity helpers while
+re-exporting those generic utilities for compatibility. Together with
+`src/presets/caseInsertPresetReapplyTransition.ts`, which retains the public
+discriminated/legacy entry, and
+`src/presets/caseInsertPresetTypedReapplyTransition.ts`, which executes
+configuration-format-3 plans, these operation owners form the pure atomic
+execution boundary: they canonicalize order-independent plan evidence, require
 one exact plan-bound review acceptance and exact set equality for every declared
 material-consent acceptance, validate the named authoritative configuration and
 still-current report, and recheck the session/revision/template plus every exact
 target, enablement, and semantic field value. They do not rerun the planner,
 detector, compatibility evaluator, assignment resolver, catalog, geometry, or
-renderer. Only reviewed `layout-x`, `layout-y`, `layout-scale`, and
-`layout-width` writes reach the narrow shared immutable aggregate-field owner in
-`caseInsertPresetAggregateFieldTransition.ts`, which first-time Apply also uses.
+renderer. Historical Reapply sends only reviewed `layout-x`, `layout-y`,
+`layout-scale`, and `layout-width` writes through the narrow shared immutable
+aggregate-field owner in `caseInsertPresetAggregateFieldTransition.ts`.
+Revision-2 Reapply additionally reconstructs current viewport evidence and
+supports reviewed exact missing-slot recreation plus fit/viewport adoption.
 Success returns one deeply frozen detached aggregate plus a validated
-authoritative domain configuration version `2` whose attachment status remains
-`detached-uninstalled`; failure returns neither. Preserve keeps current value,
+authoritative domain configuration version `2` for historical numeric paths or
+version `3` for typed viewport/presence paths; its attachment status remains
+`detached-uninstalled`, and failure returns neither. Preserve keeps current value,
 ownership, prior last-applied value, and historical provenance; accepted
 overwrite adopts selected value/provenance; a new claim may be configuration-
 only; retirement never writes; and movement remains retirement plus new claim.
+A presence-owned missing object produces one actionable customization while
+dependent fields are unavailable observations, not separate policy prompts.
+Overwrite may recreate the exact reviewed slot atomically; preserve leaves it
+absent while retaining the complete ownership footprint and prior baselines.
 Back Panel/complete Tray and left/right-spine addresses remain distinct, while
 mirror mode has no execution effect. Installation, persistence/project schema,
 Detach planning or application adoption, UI, store dispatch, and runtime
@@ -1541,9 +1645,9 @@ commit adapter is described below.
 planning/execution boundary. The planner consumes one validated authoritative applied-preset
 configuration and one exact still-current normalized Case aggregate/snapshot/
 session/revision/template context. It performs direct stable-address lookup for
-every configuration-owned `layout-x`, `layout-y`, `layout-scale`, and
-`layout-width` field, validates the exact target, enablement, and current
-semantic value, and returns the complete canonically ordered release footprint
+every configuration-owned legacy numeric or format-3 object-presence/layout/
+fit/viewport field, validates the exact target or supported presence-owned
+absence and current semantic value, and returns the complete canonically ordered release footprint
 plus one exact aggregate-preservation fact per address. Its single deterministic
 warning, complete future compare-and-swap preconditions, and content-bound
 review/plan identities describe an ownership-only operation: zero aggregate
@@ -1572,12 +1676,18 @@ customization detector, resolver, compatibility/catalog owners, aggregate
 writer, geometry, renderer, persistence, schema, UI, store, lifecycle, Rust, or
 Tauri. Back Panel/complete Tray and left/right Spine remain exact separate
 addresses, mirror mode cannot redirect execution, and repeated objects use only
-stable-ID lookup. Lifecycle/store attachment installation, persistence, schema,
-UI, and runtime integration remain absent. The production Case catalog remains
-empty.
+stable-ID lookup. Created slot presence/absence, image/source/provenance, label,
+frame, enablement, layout, fit, viewport, group state, and array ordering remain
+unchanged. Those absence claims apply to the pure Detach transition
+itself: later owners now provide lifecycle/store attachment installation and
+schema persistence. Pure viewport-to-slot adoption and runtime rendering of an
+already adopted slot remain the only visual-state owners; revision-2
+Apply/Reapply now consume their validated evidence without duplicating math.
+The production Case catalog contains one Jewel Case Essentials identity with
+two exact revisions and one latest revision-2 summary.
 
 `src/presets/caseInsertPresetConfigurationAdoptionModel.ts` now defines the
-pure session-only model preceding that absent runtime boundary. One canonical
+pure session model consumed by the later adoption and lifecycle/store owners. One canonical
 `unattached` wrapper and one exact-one `attached` wrapper leave the validated
 configuration's identity-bound `detached-uninstalled` field unchanged. One
 application snapshot pairs the complete normalized Case assignment snapshot
@@ -1675,8 +1785,9 @@ canonical-content rule. The separate application revision also makes a future
 aggregate-unchanged Detach representable: attachment and application identity
 can advance without pretending that persisted project content changed.
 The companion's transient identities and recovery status remain excluded from
-clean baselines and dirty comparison. Schema `0.3.0` persists only its explicit
-attachment/application-revision projection. Save verifies that projection and
+clean baselines and dirty comparison. Schema `0.4.0` persists its explicit
+attachment/application-revision projection, exact configuration formats 1/2/3,
+and ordinary repeated-artwork viewport state in the Case aggregate. Save verifies that projection and
 the aggregate belong to one application snapshot; Open validates and
 reconstructs them before atomic session installation. This representation owner
 does not install an Apply/Reapply/Detach successor, compose the production
@@ -1728,8 +1839,11 @@ session, then coordinates the existing pure transition, adoption, lifecycle
 authorization, and exact registered command dispatch once. It neither
 constructs nor installs successor sessions and never writes aggregate and
 attachment separately. Detach does not require catalog resolution. The owner
-has no retained mutable workflow state; the production Case catalog is injected
-and contains only Jewel Case Essentials revision 1.
+has no retained mutable workflow state; the injected production Case catalog
+contains one canonical Jewel Case Essentials identity with exact revisions 1
+and 2. Detached selection uses its single latest revision-2 summary. Attached
+revision-1 inspection reports `stale`, and Reapply remains bound to exact
+revision 1 rather than consulting `getLatest()`.
 
 `src/app/caseInsertPresetPresentationController.ts` is the only transient
 application presentation adapter above that owner. It keeps explicit selection,
@@ -1746,19 +1860,37 @@ reveals/focuses it. Confirmed mutation still travels solely through
 `appCaseInsertPresetWorkflow.ts` and the existing lifecycle commands. No schema,
 catalog-definition, preview, export, Rust, package, or Tauri owner changed.
 
-`src/presets/builtins/jewelCaseEssentialsCasePreset.ts` owns that first and only
-production Case definition. It declares exact v1 normalized placements for
+`src/presets/builtins/jewelCaseEssentialsCasePreset.ts` owns immutable
+historical revision 1. It declares exact format-1 normalized placements for
 full-surface Front/Tray/side backgrounds and safe Front title-artwork, Back
 description/features/requirements/three optional exact-ID screenshots/legal,
-and independent left/right spine-title owners. The existing catalog parses and
-registers the definition as a deeply immutable `builtin` revision with no alias.
-It performs no selection or mutation. Focused production tests prove safe
-Back-Panel/spine separation and foreground non-overlap, explicit Apply through
-the existing application workflow and lifecycle command, content/payload/
-enablement preservation, exact Save/Open recovery, exact-revision Reapply, and
-catalog-independent Detach. No React, `App.tsx`, navigation, menu, import/Open
-auto-application, renderer, schema, package, Rust, or dependency path consumes
-the definition in this checkpoint.
+and independent left/right spine-title owners. Its canonical JSON SHA-256
+remains
+`895ec63485daea765bddcf00dadb13c397c1dd0b6c4ba0c29e8d542e9d36d3f1`;
+missing screenshots still skip, and it emits no viewport action or creation.
+
+`src/presets/builtins/jewelCaseEssentialsCasePresetV2.ts` owns strict format-2
+revision 2 under the same ID and name, canonical JSON SHA-256
+`b31f291e474f77c9c34ed3d71e1ab1d95807c7f8e05a9cfd64c17047d15347d0`.
+Every non-screenshot declaration is semantically identical to revision 1. Its
+three screenshot assignments alone request exact empty-slot creation when
+missing and one `backPanelSafe` Cover viewport with center focal position, zoom
+and outer-frame scale `1`. Their placements resolve to approximately
+`33.76845 × 17.52939 mm` and physical aspect `1.926391`. The catalog registers
+both exact revisions as deeply immutable `builtin` definitions with no alias,
+but lists one latest revision-2 summary. Neither definition performs selection
+or mutation.
+
+Focused production tests prove safe Back-Panel/spine separation and foreground
+non-overlap, explicit Apply through the existing application workflow and
+lifecycle command, content/payload/enablement preservation, atomic slot
+creation/viewport adoption, exact Save/Open recovery, exact-revision Reapply,
+and catalog-independent zero-write Detach. No React, `App.tsx`, navigation,
+menu, Game/import/Open auto-application, renderer, schema, package, Rust, or
+dependency path applies or upgrades a definition implicitly. The accessible
+presentation exposes one neutral latest option and exact attached
+revision/status, but mutation still requires explicit review and the existing
+operation/lifecycle chain.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -1930,7 +2062,7 @@ while an explicit preset reapply restores preset fitting.
 
 `src/guidedPresets/discGuidedWorkflow.ts` separately owns the pure, versioned
 guided-layout identity plus independent omission and completion transitions.
-Schema `0.3.0` retains only that compact Disc workflow through
+Schema `0.4.0` retains only that compact Disc workflow through
 `src/project/projectGuidedWorkflow.ts`; neither flag mutates owner content or
 placement. Completion is seeded from satisfied authoritative owner state only
 when a new/different layout activates and is subsequently recorded only by
@@ -2066,8 +2198,24 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/hooks/useCaseInsertBrandingMarkSync.ts`
 - `src/caseInsert/*.ts`
 - `src/caseInsert/presetAggregateIdentity.ts`
+- `src/caseInsert/presetArtworkSlotProvisioning.ts`
+- `src/caseInsert/artworkViewportState.ts`
+- `src/caseInsert/artworkViewportAdoption.ts`
+- `src/caseInsert/artworkViewportRenderArtifact.ts`
+- `src/presets/caseInsertPresetArtworkViewport.ts`
+- `src/presets/caseInsertPresetDefinition.ts`
+- `src/presets/caseInsertPresetCatalog.ts`
+- `src/presets/builtins/jewelCaseEssentialsCasePreset.ts`
+- `src/presets/builtins/jewelCaseEssentialsCasePresetV2.ts`
+- `src/presets/caseInsertPresetOwnedField.ts`
+- `src/presets/caseInsertPresetAppliedConfiguration.ts`
+- `src/presets/caseInsertPresetArtworkViewport.test.ts`
+- `src/presets/caseInsertPresetArtworkViewportSource.ts`
+- `src/presets/caseInsertPresetArtworkActionTransition.ts`
 - `src/presets/caseInsertPresetApplyTransition.ts`
+- `src/presets/caseInsertPresetTypedReapplyPlanning.ts`
 - `src/presets/caseInsertPresetReapplyTransition.ts`
+- `src/presets/caseInsertPresetTypedReapplyTransition.ts`
 - `src/presets/caseInsertPresetDetachTransition.ts`
 - `src/presets/caseInsertPresetTransitionSuccessIdentity.ts`
 - `src/presets/caseInsertPresetConfigurationAdoptionModel.ts`
@@ -2090,10 +2238,15 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
 - `src/layout/layoutRangeMath.ts`
+- `src/render/caseInsertArtworkViewportRenderArtifact.ts`
+- `src/components/preview/CaseInsertArtworkViewportPreview.tsx`
+- `src/components/preview/caseInsertArtworkViewportPreviewGeometry.ts`
+- `src/interaction/caseInsertArtworkViewportDrag.ts`
 - `src/templates/caseInsertTemplates.ts`
 - `src/export/exportCaseInsertPng.ts`
 - `src/export/caseInsertTemplateExportLayers.ts`
 - `src/export/caseInsertPngImage.ts`
+- `src/export/caseInsertArtworkViewportCanvas.ts`
 - `src/export/caseInsertPngText.ts`
 - `src/export/caseInsertExportPreflight.ts`
 - `src/export/caseInsertPreflightImageWarnings.ts`
@@ -2108,12 +2261,28 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Defaults and normalization live under `src/caseInsert/`.
 - Case insert saved-project adapters live in `src/project/caseInsertProjectAdapters.ts`.
 - `src/project/projectCaseInsert.ts` is a compatibility barrel and should not receive new behavior.
+- The pure preset artwork-viewport plan remains transient evidence, never
+  project, preview, or export state. A pure adapter validates and adopts
+  canonical success into one ordinary repeated-artwork slot. Applied-
+  configuration format 3 retains only exact last-applied source-independent
+  viewport owner values, not the plan or derived source rectangle.
+  Schema `0.4.0` persists only that slot's exact format-1
+  `reservedArtworkViewport` and existing fit/layout state. Canonical omission is
+  the legacy state; migration and normalization never infer a viewport from
+  geometry, source shape, preset attachment, or catalog data.
 
 ### 13.4 Render/Edit/Export Paths
 
 - `CaseInsertEditorShell` wires case project controls, game controls, export controls, surface controls, spine controls, preview, and actions.
 - `CaseInsertTemplatePreviewLayers` renders cover/tray template layers.
 - `CaseInsertSpinePreviewLayer` renders left/right spine content.
+- Adopted repeated artwork in all four owner families resolves through the
+  Case-domain `src/caseInsert/artworkViewportRenderArtifact.ts`; the
+  `src/render/caseInsertArtworkViewportRenderArtifact.ts` facade and thin
+  preview/canvas adapters consume the same immutable numeric geometry.
+  `slot.fit` owns mode,
+  `layout.x`/`y` own center, `layout.scale` owns outer-frame scale, and
+  `layout.rotation` owns rotation.
 - `useCaseInsertTemplateEditor` owns cover/tray editing actions.
 - Cover/tray image-slot, logo, Steam banner, and text-list action families are
   delegated to focused case-insert action modules and small hook adapters while
@@ -2127,6 +2296,12 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   image-slot drawing, and text drawing delegated to case-insert export helpers.
 - Preflight/design check use case insert export helpers, including focused
   image-warning and visibility-warning builders.
+- Drag/slider containment, text occupied regions, and preflight upscaling plus
+  safe-edge warnings reuse the same viewport artifact. The separate visibility
+  owner requires active image content and, for present viewport state, a resolved
+  artifact for the supplied owner/layout context. Omitted state retains the
+  existing legacy geometry; unresolved present state fails closed instead of silently
+  switching render models.
 
 ### 13.5 Invariants And Future-Change Rules
 
@@ -2137,6 +2312,17 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Keep rectangular bounds, cover/tray/spine coordinate interpretation, and movement policy case-owned; shared layout helpers may own only neutral numeric range math.
 - Shared controls may render neutral UI, but target-specific geometry and source-slot mapping remain case-owned.
 - Parity work must cover all applicable target surfaces, not only one panel shape.
+- A preset assignment region, a physical reserved artwork viewport, stored
+  source content bounds, a fitting intent, and a derived visible source
+  rectangle are separate concepts. The preset viewport is also distinct from
+  the browser/preview viewport.
+- Pure viewport plans cannot become a second visual or persistence truth;
+  preview/export continue to consume only ordinary committed Case owner state.
+- Definition format 1 and Jewel Case Essentials revision 1 remain unchanged and
+  emit no viewport or creation action. Strict format-2 revision 2 is a separate
+  reviewed immutable definition and is the only production consumer that may
+  create the three exact Tray screenshot slots and emit their Cover viewports.
+  No catalog, Open, Reapply, or presentation path upgrades revision 1.
 
 ### 13.6 Validation Expectations
 
@@ -2160,23 +2346,40 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   cleanup, existing lifecycle capability isolation, and the absence of
   planner, catalog, UI, schema, persistence, preview, or export dependencies.
 - Focused Case preset project-persistence tests cover explicit attached and
-  detached round trips, complete version-1/version-2 configuration and owner
+  detached round trips, complete version-1/version-2/version-3 configuration and owner
   provenance, no-inference migration/recovery, catalog drift statuses,
   malformed-state rejection, coherent snapshot enforcement, clean-state
   preservation, and the absence of operation/adoption/UI dependencies.
 - Focused Jewel Case Essentials definition and production-integration tests
-  cover exact catalog identity, strict deep immutability, supported owner/basis
-  mappings, safe physical containment/non-overlap, exact repeated screenshot ID
-  binding and optional skips, explicit review/Apply dispatch, stale/Disc
-  rejection, full non-layout preservation, Save/Open recovery, no implicit
-  latest-revision Reapply substitution, explicit detached recovery, and
-  catalog-independent Detach.
+  cover both exact hashes, one identity/two exact revisions/one latest summary,
+  strict deep immutability, supported owner/basis mappings, safe physical
+  containment/non-overlap and physical aspect, exact repeated screenshot ID
+  binding, revision-1 optional skips, revision-2 reviewed create-empty and
+  viewport actions, atomic Apply, content/unowned-field preservation,
+  field-accurate customization, exact-revision Reapply including reviewed
+  missing-object overwrite/preserve, Save/Open recovery, no automatic upgrade,
+  and catalog-independent zero-write Detach.
 - Focused Case preset presentation tests cover neutral explicit selection,
   complete-scope Apply review, current/stale/incompatible/unavailable status,
   explicit customized-field Reapply policy, catalog-independent Detach,
   cancellation/stale-state no mutation, single-flight confirmation, one command
   and feedback result, typed destination registration, shared-host movement,
   responsive keyboard reachability, and Disc/Case launcher isolation.
+- Focused reserved-artwork viewport tests cover strict normalized geometry,
+  physical-basis dimensions/aspect, three equal Jewel screenshot test frames,
+  Back Panel/spine isolation, distinct left/right basis identity, deferred
+  source handling, Contain/Cover/explicit-framing math, content-bound authority,
+  deterministic clipping/warning/consent identity, target-bound capability
+  rejection, hostile input, immutability, action-v1-local Spine owner identity,
+  canonical-success validation, unchanged definition-format-1/revision-1
+  boundaries, and strict revision-2 production consumption.
+- Focused adoption/persistence/render tests cover exact target binding,
+  fit/center/frame-scale/focal/zoom mapping, four repeated-artwork owner
+  families, schema `0.4.0` migration and null/no-inference round trips, legacy
+  null geometry, shared preview/export artifact math, drag/slider bounds, text
+  occupied regions, separate active-content visibility, and viewport-aware
+  preflight.
+- No native/manual visual acceptance is established by those automated tests.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks
@@ -2662,7 +2865,8 @@ Current tests cover broad helper and contract areas:
 - `App.tsx` remains large and coordinates many feature flows.
 - Case insert editor hooks and export are large and central.
 - Project schema validation is shallow, and migration coverage is limited to
-  the explicit `0.1.0` to `0.2.0` and `0.2.0` to `0.3.0` compatibility steps.
+  the explicit `0.1.0` to `0.2.0`, `0.2.0` to `0.3.0`, and `0.3.0` to
+  `0.4.0` compatibility steps.
 - Preview and export rendering are separate paths in several subsystems.
 - Inline text editing depends on DOM measurement, caret math, wrapped text, CSS, and runtime focus behavior.
 - CSS can become hidden rendering/layout policy.
@@ -2680,7 +2884,8 @@ Current tests cover broad helper and contract areas:
 - Historical mark families remain open under `#125`.
 - Issue `#48` is closed; current schema validation and the `0.1.0` to `0.2.0`
   baseline migration remain implemented. The focused `0.2.0` to `0.3.0` Case
-  preset migration is now also implemented under
+  preset migration and pure `0.3.0` to `0.4.0` viewport-state version advance
+  are now also implemented under
   [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md).
 - Preview selection, snapping, keyboard nudging, inspector, and context-menu workflows remain open under related preview issues.
 - Production [`.sbls` package Open and content recognition](PROJECT_PACKAGE_FORMAT_CONTRACT.md)
@@ -2743,8 +2948,10 @@ Status: Accepted, current.
 Decision:
 
 - New project output is `.sbls` package v1; plain `.json` and `.sbls.json`
-  projects remain legacy imports. Hydrated projects use schema version `0.3.0`.
-- Schema `0.1.0` projects migrate explicitly through `0.2.0` to `0.3.0` without inferred guidance, owner changes, or inferred Case preset attachment.
+  projects remain legacy imports. Hydrated projects use schema version `0.4.0`.
+- Schema `0.1.0` projects migrate explicitly through `0.2.0` and `0.3.0` to
+  `0.4.0` without inferred guidance, inferred Case preset attachment, or
+  inferred reserved-artwork viewport state.
 - Images needed for reload are embedded as data URLs where supported.
 - `.sbls` packages are defined by
   [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md),

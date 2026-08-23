@@ -154,6 +154,47 @@ export function getCanvasImageContentSourceRect(
   }
 }
 
+/** Maps one canonical stored-image source rectangle to loaded-image pixels. */
+export function getCanvasImageStoredSourceRect(
+  image: CanvasImageSource & {
+    naturalWidth?: number
+    naturalHeight?: number
+    width?: number
+    height?: number
+  },
+  imageSize: Pick<BackgroundImageSize, 'width' | 'height'>,
+  sourceRect: ImageContentBounds,
+): ImageContentBounds | null {
+  const loadedSize = getLoadedImageSize(image)
+
+  if (![imageSize.width, imageSize.height, ...Object.values(sourceRect)]
+    .every(Number.isFinite) || imageSize.width <= 0 || imageSize.height <= 0 ||
+      sourceRect.width <= 0 || sourceRect.height <= 0) {
+    return null
+  }
+
+  if (sourceRect.x === 0 && sourceRect.y === 0 &&
+      sourceRect.width === imageSize.width &&
+      sourceRect.height === imageSize.height) {
+    return {
+      x: 0,
+      y: 0,
+      width: loadedSize.width,
+      height: loadedSize.height,
+    }
+  }
+
+  const scaleX = loadedSize.width / imageSize.width
+  const scaleY = loadedSize.height / imageSize.height
+
+  return {
+    x: sourceRect.x * scaleX,
+    y: sourceRect.y * scaleY,
+    width: sourceRect.width * scaleX,
+    height: sourceRect.height * scaleY,
+  }
+}
+
 export function drawImageContent(
   context: CanvasRenderingContext2D,
   image: CanvasImageSource & {

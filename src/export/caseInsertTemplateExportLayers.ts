@@ -50,8 +50,15 @@ import type {
   ProjectMetadata,
 } from '../project/projectTypes'
 import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../render/caseInsertArtworkViewportRenderArtifact'
+import {
   createRectPositionedImageRenderArtifact,
 } from '../render/imageRenderArtifact'
+import { drawCaseInsertArtworkViewportArtifact } from './caseInsertArtworkViewportCanvas'
+import {
+  partitionCaseInsertArtworkViewportSlots,
+} from '../caseInsert/artworkViewportLayerOrder'
 import { drawCaseInsertExportGuides } from './drawCaseInsertGuides'
 import { drawCaseInsertSteamBanner } from './drawCaseInsertSteamBanner'
 import {
@@ -126,6 +133,21 @@ async function drawTemplateImageSlot(
   group: 'titleArtwork' | 'artwork' | 'logo' | 'mark',
 ) {
   if (group === 'artwork') {
+    const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+      owner: paneId,
+      slot,
+      layout,
+    })
+    if (viewportResult.status === 'resolved') {
+      await drawCaseInsertArtworkViewportArtifact(
+        context,
+        viewportResult.artifact,
+        slot.frame,
+      )
+      return
+    }
+    if (viewportResult.status !== 'legacy') return
+
     await drawImageSlotInRect(
       context,
       slot,
@@ -187,6 +209,18 @@ async function drawTemplateArtwork(
   layout: CaseInsertPreviewLayout,
 ) {
   const templateState = getTemplateState(caseInsert, paneId)
+  const visibleArtworkSlots = getFeatureVisibleRepeatedArtworkItems(
+    templateState,
+    templateState.artworkSlots,
+  )
+  const {
+    activeViewportSlots,
+    legacySlots,
+  } = partitionCaseInsertArtworkViewportSlots(visibleArtworkSlots)
+
+  for (const slot of activeViewportSlots) {
+    await drawTemplateImageSlot(context, paneId, slot, layout, 'artwork')
+  }
 
   await drawTemplateImageSlot(
     context,
@@ -196,10 +230,7 @@ async function drawTemplateArtwork(
     'titleArtwork',
   )
 
-  for (const slot of getFeatureVisibleRepeatedArtworkItems(
-    templateState,
-    templateState.artworkSlots,
-  )) {
+  for (const slot of legacySlots) {
     await drawTemplateImageSlot(context, paneId, slot, layout, 'artwork')
   }
 }

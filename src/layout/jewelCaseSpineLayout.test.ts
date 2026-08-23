@@ -14,6 +14,8 @@ import {
 import {
   createJewelCasePreviewLayout,
 } from './caseInsertPreviewLayout.ts'
+import { createCaseInsertSpineGuideLayout } from './caseInsertGuideLayout.ts'
+import { getCenteredRectLayoutSliderRanges } from './caseInsertElementSafeZone.ts'
 import {
   isPixelRectInsideBounds,
 } from './jewelCaseLayout.ts'
@@ -23,6 +25,12 @@ import {
   getJewelCaseSpineImageSlotPreviewLayout,
   getJewelCaseSpineTitlePreviewLayout,
 } from './jewelCaseSpineLayout.ts'
+import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../render/caseInsertArtworkViewportRenderArtifact.ts'
+import {
+  getCaseInsertArtworkViewportLayoutSliderRanges,
+} from '../caseInsert/artworkViewportPlacement.ts'
 
 test('spine preview layouts stay inside safe strips', () => {
   const state = createDefaultProjectJewelCaseState('Portal 2')
@@ -145,6 +153,98 @@ test('spine image slider ranges shrink to rotated safe strip bounds', () => {
   )
   assert.equal(
     isPixelRectInsideBounds(maxLengthLayout.boundingRect, leftSafe.bounds),
+    true,
+  )
+})
+
+test('spine reserved-artwork ranges use canonical rotated viewport bounds', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const bannerAdjustedLayout = createCaseInsertSpineGuideLayout(
+    layout,
+    state.spine,
+  )
+  const createSlot = (side: 'left' | 'right') => ({
+    ...setCaseInsertImageSlotImage(
+      createDefaultCaseInsertImageSlot(
+        `${side}-spine-artwork-1`,
+        `${side} Spine artwork`,
+        {
+          enabled: true,
+          fit: 'cover',
+          layout: { scale: 1, x: 50, y: 50, rotation: 90 },
+        },
+      ),
+      {
+        imageDataUrl: `data:image/png;base64,${side}`,
+        imageSize: { width: 1600, height: 900 },
+      },
+    ),
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport' as const,
+      formatVersion: 1 as const,
+      templateId: 'jewelCase' as const,
+      templateRevision: null,
+      coordinateBasis: `${side}SpineSafe` as const,
+      widthPercent: 20,
+      heightPercent: 3.7,
+      focalPosition: { xPercent: 50, yPercent: 50 },
+      zoom: 1,
+    },
+  })
+  const leftSlot = createSlot('left')
+  const rightSlot = createSlot('right')
+  const leftResult = resolveCaseInsertArtworkViewportRenderArtifact({
+    owner: 'left-spine',
+    slot: leftSlot,
+    layout,
+  })
+  const rightResult = resolveCaseInsertArtworkViewportRenderArtifact({
+    owner: 'right-spine',
+    slot: rightSlot,
+    layout,
+  })
+  const leftRanges = getCaseInsertArtworkViewportLayoutSliderRanges({
+    owner: 'left-spine',
+    slot: leftSlot,
+    layout,
+  })
+  const adjustedRanges = getCaseInsertArtworkViewportLayoutSliderRanges({
+    owner: 'left-spine',
+    slot: leftSlot,
+    layout: bannerAdjustedLayout,
+  })
+  const rightRanges = getCaseInsertArtworkViewportLayoutSliderRanges({
+    owner: 'right-spine',
+    slot: rightSlot,
+    layout,
+  })
+
+  assert.equal(leftResult.status, 'resolved')
+  assert.equal(rightResult.status, 'resolved')
+  assert.ok(leftRanges)
+  assert.ok(adjustedRanges)
+  assert.ok(rightRanges)
+  if (leftResult.status !== 'resolved' || rightResult.status !== 'resolved') {
+    return
+  }
+
+  assert.deepEqual(
+    leftRanges,
+    getCenteredRectLayoutSliderRanges(
+      leftResult.artifact.basisRect,
+      leftResult.artifact.boundingRect,
+    ),
+  )
+  assert.deepEqual(adjustedRanges, leftRanges)
+  assert.deepEqual(rightRanges, leftRanges)
+  assert.equal(
+    leftResult.artifact.basisRect.x < rightResult.artifact.basisRect.x,
+    true,
+  )
+  assert.equal(
+    leftResult.artifact.boundingRect.width >
+      leftResult.artifact.outerRect.width,
     true,
   )
 })

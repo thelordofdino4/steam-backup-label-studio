@@ -235,3 +235,145 @@ test('case insert design check warns when back-cover guide anatomy is missing', 
     'Add a company logo to both spines so shelf-facing edges carry the case branding.',
   ))
 })
+
+test('case insert design check does not count all-transparent reserved artwork as a screenshot', () => {
+  const project = createDefaultProjectJewelCaseState('Test Game')
+  const transparentScreenshot = createImageSlot(
+    createDefaultCaseInsertImageSlot(
+      'tray-screenshot-transparent',
+      'Screenshot',
+      { enabled: true },
+    ),
+    {
+      width: 512,
+      height: 256,
+      contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+    },
+  )
+  const screenshot: ProjectCaseInsertImageSlot = {
+    ...transparentScreenshot,
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport',
+      formatVersion: 1,
+      templateId: 'jewelCase',
+      templateRevision: null,
+      coordinateBasis: 'backPanelSafe',
+      widthPercent: 26,
+      heightPercent: 16,
+      focalPosition: { xPercent: 50, yPercent: 50 },
+      zoom: 1,
+    },
+  }
+
+  const summary = buildCaseInsertDesignCheckSummary({
+    caseInsert: {
+      ...project,
+      templates: {
+        ...project.templates,
+        tray: {
+          ...project.templates.tray,
+          additionalArtworkEnabled: true,
+          artworkSlots: [screenshot],
+        },
+      },
+    },
+    activeTemplatePane: 'tray',
+    brandingSources: createDefaultBrandingSources(),
+  })
+
+  const screenshotCheck = summary.items.find(
+    (item) => item.id === 'tray-screenshots',
+  )
+  assert.equal(screenshotCheck?.status, 'warning')
+  assert.ok(summary.warnings.includes(
+    'Add at least one screenshot or supporting artwork slot so the back cover is not only text.',
+  ))
+})
+
+test('case insert design check rejects owner-incompatible reserved artwork', () => {
+  const project = createDefaultProjectJewelCaseState('Test Game')
+  const screenshot = createImageSlot(
+    createDefaultCaseInsertImageSlot(
+      'tray-screenshot-wrong-owner',
+      'Screenshot',
+      { enabled: true },
+    ),
+    { width: 512, height: 256 },
+  )
+  screenshot.reservedArtworkViewport = {
+    kind: 'sbls/case-insert-artwork-viewport',
+    formatVersion: 1,
+    templateId: 'jewelCase',
+    templateRevision: null,
+    coordinateBasis: 'frontSafe',
+    widthPercent: 26,
+    heightPercent: 16,
+    focalPosition: { xPercent: 50, yPercent: 50 },
+    zoom: 1,
+  }
+
+  const summary = buildCaseInsertDesignCheckSummary({
+    caseInsert: {
+      ...project,
+      templates: {
+        ...project.templates,
+        tray: {
+          ...project.templates.tray,
+          additionalArtworkEnabled: true,
+          artworkSlots: [screenshot],
+        },
+      },
+    },
+    activeTemplatePane: 'tray',
+    brandingSources: createDefaultBrandingSources(),
+  })
+
+  assert.equal(
+    summary.items.find((item) => item.id === 'tray-screenshots')?.status,
+    'warning',
+  )
+})
+
+test('case insert design check rejects artifact-unresolvable reserved artwork', () => {
+  const project = createDefaultProjectJewelCaseState('Test Game')
+  const screenshot = createImageSlot(
+    createDefaultCaseInsertImageSlot(
+      'tray-screenshot-invalid-numeric-result',
+      'Screenshot',
+      { enabled: true, fit: 'crop' },
+    ),
+    { width: 512, height: 256 },
+  )
+  screenshot.reservedArtworkViewport = {
+    kind: 'sbls/case-insert-artwork-viewport',
+    formatVersion: 1,
+    templateId: 'jewelCase',
+    templateRevision: null,
+    coordinateBasis: 'backPanelSafe',
+    widthPercent: 26,
+    heightPercent: 16,
+    focalPosition: { xPercent: 50, yPercent: 50 },
+    zoom: Number.MAX_VALUE,
+  }
+
+  const summary = buildCaseInsertDesignCheckSummary({
+    caseInsert: {
+      ...project,
+      templates: {
+        ...project.templates,
+        tray: {
+          ...project.templates.tray,
+          additionalArtworkEnabled: true,
+          artworkSlots: [screenshot],
+        },
+      },
+    },
+    activeTemplatePane: 'tray',
+    brandingSources: createDefaultBrandingSources(),
+  })
+
+  assert.equal(
+    summary.items.find((item) => item.id === 'tray-screenshots')?.status,
+    'warning',
+  )
+})

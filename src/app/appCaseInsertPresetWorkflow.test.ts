@@ -42,6 +42,9 @@ import {
   createCoordinatedCaseInsertPresetDefinition,
 } from '../presets/caseInsertPresetTestFixtures.ts'
 import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
+} from '../presets/builtins/jewelCaseEssentialsCasePresetV2.ts'
+import {
   applyCaseInsertPresetFirstTime,
 } from '../presets/caseInsertPresetApplyTransition.ts'
 import {
@@ -374,6 +377,7 @@ test('a content edit after review makes authorization stale and replay cannot in
     project: edited,
   })
   assert.equal(sync, 'synchronized')
+  const newerState = staleSetup.root.getLifecycleState()
   const staleCancel = await staleSetup.owner.complete(staleReview, {
     decision: 'cancel',
     operation: 'apply',
@@ -388,6 +392,7 @@ test('a content edit after review makes authorization stale and replay cannot in
   assert.equal(stale.ok, false)
   if (!stale.ok) assert.equal(stale.status, 'stale-review')
   assert.deepEqual(staleSetup.commandIds, [])
+  assert.strictEqual(staleSetup.root.getLifecycleState(), newerState)
 
   const replaySetup = setup('detach')
   const replayReview = requireReview(begin('detach', replaySetup.owner))
@@ -396,6 +401,7 @@ test('a content edit after review makes authorization stale and replay cannot in
     confirm(replayReview),
   )
   assert.equal(first.ok, true)
+  const installedState = replaySetup.root.getLifecycleState()
   const second = await replaySetup.owner.complete(
     replayReview,
     confirm(replayReview),
@@ -403,6 +409,7 @@ test('a content edit after review makes authorization stale and replay cannot in
   assert.equal(second.ok, false)
   if (!second.ok) assert.equal(second.status, 'stale-review')
   assert.deepEqual(replaySetup.commandIds, ['case.layoutPreset.detach'])
+  assert.strictEqual(replaySetup.root.getLifecycleState(), installedState)
 })
 
 test('busy and lifecycle installation failures preserve exact typed dispatch outcomes', async () => {
@@ -624,15 +631,15 @@ test('a recovered Save/Open attachment is immediately inspectable, detachable, a
   assert.equal(owner.beginDetach().ok, true)
 })
 
-test('the production catalog remains exact, schema stays 0.3.0, and App injects one presentation owner', () => {
+test('the production catalog remains exact, schema stays 0.4.0, and App injects one presentation owner', () => {
   assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [{
     id: 'builtin:case-preset:jewel-case-essentials',
-    revision: 1,
+    revision: JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
     name: 'Jewel Case Essentials',
     surface: 'case-insert',
     source: 'builtin',
   }])
-  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.3.0')
+  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.4.0')
   const appSource = readFileSync('src/app/App.tsx', 'utf8')
   assert.match(appSource, /createAppCaseInsertPresetWorkflowOwner/)
   assert.match(appSource, /createCaseInsertPresetPresentationController/)

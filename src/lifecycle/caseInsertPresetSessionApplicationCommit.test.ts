@@ -81,7 +81,9 @@ import {
   type CaseInsertPresetSessionAdoptionCommitSnapshot,
 } from './caseInsertPresetSessionApplicationCommit.ts'
 import {
+  representCaseInsertPresetApplicationSuccessor,
   representCaseInsertPresetApplicationSnapshot,
+  representCaseInsertPresetTransitionSuccessor,
 } from './caseInsertPresetSessionApplication.ts'
 import {
   captureApplicationLifecycleState,
@@ -202,10 +204,51 @@ function validatedAdoptionBundle(
 function prepare(
   session: CaseInsertProjectSession,
   adoptionBundle: CaseInsertPresetValidatedAdoptionSuccessBundle,
+  successorRecoveryStatus?: CaseInsertProjectSession[
+    'caseInsertPresetApplication'
+  ]['recoveryStatus'],
 ): CaseInsertPresetSessionAdoptionCommitSnapshot {
+  let projected = successorRecoveryStatus
+  if (!projected && adoptionBundle.operation === 'detach') {
+    projected = { status: 'not-applicable' }
+  }
+  if (!projected) {
+    const attachment = adoptionBundle.adoption.state.attachment
+    assert.equal(attachment.status, 'attached')
+    if (attachment.status !== 'attached') {
+      throw new Error('Expected an attached successor.')
+    }
+    const customization = detectCaseInsertPresetCustomization({
+      configuration: attachment.configuration,
+      current: {
+        projectKind: 'caseInsert',
+        aggregate: adoptionBundle.adoption.state.snapshot.caseInsert,
+        sessionId: session.id,
+        projectRevision:
+          adoptionBundle.adoption.state.snapshot.identity.projectRevision,
+        template: attachment.configuration.template,
+      },
+    })
+    assert.equal(customization.ok, true, JSON.stringify(customization))
+    if (!customization.ok) throw new Error(customization.code)
+    const sourceStatus = session.caseInsertPresetApplication.recoveryStatus
+    projected = adoptionBundle.operation === 'apply'
+      ? { status: 'current', customization: customization.status }
+      : sourceStatus.status === 'stale'
+        ? {
+            status: 'stale',
+            savedRevision: sourceStatus.savedRevision,
+            latestAvailableRevision: sourceStatus.latestAvailableRevision,
+            customization: customization.status,
+          }
+        : sourceStatus.status === 'current'
+          ? { status: 'current', customization: customization.status }
+          : sourceStatus
+  }
   const prepared = prepareCaseInsertPresetSessionAdoptionCommit({
     sourceSession: session,
     adoptionBundle,
+    successorRecoveryStatus: projected,
   })
   assert.equal(prepared.ok, true, JSON.stringify(prepared))
   if (!prepared.ok) throw new Error(`${prepared.status}:${prepared.code}`)
@@ -390,7 +433,6 @@ function aggregateChangingReapplyFixture() {
   const selectedDefinition = structuredClone(
     createCoordinatedCaseInsertPresetDefinition(),
   ) as unknown as MutableRecord
-  selectedDefinition.revision = 2
   for (const slot of selectedDefinition.slots as MutableRecord[]) {
     for (const assignment of slot.assignments as MutableRecord[]) {
       const region = assignment.contentRegion as MutableRecord
@@ -563,6 +605,71 @@ test('Apply atomically commits the exact aggregate, companion, receipt, and one 
   assert.deepEqual(result.session.cleanBaseline, source.cleanBaseline)
 })
 
+test('Apply captures an application-projected stale catalog classification in the atomic successor', () => {
+  const { source, adoptionBundle, snapshot: defaultSnapshot } =
+    operationFixture('apply')
+  const attachment = defaultSnapshot.successorSession
+    .caseInsertPresetApplication.attachment
+  assert.equal(attachment.status, 'attached')
+  if (attachment.status !== 'attached') return
+  const savedRevision = attachment.configuration.preset.revision
+  const prepared = prepareCaseInsertPresetSessionAdoptionCommit({
+    sourceSession: source,
+    adoptionBundle,
+    successorRecoveryStatus: {
+      status: 'stale',
+      savedRevision,
+      latestAvailableRevision: savedRevision + 1,
+      customization: 'clean',
+    },
+  })
+  assert.equal(prepared.ok, true, JSON.stringify(prepared))
+  if (!prepared.ok) return
+  assert.deepEqual(
+    prepared.snapshot.successorSession.caseInsertPresetApplication
+      .recoveryStatus,
+    {
+      status: 'stale',
+      savedRevision,
+      latestAvailableRevision: savedRevision + 1,
+      customization: 'clean',
+    },
+  )
+
+  const committed = commitCaseInsertPresetSessionApplication({
+    currentSession: source,
+    successorSnapshot: prepared.snapshot,
+  })
+  assert.equal(committed.ok, true, JSON.stringify(committed))
+  if (!committed.ok) return
+  assert.deepEqual(
+    committed.session.caseInsertPresetApplication.recoveryStatus,
+    prepared.snapshot.successorSession.caseInsertPresetApplication
+      .recoveryStatus,
+  )
+})
+
+test('commit preparation requires one complete validated successor recovery status', () => {
+  const { source, adoptionBundle } = operationFixture('apply')
+  for (const input of [
+    { sourceSession: source, adoptionBundle },
+    {
+      sourceSession: source,
+      adoptionBundle,
+      successorRecoveryStatus: undefined,
+    },
+    {
+      sourceSession: source,
+      adoptionBundle,
+      successorRecoveryStatus: { status: 'current' },
+    },
+  ]) {
+    const prepared = prepareCaseInsertPresetSessionAdoptionCommit(input)
+    assert.equal(prepared.ok, false)
+    assertFailureHasNoPartialOutput(prepared)
+  }
+})
+
 test('attachment-only first Apply retains content revision while attaching and advancing application once', () => {
   const { source, evidence, adoption, snapshot } = attachmentOnlyApplyFixture()
   assert.equal(sameCaseInsertPresetValue(
@@ -626,6 +733,111 @@ test('attachment-only Reapply retains content revision and dirty state while adv
     result.receipt.sourceConfigurationIdentity,
     result.receipt.successorConfigurationIdentity,
   )
+})
+
+test('exact Reapply preserves stale catalog classification and recomputes successor customization without catalog lookup', () => {
+  const prepared = operationFixture('reapply', 22)
+  const staleApplication = representCaseInsertPresetApplicationSuccessor({
+    sessionId: prepared.source.id,
+    project: prepared.source.project,
+    snapshot: prepared.fixture.firstApplication,
+    recoveryStatus: {
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
+      customization: 'customized',
+    },
+  })
+  assert.equal(staleApplication.ok, true)
+  if (!staleApplication.ok) throw new Error(staleApplication.detail)
+  const staleSource = requireCaseSession(captureApplicationLifecycleState({
+    activeSession: {
+      ...prepared.source,
+      caseInsertPresetApplication: staleApplication.application,
+    },
+    visibleWorkspace: 'home',
+  }))
+  const successorSnapshot = prepare(
+    staleSource,
+    prepared.adoptionBundle,
+    {
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
+      customization: 'clean',
+    },
+  )
+
+  assert.deepEqual(
+    successorSnapshot.successorSession.caseInsertPresetApplication
+      .recoveryStatus,
+    {
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
+      customization: 'clean',
+    },
+  )
+  const committed = commitCaseInsertPresetSessionApplication({
+    currentSession: staleSource,
+    successorSnapshot,
+  })
+  assert.equal(committed.ok, true)
+  if (!committed.ok) throw new Error(`${committed.status}:${committed.code}`)
+  assert.deepEqual(
+    committed.session.caseInsertPresetApplication.recoveryStatus,
+    {
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
+      customization: 'clean',
+    },
+  )
+
+  const customizedProject = structuredClone(
+    successorSnapshot.successorSession.project,
+  )
+  customizedProject.caseInsert.templates.cover.background.layout.x += 1
+  const customizedAssignment = createCaseInsertPresetAssignmentSnapshot({
+    sessionId: staleSource.id,
+    projectRevision: successorSnapshot.successorSession
+      .caseInsertPresetApplication.attachment.status === 'attached'
+      ? successorSnapshot.successorSession.caseInsertPresetApplication
+          .attachment.configuration.source.snapshotIdentity.projectRevision + 1
+      : successorSnapshot.successorSession.revision + 1,
+    project: captureNormalizedProjectSnapshot(customizedProject),
+  })
+  assert.equal(customizedAssignment.ok, true)
+  if (!customizedAssignment.ok) {
+    throw new Error(customizedAssignment.error.code)
+  }
+  const customizedSnapshot = createCaseInsertPresetApplicationSnapshot({
+    snapshot: customizedAssignment.value,
+    attachment: successorSnapshot.successorSession
+      .caseInsertPresetApplication.attachment,
+  })
+  assert.equal(customizedSnapshot.ok, true, JSON.stringify(customizedSnapshot))
+  if (!customizedSnapshot.ok) throw new Error(customizedSnapshot.code)
+  const customizedSuccessor = representCaseInsertPresetTransitionSuccessor({
+    sessionId: staleSource.id,
+    project: customizedProject,
+    snapshot: customizedSnapshot.value,
+    operation: 'reapply',
+    successorRecoveryStatus: {
+      status: 'stale',
+      savedRevision: 1,
+      latestAvailableRevision: 2,
+      customization: 'customized',
+    },
+  })
+  assert.equal(customizedSuccessor.ok, true)
+  if (!customizedSuccessor.ok) throw new Error(customizedSuccessor.detail)
+  assert.deepEqual(customizedSuccessor.application.recoveryStatus, {
+    status: 'stale',
+    savedRevision: 1,
+    latestAvailableRevision: 2,
+    customization: 'customized',
+  })
 })
 
 test('aggregate-changing Reapply advances both revisions exactly once and derives dirty state', () => {
@@ -730,6 +942,10 @@ test('prepared authorization and committed output are detached, deeply immutable
   const mutable = {
     sourceSession: structuredClone(source),
     adoptionBundle: structuredClone(bundle),
+    successorRecoveryStatus: {
+      status: 'current' as const,
+      customization: 'clean' as const,
+    },
   }
   const before = structuredClone(mutable)
   const first = prepareCaseInsertPresetSessionAdoptionCommit(mutable)
@@ -1071,6 +1287,10 @@ test('cycles, accessors, thenables, executable values, collections, and unsuppor
   const prepared = prepareCaseInsertPresetSessionAdoptionCommit({
     sourceSession: source,
     adoptionBundle: bundleAccessor,
+    successorRecoveryStatus: {
+      status: 'current',
+      customization: 'clean',
+    },
   })
   assert.equal(prepared.ok, false)
   assertFailureHasNoPartialOutput(prepared)

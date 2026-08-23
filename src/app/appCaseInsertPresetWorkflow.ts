@@ -76,7 +76,7 @@ import {
 } from '../presets/caseInsertPresetReapplyIdentity.ts'
 import {
   planCaseInsertPresetReapply,
-  type CaseInsertPresetCustomizedFieldPolicyRecord,
+  type CaseInsertPresetAnyCustomizedFieldPolicyRecord,
   type CaseInsertPresetReapplyPlan,
 } from '../presets/caseInsertPresetReapplyPlanning.ts'
 import {
@@ -276,7 +276,7 @@ export interface AppCaseInsertPresetWorkflowOwner {
   beginReapply(input: Readonly<{
     selectedPreset: AppCaseInsertPresetSelection
     customizedFieldPolicies:
-      readonly CaseInsertPresetCustomizedFieldPolicyRecord[]
+      readonly CaseInsertPresetAnyCustomizedFieldPolicyRecord[]
   }>): AppCaseInsertPresetWorkflowPlanningResult<
     AppCaseInsertPresetReapplyReview
   >
@@ -516,6 +516,31 @@ function resolveExactSelection(
   return resolved.value
 }
 
+function projectApplyCatalogStatus(
+  catalog: CaseInsertPresetCatalog,
+  selectedPreset: Readonly<{ id: string; revision: number }>,
+) {
+  let latestResolution
+  try {
+    latestResolution = catalog.resolve({ id: selectedPreset.id })
+  } catch {
+    return null
+  }
+  if (!latestResolution.ok) return null
+  const latest = latestResolution.value.definition
+  if (latest.id !== selectedPreset.id ||
+      latest.revision < selectedPreset.revision) {
+    return null
+  }
+  return latest.revision > selectedPreset.revision
+    ? deepFreezeCaseInsertPresetValue({
+        status: 'stale' as const,
+        savedRevision: selectedPreset.revision,
+        latestAvailableRevision: latest.revision,
+      })
+    : deepFreezeCaseInsertPresetValue({ status: 'current' as const })
+}
+
 function transitionFailure(
   operation: CaseInsertPresetApplicationAdoptionOperation,
   result: { status: string; code?: string },
@@ -653,7 +678,7 @@ export function createAppCaseInsertPresetWorkflowOwner(
   function beginReapply(input: Readonly<{
     selectedPreset: AppCaseInsertPresetSelection
     customizedFieldPolicies:
-      readonly CaseInsertPresetCustomizedFieldPolicyRecord[]
+      readonly CaseInsertPresetAnyCustomizedFieldPolicyRecord[]
   }>): AppCaseInsertPresetWorkflowPlanningResult<
     AppCaseInsertPresetReapplyReview
   > {
@@ -970,9 +995,87 @@ export function createAppCaseInsertPresetWorkflowOwner(
         bundle,
       )
     }
+    let successorRecoveryStatus:
+      CaseInsertProjectSession['caseInsertPresetApplication']['recoveryStatus']
+    if (operation === 'detach') {
+      successorRecoveryStatus = { status: 'not-applicable' }
+    } else {
+      const successorAttachment = bundle.bundle.adoption.state.attachment
+      if (successorAttachment.status !== 'attached') {
+        return failure(
+          'preparation-failed',
+          'case.layoutPreset.successor-attachment-invalid',
+          operation,
+        )
+      }
+      const successorCustomization = owners.detectCustomization({
+        configuration: successorAttachment.configuration,
+        current: {
+          projectKind: 'caseInsert',
+          aggregate: structuredClone(
+            bundle.bundle.adoption.state.snapshot.caseInsert,
+          ) as ProjectJewelCaseState,
+          sessionId: session.id,
+          projectRevision:
+            bundle.bundle.adoption.state.snapshot.identity.projectRevision,
+          template: successorAttachment.configuration.template,
+        },
+      })
+      if (!successorCustomization.ok) {
+        return failure(
+          'preparation-failed',
+          `case.layoutPreset.successor-customization.${
+            successorCustomization.code
+          }`,
+          operation,
+          successorCustomization,
+        )
+      }
+      if (review.operation === 'apply') {
+        const applyCatalogStatus = projectApplyCatalogStatus(
+          dependencies.catalog,
+          {
+            id: review.plan.preset.id,
+            revision: review.plan.preset.revision,
+          },
+        )
+        if (!applyCatalogStatus) {
+          return failure(
+            'preparation-failed',
+            'case.layoutPreset.apply.catalog-status-unavailable',
+            operation,
+          )
+        }
+        successorRecoveryStatus = applyCatalogStatus.status === 'stale'
+          ? {
+              ...applyCatalogStatus,
+              customization: successorCustomization.status,
+            }
+          : {
+              status: 'current',
+              customization: successorCustomization.status,
+            }
+      } else {
+        const sourceStatus = session.caseInsertPresetApplication.recoveryStatus
+        successorRecoveryStatus = sourceStatus.status === 'stale'
+          ? {
+              status: 'stale',
+              savedRevision: sourceStatus.savedRevision,
+              latestAvailableRevision: sourceStatus.latestAvailableRevision,
+              customization: successorCustomization.status,
+            }
+          : sourceStatus.status === 'current'
+            ? {
+                status: 'current',
+                customization: successorCustomization.status,
+              }
+            : sourceStatus
+      }
+    }
     const prepared = owners.prepareCommit({
       sourceSession: session,
       adoptionBundle: bundle.bundle,
+      successorRecoveryStatus,
     })
     if (!prepared.ok) {
       return failure(

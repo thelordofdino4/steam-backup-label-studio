@@ -1,6 +1,6 @@
 import {
   encodeCaseInsertPresetDeterministicIdentity,
-} from './caseInsertPresetReapplyIdentity.ts'
+} from './caseInsertPresetDeterministicIdentity.ts'
 
 type AddressIdentityInput = Readonly<{
   region: string
@@ -41,19 +41,28 @@ type DetachPlanContentIdentityInput = Readonly<{
 export const CASE_INSERT_PRESET_DETACH_PLAN_KIND =
   'sbls/case-insert-preset-detach-plan' as const
 export const CASE_INSERT_PRESET_DETACH_PLAN_FORMAT_VERSION = 2 as const
+export const CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION = 3 as const
 export const CASE_INSERT_PRESET_DETACH_OWNERSHIP_PROJECTION_KIND =
   'sbls/case-insert-preset-detach-ownership-projection' as const
 
 export const CASE_INSERT_PRESET_DETACH_RELEASE_IDENTITY_PREFIX =
   'case:preset-detach-release:v1:' as const
+export const CASE_INSERT_PRESET_TYPED_DETACH_RELEASE_IDENTITY_PREFIX =
+  'case:preset-detach-release:v2:' as const
 export const CASE_INSERT_PRESET_DETACH_PRESERVATION_IDENTITY_PREFIX =
   'case:preset-detach-preservation:v1:' as const
+export const CASE_INSERT_PRESET_TYPED_DETACH_PRESERVATION_IDENTITY_PREFIX =
+  'case:preset-detach-preservation:v2:' as const
 export const CASE_INSERT_PRESET_DETACH_WARNING_IDENTITY_PREFIX =
   'case:preset-detach-warning:v1:' as const
 export const CASE_INSERT_PRESET_DETACH_REVIEW_IDENTITY_PREFIX =
   'case:preset-detach-review:v2:' as const
+export const CASE_INSERT_PRESET_TYPED_DETACH_REVIEW_IDENTITY_PREFIX =
+  'case:preset-detach-review:v3:' as const
 export const CASE_INSERT_PRESET_DETACH_PLAN_IDENTITY_PREFIX =
   'case:preset-detach-plan:v2:' as const
+export const CASE_INSERT_PRESET_TYPED_DETACH_PLAN_IDENTITY_PREFIX =
+  'case:preset-detach-plan:v3:' as const
 export const CASE_INSERT_PRESET_DETACH_REVIEW_ACCEPTANCE_IDENTITY_PREFIX =
   'case:preset-detach-review-acceptance:v1:' as const
 export const CASE_INSERT_PRESET_DETACH_CONSENT_ACCEPTANCE_IDENTITY_PREFIX =
@@ -71,10 +80,13 @@ const REGION_ORDER = new Map([
   ['right-spine', 4],
 ])
 const FIELD_ORDER = new Map([
-  ['layout-x', 0],
-  ['layout-y', 1],
-  ['layout-scale', 2],
-  ['layout-width', 3],
+  ['object-presence', 0],
+  ['layout-x', 1],
+  ['layout-y', 2],
+  ['layout-scale', 3],
+  ['layout-width', 4],
+  ['image-fit', 5],
+  ['reserved-artwork-viewport', 6],
 ])
 
 function cloneValue<T>(value: T): T {
@@ -123,7 +135,11 @@ export function createCaseInsertPresetDetachReleaseIdentity<
     ...cloneValue(release),
     sources: canonicalSources(release.sources),
   }
-  return `${CASE_INSERT_PRESET_DETACH_RELEASE_IDENTITY_PREFIX}${
+  const prefix = typeof (release as Readonly<{ currentValue?: unknown }>)
+    .currentValue === 'object'
+    ? CASE_INSERT_PRESET_TYPED_DETACH_RELEASE_IDENTITY_PREFIX
+    : CASE_INSERT_PRESET_DETACH_RELEASE_IDENTITY_PREFIX
+  return `${prefix}${
     encodeCaseInsertPresetDeterministicIdentity(canonical)
   }`
 }
@@ -131,7 +147,11 @@ export function createCaseInsertPresetDetachReleaseIdentity<
 export function createCaseInsertPresetDetachPreservationIdentity<
   T extends PreservationIdentityInput,
 >(preservation: T) {
-  return `${CASE_INSERT_PRESET_DETACH_PRESERVATION_IDENTITY_PREFIX}${
+  const prefix = typeof (preservation as Readonly<{ currentValue?: unknown }>)
+    .currentValue === 'object'
+    ? CASE_INSERT_PRESET_TYPED_DETACH_PRESERVATION_IDENTITY_PREFIX
+    : CASE_INSERT_PRESET_DETACH_PRESERVATION_IDENTITY_PREFIX
+  return `${prefix}${
     encodeCaseInsertPresetDeterministicIdentity(cloneValue(preservation))
   }`
 }
@@ -192,7 +212,11 @@ export function canonicalizeCaseInsertPresetDetachPlanContent<
 export function createCaseInsertPresetDetachReviewIdentity<
   T extends DetachPlanContentIdentityInput,
 >(plan: T) {
-  return `${CASE_INSERT_PRESET_DETACH_REVIEW_IDENTITY_PREFIX}${
+  const prefix = (plan as Readonly<{ formatVersion?: unknown }>).formatVersion ===
+      CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION
+    ? CASE_INSERT_PRESET_TYPED_DETACH_REVIEW_IDENTITY_PREFIX
+    : CASE_INSERT_PRESET_DETACH_REVIEW_IDENTITY_PREFIX
+  return `${prefix}${
     encodeCaseInsertPresetDeterministicIdentity(
       canonicalizeCaseInsertPresetDetachPlanContent(plan),
     )
@@ -205,7 +229,11 @@ export function createCaseInsertPresetDetachPlanIdentity<
   }>,
 >(plan: T) {
   const { reviewIdentity, ...content } = plan
-  return `${CASE_INSERT_PRESET_DETACH_PLAN_IDENTITY_PREFIX}${
+  const prefix = (plan as Readonly<{ formatVersion?: unknown }>).formatVersion ===
+      CASE_INSERT_PRESET_TYPED_DETACH_PLAN_FORMAT_VERSION
+    ? CASE_INSERT_PRESET_TYPED_DETACH_PLAN_IDENTITY_PREFIX
+    : CASE_INSERT_PRESET_DETACH_PLAN_IDENTITY_PREFIX
+  return `${prefix}${
     encodeCaseInsertPresetDeterministicIdentity({
       ...canonicalizeCaseInsertPresetDetachPlanContent(content),
       reviewIdentity,

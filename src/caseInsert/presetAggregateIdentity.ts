@@ -1,7 +1,7 @@
 import type { DeepReadonly } from '../lifecycle/canonicalProject.ts'
 import {
   createCaseInsertPresetDeterministicIdentityDigest,
-} from '../presets/caseInsertPresetReapplyIdentity.ts'
+} from '../presets/caseInsertPresetDeterministicIdentity.ts'
 import type { ProjectJewelCaseState } from '../project/projectTypes.ts'
 import { normalizeProjectJewelCaseState } from './normalization.ts'
 

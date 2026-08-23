@@ -137,6 +137,9 @@ function authorizationFor(
   const prepared = prepareCaseInsertPresetSessionAdoptionCommit({
     sourceSession: source,
     adoptionBundle: bundle.bundle,
+    successorRecoveryStatus: operation === 'detach'
+      ? { status: 'not-applicable' }
+      : { status: 'current', customization: 'clean' },
   })
   assert.equal(prepared.ok, true, JSON.stringify(prepared))
   if (!prepared.ok) throw new Error(`${prepared.status}:${prepared.code}`)
@@ -479,6 +482,6 @@ test('installation command imports no planner, operation transition, catalog, UI
   ), 'utf8')
   assert.match(
     catalog,
-    /builtins:\s*\[JEWEL_CASE_ESSENTIALS_CASE_PRESET\]/,
+    /builtins:\s*\[\s*JEWEL_CASE_ESSENTIALS_CASE_PRESET,\s*JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,\s*\]/,
   )
 })

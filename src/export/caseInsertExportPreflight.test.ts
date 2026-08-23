@@ -27,8 +27,15 @@ import type {
   ProjectImageAssetProvenance,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
+import { createCaseInsertPngExportLayout } from '../caseInsert/exportLayout.ts'
+import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../render/caseInsertArtworkViewportRenderArtifact.ts'
 import { buildCaseInsertExportPreflightSummary } from './caseInsertExportPreflight.ts'
-import { GUIDE_MARKS_EXPORT_WARNING } from './preflightWarnings.ts'
+import {
+  buildUpscaleWarnings,
+  GUIDE_MARKS_EXPORT_WARNING,
+} from './preflightWarnings.ts'
 
 function createDefaultBrandingSources(): CaseInsertBrandingSourceCatalog {
   return {
@@ -104,6 +111,40 @@ function createBundledSlot(
       sourceLabel: `${label} built-in default`,
     },
   )
+}
+
+function createViewportArtworkSlot(
+  id: string,
+  label: string,
+  coordinateBasis: 'backPanelSafe' | 'leftSpineSafe',
+  fit: 'contain' | 'cover' | 'crop',
+  imageSize: BackgroundImageSize,
+): ProjectCaseInsertImageSlot {
+  const slot = createImageSlot(
+    createDefaultCaseInsertImageSlot(id, label, { enabled: true, fit }),
+    imageSize,
+  )
+
+  return {
+    ...slot,
+    layout: {
+      ...slot.layout,
+      x: 50,
+      y: 50,
+      rotation: coordinateBasis === 'leftSpineSafe' ? 90 : 0,
+    },
+    reservedArtworkViewport: {
+      kind: 'sbls/case-insert-artwork-viewport',
+      formatVersion: 1,
+      templateId: 'jewelCase',
+      templateRevision: null,
+      coordinateBasis,
+      widthPercent: 26,
+      heightPercent: 16,
+      focalPosition: { xPercent: 70, yPercent: 30 },
+      zoom: fit === 'crop' ? 2 : 1,
+    },
+  }
 }
 
 function createCleanCoverProject(): ProjectJewelCaseState {
@@ -339,4 +380,85 @@ test('case preflight accepts built-in visual assets without asset-origin warning
 
   assert.ok(!summary.warnings.some((warning) =>
     /bundled|generic artwork|built-in .*artwork/i.test(warning)))
+})
+
+test('case preflight routes Tray and Spine artwork through shared viewport sampling evidence', () => {
+  const project = createDefaultProjectJewelCaseState('Test Game')
+  const trayArtwork = createViewportArtworkSlot(
+    'tray-viewport-artwork',
+    'Viewport screenshot',
+    'backPanelSafe',
+    'crop',
+    {
+      width: 100,
+      height: 100,
+      contentBounds: { x: 10, y: 20, width: 80, height: 60 },
+    },
+  )
+  const spineArtwork = createViewportArtworkSlot(
+    'left-spine-viewport-artwork',
+    'Viewport spine art',
+    'leftSpineSafe',
+    'cover',
+    { width: 20, height: 20 },
+  )
+  const caseInsert: ProjectJewelCaseState = {
+    ...project,
+    templates: {
+      ...project.templates,
+      tray: {
+        ...project.templates.tray,
+        additionalArtworkEnabled: true,
+        artworkSlots: [trayArtwork],
+      },
+    },
+    spine: {
+      ...project.spine,
+      left: {
+        ...project.spine.left,
+        additionalArtworkEnabled: true,
+        artworkSlots: [spineArtwork],
+      },
+    },
+  }
+  const layout = createCaseInsertPngExportLayout(caseInsert, 'tray', { dpi: 300 })
+  const trayResult = resolveCaseInsertArtworkViewportRenderArtifact({
+    owner: 'tray',
+    slot: trayArtwork,
+    layout,
+  })
+  const spineResult = resolveCaseInsertArtworkViewportRenderArtifact({
+    owner: 'left-spine',
+    slot: spineArtwork,
+    layout,
+  })
+  assert.equal(trayResult.status, 'resolved')
+  assert.equal(spineResult.status, 'resolved')
+  if (trayResult.status !== 'resolved' || spineResult.status !== 'resolved') {
+    return
+  }
+
+  const summary = buildCaseInsertExportPreflightSummary({
+    caseInsert,
+    activeTemplatePane: 'tray',
+    brandingSources: createDefaultBrandingSources(),
+    dpi: 300,
+  })
+  const expectedTrayWarning = buildUpscaleWarnings(
+    trayArtwork.label,
+    trayResult.artifact.visibleSourceRect,
+    trayResult.artifact.destinationRect,
+  )[0]
+  const expectedSpineWarning = buildUpscaleWarnings(
+    `Left spine ${spineArtwork.label}`,
+    spineResult.artifact.visibleSourceRect,
+    spineResult.artifact.destinationRect,
+  )[0]
+
+  assert.ok(expectedTrayWarning)
+  assert.ok(expectedSpineWarning)
+  assert.ok(summary.warnings.includes(expectedTrayWarning))
+  assert.ok(summary.warnings.includes(expectedSpineWarning))
+  assert.ok(!summary.warnings.some((warning) =>
+    warning.startsWith(`${trayArtwork.label} is 100 x 100px`)))
 })

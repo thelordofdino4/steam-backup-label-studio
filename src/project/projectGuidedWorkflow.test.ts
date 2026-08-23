@@ -58,6 +58,7 @@ import {
   getSelectedDiscTemplate,
 } from '../templates/discTemplateStateModel.ts'
 import { createProjectSnapshot } from './createProjectSnapshot.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema.ts'
 import { createDefaultDiscTextValueSources } from './metadataDiscText.ts'
 import { createDefaultProjectAdditionalArtwork } from './projectAdditionalArtwork.ts'
 import { createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
@@ -568,7 +569,7 @@ test('schema-0.2 restore keeps guided progress isolated from late point-owner re
     projectRatingBadge,
   })
 
-  assert.equal(snapshot.schemaVersion, '0.2.0')
+  assert.equal(snapshot.schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION)
   assert.deepEqual(snapshot.editor?.guidedLayout, {
     id: CLASSIC_ID,
     version: 1,

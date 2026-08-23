@@ -3,13 +3,16 @@ import {
   isCaseInsertPresetId,
   isUserCaseInsertPresetId,
   parseCaseInsertPresetDefinition,
+  type CaseInsertPresetDefinition,
   type CaseInsertPresetDefinitionParseErrorCode,
-  type CaseInsertPresetDefinitionV1,
   type CaseInsertPresetId,
 } from './caseInsertPresetDefinition.ts'
 import {
   JEWEL_CASE_ESSENTIALS_CASE_PRESET,
 } from './builtins/jewelCaseEssentialsCasePreset.ts'
+import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+} from './builtins/jewelCaseEssentialsCasePresetV2.ts'
 
 export type CaseInsertPresetCatalogSource = 'builtin' | 'user'
 
@@ -36,7 +39,7 @@ export type ResolvedCaseInsertPresetReference = Readonly<{
     id: CaseInsertPresetId
     revision: number
   }>
-  definition: CaseInsertPresetDefinitionV1
+  definition: CaseInsertPresetDefinition
   source: CaseInsertPresetCatalogSource
   matchedAlias: string | null
 }>
@@ -59,8 +62,8 @@ export interface CaseInsertPresetCatalog {
   getExact(
     id: CaseInsertPresetId,
     revision: number,
-  ): CaseInsertPresetDefinitionV1 | null
-  getLatest(id: CaseInsertPresetId): CaseInsertPresetDefinitionV1 | null
+  ): CaseInsertPresetDefinition | null
+  getLatest(id: CaseInsertPresetId): CaseInsertPresetDefinition | null
   resolve(
     reference: CaseInsertPresetReference,
   ): CaseInsertPresetReferenceResolution
@@ -103,7 +106,7 @@ export type CaseInsertPresetCatalogInput = Readonly<{
 }>
 
 type RegisteredCaseInsertPreset = Readonly<{
-  definition: CaseInsertPresetDefinitionV1
+  definition: CaseInsertPresetDefinition
   source: CaseInsertPresetCatalogSource
   order: number
 }>
@@ -340,7 +343,10 @@ export function createCaseInsertPresetCatalog(
 }
 
 const defaultCatalogResult = createCaseInsertPresetCatalog({
-  builtins: [JEWEL_CASE_ESSENTIALS_CASE_PRESET],
+  builtins: [
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET,
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+  ],
 })
 
 if (!defaultCatalogResult.ok) {

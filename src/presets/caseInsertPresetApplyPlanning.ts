@@ -3,9 +3,24 @@ import {
   type CaseInsertPresetSnapshotObjectState,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
 import {
+  adoptCaseInsertArtworkViewport,
+  type CaseInsertArtworkViewportAdoptionTarget,
+} from '../caseInsert/artworkViewportAdoption.ts'
+import {
+  createCaseInsertPresetEmptyArtworkSlot,
+  getCaseInsertPresetArtworkSlotProvisioningCapability,
+  type CaseInsertPresetArtworkSlotProvisioningCapability,
+  type CaseInsertPresetArtworkSlotProvisioningTarget,
+} from '../caseInsert/presetArtworkSlotProvisioning.ts'
+import {
   isCaseInsertPresetAggregateContentIdentity,
 } from '../caseInsert/presetAggregateIdentity.ts'
-import type { ProjectCaseInsertLayout } from '../project/projectTypes.ts'
+import type {
+  ProjectCaseInsertImageFit,
+  ProjectCaseInsertImageSlot,
+  ProjectCaseInsertLayout,
+  ProjectCaseInsertReservedArtworkViewport,
+} from '../project/projectTypes.ts'
 import { caseInsertTemplates } from '../templates/caseInsertTemplates.ts'
 import type { TemplateRect } from '../types/template.ts'
 import type {
@@ -33,10 +48,29 @@ import {
   createCaseInsertPresetApplyPlanReviewIdentity,
   createCaseInsertPresetMaterialConsentRequirementId,
 } from './caseInsertPresetApplyReviewIdentity.ts'
+import {
+  CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_FORMAT_VERSION,
+  CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_KIND,
+  planCaseInsertPresetArtworkViewport,
+  type CaseInsertPresetArtworkViewportConsentRequirement,
+  type CaseInsertPresetArtworkViewportPlanningSuccess,
+  type CaseInsertPresetArtworkViewportWarning,
+} from './caseInsertPresetArtworkViewport.ts'
+import {
+  createCaseInsertPresetArtworkViewportSourceEvidence,
+  type CaseInsertPresetArtworkViewportSourceState,
+} from './caseInsertPresetArtworkViewportSource.ts'
+import {
+  createCaseInsertPresetDeterministicIdentityDigest,
+} from './caseInsertPresetDeterministicIdentity.ts'
+import type {
+  CaseInsertAppliedPresetLayoutFieldId,
+  CaseInsertAppliedPresetSourceAssignment,
+} from './caseInsertPresetOwnedField.ts'
 
 export const CASE_INSERT_PRESET_APPLY_PLAN_KIND =
   'sbls/case-insert-preset-apply-plan' as const
-export const CASE_INSERT_PRESET_APPLY_PLAN_FORMAT_VERSION = 2 as const
+export const CASE_INSERT_PRESET_APPLY_PLAN_FORMAT_VERSION = 3 as const
 
 export type CaseInsertPresetPlanOperation = 'apply'
 export type CaseInsertPresetPlanRequestedOperation =
@@ -45,10 +79,7 @@ export type CaseInsertPresetPlanRequestedOperation =
   | 'detach'
 
 export type CaseInsertPresetPlanFieldId =
-  | 'layout-x'
-  | 'layout-y'
-  | 'layout-scale'
-  | 'layout-width'
+  CaseInsertAppliedPresetLayoutFieldId
 
 export type CaseInsertPresetPlanPreservationCategory =
   | 'image-bytes'
@@ -64,21 +95,103 @@ export type CaseInsertPresetPlanPreservationCategory =
   | 'untargeted-object-fields'
   | 'owners-outside-requested-scope'
 
-export type CaseInsertPresetPlanSourceAssignment = Readonly<{
-  presetId: CaseInsertPresetId
-  presetRevision: number
-  slotId: `case:preset-slot:${string}`
-  assignmentId: `case:preset-assignment:${string}`
-  roleId: CaseInsertPresetRoleId
-  region: CaseInsertPresetConcreteRegionId
-  coordinateBasis: CaseInsertPresetCoordinateBasis
-  ownerId: CaseInsertPresetOwnerId
-  object: Readonly<{
-    bindingKind: CaseInsertPresetObjectBinding['kind']
+export type CaseInsertPresetPlanSourceAssignment =
+  CaseInsertAppliedPresetSourceAssignment
+
+export type CaseInsertPresetPlanObjectCreationAction = Readonly<{
+  id: `case:preset-object-creation-action:v1:${string}`
+  kind: 'create-empty-repeated-artwork-slot'
+  source: CaseInsertPresetPlanSourceAssignment
+  target: Readonly<{
+    featureOwnerId: 'case.tray.artwork-slots'
+    bindingKind: 'repeated'
     bindingId: string
-    runtimeId: string
+    runtimeObjectId: string
   }>
-  declaredPolicy: 'normalized-content-region-direct-layout-v1'
+  before: Readonly<{
+    presence: 'absent'
+    exactMatchCount: 0
+  }>
+  canonicalInitialObject: Readonly<ProjectCaseInsertImageSlot>
+  insertionPolicy: 'append-preserve-existing-order'
+  ownedFieldIds: readonly ['object-presence']
+  unownedFieldIds: readonly [
+    'image-data',
+    'image-provenance',
+    'image-dimensions',
+    'default-steam-logo',
+    'label-after-creation',
+    'enabled',
+    'frame',
+    'array-position-after-creation',
+    'owner-enablement',
+  ]
+  viewportActionId: `case:preset-artwork-viewport-action:v1:${string}`
+  semanticNoOp: false
+  review: Readonly<{
+    actionLabel: string
+    targetLabel: string
+    initialStateLabel: 'Empty and disabled'
+    insertionLabel: 'Append after existing Tray artwork without reordering it'
+    preservationLabel:
+      'Does not select, import, populate, or enable screenshot artwork'
+  }>
+}>
+
+export type CaseInsertPresetPlanArtworkViewportOwnedValues = Readonly<{
+  layoutX: number
+  layoutY: number
+  layoutScale: number
+  imageFit: ProjectCaseInsertImageFit
+  reservedArtworkViewport:
+    Readonly<ProjectCaseInsertReservedArtworkViewport> | null
+}>
+
+export type CaseInsertPresetPlanArtworkViewportAction = Readonly<{
+  id: `case:preset-artwork-viewport-action:v1:${string}`
+  kind: 'adopt-reserved-artwork-viewport'
+  source: CaseInsertPresetPlanSourceAssignment
+  target: Readonly<{
+    featureOwnerId: 'case.tray.artwork-slots'
+    bindingKind: 'repeated'
+    bindingId: string
+    runtimeObjectId: string
+  }>
+  targetOrigin: 'existing' | 'planned-creation'
+  sourceState: CaseInsertPresetArtworkViewportSourceState
+  evidence: CaseInsertPresetArtworkViewportPlanningSuccess
+  currentValues: CaseInsertPresetPlanArtworkViewportOwnedValues | null
+  proposedValues: CaseInsertPresetPlanArtworkViewportOwnedValues
+  ownedFieldIds: readonly [
+    'layout-x',
+    'layout-y',
+    'layout-scale',
+    'image-fit',
+    'reserved-artwork-viewport',
+  ]
+  preservedFieldIds: readonly [
+    'image-data',
+    'image-provenance',
+    'image-dimensions',
+    'default-steam-logo',
+    'label',
+    'enabled',
+    'frame',
+    'layout-rotation',
+    'owner-enablement',
+    'array-order',
+  ]
+  semanticNoOp: boolean
+  review: Readonly<{
+    actionLabel: string
+    targetLabel: string
+    fittingLabel: 'Contain' | 'Cover' | 'Explicit crop'
+    sourceStateLabel:
+      | 'Current artwork fitting is fully resolved'
+      | 'Future artwork fitting is deferred until an image is selected'
+    preservationLabel:
+      'Preserves image content, provenance, dimensions, label, enablement, frame, and rotation'
+  }>
 }>
 
 type CaseInsertPresetPlanFieldActionBase = Readonly<{
@@ -155,6 +268,16 @@ export type CaseInsertPresetPlanWarning =
       regions: readonly CaseInsertPresetConcreteRegionId[]
       assignmentIds: readonly `case:preset-assignment:${string}`[]
     }>
+  | CaseInsertPresetArtworkViewportWarning
+  | Readonly<{
+      id: `case:preset-warning:v1:artwork-fitting-deferred:${string}`
+      kind: 'artwork-cover-fitting-deferred'
+      assignmentId: `case:preset-assignment:${string}`
+      ownerId: 'case.tray.artwork-slots'
+      objectId: string
+      fittingMode: 'cover'
+      reviewMessage: 'Future artwork will use Cover and may be cropped.'
+    }>
 
 export type CaseInsertPresetPlanBlocker =
   | Readonly<{
@@ -185,19 +308,27 @@ export type CaseInsertPresetPlanBlocker =
     }>
 
 export type CaseInsertPresetUnsupportedAction = Readonly<{
-  kind: 'action-region-policy-unavailable' | 'text-fitting-unavailable'
+  kind:
+    | 'action-region-policy-unavailable'
+    | 'text-fitting-unavailable'
+    | 'empty-target-creation-unsupported'
+    | 'artwork-viewport-planning-unavailable'
+    | 'artwork-viewport-adoption-unavailable'
+    | 'artwork-source-unavailable'
   assignmentId: `case:preset-assignment:${string}`
   ownerId: CaseInsertPresetOwnerId
   objectId: string
   coordinateBasis: CaseInsertPresetCoordinateBasis
 }>
 
-export type CaseInsertPresetMaterialConsentRequirement = Readonly<{
-  id: `case:preset-consent:${string}`
-  kind: 'multiple-concrete-regions'
-  regions: readonly CaseInsertPresetConcreteRegionId[]
-  assignmentIds: readonly `case:preset-assignment:${string}`[]
-}>
+export type CaseInsertPresetMaterialConsentRequirement =
+  | Readonly<{
+      id: `case:preset-consent:${string}`
+      kind: 'multiple-concrete-regions'
+      regions: readonly CaseInsertPresetConcreteRegionId[]
+      assignmentIds: readonly `case:preset-assignment:${string}`[]
+    }>
+  | CaseInsertPresetArtworkViewportConsentRequirement
 
 export type CaseInsertPresetPlanFieldFootprint = Readonly<{
   featureOwnerId: CaseInsertPresetOwnerId
@@ -245,11 +376,19 @@ export type CaseInsertPresetApplyPlan = Readonly<{
     bindingStatus: ResolvedCaseInsertPresetAssignment['bindingStatus']
     expectedEnablement: ResolvedCaseInsertPresetAssignment['enablement']
     fieldActionIds: readonly string[]
+    objectCreationActionId:
+      | CaseInsertPresetPlanObjectCreationAction['id']
+      | null
+    artworkViewportActionId:
+      | CaseInsertPresetPlanArtworkViewportAction['id']
+      | null
     preservationDecisionIds: readonly string[]
     skip: CaseInsertPresetPlanSkip | null
     semanticNoOp: boolean
   }>[]
   fieldActions: readonly CaseInsertPresetPlanFieldAction[]
+  objectCreationActions: readonly CaseInsertPresetPlanObjectCreationAction[]
+  artworkViewportActions: readonly CaseInsertPresetPlanArtworkViewportAction[]
   preservationDecisions: readonly CaseInsertPresetPlanPreservationDecision[]
   skips: readonly CaseInsertPresetPlanSkip[]
   warnings: readonly CaseInsertPresetPlanWarning[]
@@ -261,6 +400,9 @@ export type CaseInsertPresetApplyPlan = Readonly<{
     fieldActionCount: number
     changedFieldActionCount: number
     noOpFieldActionCount: number
+    objectCreationActionCount: number
+    changedArtworkViewportActionCount: number
+    noOpArtworkViewportActionCount: number
   }>
   preconditions: Readonly<{
     sessionId: string
@@ -360,6 +502,10 @@ export type CaseInsertPresetResolvedLayoutProposalResult =
       value: ResolvedCaseInsertPresetAssignments
       assignments: readonly ResolvedCaseInsertPresetAssignment[]
       fieldActions: readonly CaseInsertPresetPlanFieldAction[]
+      objectCreationActions:
+        readonly CaseInsertPresetPlanObjectCreationAction[]
+      artworkViewportActions:
+        readonly CaseInsertPresetPlanArtworkViewportAction[]
       preservationDecisions:
         readonly CaseInsertPresetPlanPreservationDecision[]
       skips: readonly CaseInsertPresetPlanSkip[]
@@ -381,6 +527,14 @@ type PendingFieldAction = Readonly<{
   currentValue: number | null
   proposedValue: number
   source: CaseInsertPresetPlanSourceAssignment
+}>
+
+type PlannedArtworkViewportActions = Readonly<{
+  creationAction: CaseInsertPresetPlanObjectCreationAction | null
+  viewportAction: CaseInsertPresetPlanArtworkViewportAction
+  warnings: readonly CaseInsertPresetPlanWarning[]
+  materialConsentRequirements:
+    readonly CaseInsertPresetArtworkViewportConsentRequirement[]
 }>
 
 const REGION_ORDER = new Map(
@@ -448,6 +602,24 @@ function deepFreeze<T>(value: T): T {
     deepFreeze(child)
   }
   return Object.freeze(value)
+}
+
+function sameValue(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) => sameValue(item, right[index]))
+  }
+  if (!left || !right || typeof left !== 'object' ||
+      typeof right !== 'object') return false
+  const leftRecord = left as Readonly<Record<string, unknown>>
+  const rightRecord = right as Readonly<Record<string, unknown>>
+  const leftKeys = Object.keys(leftRecord).sort()
+  const rightKeys = Object.keys(rightRecord).sort()
+  return leftKeys.length === rightKeys.length &&
+    leftKeys.every((key, index) => key === rightKeys[index] &&
+      sameValue(leftRecord[key], rightRecord[key]))
 }
 
 function isDeeplyFrozen(value: unknown): boolean {
@@ -568,7 +740,18 @@ function isResolvedAssignmentStructurallyValid(
     return false
   }
 
-  const missing = assignment.bindingStatus === 'missing-optional' ||
+  if ((assignment.artworkViewport !== undefined &&
+      assignment.actionRegion === null) ||
+      (assignment.bindingStatus === 'missing-create-empty' &&
+        assignment.missingTargetPolicy !== 'create-empty') ||
+      ((assignment.bindingStatus === 'missing-optional' ||
+        assignment.bindingStatus === 'missing-required') &&
+        assignment.missingTargetPolicy === 'create-empty')) {
+    return false
+  }
+
+  const missing = assignment.bindingStatus === 'missing-create-empty' ||
+    assignment.bindingStatus === 'missing-optional' ||
     assignment.bindingStatus === 'missing-required'
   if (missing) {
     return assignment.currentState === null && assignment.enablement === null
@@ -683,6 +866,9 @@ function normalizedRegionInOwnerBasis(
 
 function sourceAssignment(
   assignment: ResolvedCaseInsertPresetAssignment,
+  runtimeId = assignment.currentState?.id ?? assignment.object.id,
+  declaredPolicy: CaseInsertPresetPlanSourceAssignment['declaredPolicy'] =
+    'normalized-content-region-direct-layout-v1',
 ): CaseInsertPresetPlanSourceAssignment {
   return deepFreeze({
     presetId: assignment.presetId,
@@ -696,9 +882,311 @@ function sourceAssignment(
     object: {
       bindingKind: assignment.object.kind,
       bindingId: assignment.object.id,
-      runtimeId: assignment.currentState!.id,
+      runtimeId,
     },
-    declaredPolicy: 'normalized-content-region-direct-layout-v1',
+    declaredPolicy,
+  })
+}
+
+function provisioningTarget(
+  assignment: ResolvedCaseInsertPresetAssignment,
+  templateId: string,
+  templateRevision: number | null,
+): CaseInsertPresetArtworkSlotProvisioningTarget {
+  return {
+    presetId: assignment.presetId,
+    presetRevision: assignment.presetRevision,
+    templateId,
+    templateRevision,
+    slotId: assignment.slotId,
+    assignmentId: assignment.assignmentId,
+    roleId: assignment.roleId,
+    region: assignment.region,
+    coordinateBasis: assignment.coordinateBasis,
+    ownerId: assignment.ownerId,
+    object: { ...assignment.object },
+  }
+}
+
+function viewportAdoptionTarget(
+  capability: CaseInsertPresetArtworkSlotProvisioningCapability,
+): CaseInsertArtworkViewportAdoptionTarget {
+  return {
+    templateId: capability.target.templateId,
+    templateRevision: capability.target.templateRevision,
+    presetId: capability.target.presetId,
+    presetRevision: capability.target.presetRevision,
+    slotId: capability.target.slotId,
+    assignmentId: capability.target.assignmentId,
+    ownerId: capability.target.ownerId,
+    objectId: capability.target.object.id,
+    coordinateBasis: capability.target.coordinateBasis,
+  }
+}
+
+function viewportOwnedValues(
+  slot: Readonly<ProjectCaseInsertImageSlot>,
+): CaseInsertPresetPlanArtworkViewportOwnedValues {
+  return {
+    layoutX: slot.layout.x,
+    layoutY: slot.layout.y,
+    layoutScale: slot.layout.scale,
+    imageFit: slot.fit,
+    reservedArtworkViewport: slot.reservedArtworkViewport
+      ? {
+          ...slot.reservedArtworkViewport,
+          focalPosition: {
+            ...slot.reservedArtworkViewport.focalPosition,
+          },
+        }
+      : null,
+  }
+}
+
+function artworkViewportActionId(
+  assignment: ResolvedCaseInsertPresetAssignment,
+  evidence: CaseInsertPresetArtworkViewportPlanningSuccess,
+) {
+  return `case:preset-artwork-viewport-action:v1:${
+    createCaseInsertPresetDeterministicIdentityDigest({
+      assignmentId: assignment.assignmentId,
+      ownerId: assignment.ownerId,
+      objectId: assignment.object.id,
+      evidenceIdentity: evidence.plan.identity,
+    })
+  }` as const
+}
+
+function objectCreationActionId(
+  capability: CaseInsertPresetArtworkSlotProvisioningCapability,
+  viewportActionId: CaseInsertPresetPlanArtworkViewportAction['id'],
+) {
+  return `case:preset-object-creation-action:v1:${
+    createCaseInsertPresetDeterministicIdentityDigest({
+      target: capability.target,
+      viewportActionId,
+      insertionPolicy: capability.insertionPolicy,
+    })
+  }` as const
+}
+
+function planArtworkViewportActions(
+  assignment: ResolvedCaseInsertPresetAssignment,
+  templateId: string,
+  templateRevision: number | null,
+): PlannedArtworkViewportActions | null {
+  if (!assignment.artworkViewport || !assignment.actionRegion) return null
+  const capability = getCaseInsertPresetArtworkSlotProvisioningCapability(
+    provisioningTarget(assignment, templateId, templateRevision),
+  )
+  if (!capability) return null
+
+  let targetSlot: Readonly<ProjectCaseInsertImageSlot>
+  let targetOrigin: CaseInsertPresetPlanArtworkViewportAction['targetOrigin']
+  if (assignment.bindingStatus === 'missing-create-empty') {
+    const created = createCaseInsertPresetEmptyArtworkSlot(capability.target)
+    if (!created.ok) return null
+    targetSlot = created.slot
+    targetOrigin = 'planned-creation'
+  } else if (assignment.currentState &&
+      isImageState(assignment.currentState)) {
+    targetSlot = assignment.currentState
+    targetOrigin = 'existing'
+  } else {
+    return null
+  }
+
+  const sourceEvidence =
+    createCaseInsertPresetArtworkViewportSourceEvidence(targetSlot)
+  if (!sourceEvidence.ok) return null
+  const evidence = planCaseInsertPresetArtworkViewport({
+    assignment: {
+      presetId: assignment.presetId,
+      presetRevision: assignment.presetRevision,
+      slotId: assignment.slotId,
+      assignmentId: assignment.assignmentId,
+      roleId: assignment.roleId,
+      region: assignment.region,
+      coordinateBasis: assignment.coordinateBasis,
+      ownerId: assignment.ownerId,
+      object: { ...assignment.object },
+    },
+    template: {
+      id: templateId,
+      revision: templateRevision,
+      presetCompatibility: {
+        mode: 'specific-template',
+        templateId,
+        presetId: assignment.presetId,
+        presetRevision: assignment.presetRevision,
+      },
+    },
+    action: {
+      kind: CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_KIND,
+      formatVersion:
+        CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_FORMAT_VERSION,
+      viewport: { ...assignment.actionRegion },
+      fitting: assignment.artworkViewport.fitting.mode === 'explicit-crop'
+        ? {
+            mode: 'explicit-crop',
+            sourceWindow: {
+              ...assignment.artworkViewport.fitting.sourceWindow,
+            },
+          }
+        : { mode: assignment.artworkViewport.fitting.mode },
+    },
+    source: sourceEvidence.source,
+    capabilities: {
+      ownerId: capability.target.ownerId,
+      object: { ...capability.target.object },
+      viewportGeometry: true,
+      contain: true,
+      cover: true,
+      explicitCropFraming: true,
+      focalOffset: true,
+      zoom: true,
+    },
+  })
+  if (!evidence.ok) return null
+
+  const adopted = adoptCaseInsertArtworkViewport({
+    slot: targetSlot,
+    target: viewportAdoptionTarget(capability),
+    evidence,
+  })
+  if (!adopted.ok) return null
+  const id = artworkViewportActionId(assignment, evidence)
+  const currentValues = targetOrigin === 'existing'
+    ? viewportOwnedValues(targetSlot)
+    : null
+  const proposedValues = viewportOwnedValues(adopted.slot)
+  const viewportAction: CaseInsertPresetPlanArtworkViewportAction = {
+    id,
+    kind: 'adopt-reserved-artwork-viewport',
+    source: sourceAssignment(
+      assignment,
+      capability.target.object.id,
+      'reserved-artwork-viewport-v1',
+    ),
+    target: {
+      featureOwnerId: capability.target.ownerId,
+      bindingKind: capability.target.object.kind,
+      bindingId: capability.target.object.id,
+      runtimeObjectId: capability.target.object.id,
+    },
+    targetOrigin,
+    sourceState: sourceEvidence.sourceState,
+    evidence,
+    currentValues,
+    proposedValues,
+    ownedFieldIds: [
+      'layout-x',
+      'layout-y',
+      'layout-scale',
+      'image-fit',
+      'reserved-artwork-viewport',
+    ],
+    preservedFieldIds: [
+      'image-data',
+      'image-provenance',
+      'image-dimensions',
+      'default-steam-logo',
+      'label',
+      'enabled',
+      'frame',
+      'layout-rotation',
+      'owner-enablement',
+      'array-order',
+    ],
+    semanticNoOp: currentValues !== null &&
+      sameValue(currentValues, proposedValues),
+    review: {
+      actionLabel: `Reserve ${capability.reviewLabel} artwork frame`,
+      targetLabel: capability.reviewLabel,
+      fittingLabel: evidence.plan.intent.declaration.mode === 'contain'
+        ? 'Contain'
+        : evidence.plan.intent.declaration.mode === 'cover'
+          ? 'Cover'
+          : 'Explicit crop',
+      sourceStateLabel: evidence.status === 'deferred'
+        ? 'Future artwork fitting is deferred until an image is selected'
+        : 'Current artwork fitting is fully resolved',
+      preservationLabel:
+        'Preserves image content, provenance, dimensions, label, enablement, frame, and rotation',
+    },
+  }
+  const creationAction = targetOrigin === 'planned-creation'
+    ? {
+        id: objectCreationActionId(capability, id),
+        kind: 'create-empty-repeated-artwork-slot' as const,
+        source: sourceAssignment(
+          assignment,
+          capability.target.object.id,
+          'create-empty-repeated-artwork-slot-v1',
+        ),
+        target: {
+          featureOwnerId: capability.target.ownerId,
+          bindingKind: capability.target.object.kind,
+          bindingId: capability.target.object.id,
+          runtimeObjectId: capability.target.object.id,
+        },
+        before: { presence: 'absent' as const, exactMatchCount: 0 as const },
+        canonicalInitialObject: targetSlot,
+        insertionPolicy: capability.insertionPolicy,
+        ownedFieldIds: ['object-presence'] as const,
+        unownedFieldIds: [
+          'image-data',
+          'image-provenance',
+          'image-dimensions',
+          'default-steam-logo',
+          'label-after-creation',
+          'enabled',
+          'frame',
+          'array-position-after-creation',
+          'owner-enablement',
+        ] as const,
+        viewportActionId: id,
+        semanticNoOp: false as const,
+        review: {
+          actionLabel: `Create empty ${capability.reviewLabel} slot`,
+          targetLabel: capability.reviewLabel,
+          initialStateLabel: 'Empty and disabled' as const,
+          insertionLabel:
+            'Append after existing Tray artwork without reordering it' as const,
+          preservationLabel:
+            'Does not select, import, populate, or enable screenshot artwork' as const,
+        },
+      } satisfies CaseInsertPresetPlanObjectCreationAction
+    : null
+  const warnings: CaseInsertPresetPlanWarning[] = [
+    ...evidence.plan.warnings,
+  ]
+  if (evidence.status === 'deferred' &&
+      evidence.plan.intent.declaration.mode === 'cover') {
+    warnings.push({
+      id: `case:preset-warning:v1:artwork-fitting-deferred:${
+        createCaseInsertPresetDeterministicIdentityDigest({
+          assignmentId: assignment.assignmentId,
+          viewportIdentity: evidence.plan.viewport.identity,
+          intentIdentity: evidence.plan.intent.identity,
+        })
+      }`,
+      kind: 'artwork-cover-fitting-deferred',
+      assignmentId: assignment.assignmentId,
+      ownerId: capability.target.ownerId,
+      objectId: capability.target.object.id,
+      fittingMode: 'cover',
+      reviewMessage: 'Future artwork will use Cover and may be cropped.',
+    })
+  }
+
+  return deepFreeze({
+    creationAction,
+    viewportAction,
+    warnings,
+    materialConsentRequirements: [
+      ...evidence.plan.materialConsentRequirements,
+    ],
   })
 }
 
@@ -880,7 +1368,10 @@ function coalesceActions(pending: readonly PendingFieldAction[]) {
   return { invalid: false as const, actions, conflicts }
 }
 
-function isImageState(state: CaseInsertPresetSnapshotObjectState) {
+function isImageState(
+  state: CaseInsertPresetSnapshotObjectState,
+): state is CaseInsertPresetSnapshotObjectState &
+  Readonly<ProjectCaseInsertImageSlot> {
   return 'imageDataUrl' in state
 }
 
@@ -998,6 +1489,10 @@ function buildWarnings(
 function buildAssignmentSummaries(
   assignments: readonly ResolvedCaseInsertPresetAssignment[],
   fieldActions: readonly CaseInsertPresetPlanFieldAction[],
+  objectCreationActions:
+    readonly CaseInsertPresetPlanObjectCreationAction[],
+  artworkViewportActions:
+    readonly CaseInsertPresetPlanArtworkViewportAction[],
   decisions: readonly CaseInsertPresetPlanPreservationDecision[],
   skips: readonly CaseInsertPresetPlanSkip[],
 ) {
@@ -1011,6 +1506,16 @@ function buildAssignmentSummaries(
       .map(({ id }) => id)
     const skip = skips.find(({ assignmentId }) =>
       assignmentId === assignment.assignmentId) ?? null
+    const objectCreationActionId = objectCreationActions.find(
+      ({ source }) => source.assignmentId === assignment.assignmentId,
+    )?.id ?? null
+    const artworkViewportActionId = artworkViewportActions.find(
+      ({ source }) => source.assignmentId === assignment.assignmentId,
+    )?.id ?? null
+    const viewportNoOp = artworkViewportActionId === null ||
+      artworkViewportActions.find(
+        ({ id }) => id === artworkViewportActionId,
+      )?.semanticNoOp === true
     return {
       assignmentId: assignment.assignmentId,
       slotId: assignment.slotId,
@@ -1028,11 +1533,14 @@ function buildAssignmentSummaries(
         ? { ...assignment.enablement }
         : null,
       fieldActionIds: actionIds,
+      objectCreationActionId,
+      artworkViewportActionId,
       preservationDecisionIds,
       skip,
-      semanticNoOp: actionIds.length === 0 || fieldActions
-        .filter(({ id }) => actionIds.includes(id))
-        .every(({ semanticNoOp }) => semanticNoOp),
+      semanticNoOp: objectCreationActionId === null && viewportNoOp &&
+        (actionIds.length === 0 || fieldActions
+          .filter(({ id }) => actionIds.includes(id))
+          .every(({ semanticNoOp }) => semanticNoOp)),
     }
   })
 }
@@ -1057,6 +1565,8 @@ export function planCaseInsertPresetFirstApply(
     value,
     assignments,
     fieldActions,
+    objectCreationActions,
+    artworkViewportActions,
     preservationDecisions,
     skips,
     warnings,
@@ -1065,7 +1575,12 @@ export function planCaseInsertPresetFirstApply(
   const changedFieldActionCount = fieldActions.filter(
     ({ semanticNoOp }) => !semanticNoOp,
   ).length
-  const aggregateNoOp = changedFieldActionCount === 0
+  const changedArtworkViewportActionCount = artworkViewportActions.filter(
+    ({ semanticNoOp }) => !semanticNoOp,
+  ).length
+  const aggregateNoOp = changedFieldActionCount === 0 &&
+    objectCreationActions.length === 0 &&
+    changedArtworkViewportActionCount === 0
   const requestedScope = parseCaseInsertPresetApplicationScope(
     value.requestedScope,
   )
@@ -1106,10 +1621,14 @@ export function planCaseInsertPresetFirstApply(
     assignments: buildAssignmentSummaries(
       assignments,
       fieldActions,
+      objectCreationActions,
+      artworkViewportActions,
       preservationDecisions,
       skips,
     ),
     fieldActions,
+    objectCreationActions,
+    artworkViewportActions,
     preservationDecisions,
     skips,
     warnings,
@@ -1120,6 +1639,10 @@ export function planCaseInsertPresetFirstApply(
       fieldActionCount: fieldActions.length,
       changedFieldActionCount,
       noOpFieldActionCount: fieldActions.length - changedFieldActionCount,
+      objectCreationActionCount: objectCreationActions.length,
+      changedArtworkViewportActionCount,
+      noOpArtworkViewportActionCount:
+        artworkViewportActions.length - changedArtworkViewportActionCount,
     },
     preconditions: {
       sessionId: value.snapshotIdentity.sessionId,
@@ -1168,6 +1691,11 @@ export function createCaseInsertPresetResolvedLayoutProposal(
   const unsupported: CaseInsertPresetUnsupportedAction[] = []
   const skips: CaseInsertPresetPlanSkip[] = []
   const pending: PendingFieldAction[] = []
+  const objectCreationActions: CaseInsertPresetPlanObjectCreationAction[] = []
+  const artworkViewportActions: CaseInsertPresetPlanArtworkViewportAction[] = []
+  const artworkViewportWarnings: CaseInsertPresetPlanWarning[] = []
+  const artworkViewportConsentRequirements:
+    CaseInsertPresetArtworkViewportConsentRequirement[] = []
 
   for (const assignment of assignments) {
     if (assignment.bindingStatus === 'missing-required') {
@@ -1187,6 +1715,44 @@ export function createCaseInsertPresetResolvedLayoutProposal(
         region: assignment.region,
         ownerId: assignment.ownerId,
         objectId: assignment.object.id,
+      })
+      continue
+    }
+    if (assignment.artworkViewport) {
+      const planned = planArtworkViewportActions(
+        assignment,
+        value.snapshotIdentity.template.id,
+        value.snapshotIdentity.template.revision,
+      )
+      if (!planned) {
+        unsupported.push({
+          kind: assignment.bindingStatus === 'missing-create-empty'
+            ? 'empty-target-creation-unsupported'
+            : 'artwork-viewport-planning-unavailable',
+          assignmentId: assignment.assignmentId,
+          ownerId: assignment.ownerId,
+          objectId: assignment.object.id,
+          coordinateBasis: assignment.coordinateBasis,
+        })
+        continue
+      }
+      if (planned.creationAction) {
+        objectCreationActions.push(planned.creationAction)
+      }
+      artworkViewportActions.push(planned.viewportAction)
+      artworkViewportWarnings.push(...planned.warnings)
+      artworkViewportConsentRequirements.push(
+        ...planned.materialConsentRequirements,
+      )
+      continue
+    }
+    if (assignment.bindingStatus === 'missing-create-empty') {
+      unsupported.push({
+        kind: 'empty-target-creation-unsupported',
+        assignmentId: assignment.assignmentId,
+        ownerId: assignment.ownerId,
+        objectId: assignment.object.id,
+        coordinateBasis: assignment.coordinateBasis,
       })
       continue
     }
@@ -1238,8 +1804,59 @@ export function createCaseInsertPresetResolvedLayoutProposal(
   }
 
   const fieldActions = coalesced.actions
+  objectCreationActions.sort((left, right) => {
+    const leftCapability =
+      getCaseInsertPresetArtworkSlotProvisioningCapability({
+        presetId: left.source.presetId,
+        presetRevision: left.source.presetRevision,
+        templateId: value.snapshotIdentity.template.id,
+        templateRevision: value.snapshotIdentity.template.revision,
+        slotId: left.source.slotId,
+        assignmentId: left.source.assignmentId,
+        roleId: left.source.roleId,
+        region: left.source.region,
+        coordinateBasis: left.source.coordinateBasis,
+        ownerId: left.source.ownerId,
+        object: {
+          kind: left.source.object.bindingKind,
+          id: left.source.object.bindingId,
+        },
+      })
+    const rightCapability =
+      getCaseInsertPresetArtworkSlotProvisioningCapability({
+        presetId: right.source.presetId,
+        presetRevision: right.source.presetRevision,
+        templateId: value.snapshotIdentity.template.id,
+        templateRevision: value.snapshotIdentity.template.revision,
+        slotId: right.source.slotId,
+        assignmentId: right.source.assignmentId,
+        roleId: right.source.roleId,
+        region: right.source.region,
+        coordinateBasis: right.source.coordinateBasis,
+        ownerId: right.source.ownerId,
+        object: {
+          kind: right.source.object.bindingKind,
+          id: right.source.object.bindingId,
+        },
+      })
+    return (leftCapability?.slotNumber ?? 99) -
+      (rightCapability?.slotNumber ?? 99)
+  })
+  const viewportOrder = new Map(
+    objectCreationActions.map((action, index) => [
+      action.viewportActionId,
+      index,
+    ]),
+  )
+  artworkViewportActions.sort((left, right) =>
+    (viewportOrder.get(left.id) ?? 99) -
+      (viewportOrder.get(right.id) ?? 99) ||
+    left.source.assignmentId.localeCompare(right.source.assignmentId))
   const preservationDecisions = buildPreservationDecisions(assignments)
-  const warnings = buildWarnings(assignments, value.resolvedRegions)
+  const warnings = [
+    ...buildWarnings(assignments, value.resolvedRegions),
+    ...artworkViewportWarnings,
+  ].sort(warningSort)
   const changedFieldActionCount = fieldActions.filter(
     ({ semanticNoOp }) => !semanticNoOp,
   ).length
@@ -1259,11 +1876,14 @@ export function createCaseInsertPresetResolvedLayoutProposal(
       ...requirement,
     })
   }
+  materialConsentRequirements.push(...artworkViewportConsentRequirements)
   return deepFreeze({
     ok: true,
     value,
     assignments,
     fieldActions,
+    objectCreationActions,
+    artworkViewportActions,
     preservationDecisions,
     skips,
     warnings,

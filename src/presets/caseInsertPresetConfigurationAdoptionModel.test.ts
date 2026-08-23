@@ -1193,6 +1193,24 @@ test('adoption identity projection is deterministic but is not a receipt', () =>
     assert.notEqual(original.adoptionIdentity, changedResult.adoptionIdentity)
   }
 
+  const typedApply = structuredClone(identityInput('apply')) as MutableRecord
+  const typedConfigurationIdentity =
+    'case:preset-applied-configuration:v2:typed-fixture'
+  typedApply.successorConfigurationIdentity = typedConfigurationIdentity
+  const typedSuccessor = typedApply.successor as MutableRecord
+  const typedAttachment = typedSuccessor.attachment as MutableRecord
+  typedAttachment.configurationIdentity = typedConfigurationIdentity
+  typedAttachment.attachmentIdentity =
+    `${CASE_INSERT_PRESET_ATTACHED_IDENTITY_PREFIX}${
+      encodeCaseInsertPresetDeterministicIdentity({
+        configurationIdentity: typedConfigurationIdentity,
+      })
+    }`
+  const typedResult = projectCaseInsertPresetApplicationAdoptionIdentity(
+    typedApply,
+  )
+  assert.equal(typedResult.ok, true, JSON.stringify(typedResult))
+
   const badEdge = structuredClone(identityInput('detach')) as MutableRecord
   badEdge.attachmentAction = 'attached'
   const badEdgeResult = projectCaseInsertPresetApplicationAdoptionIdentity(

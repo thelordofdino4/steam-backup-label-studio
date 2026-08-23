@@ -180,7 +180,7 @@ function getSpineSafeGuideId(side: JewelCaseSpineSideId): JewelCaseGuideId {
   return side === 'left' ? 'leftSpineSafeBounds' : 'rightSpineSafeBounds'
 }
 
-function getSpineSafeBounds(
+export function getJewelCaseSpineSafeBounds(
   side: JewelCaseSpineSideId,
   layout: CaseInsertPreviewLayout,
 ) {
@@ -334,7 +334,7 @@ function getSpineTextLayoutRequest(
   title: ProjectCaseInsertTextBlock,
   layout: CaseInsertPreviewLayout,
 ) {
-  const safeBounds = getSpineSafeBounds(side, layout)
+  const safeBounds = getJewelCaseSpineSafeBounds(side, layout)
 
   if (!safeBounds || !title.enabled) {
     return null
@@ -497,7 +497,7 @@ function getSpineImageSlotRenderSize(
   layout: CaseInsertPreviewLayout,
   role: JewelCaseSpineOverlayRole,
 ) {
-  const safeBounds = getSpineSafeBounds(side, layout)
+  const safeBounds = getJewelCaseSpineSafeBounds(side, layout)
   const config = spineOverlayConfig[role]
 
   if (!safeBounds) {
@@ -545,7 +545,7 @@ export function getJewelCaseSpineImageSlotPreviewLayout(
   layout: CaseInsertPreviewLayout,
   role: JewelCaseSpineOverlayRole,
 ): JewelCaseSpineBoxLayout | null {
-  const safeBounds = getSpineSafeBounds(side, layout)
+  const safeBounds = getJewelCaseSpineSafeBounds(side, layout)
   const config = spineOverlayConfig[role]
 
   if (!safeBounds || !slot.enabled || !slot.imageDataUrl) {

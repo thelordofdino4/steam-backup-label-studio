@@ -174,6 +174,23 @@ test('case helpers update artwork slots and export settings', () => {
   assert.deepEqual(state.export.guideIds, ['backPanelBounds'])
 })
 
+test('manual Tray artwork creation uses canonical stable IDs and labels', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'artworkSlots')
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'artworkSlots')
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'artworkSlots')
+
+  assert.deepEqual(
+    state.templates.tray.artworkSlots.map(({ id, label }) => ({ id, label })),
+    [
+      { id: 'tray-artwork-1', label: 'Artwork 1' },
+      { id: 'tray-artwork-2', label: 'Artwork 2' },
+      { id: 'tray-artwork-3', label: 'Artwork 3' },
+    ],
+  )
+})
+
 test('case image slot height fit keeps the full image vertical span visible', () => {
   const slot = setCaseInsertImageSlotImage(
     createDefaultProjectJewelCaseState('Portal 2').templates.cover.background,

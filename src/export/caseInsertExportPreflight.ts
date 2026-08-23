@@ -36,6 +36,7 @@ import {
 import {
   getJewelCaseSpineBackgroundFit,
   getJewelCaseSpineImageSlotPreviewLayout,
+  getJewelCaseSpineSafeBounds,
   getJewelCaseSpineTitlePreviewLayout,
 } from '../layout/jewelCaseSpineLayout.ts'
 import {
@@ -59,6 +60,9 @@ import type {
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
+import {
+  resolveCaseInsertArtworkViewportRenderArtifact,
+} from '../render/caseInsertArtworkViewportRenderArtifact.ts'
 import {
   getCaseInsertTemplate,
   type JewelCaseGuideId,
@@ -142,6 +146,7 @@ export function buildCaseInsertExportPreflightSummary(params: {
       templateState,
       paneConfig.hasSpine ? params.caseInsert.spine : null,
       params.brandingSources,
+      { owner: params.activeTemplatePane, layout },
     )}`,
   ]
 
@@ -223,7 +228,11 @@ function getTemplateSurfaceWarnings(
     )
   }
 
-  if (!surfaceHasVisibleContent(templateState, brandingSources)) {
+  if (!surfaceHasVisibleContent(
+    templateState,
+    brandingSources,
+    { owner: paneId, layout },
+  )) {
     warnings.push(
       `${paneLabel} has no visible artwork, logos, marks, or text; this export may be blank white.`,
     )
@@ -287,17 +296,25 @@ function getCoverSlotWarnings(
     templateState,
     templateState.artworkSlots,
   )) {
+    const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+      owner: 'cover',
+      slot,
+      layout,
+    })
     warnings.push(
       ...getRenderedImageSlotWarnings({
         slot,
         label: slot.label,
-        rect: getJewelCaseFrontImageSlotPreviewRect(
-          slot,
-          layout,
-          'calloutArtwork',
-        ),
+        rect: viewportResult.status === 'legacy'
+          ? getJewelCaseFrontImageSlotPreviewRect(
+              slot,
+              layout,
+              'calloutArtwork',
+            )
+          : null,
         safeBounds,
         edge: { regionLabel: 'cover safe zone' },
+        viewportResult,
       }),
     )
   }
@@ -357,17 +374,25 @@ function getTraySlotWarnings(
   )
 
   for (const slot of artworkSlots) {
+    const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+      owner: 'tray',
+      slot,
+      layout,
+    })
     warnings.push(
       ...getRenderedImageSlotWarnings({
         slot,
         label: slot.label,
-        rect: getJewelCaseBackImageSlotPreviewRect(
-          slot,
-          layout,
-          'artwork',
-        ),
+        rect: viewportResult.status === 'legacy'
+          ? getJewelCaseBackImageSlotPreviewRect(
+              slot,
+              layout,
+              'artwork',
+            )
+          : null,
         safeBounds,
         edge: { regionLabel: 'back panel safe zone' },
+        viewportResult,
       }),
     )
   }
@@ -548,7 +573,14 @@ function getSpineSideWarnings(
   if (
     !trayBackgroundRenders &&
     !slotWillRender(spineSide.background) &&
-    !spineSideHasVisibleContent(spineSide, brandingSources)
+    !spineSideHasVisibleContent(
+      spineSide,
+      brandingSources,
+      {
+        owner: side === 'left' ? 'left-spine' : 'right-spine',
+        layout,
+      },
+    )
   ) {
     warnings.push(`${label} has no visible spine content and may export blank white.`)
   }
@@ -607,18 +639,30 @@ function getSpineSideWarnings(
       layout: titleArtworkLayout,
       hasTextFallback: false,
     }),
-    ...artworkSlots.flatMap((slot) =>
-      getSpineImageSlotWarnings({
+    ...artworkSlots.flatMap((slot) => {
+      const viewportResult = resolveCaseInsertArtworkViewportRenderArtifact({
+        owner: side === 'left' ? 'left-spine' : 'right-spine',
+        slot,
+        layout,
+      })
+
+      return getSpineImageSlotWarnings({
         slot,
         label: `${label} ${slot.label}`,
-        layout: getJewelCaseSpineImageSlotPreviewLayout(
-          side,
-          slot,
-          layout,
-          'artwork',
-        ),
+        layout: viewportResult.status === 'legacy'
+          ? getJewelCaseSpineImageSlotPreviewLayout(
+              side,
+              slot,
+              layout,
+              'artwork',
+            )
+          : null,
         hasTextFallback: false,
-      })),
+        viewportResult,
+        edge: { regionLabel: `${label.toLocaleLowerCase()} safe zone` },
+        safeBounds: getJewelCaseSpineSafeBounds(side, layout),
+      })
+    }),
     ...spineSide.logoSlots.flatMap((slot) =>
       getSpineLogoSlotWarnings({
         slot,

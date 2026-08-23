@@ -368,6 +368,31 @@ export type ProjectTechnicalMarksInput =
 
 export type ProjectCaseInsertImageFit = 'cover' | 'contain' | 'scale' | 'crop'
 
+export type ProjectCaseInsertReservedArtworkViewportCoordinateBasis =
+  | 'front'
+  | 'frontSafe'
+  | 'backPanel'
+  | 'backPanelSafe'
+  | 'leftSpine'
+  | 'leftSpineSafe'
+  | 'rightSpine'
+  | 'rightSpineSafe'
+
+export type ProjectCaseInsertReservedArtworkViewport = {
+  kind: 'sbls/case-insert-artwork-viewport'
+  formatVersion: 1
+  templateId: 'jewelCase'
+  templateRevision: null
+  coordinateBasis: ProjectCaseInsertReservedArtworkViewportCoordinateBasis
+  widthPercent: number
+  heightPercent: number
+  focalPosition: {
+    xPercent: number
+    yPercent: number
+  }
+  zoom: number
+}
+
 export type ProjectCaseInsertLayout = {
   scale: number
   fontSizePt?: number
@@ -407,6 +432,7 @@ export type ProjectCaseInsertImageSlot = {
   fit: ProjectCaseInsertImageFit
   layout: ProjectCaseInsertLayout
   frame: AdditionalArtworkFrame
+  reservedArtworkViewport?: ProjectCaseInsertReservedArtworkViewport | null
 }
 
 export type ProjectCaseInsertTextSource = 'manual' | 'metadata' | 'steam'
@@ -500,7 +526,7 @@ export type SavedDiscEditorState = {
 }
 
 export type SavedProjectBase = {
-  schemaVersion: '0.3.0'
+  schemaVersion: '0.4.0'
   projectType?: EditorProjectType
   title: string
   savedAt: string
