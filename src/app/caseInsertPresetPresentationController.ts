@@ -7,10 +7,12 @@ import type {
 } from '../presets/caseInsertPresetCatalog.ts'
 import type {
   CaseInsertPresetCustomizationFieldRecord,
+  CaseInsertPresetTypedCustomizationFieldRecord,
 } from '../presets/caseInsertPresetAppliedConfiguration.ts'
 import type {
   CaseInsertPresetCustomizedFieldPolicy,
   CaseInsertPresetCustomizedFieldPolicyRecord,
+  CaseInsertPresetTypedCustomizedFieldPolicyRecord,
 } from '../presets/caseInsertPresetReapplyPlanning.ts'
 import {
   sameCaseInsertPresetValue,
@@ -45,7 +47,9 @@ export type CaseInsertPresetPresentationOption = Readonly<{
 
 export type CaseInsertPresetReapplyPolicyChoice = Readonly<{
   key: string
-  field: CaseInsertPresetCustomizationFieldRecord
+  field:
+    | CaseInsertPresetCustomizationFieldRecord
+    | CaseInsertPresetTypedCustomizationFieldRecord
   policy: CaseInsertPresetCustomizedFieldPolicy | null
 }>
 
@@ -107,7 +111,11 @@ function encodeOption(summary: CaseInsertPresetSummary): string {
   return JSON.stringify([summary.id, summary.revision])
 }
 
-function fieldKey(field: CaseInsertPresetCustomizationFieldRecord): string {
+function fieldKey(
+  field:
+    | CaseInsertPresetCustomizationFieldRecord
+    | CaseInsertPresetTypedCustomizationFieldRecord,
+): string {
   const { address } = field
   return JSON.stringify([
     address.region,
@@ -177,7 +185,8 @@ function createPolicyChoices(
   }
   const previousByKey = new Map(previous.map((choice) => [choice.key, choice]))
   return Object.freeze(inspection.customization.fields
-    .filter(({ fieldStatus }) => fieldStatus === 'value-diverged')
+    .filter(({ fieldStatus }) =>
+      fieldStatus === 'value-diverged' || fieldStatus === 'object-absent')
     .map((field) => {
       const key = fieldKey(field)
       return Object.freeze({
@@ -447,6 +456,19 @@ export function createCaseInsertPresetPresentationController({
       })
       const customizedFieldPolicies = reapplyPolicies.map((choice) => {
         const { field, policy } = choice
+        if (!('currentValue' in field)) {
+          return Object.freeze({
+            configurationIdentity:
+              currentInspection.configuration.configurationIdentity,
+            customizationReportIdentity:
+              currentCustomization.reportIdentity,
+            address: field.address,
+            lastAppliedValue: field.lastAppliedValue,
+            observation: field.observation,
+            selectedPreset,
+            policy: policy!,
+          }) satisfies CaseInsertPresetTypedCustomizedFieldPolicyRecord
+        }
         return Object.freeze({
           configurationIdentity:
             currentInspection.configuration.configurationIdentity,

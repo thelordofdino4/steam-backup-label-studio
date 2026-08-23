@@ -12,8 +12,13 @@ import {
   createMinimalCaseInsertPresetDefinition,
 } from './caseInsertPresetTestFixtures.ts'
 import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET,
   JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
 } from './builtins/jewelCaseEssentialsCasePreset.ts'
+import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+} from './builtins/jewelCaseEssentialsCasePresetV2.ts'
 
 const USER_ALPHA_ID =
   'user:case-preset:123e4567-e89b-42d3-a456-426614174000'
@@ -32,10 +37,10 @@ function createDefinition(
   return definition
 }
 
-test('the default catalog contains only the reviewed Jewel Case Essentials preset', () => {
+test('the default catalog lists the latest reviewed Jewel Case Essentials revision', () => {
   assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [{
     id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
-    revision: 1,
+    revision: JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
     name: 'Jewel Case Essentials',
     surface: 'case-insert',
     source: 'builtin',
@@ -43,6 +48,42 @@ test('the default catalog contains only the reviewed Jewel Case Essentials prese
   assert.ok(Object.isFrozen(CASE_INSERT_PRESET_CATALOG))
   assert.ok(Object.isFrozen(CASE_INSERT_PRESET_CATALOG.list()))
   assert.ok(Object.isFrozen(CASE_INSERT_PRESET_CATALOG.list()[0]))
+})
+
+test('the production catalog resolves both exact Jewel Case revisions and defaults to revision 2', () => {
+  assert.deepEqual(
+    CASE_INSERT_PRESET_CATALOG.getExact(
+      JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+      1,
+    ),
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET,
+  )
+  assert.deepEqual(
+    CASE_INSERT_PRESET_CATALOG.getExact(
+      JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+      JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
+    ),
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+  )
+  assert.deepEqual(
+    CASE_INSERT_PRESET_CATALOG.getLatest(
+      JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+    ),
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+  )
+
+  const latest = CASE_INSERT_PRESET_CATALOG.resolve({
+    id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+  })
+  assert.equal(latest.ok, true)
+  if (latest.ok) {
+    assert.deepEqual(latest.value.canonicalReference, {
+      id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+      revision: JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
+    })
+    assert.deepEqual(latest.value.definition,
+      JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2)
+  }
 })
 
 test('resolves canonical latest and exact revision identities without substitution', () => {
@@ -231,7 +272,7 @@ test('catalog output is deterministic, source-aware, and deeply immutable', () =
 
 test('catalog reports malformed definitions without trusting their identity', () => {
   const malformed = createMinimalCaseInsertPresetDefinition()
-  malformed.formatVersion = 2
+  malformed.formatVersion = 3
   const result = createCaseInsertPresetCatalog({ builtins: [malformed] })
   assert.equal(result.ok, false)
   if (!result.ok) {

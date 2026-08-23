@@ -64,3 +64,27 @@ test('presentation delegates all planning, transitions, and dispatch to one cont
   assert.doesNotMatch(controllerSource, /catalog\.getLatest/)
   assert.doesNotMatch(controllerSource, /localStorage|sessionStorage|project\.caseInsert\s*=/)
 })
+
+test('Apply and typed Reapply review render immutable creation, physical viewport, fitting, clipping, and preservation evidence', () => {
+  assert.match(panelSource, /review\.plan\.objectCreationActions/)
+  assert.match(panelSource, /action\.review\.actionLabel/)
+  assert.match(panelSource, /action\.review\.initialStateLabel/)
+  assert.match(panelSource, /action\.review\.insertionLabel/)
+  assert.match(panelSource, /action\.review\.preservationLabel/)
+  assert.match(panelSource, /review\.plan\.artworkViewportActions/)
+  assert.match(panelSource, /action\.evidence\.plan\.viewport/)
+  assert.match(panelSource, /physicalWidthMm/)
+  assert.match(panelSource, /physicalHeightMm/)
+  assert.match(panelSource, /physicalAspectRatio/)
+  assert.match(panelSource, /action\.review\.fittingLabel/)
+  assert.match(panelSource, /action\.review\.sourceStateLabel/)
+  assert.match(panelSource, /clippedSourceFractions/)
+  assert.match(panelSource, /material-visible-clipping/)
+  assert.match(panelSource, /artwork-cover-fitting-deferred/)
+  assert.match(panelSource, /review\.plan\.formatVersion === 3/)
+  assert.match(panelSource, /Reviewed empty slot recreation/)
+  assert.doesNotMatch(
+    panelSource,
+    /createCaseInsertPresetEmptyArtworkSlot|adoptCaseInsertArtworkViewport|planCaseInsertPresetArtworkViewport|getTemplateRect/,
+  )
+})

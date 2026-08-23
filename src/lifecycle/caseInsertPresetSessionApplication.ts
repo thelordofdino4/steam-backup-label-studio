@@ -16,7 +16,9 @@ import {
   hasExactCaseInsertPresetKeys,
   sameCaseInsertPresetValue,
 } from '../presets/caseInsertPresetSafeInput.ts'
-import type { SavedProject } from '../project/projectTypes.ts'
+import type {
+  SavedProject,
+} from '../project/projectTypes.ts'
 import type {
   CaseInsertPresetRecoveryStatus,
 } from '../project/caseInsertPresetProjectPersistence.ts'
@@ -619,6 +621,79 @@ export function representCaseInsertPresetApplicationSnapshot(
     ok: true as const,
     application: built.application,
   })
+}
+
+/**
+ * Represents an already-produced pure successor while retaining the
+ * application-owned catalog/recovery classification selected by the lifecycle
+ * commit boundary. The supplied status is presentation metadata only: it does
+ * not participate in the attachment or aggregate identity, and it is still
+ * captured through the same closed validation path as recovered state.
+ */
+export function representCaseInsertPresetApplicationSuccessor(
+  input: unknown,
+): CaseInsertPresetSessionApplicationResult {
+  const captured = captureInputRecord(input, [
+    'sessionId', 'project', 'snapshot', 'recoveryStatus',
+  ])
+  if (isFailure(captured)) return captured
+
+  const represented = representCaseInsertPresetApplicationSnapshot({
+    sessionId: captured.sessionId,
+    project: captured.project,
+    snapshot: captured.snapshot,
+  })
+  if (!represented.ok) return represented
+
+  return createCaseInsertPresetSessionApplication({
+    sessionId: captured.sessionId,
+    project: captured.project,
+    applicationRevision: represented.application.applicationRevision,
+    attachment: represented.application.attachment,
+    recoveryStatus: captured.recoveryStatus,
+  })
+}
+
+/**
+ * Rebinds one pure Apply/Reapply/Detach successor with an already-complete,
+ * application-projected recovery classification. Lifecycle validates and
+ * installs this closed metadata; it does not own catalog or customization
+ * decisions.
+ */
+export function representCaseInsertPresetTransitionSuccessor(
+  input: unknown,
+): CaseInsertPresetSessionApplicationResult {
+  const captured = captureInputRecord(input, [
+    'sessionId', 'project', 'snapshot', 'operation',
+    'successorRecoveryStatus',
+  ])
+  if (isFailure(captured)) return captured
+  const operation = captured.operation
+  if (operation !== 'apply' && operation !== 'reapply' &&
+      operation !== 'detach') {
+    return failure('invalid-input', 'transition-operation-invalid')
+  }
+
+  const represented = representCaseInsertPresetApplicationSuccessor({
+    sessionId: captured.sessionId,
+    project: captured.project,
+    snapshot: captured.snapshot,
+    recoveryStatus: captured.successorRecoveryStatus,
+  })
+  if (!represented.ok) return represented
+  const attached = represented.application.attachment.status === 'attached'
+  const classified = represented.application.recoveryStatus.status !==
+    'not-applicable'
+  if (
+    (operation === 'detach' && (attached || classified)) ||
+    (operation !== 'detach' && (!attached || !classified))
+  ) {
+    return failure(
+      'invalid-application-snapshot',
+      'transition-recovery-status-attachment-mismatch',
+    )
+  }
+  return represented
 }
 
 export function caseInsertPresetSessionApplicationsAreEqual(

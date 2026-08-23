@@ -37,6 +37,9 @@ import {
   JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
   JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION,
 } from './builtins/jewelCaseEssentialsCasePreset.ts'
+import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
+} from './builtins/jewelCaseEssentialsCasePresetV2.ts'
 
 type MutableRecord = Record<string, unknown>
 type TestSource = {
@@ -1388,7 +1391,7 @@ test('rejects cyclic, aliased, accessor, function, symbol, and BigInt hostile in
   }
 })
 
-test('keeps action and plan versions separate from unchanged definition, catalog, schema, and native request identities', () => {
+test('keeps action and plan versions separate from definition, catalog, schema, and native request identities', () => {
   assert.equal(CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_KIND,
     'sbls/case-insert-preset-artwork-viewport-action')
   assert.equal(CASE_INSERT_PRESET_ARTWORK_VIEWPORT_ACTION_FORMAT_VERSION, 1)
@@ -1418,7 +1421,7 @@ test('keeps action and plan versions separate from unchanged definition, catalog
   )
   assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [{
     id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
-    revision: JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION,
+    revision: JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
     name: 'Jewel Case Essentials',
     surface: 'case-insert',
     source: 'builtin',

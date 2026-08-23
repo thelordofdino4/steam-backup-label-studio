@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import {
+  createApplicationLifecycleCompositionRoot,
+} from '../lifecycle/applicationLifecycleCompositionRoot.ts'
+import {
+  createLoadedProjectSession,
+  isProjectSessionDirty,
+} from '../lifecycle/projectSession.ts'
+import {
+  createBlankJewelCaseSavedProject,
+} from '../project/caseInsertProjectAdapters.ts'
 import { ApplicationWorkflowNavigationStore } from './applicationWorkflowNavigationStore.ts'
 import type { EditorDestination } from './editorNavigationRouter.ts'
 
@@ -38,6 +48,15 @@ const TEMPLATE_DESTINATION = Object.freeze({
   areaId: 'area.template.disc',
   ownerId: 'owner.disc-template',
   controlId: 'control.disc-template.selector',
+} as const satisfies EditorDestination)
+
+const CASE_PRESETS_DESTINATION = Object.freeze({
+  kind: 'domain-area',
+  workspaceId: 'workspace.case',
+  surfaceId: 'surface.case.front',
+  areaId: 'area.layout-presets.case',
+  ownerId: 'owner.case-layout-presets',
+  controlId: 'control.case-layout-presets.selector',
 } as const satisfies EditorDestination)
 
 test('one store reveals, focuses, refocuses, switches, and restores without domain mutation', async () => {
@@ -141,6 +160,106 @@ test('one store reveals, focuses, refocuses, switches, and restores without doma
     assert.equal(JSON.stringify(projectIdentity), before)
     assert.ok(capabilityChanges >= 3)
   } finally {
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: originalDocument,
+    })
+    Object.defineProperty(globalThis, 'HTMLElement', {
+      configurable: true,
+      value: originalHTMLElement,
+    })
+  }
+})
+
+test('moving and closing the Case preset workflow host cannot create slots or dirty the project', async () => {
+  const originalDocument = globalThis.document
+  const originalHTMLElement = globalThis.HTMLElement
+  const opener = new FakeElement()
+  Object.defineProperty(globalThis, 'HTMLElement', {
+    configurable: true,
+    value: FakeElement,
+  })
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: { activeElement: opener, querySelector: () => null },
+  })
+
+  const lifecycle = createApplicationLifecycleCompositionRoot({
+    initialState: createLoadedProjectSession({
+      sessionId: 'case-preset-navigation-nonmutating',
+      currentPath: 'C:\\projects\\case-navigation.sbls',
+      persistenceFormat: 'sbls-package-v1',
+      project: createBlankJewelCaseSavedProject('Case Navigation'),
+    }),
+  })
+  try {
+    const before = lifecycle.getLifecycleState()
+    assert.ok(before.activeSession?.kind === 'caseInsert')
+    if (before.activeSession?.kind !== 'caseInsert') {
+      throw new Error('Expected a Case project session.')
+    }
+    assert.equal(isProjectSessionDirty(before.activeSession), false)
+    assert.deepEqual(
+      before.activeSession.project.caseInsert.templates.tray.artworkSlots,
+      [],
+    )
+
+    const store = new ApplicationWorkflowNavigationStore({
+      environment: {
+        sessionId: before.activeSession.id,
+        workspaceId: 'workspace.case',
+        surfaceId: 'surface.case.front',
+        lifecycleTransitionActive: false,
+        applicationModalActive: false,
+      },
+      getFallbackFocus: () => null,
+      focusApplicationSurface: async () => {},
+      onCapabilitiesChanged: () => {},
+    })
+    const firstHost = new FakeElement()
+    const movedHost = new FakeElement()
+    store.setHostContent(firstHost as unknown as HTMLDivElement)
+    const details = new FakeDetailsElement()
+    const control = new FakeElement()
+    store.registerControl({
+      workflowId: 'workflow.case-layout-presets',
+      ownerId: 'owner.case-layout-presets',
+      controlId: 'control.case-layout-presets.selector',
+      getDetails: () => details as unknown as HTMLDetailsElement,
+      getControl: () => control as unknown as HTMLElement,
+    })
+
+    const pending = store.menuPort.navigate({
+      workflowId: 'workflow.case-layout-presets',
+      behavior: 'focus',
+      destination: CASE_PRESETS_DESTINATION,
+    })
+    store.presentationCommitted('workflow.case-layout-presets')
+    assert.equal((await pending).status, 'completed')
+    assert.equal(control.focusCount, 1)
+    assert.equal(details.open, true)
+    store.setHostContent(movedHost as unknown as HTMLDivElement)
+    assert.equal(
+      store.getSnapshot().activePresentation?.workflowId,
+      'workflow.case-layout-presets',
+    )
+    store.closeActiveWorkflow()
+    store.presentationReturned('workflow.case-layout-presets')
+
+    assert.strictEqual(lifecycle.getLifecycleState(), before)
+    const after = lifecycle.getLifecycleState().activeSession
+    assert.ok(after?.kind === 'caseInsert')
+    if (after?.kind !== 'caseInsert') {
+      throw new Error('Expected a Case project session.')
+    }
+    assert.equal(isProjectSessionDirty(after), false)
+    assert.deepEqual(
+      after.project.caseInsert.templates.tray.artworkSlots,
+      [],
+    )
+    assert.equal(opener.focusCount, 1)
+  } finally {
+    lifecycle.dispose()
     Object.defineProperty(globalThis, 'document', {
       configurable: true,
       value: originalDocument,

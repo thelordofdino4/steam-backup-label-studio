@@ -51,6 +51,9 @@ import {
   type CaseInsertPresetReapplyPlan,
 } from './caseInsertPresetReapplyPlanning.ts'
 import {
+  createCaseInsertPresetReapplyReviewIdentity,
+} from './caseInsertPresetReapplyIdentity.ts'
+import {
   createCaseInsertPresetReapplyConsentAcceptance,
   createCaseInsertPresetReapplyReviewAcceptance,
   transitionCaseInsertPresetReapply,
@@ -351,9 +354,9 @@ test('clean same-revision Reapply returns a detached immutable configuration-onl
   assert.deepEqual(structuredClone(fixture), before)
 })
 
-test('selected revision applies exact x, y, and scale writes and adopts selected baselines', () => {
+test('exact revision applies exact x, y, and scale writes and adopts selected baselines', () => {
   const fixture = buildFixture()
-  const selected = withRevision(fixture.definition, 2, (definition) =>
+  const selected = withRevision(fixture.definition, 1, (definition) =>
     assignmentRegion(definition, {
       centerXPercent: 37.1234567890123,
       centerYPercent: 41.9876543210987,
@@ -370,7 +373,7 @@ test('selected revision applies exact x, y, and scale writes and adopts selected
     -14.936734943128585)
   assert.equal(result.aggregate.templates.cover.background.layout.scale,
     0.47641049819267633)
-  assert.equal(result.nextConfiguration.preset.revision, 2)
+  assert.equal(result.nextConfiguration.preset.revision, 1)
   for (const write of plan.aggregateWrites) {
     const owned = result.nextConfiguration.ownedFields.find(({ address }) =>
       addressEqual(address, write.address))!
@@ -395,7 +398,8 @@ test('exact review acceptance is mandatory and stale, generic, or another-plan r
   }), 'review-mismatch')
   const other = planFor(
     fixture,
-    withRevision(fixture.definition, 2),
+    withRevision(fixture.definition, 1, (definition) =>
+      assignmentRegion(definition, { centerXPercent: 46 })),
   )
   failed(deepFreeze({
     ...input,
@@ -412,7 +416,7 @@ test('customized overwrite requires one exact consent even when the selected val
       aggregate.templates.cover.background.layout.x += 7
     },
   })
-  const selected = withRevision(fixture.definition, 2, (definition) => {
+  const selected = withRevision(fixture.definition, 1, (definition) => {
     const currentX = fixture.aggregate.templates.cover.background.layout.x
     assignmentRegion(definition, {
       centerXPercent: ((currentX + 50) / 100) * 80 + 10,
@@ -517,7 +521,7 @@ test('preserve performs no write and retains ownership, old baseline, provenance
 
 test('new claims and retirement are configuration effects; movement is retirement plus claim without value transfer', () => {
   const fixture = buildFixture()
-  const selected = withRevision(fixture.definition, 2, (definition) => {
+  const selected = withRevision(fixture.definition, 1, (definition) => {
     const slot = (definition.slots as Record<string, unknown>[])[0]!
     slot.roleId = 'game-title'
     const assignment = (slot.assignments as Record<string, unknown>[])[0]!
@@ -549,7 +553,7 @@ test('fixed text width, Back Panel versus Tray, independent spines, and disabled
     definition: createCoordinatedCaseInsertPresetDefinition(),
     scope: { kind: 'complete' },
   })
-  const selected = withRevision(coordinated.definition, 4, (definition) => {
+  const selected = withRevision(coordinated.definition, 3, (definition) => {
     for (const slot of definition.slots as Record<string, unknown>[]) {
       const assignment = (slot.assignments as Record<string, unknown>[])[0]!
       const region = assignment.contentRegion as Record<string, number>
@@ -670,7 +674,7 @@ test('duplicate stable targets fail ambiguous and caller consent order is determ
       aggregate.templates.cover.background.layout.y += 5
     },
   })
-  const selected = withRevision(fixture.definition, 2, (definition) =>
+  const selected = withRevision(fixture.definition, 1, (definition) =>
     assignmentRegion(definition, { centerXPercent: 42, centerYPercent: 44 }))
   const policies = fixture.report.fields
     .filter(({ fieldStatus }) => fieldStatus === 'value-diverged')
@@ -740,6 +744,17 @@ test('unsupported and forged plan/configuration/report authorities fail without 
   const forgedPlan = structuredClone(plan)
   forgedPlan.semanticEffects.aggregateWriteCount += 1
   failed(deepFreeze({ ...input, plan: forgedPlan }), 'plan-identity-mismatch')
+  const crossRevision = structuredClone(plan)
+  crossRevision.preset.selectedRevision += 1
+  crossRevision.projectedConfiguration.selectedPreset.revision += 1
+  crossRevision.preconditions.selectedPreset.revision += 1
+  const crossRevisionContent = Object.fromEntries(Object.entries(
+    crossRevision,
+  ).filter(([key]) => key !== 'reviewIdentity'))
+  crossRevision.reviewIdentity = createCaseInsertPresetReapplyReviewIdentity(
+    crossRevisionContent as never,
+  )
+  failed(inputFor(fixture, deepFreeze(crossRevision)), 'invalid-plan')
   const hidden = structuredClone(plan) as Record<string, unknown>
   hidden.hiddenActions = []
   failed(deepFreeze({ ...input, plan: hidden }) as never, 'invalid-plan')
@@ -763,7 +778,7 @@ test('unsupported and forged plan/configuration/report authorities fail without 
 
 test('plan array order and consent caller order do not affect transition identity or output', () => {
   const fixture = buildFixture()
-  const selected = withRevision(fixture.definition, 2, (definition) =>
+  const selected = withRevision(fixture.definition, 1, (definition) =>
     assignmentRegion(definition, {
       centerXPercent: 42,
       centerYPercent: 47,
@@ -800,7 +815,7 @@ test('plan array order and consent caller order do not affect transition identit
 
 test('v2 configuration remains authoritative for later detection, planning, and another detached Reapply', () => {
   const fixture = buildFixture()
-  const selected = withRevision(fixture.definition, 2, (definition) =>
+  const selected = withRevision(fixture.definition, 1, (definition) =>
     assignmentRegion(definition, { centerXPercent: 43 }))
   const firstPlan = planFor(fixture, selected)
   const first = successful(inputFor(fixture, firstPlan))
@@ -841,7 +856,7 @@ test('v2 configuration remains authoritative for later detection, planning, and 
   assert.equal(second.status, 'reapplied-aggregate-semantic-no-op')
   assert.equal(second.nextConfiguration.reapply.sourceConfigurationIdentity,
     first.nextConfiguration.configurationIdentity)
-  assert.equal(second.nextConfiguration.reapply.previousPresetRevision, 2)
+  assert.equal(second.nextConfiguration.reapply.previousPresetRevision, 1)
   assert.notEqual(second.nextConfiguration.configurationIdentity,
     first.nextConfiguration.configurationIdentity)
 })
@@ -947,7 +962,7 @@ test('preserve, overwrite, new-claim, and retired field changes all invalidate t
   }
 
   const clean = buildFixture()
-  const moved = withRevision(clean.definition, 2, (definition) => {
+  const moved = withRevision(clean.definition, 1, (definition) => {
     const slot = (definition.slots as Record<string, unknown>[])[0]!
     slot.roleId = 'game-title'
     const assignment = (slot.assignments as Record<string, unknown>[])[0]!

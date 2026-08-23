@@ -40,6 +40,9 @@ import {
   createCaseInsertPresetMaterialConsentRequirementId,
   createCaseInsertPresetPlanWarningIdentity,
 } from './caseInsertPresetApplyReviewIdentity.ts'
+import type {
+  CaseInsertPresetArtworkViewportConsentRequirement,
+} from './caseInsertPresetArtworkViewport.ts'
 import {
   createCaseInsertPresetAttachedEndpoint,
   createCaseInsertPresetUnattachedEndpoint,
@@ -49,9 +52,13 @@ import {
 import {
   CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND,
   CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION,
+  CASE_INSERT_PRESET_TYPED_CONFIGURATION_CANDIDATE_VERSION,
   type CaseInsertPresetAppliedConfigurationCandidate,
   type ImmutableProjectJewelCaseState,
 } from './caseInsertPresetApplyCandidate.ts'
+import {
+  applyCaseInsertPresetReviewedArtworkActions,
+} from './caseInsertPresetArtworkActionTransition.ts'
 import {
   applyCaseInsertPresetAggregateLayoutWrites,
   type CaseInsertPresetAggregateLayoutWrite,
@@ -63,7 +70,11 @@ import {
 } from './caseInsertPresetAppliedConfiguration.ts'
 import {
   encodeCaseInsertPresetDeterministicIdentity,
-} from './caseInsertPresetReapplyIdentity.ts'
+} from './caseInsertPresetDeterministicIdentity.ts'
+import type {
+  CaseInsertAppliedPresetOwnedFieldId,
+  CaseInsertAppliedPresetOwnedValue,
+} from './caseInsertPresetOwnedField.ts'
 import {
   createCaseInsertPresetTransitionSuccessEvidence,
   type CaseInsertPresetTransitionSuccessEvidence,
@@ -94,15 +105,24 @@ export type CaseInsertPresetApplyReviewApproval = Readonly<{
   planReviewIdentity: string
 }>
 
-export type CaseInsertPresetMaterialConsentAcceptance = Readonly<{
+type CaseInsertPresetMaterialConsentAcceptanceBase = Readonly<{
   kind: typeof CASE_INSERT_PRESET_MATERIAL_CONSENT_ACCEPTANCE_KIND
   decision: 'accepted'
   planReviewIdentity: string
   requirementId: `case:preset-consent:${string}`
-  category: 'multiple-concrete-regions'
-  regions: readonly CaseInsertPresetConcreteRegionId[]
-  assignmentIds: readonly `case:preset-assignment:${string}`[]
 }>
+
+export type CaseInsertPresetMaterialConsentAcceptance =
+  | CaseInsertPresetMaterialConsentAcceptanceBase & Readonly<{
+      category: 'multiple-concrete-regions'
+      regions: readonly CaseInsertPresetConcreteRegionId[]
+      assignmentIds: readonly `case:preset-assignment:${string}`[]
+    }>
+  | CaseInsertPresetMaterialConsentAcceptanceBase & Readonly<{
+      category: 'material-visible-clipping'
+      warningId: `case:preset-warning:v1:artwork-visible-clipping:${string}`
+      assignmentId: `case:preset-assignment:${string}`
+    }>
 
 export type CaseInsertPresetAttachmentAssertion =
   CaseInsertPresetAttachmentEndpoint
@@ -202,6 +222,7 @@ const ROLE_SET = new Set<string>(CASE_INSERT_PRESET_ROLE_IDS)
 const BINDING_STATUS_SET = new Set([
   'resolved',
   'resolved-disabled',
+  'missing-create-empty',
   'missing-optional',
 ])
 const PRESERVATION_CATEGORY_SET = new Set([
@@ -432,6 +453,8 @@ function validatePlan(
 
   if (!Array.isArray(plan.assignments) || plan.assignments.length === 0 ||
       !Array.isArray(plan.fieldActions) ||
+      !Array.isArray(plan.objectCreationActions) ||
+      !Array.isArray(plan.artworkViewportActions) ||
       !Array.isArray(plan.fieldFootprint) ||
       !Array.isArray(plan.preservationDecisions) ||
       !Array.isArray(plan.skips) || !Array.isArray(plan.warnings) ||
@@ -455,16 +478,30 @@ function validatePlan(
         typeof assignment.object.bindingId !== 'string' ||
         !BINDING_STATUS_SET.has(assignment.bindingStatus) ||
         !Array.isArray(assignment.fieldActionIds) ||
+        (assignment.objectCreationActionId !== null &&
+          typeof assignment.objectCreationActionId !== 'string') ||
+        (assignment.artworkViewportActionId !== null &&
+          typeof assignment.artworkViewportActionId !== 'string') ||
         !Array.isArray(assignment.preservationDecisionIds)) {
       return failure('invalid-plan', 'assignment-invalid')
     }
-    const isMissing = assignment.bindingStatus === 'missing-optional'
-    if (isMissing !== (assignment.object.runtimeId === null) ||
-        isMissing !== (assignment.expectedEnablement === null) ||
-        isMissing !== (assignment.skip !== null)) {
+    const isMissingOptional =
+      assignment.bindingStatus === 'missing-optional'
+    const isMissingCreate =
+      assignment.bindingStatus === 'missing-create-empty'
+    if ((isMissingOptional || isMissingCreate) !==
+          (assignment.object.runtimeId === null) ||
+        (isMissingOptional || isMissingCreate) !==
+          (assignment.expectedEnablement === null) ||
+        isMissingOptional !== (assignment.skip !== null) ||
+        (isMissingCreate && assignment.objectCreationActionId === null) ||
+        (!isMissingCreate && assignment.objectCreationActionId !== null) ||
+        (isMissingCreate && assignment.artworkViewportActionId === null) ||
+        (!isMissingCreate && assignment.artworkViewportActionId !== null &&
+          typeof assignment.object.runtimeId !== 'string')) {
       return failure('invalid-plan', 'assignment-presence-incoherent')
     }
-    if (!isMissing) {
+    if (!isMissingOptional && !isMissingCreate) {
       const enablement = assignment.expectedEnablement
       if (!enablement || typeof enablement.objectEnabled !== 'boolean' ||
           (enablement.ownerEnabled !== null &&
@@ -581,6 +618,88 @@ function validatePlan(
     }
   }
 
+  const objectCreationById = new Map(
+    plan.objectCreationActions.map((action) => [action.id, action] as const),
+  )
+  const artworkViewportById = new Map(
+    plan.artworkViewportActions.map((action) => [action.id, action] as const),
+  )
+  if (objectCreationById.size !== plan.objectCreationActions.length ||
+      artworkViewportById.size !== plan.artworkViewportActions.length) {
+    return failure('invalid-plan', 'duplicate-artwork-action-id')
+  }
+  for (const action of plan.objectCreationActions) {
+    const assignment = assignmentById.get(action.source.assignmentId)
+    const expectedRuntimeId = assignment?.object.runtimeId ??
+      assignment?.object.bindingId
+    if (!assignment ||
+        action.kind !== 'create-empty-repeated-artwork-slot' ||
+        !action.id.startsWith('case:preset-object-creation-action:v1:') ||
+        action.source.presetId !== plan.preset.id ||
+        action.source.presetRevision !== plan.preset.revision ||
+        action.source.declaredPolicy !==
+          'create-empty-repeated-artwork-slot-v1' ||
+        action.source.slotId !== assignment.slotId ||
+        action.source.ownerId !== assignment.ownerId ||
+        action.source.object.bindingKind !== assignment.object.bindingKind ||
+        action.source.object.bindingId !== assignment.object.bindingId ||
+        action.source.object.runtimeId !== expectedRuntimeId ||
+        action.target.featureOwnerId !== assignment.ownerId ||
+        action.target.bindingKind !== assignment.object.bindingKind ||
+        action.target.bindingId !== assignment.object.bindingId ||
+        action.target.runtimeObjectId !== expectedRuntimeId ||
+        assignment.bindingStatus !== 'missing-create-empty' ||
+        assignment.objectCreationActionId !== action.id ||
+        assignment.artworkViewportActionId !== action.viewportActionId ||
+        !artworkViewportById.has(action.viewportActionId) ||
+        action.semanticNoOp !== false) {
+      return failure('invalid-plan', 'object-creation-action-invalid', {
+        actionId: action.id,
+      })
+    }
+  }
+  for (const action of plan.artworkViewportActions) {
+    const assignment = assignmentById.get(action.source.assignmentId)
+    const expectedRuntimeId = assignment?.object.runtimeId ??
+      assignment?.object.bindingId
+    const expectedCreation = plan.objectCreationActions.find(
+      ({ viewportActionId }) => viewportActionId === action.id,
+    )
+    if (!assignment ||
+        action.kind !== 'adopt-reserved-artwork-viewport' ||
+        !action.id.startsWith('case:preset-artwork-viewport-action:v1:') ||
+        action.source.presetId !== plan.preset.id ||
+        action.source.presetRevision !== plan.preset.revision ||
+        action.source.declaredPolicy !== 'reserved-artwork-viewport-v1' ||
+        action.source.slotId !== assignment.slotId ||
+        action.source.ownerId !== assignment.ownerId ||
+        action.source.object.bindingKind !== assignment.object.bindingKind ||
+        action.source.object.bindingId !== assignment.object.bindingId ||
+        action.source.object.runtimeId !== expectedRuntimeId ||
+        action.target.featureOwnerId !== assignment.ownerId ||
+        action.target.bindingKind !== assignment.object.bindingKind ||
+        action.target.bindingId !== assignment.object.bindingId ||
+        action.target.runtimeObjectId !== expectedRuntimeId ||
+        assignment.artworkViewportActionId !== action.id ||
+        (action.targetOrigin === 'planned-creation') !== Boolean(
+          expectedCreation,
+        ) ||
+        (action.targetOrigin === 'planned-creation') !==
+          (assignment.bindingStatus === 'missing-create-empty') ||
+        !Array.isArray(action.ownedFieldIds) ||
+        !sameStringArray(action.ownedFieldIds, [
+          'layout-x',
+          'layout-y',
+          'layout-scale',
+          'image-fit',
+          'reserved-artwork-viewport',
+        ])) {
+      return failure('invalid-plan', 'artwork-viewport-action-invalid', {
+        actionId: action.id,
+      })
+    }
+  }
+
   if (plan.fieldFootprint.length !== plan.fieldActions.length) {
     return failure('invalid-plan', 'field-footprint-count-mismatch')
   }
@@ -630,13 +749,22 @@ function validatePlan(
       .filter(({ assignmentId }) => assignmentId === assignment.assignmentId)
       .map(({ id }) => id)
     const skip = skipByAssignment.get(assignment.assignmentId) ?? null
+    const expectedCreationId = plan.objectCreationActions.find(
+      ({ source }) => source.assignmentId === assignment.assignmentId,
+    )?.id ?? null
+    const expectedViewportId = plan.artworkViewportActions.find(
+      ({ source }) => source.assignmentId === assignment.assignmentId,
+    )?.id ?? null
     if (!sameStringArray(assignment.fieldActionIds, expectedActionIds) ||
+        assignment.objectCreationActionId !== expectedCreationId ||
+        assignment.artworkViewportActionId !== expectedViewportId ||
         !sameStringArray(assignment.preservationDecisionIds, expectedPreservationIds) ||
         !sameValue(assignment.skip, skip) ||
         (assignment.bindingStatus === 'missing-optional' &&
           (assignment.fieldActionIds.length > 0 || !skip)) ||
         (assignment.bindingStatus !== 'missing-optional' &&
-          assignment.fieldActionIds.length === 0) ||
+          assignment.fieldActionIds.length === 0 &&
+          expectedCreationId === null && expectedViewportId === null) ||
         (skip && (skip.kind !== 'missing-optional-target' ||
           skip.assignmentId !== assignment.assignmentId ||
           skip.slotId !== assignment.slotId || skip.region !== assignment.region ||
@@ -644,19 +772,34 @@ function validatePlan(
           skip.objectId !== assignment.object.bindingId))) {
       return failure('invalid-plan', 'assignment-summary-incoherent')
     }
-    const expectedNoOp = expectedActionIds.length === 0 || plan.fieldActions
-      .filter(({ id }) => expectedActionIds.includes(id))
-      .every(({ semanticNoOp }) => semanticNoOp)
+    const viewportNoOp = expectedViewportId === null ||
+      artworkViewportById.get(expectedViewportId)?.semanticNoOp === true
+    const expectedNoOp = expectedCreationId === null && viewportNoOp &&
+      (expectedActionIds.length === 0 || plan.fieldActions
+        .filter(({ id }) => expectedActionIds.includes(id))
+        .every(({ semanticNoOp }) => semanticNoOp))
     if (assignment.semanticNoOp !== expectedNoOp) {
       return failure('invalid-plan', 'assignment-no-op-incoherent')
     }
   }
 
   const changed = plan.fieldActions.filter(({ semanticNoOp }) => !semanticNoOp).length
+  const changedArtworkViewportActions = plan.artworkViewportActions.filter(
+    ({ semanticNoOp }) => !semanticNoOp,
+  ).length
+  const aggregateNoOp = changed === 0 &&
+    plan.objectCreationActions.length === 0 &&
+    changedArtworkViewportActions === 0
   if (plan.semanticNoOp.fieldActionCount !== plan.fieldActions.length ||
       plan.semanticNoOp.changedFieldActionCount !== changed ||
       plan.semanticNoOp.noOpFieldActionCount !== plan.fieldActions.length - changed ||
-      plan.semanticNoOp.aggregate !== (changed === 0) ||
+      plan.semanticNoOp.objectCreationActionCount !==
+        plan.objectCreationActions.length ||
+      plan.semanticNoOp.changedArtworkViewportActionCount !==
+        changedArtworkViewportActions ||
+      plan.semanticNoOp.noOpArtworkViewportActionCount !==
+        plan.artworkViewportActions.length - changedArtworkViewportActions ||
+      plan.semanticNoOp.aggregate !== aggregateNoOp ||
       (planningResult.status === 'semantic-no-op') !== plan.semanticNoOp.aggregate) {
     return failure('invalid-plan', 'semantic-no-op-incoherent')
   }
@@ -676,20 +819,33 @@ function validatePlan(
 
   const requirementIds = new Set<string>()
   for (const requirement of plan.materialConsentRequirements) {
-    if (requirement.kind !== 'multiple-concrete-regions' ||
-        !Array.isArray(requirement.regions) ||
-        !Array.isArray(requirement.assignmentIds) ||
-        requirement.regions.length < 2 ||
-        requirement.regions.some(
+    const valid = requirement.kind === 'multiple-concrete-regions'
+      ? Array.isArray(requirement.regions) &&
+        Array.isArray(requirement.assignmentIds) &&
+        requirement.regions.length >= 2 &&
+        requirement.regions.every(
           (region: CaseInsertPresetConcreteRegionId) =>
-            !plan.resolvedRegions.includes(region),
-        ) ||
-        requirement.assignmentIds.some(
-          (id: `case:preset-assignment:${string}`) => !assignmentById.has(id),
-        ) ||
-        requirement.id !== createCaseInsertPresetMaterialConsentRequirementId(
+            plan.resolvedRegions.includes(region),
+        ) &&
+        requirement.assignmentIds.every(
+          (id: `case:preset-assignment:${string}`) =>
+            assignmentById.has(id),
+        ) &&
+        requirement.id === createCaseInsertPresetMaterialConsentRequirementId(
           requirement,
-        ) || requirementIds.has(requirement.id)) {
+        )
+      : assignmentById.has(requirement.assignmentId) &&
+        plan.warnings.some((warning) =>
+          warning.kind === 'material-visible-clipping' &&
+          warning.id === requirement.warningId &&
+          warning.assignmentId === requirement.assignmentId) &&
+        plan.artworkViewportActions.some((action) =>
+          action.source.assignmentId === requirement.assignmentId &&
+          action.evidence.plan.materialConsentRequirements.some(
+            (expected: CaseInsertPresetArtworkViewportConsentRequirement) =>
+              sameValue(expected, requirement),
+          ))
+    if (!valid || requirementIds.has(requirement.id)) {
       return failure('invalid-plan', 'material-consent-requirement-invalid')
     }
     requirementIds.add(requirement.id)
@@ -749,9 +905,19 @@ function validateConsent(
     const requirement = requirementById.get(
       acceptance.requirementId as `case:preset-consent:${string}`,
     )
-    if (!requirement || acceptance.category !== requirement.kind ||
-        !sameStringArray(acceptance.regions, requirement.regions) ||
-        !sameStringArray(acceptance.assignmentIds, requirement.assignmentIds)) {
+    const acceptanceMatches = requirement &&
+      acceptance.category === requirement.kind &&
+      (requirement.kind === 'multiple-concrete-regions'
+        ? acceptance.category === 'multiple-concrete-regions' &&
+          sameStringArray(acceptance.regions, requirement.regions) &&
+          sameStringArray(
+            acceptance.assignmentIds,
+            requirement.assignmentIds,
+          )
+        : acceptance.category === 'material-visible-clipping' &&
+          acceptance.warningId === requirement.warningId &&
+          acceptance.assignmentId === requirement.assignmentId)
+    if (!acceptanceMatches) {
       return failure('consent-mismatch', 'consent-requirement-mismatch', {
         requirementId: acceptance.requirementId,
       })
@@ -803,14 +969,21 @@ function preflightTargets(
         id: assignment.object.bindingId,
       },
     )
-    if (assignment.bindingStatus === 'missing-optional') {
+    if (assignment.bindingStatus === 'missing-optional' ||
+        assignment.bindingStatus === 'missing-create-empty') {
       if (binding.status === 'ambiguous') {
-        return failure('target-ambiguous', 'optional-target-became-ambiguous', {
+        return failure('target-ambiguous',
+          assignment.bindingStatus === 'missing-create-empty'
+            ? 'creation-target-became-ambiguous'
+            : 'optional-target-became-ambiguous', {
           assignmentId: assignment.assignmentId,
         })
       }
       if (binding.status !== 'missing') {
-        return failure('precondition-failed', 'optional-target-presence-changed', {
+        return failure('precondition-failed',
+          assignment.bindingStatus === 'missing-create-empty'
+            ? 'creation-target-presence-changed'
+            : 'optional-target-presence-changed', {
           assignmentId: assignment.assignmentId,
         })
       }
@@ -869,9 +1042,149 @@ function buildConfigurationCandidate(
   plan: CaseInsertPresetApplyPlan,
   acceptedConsentIds: readonly `case:preset-consent:${string}`[],
 ): CaseInsertPresetAppliedConfigurationCandidate {
+  if (plan.objectCreationActions.length === 0 &&
+      plan.artworkViewportActions.length === 0) {
+    return deepFreeze({
+      kind: CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND,
+      formatVersion:
+        CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION,
+      installationStatus: 'candidate-uninstalled',
+      operation: 'apply',
+      preset: { ...plan.preset },
+      requestedScope: cloneMutable(plan.requestedScope),
+      resolvedRegions: [...plan.resolvedRegions],
+      template: { ...plan.preconditions.template },
+      reviewedPlanIdentity: plan.reviewIdentity,
+      sourceSnapshotIdentity: cloneMutable(plan.source.snapshotIdentity),
+      ownedFields: plan.fieldActions.map((action) => ({
+        featureOwnerId: action.featureOwnerId,
+        object: { ...action.object },
+        fieldId: action.fieldId,
+        lastAppliedValue: action.proposedValue,
+        sources: action.sources.map((source) => ({
+          ...source,
+          object: { ...source.object },
+        })),
+      })),
+      reviewedWarningIds: plan.warnings.map(
+        createCaseInsertPresetPlanWarningIdentity,
+      ),
+      acceptedMaterialConsentRequirementIds: [...acceptedConsentIds],
+    })
+  }
+
+  type TypedCandidateField = Readonly<{
+    featureOwnerId: CaseInsertPresetOwnerId
+    object: CaseInsertPresetPlanSourceAssignment['object']
+    fieldId: CaseInsertAppliedPresetOwnedFieldId
+    lastAppliedValue: CaseInsertAppliedPresetOwnedValue
+    sources: readonly CaseInsertPresetPlanSourceAssignment[]
+  }>
+  const fields: TypedCandidateField[] = plan.fieldActions.map((action) => ({
+    featureOwnerId: action.featureOwnerId,
+    object: { ...action.object },
+    fieldId: action.fieldId,
+    lastAppliedValue: {
+      kind: 'layout-number',
+      value: action.proposedValue,
+    },
+    sources: action.sources.map((source) => cloneMutable(source)),
+  }))
+  for (const action of plan.objectCreationActions) {
+    fields.push({
+      featureOwnerId: action.target.featureOwnerId,
+      object: {
+        bindingKind: action.target.bindingKind,
+        bindingId: action.target.bindingId,
+        runtimeId: action.target.runtimeObjectId,
+      },
+      fieldId: 'object-presence',
+      lastAppliedValue: { kind: 'object-presence', value: 'present' },
+      sources: [cloneMutable(action.source)],
+    })
+  }
+  for (const action of plan.artworkViewportActions) {
+    const values: readonly Readonly<{
+      fieldId: CaseInsertAppliedPresetOwnedFieldId
+      lastAppliedValue: CaseInsertAppliedPresetOwnedValue
+    }>[] = [
+      {
+        fieldId: 'layout-x',
+        lastAppliedValue: {
+          kind: 'layout-number',
+          value: action.proposedValues.layoutX,
+        },
+      },
+      {
+        fieldId: 'layout-y',
+        lastAppliedValue: {
+          kind: 'layout-number',
+          value: action.proposedValues.layoutY,
+        },
+      },
+      {
+        fieldId: 'layout-scale',
+        lastAppliedValue: {
+          kind: 'layout-number',
+          value: action.proposedValues.layoutScale,
+        },
+      },
+      {
+        fieldId: 'image-fit',
+        lastAppliedValue: {
+          kind: 'image-fit',
+          value: action.proposedValues.imageFit,
+        },
+      },
+      ...(action.proposedValues.reservedArtworkViewport
+        ? [{
+            fieldId: 'reserved-artwork-viewport' as const,
+            lastAppliedValue: {
+              kind: 'reserved-artwork-viewport' as const,
+              value: cloneMutable(
+                action.proposedValues.reservedArtworkViewport,
+              ),
+            },
+          }]
+        : []),
+    ]
+    for (const value of values) {
+      fields.push({
+        featureOwnerId: action.target.featureOwnerId,
+        object: {
+          bindingKind: action.target.bindingKind,
+          bindingId: action.target.bindingId,
+          runtimeId: action.target.runtimeObjectId,
+        },
+        fieldId: value.fieldId,
+        lastAppliedValue: value.lastAppliedValue,
+        sources: [cloneMutable(action.source)],
+      })
+    }
+  }
+  const fieldOrder = new Map<CaseInsertAppliedPresetOwnedFieldId, number>([
+    ['object-presence', 0],
+    ['layout-x', 1],
+    ['layout-y', 2],
+    ['layout-scale', 3],
+    ['layout-width', 4],
+    ['image-fit', 5],
+    ['reserved-artwork-viewport', 6],
+  ])
+  fields.sort((left, right) => {
+    const leftSource = left.sources[0]!
+    const rightSource = right.sources[0]!
+    return CASE_INSERT_PRESET_CONCRETE_REGION_IDS.indexOf(leftSource.region) -
+        CASE_INSERT_PRESET_CONCRETE_REGION_IDS.indexOf(rightSource.region) ||
+      left.featureOwnerId.localeCompare(right.featureOwnerId) ||
+      left.object.runtimeId.localeCompare(right.object.runtimeId) ||
+      fieldOrder.get(left.fieldId)! - fieldOrder.get(right.fieldId)! ||
+      left.object.bindingKind.localeCompare(right.object.bindingKind) ||
+      left.object.bindingId.localeCompare(right.object.bindingId)
+  })
   return deepFreeze({
     kind: CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_KIND,
-    formatVersion: CASE_INSERT_PRESET_APPLIED_CONFIGURATION_CANDIDATE_VERSION,
+    formatVersion: CASE_INSERT_PRESET_TYPED_CONFIGURATION_CANDIDATE_VERSION,
     installationStatus: 'candidate-uninstalled',
     operation: 'apply',
     preset: { ...plan.preset },
@@ -880,16 +1193,7 @@ function buildConfigurationCandidate(
     template: { ...plan.preconditions.template },
     reviewedPlanIdentity: plan.reviewIdentity,
     sourceSnapshotIdentity: cloneMutable(plan.source.snapshotIdentity),
-    ownedFields: plan.fieldActions.map((action) => ({
-      featureOwnerId: action.featureOwnerId,
-      object: { ...action.object },
-      fieldId: action.fieldId,
-      lastAppliedValue: action.proposedValue,
-      sources: action.sources.map((source) => ({
-        ...source,
-        object: { ...source.object },
-      })),
-    })),
+    ownedFields: fields,
     reviewedWarningIds: plan.warnings.map(
       createCaseInsertPresetPlanWarningIdentity,
     ),
@@ -915,15 +1219,26 @@ export function createCaseInsertPresetMaterialConsentAcceptance(
     ({ id }) => id === requirementId,
   )
   if (!requirement) return null
-  return deepFreeze({
+  const base = {
     kind: CASE_INSERT_PRESET_MATERIAL_CONSENT_ACCEPTANCE_KIND,
     decision: 'accepted',
     planReviewIdentity: createCaseInsertPresetApplyPlanReviewIdentity(plan),
     requirementId: requirement.id,
     category: requirement.kind,
-    regions: [...requirement.regions],
-    assignmentIds: [...requirement.assignmentIds],
-  })
+  } as const
+  return requirement.kind === 'multiple-concrete-regions'
+    ? deepFreeze({
+        ...base,
+        category: requirement.kind,
+        regions: [...requirement.regions],
+        assignmentIds: [...requirement.assignmentIds],
+      })
+    : deepFreeze({
+        ...base,
+        category: requirement.kind,
+        warningId: requirement.warningId,
+        assignmentId: requirement.assignmentId,
+      })
 }
 
 export function applyCaseInsertPresetFirstTime(
@@ -1015,6 +1330,26 @@ export function applyCaseInsertPresetFirstTime(
   const targetFailure = preflightTargets(plan, snapshot)
   if (targetFailure) return targetFailure
 
+  const artworkTransition = applyCaseInsertPresetReviewedArtworkActions({
+    aggregate: normalized,
+    objectCreationActions: plan.objectCreationActions,
+    artworkViewportActions: plan.artworkViewportActions,
+  })
+  if (!artworkTransition.ok) {
+    return failure(
+      artworkTransition.status === 'target-missing' ||
+        artworkTransition.status === 'target-ambiguous' ||
+        artworkTransition.status === 'precondition-failed' ||
+        artworkTransition.status === 'unsupported-action'
+        ? artworkTransition.status
+        : 'transition-conflict',
+      artworkTransition.code,
+      artworkTransition.actionId
+        ? { actionId: artworkTransition.actionId }
+        : undefined,
+    )
+  }
+
   const writes: CaseInsertPresetAggregateLayoutWrite[] = plan.fieldActions
     .map((action) => ({
       id: action.id,
@@ -1028,7 +1363,7 @@ export function applyCaseInsertPresetFirstTime(
       proposedValue: action.proposedValue,
     }))
   const fieldTransition = applyCaseInsertPresetAggregateLayoutWrites(
-    normalized,
+    artworkTransition.aggregate as ProjectJewelCaseState,
     writes,
   )
   if (!fieldTransition.ok) {

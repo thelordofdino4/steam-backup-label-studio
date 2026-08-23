@@ -3,10 +3,10 @@
 > Purpose: Hydrated `SavedProject` schema, current/legacy JSON compatibility, validation, normalization, and migrations.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
 > Authoritative source: This document for hydrated saved-project fields and migrations; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for target package/container behavior; SDD for architecture boundaries.
-> Last reviewed against `origin/main` at `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused Case reserved-artwork viewport runtime checkpoint documented below.
+> Last reviewed against `origin/main` at `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused Case reserved-artwork viewport runtime and Jewel Case Essentials revision-2 checkpoints documented below.
 
 
-Last refreshed: 2026-08-21.
+Last refreshed: 2026-08-22.
 
 ## Purpose
 
@@ -417,16 +417,65 @@ type SavedCaseInsertProject = {
 }
 ```
 
-`SavedCaseInsertAppliedPresetConfiguration` is a closed projection of domain
-configuration versions 1 and 2. It stores the exact stable preset ID/revision
-and source, first-Apply facts, optional Reapply lineage, accepted scope and
-resolved regions, template compatibility identity, reviewed-plan identity,
-the complete exact-address owned-field footprint with last-applied values and
-coalesced assignment provenance, reviewed warning IDs, and accepted material
-consent IDs. It does not store the derived configuration/attachment/application
-identities, transient assignment snapshot, session ID, adoption receipt,
-authorization/CAS data, busy ownership, store generation, catalog definition,
-or rendered geometry.
+`SavedCaseInsertAppliedPresetConfiguration` is a closed projection of exact
+domain configuration versions 1, 2, and 3. Versions 1 and 2 retain their
+historical numeric-layout representation exactly. Version 3 adds only the typed
+owned-value vocabulary required by viewport-aware preset application:
+
+```ts
+type SavedCaseInsertAppliedPresetOwnedValue =
+  | { kind: 'object-presence'; value: 'present' }
+  | { kind: 'layout-number'; value: number }
+  | {
+      kind: 'image-fit'
+      value: 'cover' | 'contain' | 'scale' | 'crop'
+    }
+  | {
+      kind: 'reserved-artwork-viewport'
+      value: ProjectCaseInsertReservedArtworkViewport
+    }
+
+type SavedCaseInsertAppliedPresetOwnedFieldV3 = {
+  address: {
+    region: SavedCaseInsertPresetConcreteRegionId
+    featureOwnerId: string
+    bindingKind: 'fixed' | 'repeated'
+    bindingId: string
+    runtimeObjectId: string
+    fieldId:
+      | 'object-presence'
+      | 'layout-x' | 'layout-y' | 'layout-scale' | 'layout-width'
+      | 'image-fit'
+      | 'reserved-artwork-viewport'
+  }
+  lastAppliedValue: SavedCaseInsertAppliedPresetOwnedValue
+  sources: SavedCaseInsertPresetSourceAssignment[]
+}
+```
+
+The complete configuration stores the exact stable preset ID/revision and
+source, first-Apply facts, optional Reapply lineage, accepted scope and resolved
+regions, template compatibility identity, reviewed-plan identity, the complete
+exact-address owned-field footprint and coalesced assignment provenance,
+reviewed warning IDs, and accepted material-consent IDs. Format-3 source
+provenance distinguishes the closed policies
+`normalized-content-region-direct-layout-v1`,
+`create-empty-repeated-artwork-slot-v1`, and
+`reserved-artwork-viewport-v1`.
+
+For Jewel Case Essentials revision 2, object presence is persisted only for a
+slot created by preset Apply. X, Y, outer-frame scale, image fit, and the exact
+reserved viewport are persisted as owned values for each targeted screenshot
+slot. Its unchanged non-screenshot direct-layout assignments are persisted as
+tagged `layout-number` values. Rotation is not owned because revision 2 does not write it. Image bytes,
+provenance, dimensions, source selection, label, enabled state,
+`additionalArtworkEnabled`, frame/material state, user content, and array
+position are not applied-configuration ownership. The configuration does not
+store the canonical initial-slot object as transition evidence, derived visible
+source rectangles, planner/renderer objects, derived configuration/attachment/
+application identities, transient assignment snapshot, session ID, adoption
+receipt, authorization/CAS data, busy ownership, store generation, or catalog
+definition.
 
 Save and Save As project this envelope from the same validated Case lifecycle
 snapshot as the authoritative `caseInsert` aggregate. A mismatched aggregate
@@ -449,6 +498,16 @@ bindings produce `incompatible`; and missing exact definitions or unavailable
 catalog access produce `unavailable`. None substitutes a different definition,
 reruns a transition, blocks faithful owner-value recovery merely because a
 catalog entry is missing, or mutates the recovered configuration.
+
+The production catalog retains Jewel Case Essentials exact revisions 1 and 2
+under one canonical identity. A saved revision-1 attachment therefore restores
+its exact historical numeric configuration, reports `stale` while revision 2
+is latest, and Reapplies revision 1 without slot creation or viewport writes. A
+saved revision-2 attachment restores format-3 object-presence/layout/fit/
+viewport ownership and reports `current` when compatible. Open does not create
+a missing owned slot, run a viewport plan, or upgrade revision 1. The only
+supported path between revisions is Detach followed by explicit revision-2
+selection, review, and Apply.
 
 ### Case Reserved-Artwork Viewport State
 

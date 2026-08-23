@@ -10,6 +10,13 @@ import {
   APPLICATION_COMMAND_IDS,
   type ApplicationCommandDispatchResult,
 } from '../lifecycle/applicationCommandTypes.ts'
+import {
+  createLoadedProjectSession,
+  isProjectSessionDirty,
+} from '../lifecycle/projectSession.ts'
+import {
+  createBlankJewelCaseSavedProject,
+} from '../project/caseInsertProjectAdapters.ts'
 import { createApplicationMenuPlatformDescriptor } from './applicationMenuRegistry.ts'
 import {
   createApplicationMenuRuntime,
@@ -551,6 +558,105 @@ test('native Tools ingress resolves descriptors and navigates once without lifec
   assert.deepEqual(publications, [])
   assert.deepEqual(diagnostics, [])
   await runtime.dispose()
+})
+
+test('native Case Layout Presets invocation only reveals and focuses; it cannot create slots or dirty the project', async () => {
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createLoadedProjectSession({
+      sessionId: 'case-preset-menu-nonmutating',
+      currentPath: 'C:\\projects\\case-menu.sbls',
+      persistenceFormat: 'sbls-package-v1',
+      project: createBlankJewelCaseSavedProject('Case Menu'),
+    }),
+  })
+  const sourceState = root.getLifecycleState()
+  assert.ok(sourceState.activeSession?.kind === 'caseInsert')
+  if (sourceState.activeSession?.kind !== 'caseInsert') {
+    throw new Error('Expected a Case project session.')
+  }
+  assert.equal(isProjectSessionDirty(sourceState.activeSession), false)
+  assert.deepEqual(
+    sourceState.activeSession.project.caseInsert.templates.tray.artworkSlots,
+    [],
+  )
+
+  const projections: ApplicationMenuProjection[] = []
+  const diagnostics: ApplicationMenuRuntimeDiagnostic[] = []
+  const commandIds: string[] = []
+  const navigations: EditorNavigationIntent[] = []
+  const publications: ApplicationCommandDispatchResult<unknown>[] = []
+  let invocationIngress: ((invocation: ApplicationMenuInvocation) => void) | null = null
+  const lifecycle = Object.freeze({
+    getSnapshot: root.getSnapshot,
+    subscribe: root.subscribe,
+    dispatch: async <Value = void>(commandId: string, input?: unknown) => {
+      commandIds.push(commandId)
+      return root.dispatch<Value>(commandId, input)
+    },
+  }) as unknown as ApplicationLifecycleCompositionRoot
+  const runtime = createApplicationMenuRuntime(lifecycle, {
+    nativeAvailable: () => true,
+    createNativePort: async (ingress) => {
+      invocationIngress = ingress
+      return fakePort(projections, () => {})
+    },
+    captureWindowState: async () => ({
+      windowLabel: 'main', live: true, maximized: false, fullscreen: false,
+    }),
+    subscribeWindowState: async () => () => {},
+    onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+  })
+  runtime.connectCommandIngress({
+    publishFeedback: (dispatch) => publications.push(dispatch),
+    workflowNavigation: fakeWorkflowNavigation((intent) => {
+      navigations.push(intent)
+    }),
+  })
+
+  assert.equal(await runtime.start(), 'started')
+  await flush()
+  const projection = projections.at(-1)!
+  assert.equal(
+    projection.items.find((item) =>
+      item.itemId === 'menu.tools.case-layout-presets')?.enabled,
+    true,
+  )
+  ;(invocationIngress as ((invocation: ApplicationMenuInvocation) => void))({
+    invocationId: 'tools-case-layout-presets',
+    bridgeInstanceId: 'bridge-1',
+    itemId: 'menu.tools.case-layout-presets',
+    windowLabel: 'main',
+    projectionGeneration: projection.generation,
+  })
+  await flush()
+
+  assert.equal(navigations.length, 1)
+  assert.deepEqual(navigations[0], {
+    workflowId: 'workflow.case-layout-presets',
+    behavior: 'focus',
+    destination: {
+      kind: 'domain-area',
+      workspaceId: 'workspace.case',
+      surfaceId: 'surface.case.front',
+      areaId: 'area.layout-presets.case',
+      ownerId: 'owner.case-layout-presets',
+      controlId: 'control.case-layout-presets.selector',
+    },
+  })
+  assert.deepEqual(commandIds, [])
+  assert.deepEqual(publications, [])
+  assert.deepEqual(diagnostics, [])
+  assert.strictEqual(root.getLifecycleState(), sourceState)
+  const after = root.getLifecycleState().activeSession
+  assert.ok(after?.kind === 'caseInsert')
+  if (after?.kind !== 'caseInsert') {
+    throw new Error('Expected a Case project session.')
+  }
+  assert.equal(isProjectSessionDirty(after), false)
+  assert.deepEqual(after.project.caseInsert.templates.tray.artworkSlots, [])
+
+  await runtime.dispose()
+  root.dispose()
 })
 
 test('Windows WebView accelerators use the applied projection, shared ingress, cross-source deduplication, and owned teardown', async () => {

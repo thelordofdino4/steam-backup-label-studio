@@ -4,9 +4,14 @@ import test from 'node:test'
 
 import { createBrandingSources } from '../caseInsert/brandingMarkTargetSourcesFixtures.ts'
 import {
+  createApplicationLifecycleCompositionRoot,
+} from '../lifecycle/applicationLifecycleCompositionRoot.ts'
+import {
   captureApplicationLifecycleState,
   createLoadedProjectSession,
+  createNewProjectSession,
   selectIsActiveProjectDirty,
+  type CaseInsertProjectSession,
 } from '../lifecycle/projectSession.ts'
 import {
   representCaseInsertPresetApplicationSnapshot,
@@ -14,19 +19,30 @@ import {
 import {
   buildCaseInsertPresetApplicationAdoptionFixture,
 } from '../presets/caseInsertPresetApplicationAdoption.testFixture.test.ts'
-import { createCaseInsertPresetCatalog } from '../presets/caseInsertPresetCatalog.ts'
+import {
+  CASE_INSERT_PRESET_CATALOG,
+  createCaseInsertPresetCatalog,
+  type CaseInsertPresetCatalog,
+} from '../presets/caseInsertPresetCatalog.ts'
 import {
   createCaseInsertPresetAttachedState,
 } from '../presets/caseInsertPresetConfigurationAdoptionModel.ts'
 import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+} from '../presets/builtins/jewelCaseEssentialsCasePreset.ts'
+import {
   createCoordinatedCaseInsertPresetDefinition,
 } from '../presets/caseInsertPresetTestFixtures.ts'
+import {
+  createAppCaseInsertPresetWorkflowOwner,
+} from '../app/appCaseInsertPresetWorkflow.ts'
 import { stageProjectOpenContents } from '../app/appProjectLoad.ts'
 import { createBlankJewelCaseSavedProject } from './caseInsertProjectAdapters.ts'
 import {
   createCaseInsertProjectSaveSnapshot,
   prepareCaseInsertPresetProjectRecovery,
 } from './caseInsertPresetProjectPersistence.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema.ts'
 import type { SavedCaseInsertProject } from './projectTypes.ts'
 
 function attachedSession() {
@@ -81,7 +97,7 @@ function catalogWith(...revisions: number[]) {
 
 async function stageCaseProject(
   project: SavedCaseInsertProject,
-  catalog = catalogWith(3),
+  catalog: CaseInsertPresetCatalog = catalogWith(3),
 ) {
   return stageProjectOpenContents({
     selectedPath: 'C:\\projects\\recovered.sbls',
@@ -90,6 +106,51 @@ async function stageCaseProject(
     caseInsertBrandingSources: createBrandingSources(),
     caseInsertPresetCatalog: catalog,
   })
+}
+
+async function productionAttachedSession(
+  revision: 1 | 2,
+): Promise<CaseInsertProjectSession> {
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({
+      sessionId: `persisted-jewel-case-essentials-v${revision}`,
+      project: createBlankJewelCaseSavedProject(
+        `Persisted Jewel Case Essentials v${revision}`,
+      ),
+    }),
+  })
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: root,
+    catalog: CASE_INSERT_PRESET_CATALOG,
+  })
+  const planned = owner.beginApply({
+    selectedPreset: {
+      id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
+      revision,
+    },
+    requestedScope: { kind: 'complete' },
+  })
+  assert.equal(planned.ok, true, JSON.stringify(planned))
+  if (!planned.ok) throw new Error(planned.code)
+  const completed = await owner.complete(planned.review, {
+    decision: 'confirm',
+    operation: planned.review.operation,
+    reviewIdentity: planned.review.reviewIdentity,
+    selectedPreset: planned.review.selectedPreset,
+    reviewedWarningIds: [...planned.review.warningIds],
+    acceptedMaterialConsentRequirementIds: [
+      ...planned.review.materialConsentRequirementIds,
+    ],
+  })
+  assert.equal(completed.ok, true, JSON.stringify(completed))
+  if (!completed.ok) throw new Error(completed.code)
+  const session = root.getLifecycleState().activeSession
+  assert.equal(session?.kind, 'caseInsert')
+  if (!session || session.kind !== 'caseInsert') {
+    throw new Error('Expected an attached production Case session.')
+  }
+  assert.equal(session.caseInsertPresetApplication.attachment.status, 'attached')
+  return session
 }
 
 test('attached configuration, identity, owner values, and revision round-trip explicitly', async () => {
@@ -233,6 +294,217 @@ test('reapplied v2 configuration and provenance round-trip without recomputation
       .reapply,
     fixture.nextConfiguration.reapply,
   )
+})
+
+test('production Jewel Case Essentials revisions 1 and 2 round-trip as their exact attachments', async () => {
+  for (const revision of [1, 2] as const) {
+    const session = await productionAttachedSession(revision)
+    const attachment = session.caseInsertPresetApplication.attachment
+    assert.equal(attachment.status, 'attached')
+    if (attachment.status !== 'attached') continue
+    assert.equal(attachment.configuration.preset.id,
+      JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID)
+    assert.equal(attachment.configuration.preset.revision, revision)
+
+    const saved = createCaseInsertProjectSaveSnapshot(
+      session.project,
+      session.caseInsertPresetApplication,
+    )
+    assert.equal(saved.schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION)
+    assert.equal(saved.caseInsertLayoutPreset.attachment.status, 'attached')
+    if (saved.caseInsertLayoutPreset.attachment.status !== 'attached') continue
+    assert.equal(
+      saved.caseInsertLayoutPreset.attachment.configuration.preset.revision,
+      revision,
+    )
+    assert.deepEqual(
+      saved.caseInsertLayoutPreset.attachment.configuration.ownedFields,
+      attachment.configuration.ownedFields,
+    )
+
+    const staged = await stageCaseProject(saved, CASE_INSERT_PRESET_CATALOG)
+    assert.equal(staged.status, 'success', JSON.stringify(staged))
+    if (staged.status !== 'success' ||
+        staged.value.projectType !== 'caseInsert') continue
+    assert.deepEqual(
+      staged.value.caseInsertPresetRecovery.recoveryStatus,
+      revision === 1
+        ? {
+            status: 'stale',
+            savedRevision: 1,
+            latestAvailableRevision: 2,
+            customization: 'clean',
+          }
+        : { status: 'current', customization: 'clean' },
+    )
+    const recovered = createLoadedProjectSession({
+      sessionId: `recovered-jewel-case-essentials-v${revision}`,
+      project: staged.value.normalizedProject,
+      currentPath: staged.value.selectedPath,
+      persistenceFormat: staged.value.persistenceFormat,
+      lastEditorRoute: staged.value.editorRoute,
+      caseInsertPresetRecovery: staged.value.caseInsertPresetRecovery,
+    })
+    const recoveredSession = recovered.activeSession
+    assert.equal(recoveredSession?.kind, 'caseInsert')
+    if (!recoveredSession || recoveredSession.kind !== 'caseInsert') continue
+    const recoveredAttachment =
+      recoveredSession.caseInsertPresetApplication.attachment
+    assert.equal(recoveredAttachment.status, 'attached')
+    if (recoveredAttachment.status !== 'attached') continue
+    assert.equal(recoveredAttachment.configuration.preset.id,
+      JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID)
+    assert.equal(recoveredAttachment.configuration.preset.revision, revision)
+    assert.deepEqual(
+      recoveredAttachment.configuration.ownedFields,
+      attachment.configuration.ownedFields,
+    )
+    assert.deepEqual(recoveredSession.project, session.project)
+    assert.deepEqual(
+      createCaseInsertProjectSaveSnapshot(
+        recoveredSession.project,
+        recoveredSession.caseInsertPresetApplication,
+      ).caseInsertLayoutPreset,
+      saved.caseInsertLayoutPreset,
+    )
+
+    const screenshotSlots = recoveredSession.project.caseInsert.templates.tray
+      .artworkSlots.filter(({ id }) => /^tray-artwork-[123]$/.test(id))
+    assert.equal(screenshotSlots.length, revision === 1 ? 0 : 3)
+  }
+})
+
+test('revision 2 format-3 owner values and exact slots recover without a catalog', async () => {
+  const session = await productionAttachedSession(2)
+  const attachment = session.caseInsertPresetApplication.attachment
+  assert.equal(attachment.status, 'attached')
+  if (attachment.status !== 'attached') return
+  assert.equal(attachment.configuration.formatVersion, 3)
+  if (attachment.configuration.formatVersion !== 3) return
+  assert.equal(attachment.configuration.reapply, null)
+
+  const expectedXs = [17, 50, 83]
+  for (const [index, number] of [1, 2, 3].entries()) {
+    const slotId = `tray-artwork-${number}`
+    const slot = session.project.caseInsert.templates.tray.artworkSlots.find(
+      ({ id }) => id === slotId,
+    )
+    assert.ok(slot)
+    const ownedValues = Object.fromEntries(
+      attachment.configuration.ownedFields
+        .filter(({ address }) => address.bindingId === slotId)
+        .map(({ address, lastAppliedValue }) => [
+          address.fieldId,
+          lastAppliedValue,
+        ]),
+    )
+    assert.deepEqual(ownedValues, {
+      'object-presence': { kind: 'object-presence', value: 'present' },
+      'layout-x': { kind: 'layout-number', value: expectedXs[index] },
+      'layout-y': { kind: 'layout-number', value: 78 },
+      'layout-scale': { kind: 'layout-number', value: 1 },
+      'image-fit': { kind: 'image-fit', value: 'cover' },
+      'reserved-artwork-viewport': {
+        kind: 'reserved-artwork-viewport',
+        value: slot?.reservedArtworkViewport,
+      },
+    })
+    assert.equal(slot?.label, `Artwork ${number}`)
+    assert.equal(slot?.enabled, false)
+    assert.equal(slot?.imageDataUrl, null)
+    assert.equal(slot?.imageSource, null)
+    assert.equal(slot?.imageSize, null)
+    assert.equal(slot?.defaultSteamLogo, null)
+    assert.equal(slot?.layout.rotation, 0)
+  }
+
+  const saved = createCaseInsertProjectSaveSnapshot(
+    session.project,
+    session.caseInsertPresetApplication,
+  )
+  assert.equal(saved.caseInsertLayoutPreset.attachment.status, 'attached')
+  if (saved.caseInsertLayoutPreset.attachment.status !== 'attached') return
+  assert.deepEqual(
+    saved.caseInsertLayoutPreset.attachment.configuration.ownedFields,
+    attachment.configuration.ownedFields,
+  )
+
+  const unavailableCatalog = {
+    getExact() { throw new Error('Catalog unavailable.') },
+    getLatest() { throw new Error('Catalog unavailable.') },
+    resolve() { throw new Error('Catalog unavailable.') },
+    list() { throw new Error('Catalog unavailable.') },
+  } satisfies CaseInsertPresetCatalog
+  const staged = await stageCaseProject(saved, unavailableCatalog)
+  assert.equal(staged.status, 'success', JSON.stringify(staged))
+  if (staged.status !== 'success' || staged.value.projectType !== 'caseInsert') {
+    return
+  }
+  assert.deepEqual(staged.value.caseInsertPresetRecovery.recoveryStatus, {
+    status: 'unavailable',
+    code: 'catalog-unavailable',
+  })
+  const recovered = createLoadedProjectSession({
+    sessionId: 'recovered-jewel-case-essentials-v2-without-catalog',
+    project: staged.value.normalizedProject,
+    currentPath: staged.value.selectedPath,
+    persistenceFormat: staged.value.persistenceFormat,
+    lastEditorRoute: staged.value.editorRoute,
+    caseInsertPresetRecovery: staged.value.caseInsertPresetRecovery,
+  })
+  const recoveredSession = recovered.activeSession
+  assert.equal(recoveredSession?.kind, 'caseInsert')
+  if (!recoveredSession || recoveredSession.kind !== 'caseInsert') return
+  const recoveredAttachment =
+    recoveredSession.caseInsertPresetApplication.attachment
+  assert.equal(recoveredAttachment.status, 'attached')
+  if (recoveredAttachment.status !== 'attached') return
+  assert.equal(recoveredAttachment.configuration.preset.revision, 2)
+  assert.equal(recoveredAttachment.configuration.formatVersion, 3)
+  assert.deepEqual(
+    recoveredAttachment.configuration.ownedFields,
+    attachment.configuration.ownedFields,
+  )
+  assert.deepEqual(
+    recoveredSession.project.caseInsert.templates.tray.artworkSlots,
+    session.project.caseInsert.templates.tray.artworkSlots,
+  )
+  assert.deepEqual(
+    createCaseInsertProjectSaveSnapshot(
+      recoveredSession.project,
+      recoveredSession.caseInsertPresetApplication,
+    ).caseInsertLayoutPreset,
+    saved.caseInsertLayoutPreset,
+  )
+})
+
+test('revision 2 leaves project, package, and application release versions unchanged', async () => {
+  assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.4.0')
+
+  const packageJson = JSON.parse(await readFile('package.json', 'utf8')) as {
+    version?: unknown
+  }
+  const packageLock = JSON.parse(
+    await readFile('package-lock.json', 'utf8'),
+  ) as {
+    version?: unknown
+    packages?: Record<string, { version?: unknown }>
+  }
+  const tauriConfig = JSON.parse(
+    await readFile('src-tauri/tauri.conf.json', 'utf8'),
+  ) as { version?: unknown }
+  const cargoManifest = await readFile('src-tauri/Cargo.toml', 'utf8')
+  const packageManifest = await readFile(
+    'src-tauri/crates/sbls-package-codec/src/manifest.rs',
+    'utf8',
+  )
+
+  assert.equal(packageJson.version, '0.1.0')
+  assert.equal(packageLock.version, '0.1.0')
+  assert.equal(packageLock.packages?.['']?.version, '0.1.0')
+  assert.equal(tauriConfig.version, '0.1.0')
+  assert.match(cargoManifest, /^version = "0\.1\.0"$/m)
+  assert.match(packageManifest, /const PACKAGE_VERSION: u32 = 1;/)
 })
 
 test('detached persistence never infers attachment from matching geometry or owner values', async () => {

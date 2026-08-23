@@ -1,6 +1,7 @@
 export const CASE_INSERT_PRESET_DEFINITION_KIND =
   'sbls/case-insert-preset' as const
 export const CASE_INSERT_PRESET_FORMAT_VERSION = 1 as const
+export const CASE_INSERT_PRESET_FORMAT_VERSION_V2 = 2 as const
 export const CASE_INSERT_PRESET_MAX_NAME_LENGTH = 120
 export const CASE_INSERT_PRESET_MAX_DESCRIPTION_LENGTH = 1000
 export const CASE_INSERT_PRESET_MAX_TEMPLATE_ID_LENGTH = 120
@@ -127,6 +128,25 @@ export type CaseInsertPresetObjectBinding =
 
 export type CaseInsertPresetTargetPresence = 'required' | 'optional'
 
+export type CaseInsertPresetMissingTargetPolicyV2 = 'skip' | 'create-empty'
+
+export type CaseInsertPresetArtworkFittingIntentV2 =
+  | Readonly<{ mode: 'contain' }>
+  | Readonly<{ mode: 'cover' }>
+  | Readonly<{
+      mode: 'explicit-crop'
+      sourceWindow: CaseInsertPresetNormalizedRegion
+    }>
+
+export type CaseInsertPresetArtworkViewportDeclarationV2 = Readonly<{
+  fitting: CaseInsertPresetArtworkFittingIntentV2
+  focalPosition: Readonly<{
+    xPercent: number
+    yPercent: number
+  }>
+  zoom: number
+}>
+
 export type CaseInsertPresetApplicationScope =
   | Readonly<{
       kind: 'region'
@@ -149,10 +169,22 @@ export type CaseInsertPresetAssignmentDefinitionV1 = Readonly<{
   actionRegion?: CaseInsertPresetNormalizedRegion
 }>
 
+export type CaseInsertPresetAssignmentDefinitionV2 =
+  CaseInsertPresetAssignmentDefinitionV1 & Readonly<{
+    missingTargetPolicy?: CaseInsertPresetMissingTargetPolicyV2
+    artworkViewport?: CaseInsertPresetArtworkViewportDeclarationV2
+  }>
+
 export type CaseInsertPresetSlotDefinitionV1 = Readonly<{
   id: `case:preset-slot:${string}`
   roleId: CaseInsertPresetRoleId
   assignments: readonly CaseInsertPresetAssignmentDefinitionV1[]
+}>
+
+export type CaseInsertPresetSlotDefinitionV2 = Readonly<{
+  id: `case:preset-slot:${string}`
+  roleId: CaseInsertPresetRoleId
+  assignments: readonly CaseInsertPresetAssignmentDefinitionV2[]
 }>
 
 export type CaseInsertPresetDefinitionV1 = Readonly<{
@@ -167,6 +199,31 @@ export type CaseInsertPresetDefinitionV1 = Readonly<{
   applicationScopes: readonly CaseInsertPresetApplicationScope[]
   slots: readonly CaseInsertPresetSlotDefinitionV1[]
 }>
+
+export type CaseInsertPresetDefinitionV2 = Readonly<{
+  kind: typeof CASE_INSERT_PRESET_DEFINITION_KIND
+  formatVersion: typeof CASE_INSERT_PRESET_FORMAT_VERSION_V2
+  id: CaseInsertPresetId
+  revision: number
+  name: string
+  description?: string
+  surface: 'case-insert'
+  compatibility: CaseInsertPresetTemplateCompatibility
+  applicationScopes: readonly CaseInsertPresetApplicationScope[]
+  slots: readonly CaseInsertPresetSlotDefinitionV2[]
+}>
+
+export type CaseInsertPresetAssignmentDefinition =
+  | CaseInsertPresetAssignmentDefinitionV1
+  | CaseInsertPresetAssignmentDefinitionV2
+
+export type CaseInsertPresetSlotDefinition =
+  | CaseInsertPresetSlotDefinitionV1
+  | CaseInsertPresetSlotDefinitionV2
+
+export type CaseInsertPresetDefinition =
+  | CaseInsertPresetDefinitionV1
+  | CaseInsertPresetDefinitionV2
 
 export type CaseInsertPresetDefinitionParseErrorCode =
   | 'invalid-root'
@@ -197,11 +254,15 @@ export type CaseInsertPresetDefinitionParseErrorCode =
   | 'owner-region-mismatch'
   | 'invalid-object-binding'
   | 'invalid-target-presence'
+  | 'invalid-missing-target-policy'
+  | 'missing-target-creation-unsupported'
+  | 'invalid-artwork-viewport'
+  | 'artwork-viewport-owner-unsupported'
   | 'owner-role-mismatch'
   | 'duplicate-owner-object-binding'
 
 export type CaseInsertPresetDefinitionParseResult =
-  | Readonly<{ ok: true; value: CaseInsertPresetDefinitionV1 }>
+  | Readonly<{ ok: true; value: CaseInsertPresetDefinition }>
   | Readonly<{
       ok: false
       error: Readonly<{
@@ -209,6 +270,14 @@ export type CaseInsertPresetDefinitionParseResult =
         path: string
       }>
     }>
+
+export type CaseInsertPresetDefinitionV1ParseResult =
+  | Readonly<{ ok: true; value: CaseInsertPresetDefinitionV1 }>
+  | Extract<CaseInsertPresetDefinitionParseResult, Readonly<{ ok: false }>>
+
+export type CaseInsertPresetDefinitionV2ParseResult =
+  | Readonly<{ ok: true; value: CaseInsertPresetDefinitionV2 }>
+  | Extract<CaseInsertPresetDefinitionParseResult, Readonly<{ ok: false }>>
 
 export type CaseInsertPresetApplicationScopeParseResult =
   | Readonly<{ ok: true; value: CaseInsertPresetApplicationScope }>
@@ -264,6 +333,11 @@ const ASSIGNMENT_FIELDS = new Set([
   'contentRegion',
   'actionRegion',
 ])
+const ASSIGNMENT_FIELDS_V2 = new Set([
+  ...ASSIGNMENT_FIELDS,
+  'missingTargetPolicy',
+  'artworkViewport',
+])
 const OBJECT_BINDING_FIELDS = new Set(['kind', 'id'])
 const NORMALIZED_REGION_FIELDS = new Set([
   'centerXPercent',
@@ -271,6 +345,14 @@ const NORMALIZED_REGION_FIELDS = new Set([
   'widthPercent',
   'heightPercent',
 ])
+const ARTWORK_VIEWPORT_FIELDS = new Set([
+  'fitting',
+  'focalPosition',
+  'zoom',
+])
+const ARTWORK_FITTING_MODE_FIELDS = new Set(['mode'])
+const ARTWORK_EXPLICIT_CROP_FIELDS = new Set(['mode', 'sourceWindow'])
+const ARTWORK_FOCAL_POSITION_FIELDS = new Set(['xPercent', 'yPercent'])
 
 const BUILTIN_ID_PATTERN =
   /^builtin:case-preset:[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -283,6 +365,36 @@ const ASSIGNMENT_ID_PATTERN =
   /^case:preset-assignment:[a-z0-9]+(?:-[a-z0-9]+)*$/
 const REPEATED_OBJECT_ID_PATTERN =
   /^[a-z][a-z0-9]*(?:(?:-|:)[a-z0-9]+)*$/
+
+const CASE_INSERT_PRESET_REVIEWED_EMPTY_CREATION_V2 = Object.freeze({
+  'case:preset-assignment:back-screenshot-one': Object.freeze({
+    objectId: 'tray-artwork-1',
+    region: Object.freeze({
+      centerXPercent: 17,
+      centerYPercent: 78,
+      widthPercent: 26,
+      heightPercent: 16,
+    }),
+  }),
+  'case:preset-assignment:back-screenshot-two': Object.freeze({
+    objectId: 'tray-artwork-2',
+    region: Object.freeze({
+      centerXPercent: 50,
+      centerYPercent: 78,
+      widthPercent: 26,
+      heightPercent: 16,
+    }),
+  }),
+  'case:preset-assignment:back-screenshot-three': Object.freeze({
+    objectId: 'tray-artwork-3',
+    region: Object.freeze({
+      centerXPercent: 83,
+      centerYPercent: 78,
+      widthPercent: 26,
+      heightPercent: 16,
+    }),
+  }),
+} as const)
 
 const CONCRETE_REGION_ID_SET =
   new Set<string>(CASE_INSERT_PRESET_CONCRETE_REGION_IDS)
@@ -494,6 +606,63 @@ export function isCaseInsertPresetOwnerBindingCompatible(
   }
   return REPEATED_OBJECT_ID_PATTERN.test(object.id) &&
     ownerRule.roles.includes(roleId as never)
+}
+
+/**
+ * Definition format 2 intentionally grants empty-target creation only to the
+ * three reviewed Jewel Case back-panel screenshot identities. This is an
+ * exact domain allowlist, not a convention that downstream owners may infer
+ * from an ID, label, index, geometry, or catalog order.
+ */
+export function isCaseInsertPresetEmptyTargetCreationCompatibleV2(
+  declaration: Readonly<{
+    definitionId: CaseInsertPresetId
+    definitionRevision: number
+    compatibility: CaseInsertPresetTemplateCompatibility
+    assignmentId: `case:preset-assignment:${string}`
+    region: CaseInsertPresetConcreteRegionId
+    coordinateBasis: CaseInsertPresetCoordinateBasis
+    roleId: CaseInsertPresetRoleId
+    ownerId: CaseInsertPresetOwnerId
+    object: CaseInsertPresetObjectBinding
+    targetPresence: CaseInsertPresetTargetPresence
+    contentRegion: CaseInsertPresetNormalizedRegion
+    actionRegion?: CaseInsertPresetNormalizedRegion
+    artworkViewport?: CaseInsertPresetArtworkViewportDeclarationV2
+  }>,
+) {
+  const reviewed = CASE_INSERT_PRESET_REVIEWED_EMPTY_CREATION_V2[
+    declaration.assignmentId as keyof
+      typeof CASE_INSERT_PRESET_REVIEWED_EMPTY_CREATION_V2
+  ]
+  if (!reviewed) return false
+
+  const regionMatches = (
+    region: CaseInsertPresetNormalizedRegion | undefined,
+  ) => region !== undefined &&
+    region.centerXPercent === reviewed.region.centerXPercent &&
+    region.centerYPercent === reviewed.region.centerYPercent &&
+    region.widthPercent === reviewed.region.widthPercent &&
+    region.heightPercent === reviewed.region.heightPercent
+
+  return declaration.definitionId ===
+      'builtin:case-preset:jewel-case-essentials' &&
+    declaration.definitionRevision === 2 &&
+    declaration.compatibility.mode === 'specific-template' &&
+    declaration.compatibility.templateId === 'jewelCase' &&
+    declaration.region === 'back-panel' &&
+    declaration.coordinateBasis === 'backPanelSafe' &&
+    declaration.roleId === 'screenshots' &&
+    declaration.ownerId === 'case.tray.artwork-slots' &&
+    declaration.object.kind === 'repeated' &&
+    declaration.object.id === reviewed.objectId &&
+    declaration.targetPresence === 'optional' &&
+    regionMatches(declaration.contentRegion) &&
+    regionMatches(declaration.actionRegion) &&
+    declaration.artworkViewport?.fitting.mode === 'cover' &&
+    declaration.artworkViewport.focalPosition.xPercent === 50 &&
+    declaration.artworkViewport.focalPosition.yPercent === 50 &&
+    declaration.artworkViewport.zoom === 1
 }
 
 function failure(
@@ -803,6 +972,145 @@ function parseAssignment(
   })
 }
 
+function parseArtworkFittingIntentV2(
+  value: unknown,
+): CaseInsertPresetArtworkFittingIntentV2 | null {
+  if (!isRecord(value)) return null
+  if (value.mode === 'contain' || value.mode === 'cover') {
+    return hasOnlyFields(value, ARTWORK_FITTING_MODE_FIELDS)
+      ? Object.freeze({ mode: value.mode })
+      : null
+  }
+  if (value.mode !== 'explicit-crop' ||
+      !hasOnlyFields(value, ARTWORK_EXPLICIT_CROP_FIELDS)) {
+    return null
+  }
+  const sourceWindow = parseNormalizedRegion(value.sourceWindow)
+  return sourceWindow
+    ? Object.freeze({ mode: value.mode, sourceWindow })
+    : null
+}
+
+function parseArtworkViewportV2(
+  value: unknown,
+): CaseInsertPresetArtworkViewportDeclarationV2 | null {
+  if (!isRecord(value) || !hasOnlyFields(value, ARTWORK_VIEWPORT_FIELDS)) {
+    return null
+  }
+  const fitting = parseArtworkFittingIntentV2(value.fitting)
+  if (!fitting || !isRecord(value.focalPosition) ||
+      !hasOnlyFields(value.focalPosition, ARTWORK_FOCAL_POSITION_FIELDS) ||
+      !isFiniteInRange(value.focalPosition.xPercent, 0, 100) ||
+      !isFiniteInRange(value.focalPosition.yPercent, 0, 100) ||
+      !isFiniteInRange(value.zoom, 1, 1000)) {
+    return null
+  }
+  if (fitting.mode !== 'explicit-crop' &&
+      (value.focalPosition.xPercent !== 50 ||
+       value.focalPosition.yPercent !== 50 || value.zoom !== 1)) {
+    return null
+  }
+
+  return Object.freeze({
+    fitting,
+    focalPosition: Object.freeze({
+      xPercent: value.focalPosition.xPercent,
+      yPercent: value.focalPosition.yPercent,
+    }),
+    zoom: value.zoom,
+  })
+}
+
+function parseAssignmentV2(
+  value: unknown,
+  path: string,
+  roleId: CaseInsertPresetRoleId,
+  definitionContext: Readonly<{
+    id: CaseInsertPresetId
+    revision: number
+    compatibility: CaseInsertPresetTemplateCompatibility
+  }>,
+): CaseInsertPresetDefinitionParseResult |
+  CaseInsertPresetAssignmentDefinitionV2 {
+  if (!isRecord(value) || !hasOnlyFields(value, ASSIGNMENT_FIELDS_V2)) {
+    return failure(isRecord(value) ? 'unexpected-field' : 'invalid-assignment', path)
+  }
+
+  const baseAssignment = parseAssignment({
+    id: value.id,
+    region: value.region,
+    coordinateBasis: value.coordinateBasis,
+    ownerId: value.ownerId,
+    object: value.object,
+    targetPresence: value.targetPresence,
+    contentRegion: value.contentRegion,
+    ...(value.actionRegion === undefined
+      ? {}
+      : { actionRegion: value.actionRegion }),
+  }, path, roleId)
+  if ('ok' in baseAssignment) return baseAssignment
+
+  const missingTargetPolicy = value.missingTargetPolicy === undefined
+    ? undefined
+    : value.missingTargetPolicy === 'skip' ||
+        value.missingTargetPolicy === 'create-empty'
+      ? value.missingTargetPolicy
+      : null
+  if (missingTargetPolicy === null) {
+    return failure(
+      'invalid-missing-target-policy',
+      `${path}.missingTargetPolicy`,
+    )
+  }
+
+  const artworkViewport = value.artworkViewport === undefined
+    ? undefined
+    : parseArtworkViewportV2(value.artworkViewport)
+  if (value.artworkViewport !== undefined && !artworkViewport) {
+    return failure('invalid-artwork-viewport', `${path}.artworkViewport`)
+  }
+  if ((baseAssignment.actionRegion === undefined) !==
+      (artworkViewport === undefined)) {
+    return failure('invalid-artwork-viewport', `${path}.artworkViewport`)
+  }
+  if (artworkViewport &&
+      (baseAssignment.object.kind !== 'repeated' || roleId !== 'screenshots')) {
+    return failure(
+      'artwork-viewport-owner-unsupported',
+      `${path}.artworkViewport`,
+    )
+  }
+
+  if (missingTargetPolicy === 'create-empty' &&
+      (!artworkViewport ||
+       !isCaseInsertPresetEmptyTargetCreationCompatibleV2({
+         definitionId: definitionContext.id,
+         definitionRevision: definitionContext.revision,
+         compatibility: definitionContext.compatibility,
+         assignmentId: baseAssignment.id,
+         region: baseAssignment.region,
+         coordinateBasis: baseAssignment.coordinateBasis,
+         roleId,
+         ownerId: baseAssignment.ownerId,
+         object: baseAssignment.object,
+         targetPresence: baseAssignment.targetPresence,
+         contentRegion: baseAssignment.contentRegion,
+         actionRegion: baseAssignment.actionRegion,
+         artworkViewport,
+       }))) {
+    return failure(
+      'missing-target-creation-unsupported',
+      `${path}.missingTargetPolicy`,
+    )
+  }
+
+  return Object.freeze({
+    ...baseAssignment,
+    ...(missingTargetPolicy ? { missingTargetPolicy } : {}),
+    ...(artworkViewport ? { artworkViewport } : {}),
+  })
+}
+
 function parseSlot(
   value: unknown,
   index: number,
@@ -859,7 +1167,69 @@ function parseSlot(
   })
 }
 
-export function parseCaseInsertPresetDefinition(
+function parseSlotV2(
+  value: unknown,
+  index: number,
+  definitionContext: Readonly<{
+    id: CaseInsertPresetId
+    revision: number
+    compatibility: CaseInsertPresetTemplateCompatibility
+  }>,
+): CaseInsertPresetDefinitionParseResult | CaseInsertPresetSlotDefinitionV2 {
+  const path = `slots[${index}]`
+  if (!isRecord(value) || !hasOnlyFields(value, SLOT_FIELDS)) {
+    return failure(isRecord(value) ? 'unexpected-field' : 'invalid-slot', path)
+  }
+  if (typeof value.id !== 'string' || !SLOT_ID_PATTERN.test(value.id)) {
+    return failure('invalid-slot', `${path}.id`)
+  }
+  if (typeof value.roleId !== 'string' || !ROLE_ID_SET.has(value.roleId)) {
+    return failure('unsupported-role', `${path}.roleId`)
+  }
+  if (!Array.isArray(value.assignments) || value.assignments.length === 0) {
+    return failure('invalid-assignment', `${path}.assignments`)
+  }
+  if (value.assignments.length > CASE_INSERT_PRESET_MAX_ASSIGNMENTS) {
+    return failure('too-many-assignments', `${path}.assignments`)
+  }
+
+  const roleId = value.roleId as CaseInsertPresetRoleId
+  const assignments: CaseInsertPresetAssignmentDefinitionV2[] = []
+  const assignmentIds = new Set<string>()
+  const bindings = new Set<string>()
+
+  for (let index = 0; index < value.assignments.length; index += 1) {
+    const assignment = parseAssignmentV2(
+      value.assignments[index],
+      `${path}.assignments[${index}]`,
+      roleId,
+      definitionContext,
+    )
+    if ('ok' in assignment) return assignment
+    if (assignmentIds.has(assignment.id)) {
+      return failure('duplicate-assignment', `${path}.assignments[${index}].id`)
+    }
+    const bindingKey = `${assignment.ownerId}\u0000${assignment.object.id}`
+    if (bindings.has(bindingKey)) {
+      return failure(
+        'duplicate-owner-object-binding',
+        `${path}.assignments[${index}].object.id`,
+      )
+    }
+    assignmentIds.add(assignment.id)
+    bindings.add(bindingKey)
+    assignments.push(assignment)
+  }
+
+  assignments.sort((left, right) => left.id.localeCompare(right.id))
+  return Object.freeze({
+    id: value.id as `case:preset-slot:${string}`,
+    roleId,
+    assignments: Object.freeze(assignments),
+  })
+}
+
+export function parseCaseInsertPresetDefinitionV1(
   value: unknown,
 ): CaseInsertPresetDefinitionParseResult {
   if (!isRecord(value)) return failure('invalid-root', '$')
@@ -975,4 +1345,144 @@ export function parseCaseInsertPresetDefinition(
       slots: Object.freeze(slots),
     }),
   })
+}
+
+export function parseCaseInsertPresetDefinitionV2(
+  value: unknown,
+): CaseInsertPresetDefinitionParseResult {
+  if (!isRecord(value)) return failure('invalid-root', '$')
+  if (!hasOnlyFields(value, DEFINITION_FIELDS)) {
+    return failure('unexpected-field', '$')
+  }
+  if (value.kind !== CASE_INSERT_PRESET_DEFINITION_KIND) {
+    return failure('unsupported-kind', 'kind')
+  }
+  if (value.formatVersion !== CASE_INSERT_PRESET_FORMAT_VERSION_V2) {
+    return failure('unsupported-format-version', 'formatVersion')
+  }
+  if (!isCaseInsertPresetId(value.id)) return failure('invalid-id', 'id')
+  if (!isPositiveSafeInteger(value.revision)) {
+    return failure('invalid-revision', 'revision')
+  }
+  if (typeof value.name !== 'string') return failure('invalid-name', 'name')
+  const name = value.name.trim()
+  if (!name || name.length > CASE_INSERT_PRESET_MAX_NAME_LENGTH) {
+    return failure('invalid-name', 'name')
+  }
+  if (value.description !== undefined && typeof value.description !== 'string') {
+    return failure('invalid-description', 'description')
+  }
+  const description = typeof value.description === 'string'
+    ? value.description.trim()
+    : undefined
+  if (description &&
+      description.length > CASE_INSERT_PRESET_MAX_DESCRIPTION_LENGTH) {
+    return failure('invalid-description', 'description')
+  }
+  if (value.surface !== 'case-insert') {
+    return failure('invalid-surface', 'surface')
+  }
+  const compatibility = parseCompatibility(value.compatibility)
+  if (!compatibility) return failure('invalid-compatibility', 'compatibility')
+  if (!Array.isArray(value.applicationScopes) ||
+      value.applicationScopes.length === 0) {
+    return failure('invalid-scope', 'applicationScopes')
+  }
+  if (!Array.isArray(value.slots) || value.slots.length === 0) {
+    return failure('invalid-slot', 'slots')
+  }
+  if (value.slots.length > CASE_INSERT_PRESET_MAX_SLOTS) {
+    return failure('too-many-slots', 'slots')
+  }
+
+  const slots: CaseInsertPresetSlotDefinitionV2[] = []
+  const slotIds = new Set<string>()
+  const assignmentIds = new Set<string>()
+  const bindingKeys = new Set<string>()
+  const regions = new Set<CaseInsertPresetConcreteRegionId>()
+
+  for (let index = 0; index < value.slots.length; index += 1) {
+    const slot = parseSlotV2(value.slots[index], index, {
+      id: value.id,
+      revision: value.revision,
+      compatibility,
+    })
+    if ('ok' in slot) return slot
+    if (slotIds.has(slot.id)) return failure('duplicate-slot', `slots[${index}].id`)
+    slotIds.add(slot.id)
+
+    for (const assignment of slot.assignments) {
+      if (assignmentIds.has(assignment.id)) {
+        return failure('duplicate-assignment', `slots[${index}].assignments`)
+      }
+      const bindingKey = `${assignment.ownerId}\u0000${assignment.object.id}`
+      if (bindingKeys.has(bindingKey)) {
+        return failure(
+          'duplicate-owner-object-binding',
+          `slots[${index}].assignments`,
+        )
+      }
+      assignmentIds.add(assignment.id)
+      bindingKeys.add(bindingKey)
+      regions.add(assignment.region)
+    }
+
+    slots.push(slot)
+  }
+
+  const applicationScopes: CaseInsertPresetApplicationScope[] = []
+  const scopeKeys = new Set<string>()
+  for (let index = 0; index < value.applicationScopes.length; index += 1) {
+    const scope = parseCaseInsertPresetApplicationScope(
+      value.applicationScopes[index],
+      `applicationScopes[${index}]`,
+    )
+    if (!scope.ok) return failure('invalid-scope', scope.error.path)
+    const key = getCaseInsertPresetApplicationScopeKey(scope.value)
+    if (scopeKeys.has(key)) {
+      return failure('duplicate-scope', `applicationScopes[${index}]`)
+    }
+    if (!isScopeSupportedByRegions(scope.value, regions)) {
+      return failure('unsupported-scope', `applicationScopes[${index}]`)
+    }
+    scopeKeys.add(key)
+    applicationScopes.push(scope.value)
+  }
+
+  slots.sort((left, right) => left.id.localeCompare(right.id))
+  applicationScopes.sort((left, right) => getScopeOrder(left) - getScopeOrder(right))
+
+  return Object.freeze({
+    ok: true,
+    value: Object.freeze({
+      kind: CASE_INSERT_PRESET_DEFINITION_KIND,
+      formatVersion: CASE_INSERT_PRESET_FORMAT_VERSION_V2,
+      id: value.id,
+      revision: value.revision,
+      name,
+      ...(description ? { description } : {}),
+      surface: 'case-insert',
+      compatibility,
+      applicationScopes: Object.freeze(applicationScopes),
+      slots: Object.freeze(slots),
+    }),
+  })
+}
+
+export function parseCaseInsertPresetDefinition(
+  value: Readonly<{ formatVersion: typeof CASE_INSERT_PRESET_FORMAT_VERSION }>,
+): CaseInsertPresetDefinitionV1ParseResult
+export function parseCaseInsertPresetDefinition(
+  value: Readonly<{ formatVersion: typeof CASE_INSERT_PRESET_FORMAT_VERSION_V2 }>,
+): CaseInsertPresetDefinitionV2ParseResult
+export function parseCaseInsertPresetDefinition(
+  value: unknown,
+): CaseInsertPresetDefinitionParseResult
+export function parseCaseInsertPresetDefinition(
+  value: unknown,
+): CaseInsertPresetDefinitionParseResult {
+  return isRecord(value) &&
+    value.formatVersion === CASE_INSERT_PRESET_FORMAT_VERSION_V2
+    ? parseCaseInsertPresetDefinitionV2(value)
+    : parseCaseInsertPresetDefinitionV1(value)
 }

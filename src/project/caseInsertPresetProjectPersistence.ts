@@ -137,9 +137,26 @@ function projectConfiguration(
     acceptedMaterialConsentRequirementIds:
       configuration.acceptedMaterialConsentRequirementIds,
   }
+  if (configuration.formatVersion === 3) {
+    return deepFreezeCaseInsertPresetValue({
+      ...common,
+      formatVersion: 3 as const,
+      reapply: configuration.reapply,
+      ownedFields: configuration.ownedFields,
+    })
+  }
   return deepFreezeCaseInsertPresetValue(configuration.formatVersion === 2
-    ? { ...common, formatVersion: 2 as const, reapply: configuration.reapply }
-    : { ...common, formatVersion: 1 as const })
+    ? {
+        ...common,
+        formatVersion: 2 as const,
+        reapply: configuration.reapply,
+        ownedFields: configuration.ownedFields,
+      }
+    : {
+        ...common,
+        formatVersion: 1 as const,
+        ownedFields: configuration.ownedFields,
+      })
 }
 
 export function projectCaseInsertLayoutPresetProjectState(
@@ -229,14 +246,16 @@ function parsePersistedState(
   }
   const configuration = attachment.configuration
   const reapplied = configuration.formatVersion === 2
+  const successor = configuration.formatVersion === 3
   const expectedConfigurationKeys = [
     'formatVersion', 'firstApply', 'preset', 'requestedScope',
     'resolvedRegions', 'template', 'reviewedPlanIdentity', 'ownedFields',
     'reviewedWarningIds', 'acceptedMaterialConsentRequirementIds',
-    ...(reapplied ? ['reapply'] : []),
+    ...(reapplied || successor ? ['reapply'] : []),
   ]
   if ((configuration.formatVersion !== 1 &&
-      configuration.formatVersion !== 2) ||
+      configuration.formatVersion !== 2 &&
+      configuration.formatVersion !== 3) ||
       !hasExactCaseInsertPresetKeys(
         configuration,
         expectedConfigurationKeys,
@@ -289,13 +308,19 @@ function reconstructConfiguration(input: Readonly<{
     acceptedMaterialConsentRequirementIds:
       input.configuration.acceptedMaterialConsentRequirementIds,
   }
-  const identityInput = input.configuration.formatVersion === 2
+  const identityInput = input.configuration.formatVersion === 3
     ? {
         ...common,
-        formatVersion: 2 as const,
+        formatVersion: 3 as const,
         reapply: input.configuration.reapply,
       }
-    : { ...common, formatVersion: 1 as const }
+    : input.configuration.formatVersion === 2
+      ? {
+          ...common,
+          formatVersion: 2 as const,
+          reapply: input.configuration.reapply,
+        }
+      : { ...common, formatVersion: 1 as const }
   let configurationIdentity: string
   try {
     configurationIdentity = createCaseInsertAppliedPresetConfigurationIdentity(

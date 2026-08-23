@@ -1,6 +1,6 @@
 import {
   encodeCaseInsertPresetDeterministicIdentity,
-} from './caseInsertPresetReapplyIdentity.ts'
+} from './caseInsertPresetDeterministicIdentity.ts'
 
 export const CASE_INSERT_PRESET_ATTACHMENT_STATE_KIND =
   'sbls/case-insert-preset-attachment-state' as const

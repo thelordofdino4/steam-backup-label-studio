@@ -489,7 +489,7 @@ test('candidate validation distinguishes unsupported version, operation, field, 
   )
   const version = structuredClone(fixture.result) as unknown as Record<string, unknown>
   const versionCandidate = version.configurationCandidate as Record<string, unknown>
-  versionCandidate.formatVersion = 2
+  versionCandidate.formatVersion = 3
   const versionResult = validateCaseInsertAppliedPresetConfigurationCandidate(
     deepFreeze(version) as unknown as CaseInsertPresetApplyTransitionResult,
   )
@@ -938,7 +938,7 @@ test('unsupported configuration versions, malformed configurations, and unsuppor
   const configuration = validatedConfiguration(fixture.result)
 
   const unsupportedVersion = structuredClone(configuration) as unknown as Record<string, unknown>
-  unsupportedVersion.formatVersion = 3
+  unsupportedVersion.formatVersion = 4
   const versionReport = detect(
     deepFreeze(unsupportedVersion) as unknown as CaseInsertAppliedPresetConfiguration,
     structuredClone(fixture.result.aggregate),

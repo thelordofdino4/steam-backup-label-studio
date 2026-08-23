@@ -100,6 +100,10 @@ for (const kind of ['disc', 'caseInsert'] as const) {
     assert.equal(session.cleanBaseline, null)
     assert.equal(session.revision, 0)
     if (session.kind === 'caseInsert') {
+      assert.deepEqual(
+        session.project.caseInsert.templates.tray.artworkSlots,
+        [],
+      )
       assert.equal(
         session.caseInsertPresetApplication.applicationRevision,
         0,

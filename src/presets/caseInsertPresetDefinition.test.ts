@@ -6,6 +6,7 @@ import {
   CASE_INSERT_PRESET_CONCRETE_REGION_IDS,
   CASE_INSERT_PRESET_COORDINATE_BASES,
   CASE_INSERT_PRESET_COORDINATE_BASES_BY_REGION,
+  CASE_INSERT_PRESET_FORMAT_VERSION_V2,
   getCaseInsertPresetApplicationScopeKey,
   isBuiltInCaseInsertPresetId,
   isCaseInsertPresetCoordinateBasisAllowed,
@@ -54,6 +55,52 @@ function singleRegionDefinition(
   definition.applicationScopes = [{ kind: 'region', region }]
   definition.slots = [slot]
   return definition
+}
+
+function createMinimalArtworkDefinitionV2() {
+  return {
+    kind: 'sbls/case-insert-preset',
+    formatVersion: CASE_INSERT_PRESET_FORMAT_VERSION_V2,
+    id: 'builtin:case-preset:jewel-case-essentials',
+    revision: 2,
+    name: 'Minimal Artwork V2',
+    surface: 'case-insert',
+    compatibility: {
+      mode: 'specific-template',
+      templateId: 'jewelCase',
+    },
+    applicationScopes: [{ kind: 'region', region: 'back-panel' }],
+    slots: [{
+      id: 'case:preset-slot:screenshots',
+      roleId: 'screenshots',
+      assignments: [{
+        id: 'case:preset-assignment:back-screenshot-one',
+        region: 'back-panel',
+        coordinateBasis: 'backPanelSafe',
+        ownerId: 'case.tray.artwork-slots',
+        object: { kind: 'repeated', id: 'tray-artwork-1' },
+        targetPresence: 'optional',
+        missingTargetPolicy: 'create-empty',
+        contentRegion: {
+          centerXPercent: 17,
+          centerYPercent: 78,
+          widthPercent: 26,
+          heightPercent: 16,
+        },
+        actionRegion: {
+          centerXPercent: 17,
+          centerYPercent: 78,
+          widthPercent: 26,
+          heightPercent: 16,
+        },
+        artworkViewport: {
+          fitting: { mode: 'cover' },
+          focalPosition: { xPercent: 50, yPercent: 50 },
+          zoom: 1,
+        },
+      }],
+    }],
+  } as MutableRecord
 }
 
 test('parses a minimal definition into canonical deeply immutable data', () => {
@@ -121,6 +168,195 @@ test('canonicalizes coordinated definitions deterministically', () => {
       'complete',
     ],
   )
+})
+
+test('parses strict format 2 artwork creation declarations without changing input', () => {
+  const input = createMinimalArtworkDefinitionV2()
+  const before = cloneFixture(input)
+  const result = parseCaseInsertPresetDefinition(input)
+
+  assert.equal(result.ok, true)
+  if (!result.ok) return
+  assert.deepEqual(input, before)
+  assert.equal(result.value.formatVersion, 2)
+  const assignment = result.value.slots[0]?.assignments[0]
+  assert.ok(assignment && 'missingTargetPolicy' in assignment)
+  assert.equal(assignment.missingTargetPolicy, 'create-empty')
+  assert.deepEqual(assignment.artworkViewport, {
+    fitting: { mode: 'cover' },
+    focalPosition: { xPercent: 50, yPercent: 50 },
+    zoom: 1,
+  })
+  assert.ok(Object.isFrozen(assignment.artworkViewport))
+  assert.ok(Object.isFrozen(assignment.artworkViewport?.fitting))
+  assert.ok(Object.isFrozen(assignment.artworkViewport?.focalPosition))
+})
+
+test('keeps format 1 closed while format 2 requires paired viewport declarations', () => {
+  const v1WithV2Field = createMinimalCaseInsertPresetDefinition()
+  assignmentsOf(slotsOf(v1WithV2Field)[0]!).at(0)!.missingTargetPolicy = 'skip'
+  expectFailure(v1WithV2Field, 'unexpected-field')
+
+  const actionOnly = createMinimalArtworkDefinitionV2()
+  delete assignmentsOf(slotsOf(actionOnly)[0]!)[0]!.artworkViewport
+  expectFailure(actionOnly, 'invalid-artwork-viewport')
+
+  const declarationOnly = createMinimalArtworkDefinitionV2()
+  delete assignmentsOf(slotsOf(declarationOnly)[0]!)[0]!.actionRegion
+  expectFailure(declarationOnly, 'invalid-artwork-viewport')
+
+  const nestedUnknown = createMinimalArtworkDefinitionV2()
+  const viewport = assignmentsOf(slotsOf(nestedUnknown)[0]!)[0]!
+    .artworkViewport as MutableRecord
+  viewport.callback = 'not declarative data'
+  expectFailure(nestedUnknown, 'invalid-artwork-viewport')
+})
+
+test('limits format 2 empty-target creation to exact reviewed screenshot bindings', () => {
+  for (const [assignmentId, objectId, centerXPercent] of [
+    ['case:preset-assignment:back-screenshot-one', 'tray-artwork-1', 17],
+    ['case:preset-assignment:back-screenshot-two', 'tray-artwork-2', 50],
+    ['case:preset-assignment:back-screenshot-three', 'tray-artwork-3', 83],
+  ] as const) {
+    const valid = createMinimalArtworkDefinitionV2()
+    const assignment = assignmentsOf(slotsOf(valid)[0]!)[0]!
+    assignment.id = assignmentId
+    assignment.object = { kind: 'repeated', id: objectId }
+    ;(assignment.contentRegion as MutableRecord).centerXPercent = centerXPercent
+    ;(assignment.actionRegion as MutableRecord).centerXPercent = centerXPercent
+    assert.equal(parseCaseInsertPresetDefinition(valid).ok, true)
+  }
+
+  for (const objectId of [
+    'tray-artwork-0',
+    'tray-artwork-4',
+    'Artwork 1',
+    'artworkSlots[0]',
+    '/tray/artwork/1',
+  ]) {
+    const invalid = createMinimalArtworkDefinitionV2()
+    assignmentsOf(slotsOf(invalid)[0]!)[0]!.object = {
+      kind: 'repeated',
+      id: objectId,
+    }
+    expectFailure(
+      invalid,
+      objectId === 'tray-artwork-0' || objectId === 'tray-artwork-4'
+        ? 'missing-target-creation-unsupported'
+        : 'invalid-object-binding',
+    )
+  }
+
+  const required = createMinimalArtworkDefinitionV2()
+  assignmentsOf(slotsOf(required)[0]!)[0]!.targetPresence = 'required'
+  expectFailure(required, 'missing-target-creation-unsupported')
+
+  const noViewport = createMinimalArtworkDefinitionV2()
+  const noViewportAssignment = assignmentsOf(slotsOf(noViewport)[0]!)[0]!
+  delete noViewportAssignment.actionRegion
+  delete noViewportAssignment.artworkViewport
+  expectFailure(noViewport, 'missing-target-creation-unsupported')
+
+  const unsupportedOwner = createMinimalArtworkDefinitionV2()
+  assignmentsOf(slotsOf(unsupportedOwner)[0]!)[0]!.ownerId =
+    'case.cover.artwork-slots'
+  expectFailure(unsupportedOwner, 'owner-region-mismatch')
+
+  const fixedObject = createMinimalArtworkDefinitionV2()
+  assignmentsOf(slotsOf(fixedObject)[0]!)[0]!.object = {
+    kind: 'fixed',
+    id: 'tray-artwork-1',
+  }
+  expectFailure(fixedObject, 'invalid-object-binding')
+
+  for (const mutate of [
+    (definition: MutableRecord) => {
+      definition.id =
+        'user:case-preset:123e4567-e89b-42d3-a456-426614174000'
+    },
+    (definition: MutableRecord) => { definition.revision = 3 },
+    (definition: MutableRecord) => {
+      definition.compatibility = { mode: 'any-case-template' }
+    },
+    (definition: MutableRecord) => {
+      definition.compatibility = {
+        mode: 'specific-template',
+        templateId: 'futureCase',
+      }
+    },
+    (definition: MutableRecord) => {
+      assignmentsOf(slotsOf(definition)[0]!)[0]!.coordinateBasis = 'backPanel'
+    },
+    (definition: MutableRecord) => {
+      assignmentsOf(slotsOf(definition)[0]!)[0]!.id =
+        'case:preset-assignment:hostile-screenshot-one'
+    },
+    (definition: MutableRecord) => {
+      ;(assignmentsOf(slotsOf(definition)[0]!)[0]!
+        .contentRegion as MutableRecord).centerXPercent = 18
+    },
+    (definition: MutableRecord) => {
+      ;(assignmentsOf(slotsOf(definition)[0]!)[0]!
+        .actionRegion as MutableRecord).widthPercent = 25
+    },
+  ]) {
+    const invalid = createMinimalArtworkDefinitionV2()
+    mutate(invalid)
+    expectFailure(invalid, 'missing-target-creation-unsupported')
+  }
+
+  const mismatchedReviewedIdentity = createMinimalArtworkDefinitionV2()
+  assignmentsOf(slotsOf(mismatchedReviewedIdentity)[0]!)[0]!.object = {
+    kind: 'repeated',
+    id: 'tray-artwork-2',
+  }
+  expectFailure(
+    mismatchedReviewedIdentity,
+    'missing-target-creation-unsupported',
+  )
+})
+
+test('validates format 2 fitting, focal position, and zoom conservatively', () => {
+  for (const mutation of [
+    (viewport: MutableRecord) => { viewport.fitting = { mode: 'unknown' } },
+    (viewport: MutableRecord) => {
+      viewport.fitting = { mode: 'cover', sourceWindow: {} }
+    },
+    (viewport: MutableRecord) => {
+      viewport.focalPosition = { xPercent: 101, yPercent: 50 }
+    },
+    (viewport: MutableRecord) => { viewport.zoom = 1001 },
+    (viewport: MutableRecord) => { viewport.zoom = Number.NaN },
+  ]) {
+    const invalid = createMinimalArtworkDefinitionV2()
+    const viewport = assignmentsOf(slotsOf(invalid)[0]!)[0]!
+      .artworkViewport as MutableRecord
+    mutation(viewport)
+    expectFailure(invalid, 'invalid-artwork-viewport')
+  }
+
+  const noncanonicalCover = createMinimalArtworkDefinitionV2()
+  const coverViewport = assignmentsOf(slotsOf(noncanonicalCover)[0]!)[0]!
+    .artworkViewport as MutableRecord
+  coverViewport.focalPosition = { xPercent: 49, yPercent: 50 }
+  expectFailure(noncanonicalCover, 'invalid-artwork-viewport')
+
+  const explicitCrop = createMinimalArtworkDefinitionV2()
+  const cropViewport = assignmentsOf(slotsOf(explicitCrop)[0]!)[0]!
+    .artworkViewport as MutableRecord
+  cropViewport.fitting = {
+    mode: 'explicit-crop',
+    sourceWindow: {
+      centerXPercent: 40,
+      centerYPercent: 60,
+      widthPercent: 50,
+      heightPercent: 40,
+    },
+  }
+  cropViewport.focalPosition = { xPercent: 40, yPercent: 60 }
+  cropViewport.zoom = 2
+  delete assignmentsOf(slotsOf(explicitCrop)[0]!)[0]!.missingTargetPolicy
+  assert.equal(parseCaseInsertPresetDefinition(explicitCrop).ok, true)
 })
 
 test('accepts only canonical Case namespaces and positive exact revisions', () => {
@@ -316,7 +552,7 @@ test('rejects malformed, unknown-field, wrong-surface, and future definitions', 
   expectFailure(unknown, 'unexpected-field')
 
   const future = createMinimalCaseInsertPresetDefinition()
-  future.formatVersion = 2
+  future.formatVersion = 3
   expectFailure(future, 'unsupported-format-version')
 
   const wrongKind = createMinimalCaseInsertPresetDefinition()

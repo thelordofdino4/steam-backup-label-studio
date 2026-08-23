@@ -2,6 +2,7 @@ import {
   CASE_INSERT_PRESET_CONCRETE_REGION_IDS,
   CASE_INSERT_PRESET_OWNER_IDS,
   getCaseInsertPresetApplicationScopeKey,
+  isCaseInsertPresetEmptyTargetCreationCompatibleV2,
   isCaseInsertPresetCoordinateBasis,
   isCaseInsertPresetConcreteRegionId,
   parseCaseInsertPresetApplicationScope,
@@ -9,7 +10,7 @@ import {
   type CaseInsertPresetApplicationScope,
   type CaseInsertPresetConcreteRegionId,
   type CaseInsertPresetCoordinateBasis,
-  type CaseInsertPresetDefinitionV1,
+  type CaseInsertPresetDefinition,
   type CaseInsertPresetOwnerId,
 } from './caseInsertPresetDefinition.ts'
 
@@ -56,7 +57,7 @@ export type CaseInsertPresetCompatibilityContext = Readonly<{
 export type CaseInsertPresetCompatibilityResult = Readonly<{
   status: CaseInsertPresetCompatibilityStatus
   reasons: readonly CaseInsertPresetCompatibilityReason[]
-  definition: CaseInsertPresetDefinitionV1 | null
+  definition: CaseInsertPresetDefinition | null
   requestedScope: CaseInsertPresetApplicationScope | null
 }>
 
@@ -78,7 +79,7 @@ function reason(
 
 function finish(
   reasons: CaseInsertPresetCompatibilityReason[],
-  definition: CaseInsertPresetDefinitionV1 | null,
+  definition: CaseInsertPresetDefinition | null,
   requestedScope: CaseInsertPresetApplicationScope | null,
 ): CaseInsertPresetCompatibilityResult {
   return Object.freeze({
@@ -214,7 +215,26 @@ export function evaluateCaseInsertPresetCompatibility(
         if (!checkedRepeatedObjects.has(objectKey)) {
           checkedRepeatedObjects.add(objectKey)
           const availableObjects = ownerCapabilities.get(assignment.ownerId)
-          if (availableObjects && !availableObjects.has(assignment.object.id)) {
+          const createsReviewedEmptyTarget =
+            'missingTargetPolicy' in assignment &&
+            assignment.missingTargetPolicy === 'create-empty' &&
+            isCaseInsertPresetEmptyTargetCreationCompatibleV2({
+              definitionId: definition.id,
+              definitionRevision: definition.revision,
+              compatibility: definition.compatibility,
+              assignmentId: assignment.id,
+              region: assignment.region,
+              coordinateBasis: assignment.coordinateBasis,
+              roleId: slot.roleId,
+              ownerId: assignment.ownerId,
+              object: assignment.object,
+              targetPresence: assignment.targetPresence,
+              contentRegion: assignment.contentRegion,
+              actionRegion: assignment.actionRegion,
+              artworkViewport: assignment.artworkViewport,
+            })
+          if (availableObjects && !availableObjects.has(assignment.object.id) &&
+              !createsReviewedEmptyTarget) {
             reasons.push(reason(
               'repeated-object-unavailable',
               `owners.${assignment.ownerId}.objects.${assignment.object.id}`,

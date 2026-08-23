@@ -23,8 +23,11 @@ import {
   validateCaseInsertPresetCustomizationReport,
   type CaseInsertAppliedPresetConfiguration,
   type CaseInsertAppliedPresetOwnedFieldAddress,
+  type CaseInsertAppliedPresetOwnedFieldAddressV3,
+  type CaseInsertFirstAppliedPresetConfiguration,
   type CaseInsertPresetCustomizationReport,
   type CaseInsertReappliedPresetConfiguration,
+  type CaseInsertViewportAppliedPresetConfiguration,
 } from './caseInsertPresetAppliedConfiguration.ts'
 import type { CaseInsertPresetPlanSourceAssignment } from './caseInsertPresetApplyPlanning.ts'
 import {
@@ -44,9 +47,19 @@ import {
 } from './caseInsertPresetReapplyIdentity.ts'
 import type {
   CaseInsertPresetReapplyFieldEffect,
+  CaseInsertPresetLegacyReapplyPlan,
   CaseInsertPresetReapplyMaterialConsentRequirement,
   CaseInsertPresetReapplyPlan,
+  CaseInsertPresetTypedReapplyMaterialConsentRequirement,
 } from './caseInsertPresetReapplyPlanning.ts'
+import {
+  createCaseInsertPresetTypedReapplyConsentAcceptance,
+  createCaseInsertPresetTypedReapplyReviewAcceptance,
+  transitionCaseInsertPresetTypedReapply,
+  type CaseInsertPresetTypedReapplyConsentAcceptance,
+  type CaseInsertPresetTypedReapplyReviewAcceptance,
+  type TransitionCaseInsertPresetTypedReapplyInput,
+} from './caseInsertPresetTypedReapplyTransition.ts'
 import {
   createCaseInsertPresetAttachedEndpoint,
   isCaseInsertPresetAttachmentEndpoint,
@@ -92,7 +105,9 @@ export type CaseInsertPresetReapplyConsentAcceptance = Readonly<{
   planIdentity: string
   planReviewIdentity: string
   requirementId: string
-  requirement: CaseInsertPresetReapplyMaterialConsentRequirement
+  requirement:
+    | CaseInsertPresetReapplyMaterialConsentRequirement
+    | CaseInsertPresetTypedReapplyMaterialConsentRequirement
   acceptanceIdentity: string
 }>
 
@@ -156,7 +171,9 @@ export type CaseInsertPresetReapplyTransitionResult =
       sourceAggregate: Readonly<ProjectJewelCaseState>
       sourceConfiguration: CaseInsertAppliedPresetConfiguration
       aggregate: Readonly<ProjectJewelCaseState>
-      nextConfiguration: CaseInsertReappliedPresetConfiguration
+      nextConfiguration:
+        | CaseInsertReappliedPresetConfiguration
+        | CaseInsertViewportAppliedPresetConfiguration
       successEvidence: CaseInsertPresetTransitionSuccessEvidence
       applicationAdoptionStatus: 'not-adopted'
     }>
@@ -165,7 +182,9 @@ export type CaseInsertPresetReapplyTransitionResult =
       status: CaseInsertPresetReapplyTransitionFailureStatus
       code: string
       dimensions?: readonly string[]
-      address?: CaseInsertAppliedPresetOwnedFieldAddress
+      address?:
+        | CaseInsertAppliedPresetOwnedFieldAddress
+        | CaseInsertAppliedPresetOwnedFieldAddressV3
       requirementId?: string
     }>
 
@@ -201,6 +220,13 @@ export type CaseInsertPresetReapplyTransitionSuccessValidationResult =
     }>
 
 type Failure = Extract<CaseInsertPresetReapplyTransitionResult, { ok: false }>
+type LegacyConfiguration =
+  | CaseInsertFirstAppliedPresetConfiguration
+  | CaseInsertReappliedPresetConfiguration
+type LegacyCustomizationReport = Extract<
+  CaseInsertPresetCustomizationReport,
+  { formatVersion: 1 }
+>
 
 const PLAN_KEYS = [
   'kind', 'formatVersion', 'operation', 'source', 'preset', 'requestedScope',
@@ -344,7 +370,9 @@ function sourceSort(
     left.assignmentId.localeCompare(right.assignmentId)
 }
 
-function validatePlanShape(value: unknown): value is CaseInsertPresetReapplyPlan {
+function validatePlanShape(
+  value: unknown,
+): value is CaseInsertPresetLegacyReapplyPlan {
   if (!isRecord(value) || !isDeeplyFrozen(value) ||
       !hasExactKeys(value, PLAN_KEYS) ||
       value.kind !== CASE_INSERT_PRESET_REAPPLY_PLAN_KIND ||
@@ -396,7 +424,7 @@ function validatePlanShape(value: unknown): value is CaseInsertPresetReapplyPlan
 
 function canonicalPlan(
   value: unknown,
-): CaseInsertPresetReapplyPlan | Failure {
+): CaseInsertPresetLegacyReapplyPlan | Failure {
   if (isRecord(value) && value.kind === CASE_INSERT_PRESET_REAPPLY_PLAN_KIND &&
       value.formatVersion !== CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION) {
     return failure(
@@ -432,11 +460,11 @@ function canonicalPlan(
     sortEffects(value.fieldEffects.filter(({ disposition }) =>
       disposition === 'retired')),
   )) return failure('invalid-plan', 'reapply-classification-lists-incoherent')
-  let content: Omit<CaseInsertPresetReapplyPlan, 'reviewIdentity'>
+  let content: Omit<CaseInsertPresetLegacyReapplyPlan, 'reviewIdentity'>
   try {
     const rawContent = Object.fromEntries(
       Object.entries(value).filter(([key]) => key !== 'reviewIdentity'),
-    ) as Omit<CaseInsertPresetReapplyPlan, 'reviewIdentity'>
+    ) as Omit<CaseInsertPresetLegacyReapplyPlan, 'reviewIdentity'>
     content = canonicalizeCaseInsertPresetReapplyPlanContent(rawContent)
   } catch {
     return failure('invalid-plan', 'reapply-plan-canonicalization-failed')
@@ -477,7 +505,7 @@ function requirementContent(
 
 function expectedLocalRequirement(
   effect: CaseInsertPresetReapplyFieldEffect,
-  plan: CaseInsertPresetReapplyPlan,
+  plan: CaseInsertPresetLegacyReapplyPlan,
 ): CaseInsertPresetReapplyMaterialConsentRequirement | null {
   const kind = effect.disposition === 'retained-customized-overwrite'
     ? 'overwrite-customized-owned-field'
@@ -508,7 +536,7 @@ function expectedLocalRequirement(
 }
 
 function expectedGlobalRequirement(
-  plan: CaseInsertPresetReapplyPlan,
+  plan: CaseInsertPresetLegacyReapplyPlan,
 ): CaseInsertPresetReapplyMaterialConsentRequirement | null {
   const hasWarning = plan.warnings.some((warning) =>
     warning.kind === 'selected-layout-warning' &&
@@ -543,9 +571,9 @@ function expectedGlobalRequirement(
 }
 
 function validatePlanSemantics(
-  plan: CaseInsertPresetReapplyPlan,
-  configuration: CaseInsertAppliedPresetConfiguration,
-  report: CaseInsertPresetCustomizationReport,
+  plan: CaseInsertPresetLegacyReapplyPlan,
+  configuration: LegacyConfiguration,
+  report: LegacyCustomizationReport,
 ): Failure | null {
   if (plan.source.configurationIdentity !== configuration.configurationIdentity ||
       plan.preconditions.configurationIdentity !==
@@ -562,6 +590,7 @@ function validatePlanSemantics(
   }
   if (plan.preset.id !== configuration.preset.id ||
       plan.preset.previousRevision !== configuration.preset.revision ||
+      plan.preset.selectedRevision !== configuration.preset.revision ||
       plan.preset.source !== (plan.preset.id.startsWith('builtin:')
         ? 'builtin'
         : 'user') || plan.preset.selectedRevision < 1 ||
@@ -613,7 +642,7 @@ function validatePlanSemantics(
     addressKey(field.address), field,
   ]))
   const selectedByKey = new Map<string,
-    CaseInsertPresetReapplyPlan['selectedFootprint'][number]>()
+    CaseInsertPresetLegacyReapplyPlan['selectedFootprint'][number]>()
   for (const field of plan.selectedFootprint) {
     const key = addressKey(field.address)
     if (selectedByKey.has(key) ||
@@ -742,7 +771,7 @@ function validatePlanSemantics(
   }
 
   const expectedEffectWarnings = plan.fieldEffects.flatMap((effect) => {
-    const warnings: CaseInsertPresetReapplyPlan['warnings'][number][] = []
+    const warnings: CaseInsertPresetLegacyReapplyPlan['warnings'][number][] = []
     if (effect.disposition === 'retained-customized-preserve') {
       warnings.push({ kind: 'customization-preserved', address: effect.address })
     }
@@ -845,7 +874,7 @@ function validatePlanSemantics(
 }
 
 function reviewAcceptanceContent(
-  plan: CaseInsertPresetReapplyPlan,
+  plan: CaseInsertPresetLegacyReapplyPlan,
 ) {
   return {
     kind: CASE_INSERT_PRESET_REAPPLY_REVIEW_ACCEPTANCE_KIND,
@@ -866,7 +895,11 @@ function reviewAcceptanceContent(
 
 export function createCaseInsertPresetReapplyReviewAcceptance(
   plan: CaseInsertPresetReapplyPlan,
-): CaseInsertPresetReapplyReviewAcceptance {
+): CaseInsertPresetReapplyReviewAcceptance |
+  CaseInsertPresetTypedReapplyReviewAcceptance {
+  if (plan.formatVersion === 3) {
+    return createCaseInsertPresetTypedReapplyReviewAcceptance(plan)
+  }
   const content = reviewAcceptanceContent(plan)
   return deepFreeze({
     ...content,
@@ -876,7 +909,7 @@ export function createCaseInsertPresetReapplyReviewAcceptance(
 }
 
 function consentAcceptanceContent(
-  plan: CaseInsertPresetReapplyPlan,
+  plan: CaseInsertPresetLegacyReapplyPlan,
   requirement: CaseInsertPresetReapplyMaterialConsentRequirement,
 ) {
   return {
@@ -894,10 +927,18 @@ function consentAcceptanceContent(
 export function createCaseInsertPresetReapplyConsentAcceptance(
   plan: CaseInsertPresetReapplyPlan,
   requirementId: string,
-): CaseInsertPresetReapplyConsentAcceptance | null {
+): CaseInsertPresetReapplyConsentAcceptance |
+  CaseInsertPresetTypedReapplyConsentAcceptance | null {
+  if (plan.formatVersion === 3) {
+    const requirement = plan.materialConsentRequirements.find(({ id }) =>
+      id === requirementId)
+    return requirement
+      ? createCaseInsertPresetTypedReapplyConsentAcceptance(plan, requirement)
+      : null
+  }
   const validatedPlan = canonicalPlan(plan)
   if ('ok' in validatedPlan && validatedPlan.ok === false) return null
-  const canonical = validatedPlan as CaseInsertPresetReapplyPlan
+  const canonical = validatedPlan as CaseInsertPresetLegacyReapplyPlan
   const requirement = canonical.materialConsentRequirements.find(({ id }) =>
     id === requirementId)
   if (!requirement) return null
@@ -910,7 +951,7 @@ export function createCaseInsertPresetReapplyConsentAcceptance(
 }
 
 function validateReviewAcceptance(
-  plan: CaseInsertPresetReapplyPlan,
+  plan: CaseInsertPresetLegacyReapplyPlan,
   value: unknown,
 ): Failure | null {
   if (isRecord(value) &&
@@ -932,7 +973,7 @@ function validateReviewAcceptance(
 }
 
 function validateConsentAcceptances(
-  plan: CaseInsertPresetReapplyPlan,
+  plan: CaseInsertPresetLegacyReapplyPlan,
   values: unknown,
 ): Failure | null {
   if (!Array.isArray(values)) {
@@ -986,7 +1027,7 @@ function validateConsentAcceptances(
 }
 
 function preflightCurrent(
-  plan: CaseInsertPresetReapplyPlan,
+  plan: CaseInsertPresetLegacyReapplyPlan,
   current: TransitionCaseInsertPresetReapplyInput['current'],
 ): Readonly<{ aggregate: ProjectJewelCaseState }> | Failure {
   if (!isRecord(current) || current.projectKind !== 'caseInsert' ||
@@ -1090,9 +1131,14 @@ export function transitionCaseInsertPresetReapply(
   if (input.operation !== 'reapply') {
     return failure('unsupported-operation', 'operation-unsupported')
   }
+  if (isRecord(input.plan) && input.plan.formatVersion === 3) {
+    return transitionCaseInsertPresetTypedReapply(
+      input as unknown as TransitionCaseInsertPresetTypedReapplyInput,
+    )
+  }
   const planResult = canonicalPlan(input.plan)
   if ('ok' in planResult && planResult.ok === false) return planResult
-  const plan = planResult as CaseInsertPresetReapplyPlan
+  const plan = planResult as CaseInsertPresetLegacyReapplyPlan
 
   const validatedConfiguration = validateCaseInsertAppliedPresetConfiguration(
     input.sourceConfiguration,
@@ -1106,6 +1152,12 @@ export function transitionCaseInsertPresetReapply(
     )
   }
   const configuration = validatedConfiguration.configuration
+  if (configuration.formatVersion === 3) {
+    return failure(
+      'configuration-mismatch',
+      'typed-configuration-requires-typed-reapply-plan',
+    )
+  }
   const validatedReport = validateCaseInsertPresetCustomizationReport(
     input.customizationReport,
     configuration,
@@ -1119,6 +1171,12 @@ export function transitionCaseInsertPresetReapply(
     return failure(status, validatedReport.code)
   }
   const report = validatedReport.report
+  if (report.formatVersion !== 1) {
+    return failure(
+      'report-mismatch',
+      'typed-report-requires-typed-reapply-plan',
+    )
+  }
   const semanticFailure = validatePlanSemantics(plan, configuration, report)
   if (semanticFailure) return semanticFailure
   const reviewFailure = validateReviewAcceptance(plan, input.reviewAcceptance)
@@ -1425,8 +1483,11 @@ export function validateCaseInsertPresetReapplyTransitionSuccess(
     deepFreezeCaseInsertPresetValue(success.nextConfiguration),
   )
   if (!sourceConfiguration.ok || !successorConfiguration.ok ||
-      successorConfiguration.configuration.formatVersion !==
-        CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION) {
+      (successorConfiguration.configuration.formatVersion !==
+        CASE_INSERT_REAPPLIED_PRESET_CONFIGURATION_VERSION &&
+        successorConfiguration.configuration.formatVersion !== 3) ||
+      (successorConfiguration.configuration.formatVersion === 3 &&
+        successorConfiguration.configuration.reapply === null)) {
     return reapplySuccessValidationFailure(
       'configuration-identity-mismatch',
       !sourceConfiguration.ok
@@ -1438,9 +1499,16 @@ export function validateCaseInsertPresetReapplyTransitionSuccess(
   }
   const sourceConfig = sourceConfiguration.configuration
   const successorConfig = successorConfiguration.configuration as
-    CaseInsertReappliedPresetConfiguration
+    | CaseInsertReappliedPresetConfiguration
+    | (CaseInsertViewportAppliedPresetConfiguration & Readonly<{
+        reapply: NonNullable<
+          CaseInsertViewportAppliedPresetConfiguration['reapply']
+        >
+      }>)
+  const typedSuccessor = successorConfig.formatVersion === 3
   if (sourceConfig.configurationIdentity ===
       successorConfig.configurationIdentity ||
+      typedSuccessor !== (sourceConfig.formatVersion === 3) ||
       successorConfig.reapply.sourceConfigurationIdentity !==
         sourceConfig.configurationIdentity ||
       successorConfig.reapply.transitionStatus !== success.status) {
@@ -1492,10 +1560,14 @@ export function validateCaseInsertPresetReapplyTransitionSuccess(
   }
   if (typeof evidence.lineage.planIdentity !== 'string' ||
       !evidence.lineage.planIdentity.startsWith(
-        'case:preset-reapply-plan:v2:',
+        typedSuccessor
+          ? 'case:preset-reapply-plan:v3:'
+          : 'case:preset-reapply-plan:v2:',
       ) || typeof evidence.lineage.planReviewIdentity !== 'string' ||
       !evidence.lineage.planReviewIdentity.startsWith(
-        'case:preset-reapply-review:v2:',
+        typedSuccessor
+          ? 'case:preset-reapply-review:v3:'
+          : 'case:preset-reapply-review:v2:',
       ) || typeof evidence.lineage.reviewAcceptanceIdentity !== 'string' ||
       !evidence.lineage.reviewAcceptanceIdentity.startsWith(
         'case:preset-reapply-review-acceptance:v1:',
@@ -1507,6 +1579,11 @@ export function validateCaseInsertPresetReapplyTransitionSuccess(
         ),
       ) || evidence.lineage.operationTransitionIdentity !==
         successorConfig.reapply.transitionIdentity ||
+      !evidence.lineage.operationTransitionIdentity.startsWith(
+        typedSuccessor
+          ? 'case:preset-reapply-transition:v2:'
+          : 'case:preset-reapply-transition:v1:',
+      ) ||
       evidence.lineage.reviewAcceptanceIdentity !==
         successorConfig.reapply.reviewAcceptanceIdentity ||
       evidence.lineage.planReviewIdentity !==

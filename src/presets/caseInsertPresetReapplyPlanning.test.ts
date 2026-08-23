@@ -51,6 +51,9 @@ import {
   type PlanCaseInsertPresetReapplyInput,
 } from './caseInsertPresetReapplyPlanning.ts'
 import {
+  createCaseInsertPresetReapplyWarningIdentity,
+} from './caseInsertPresetReapplyIdentity.ts'
+import {
   cloneFixture,
   createCoordinatedCaseInsertPresetDefinition,
   createMinimalCaseInsertPresetDefinition,
@@ -375,9 +378,9 @@ test('clean same-revision Reapply is a deterministic configuration-bearing aggre
   assert.deepEqual(structuredClone(fixture), before)
 })
 
-test('clean selected revision plans exact x, y, and scale without rounding', () => {
+test('clean exact revision plans exact x, y, and scale without rounding', () => {
   const fixture = buildFixture()
-  const selected = withRevision(fixture.definition, 2, (definition) =>
+  const selected = withRevision(fixture.definition, 1, (definition) =>
     assignmentRegion(definition, {
       centerXPercent: 37.1234567890123,
       centerYPercent: 41.9876543210987,
@@ -387,7 +390,7 @@ test('clean selected revision plans exact x, y, and scale without rounding', () 
   const result = successful({ ...fixture.input, selectedDefinition: selected })
 
   assert.equal(result.status, 'planned')
-  assert.equal(result.plan.preset.selectedRevision, 2)
+  assert.equal(result.plan.preset.selectedRevision, 1)
   assert.deepEqual(
     result.plan.aggregateWrites.map(({ address, proposedValue }) => [
       address.fieldId,
@@ -405,7 +408,7 @@ test('customized overwrite is explicit, review-visible, and consent-gated even w
   const cleanFixture = buildFixture()
   const address = cleanFixture.configuration.ownedFields.find(({ address }) =>
     address.fieldId === 'layout-x')!.address
-  const selected = withRevision(cleanFixture.definition, 2, (definition) => {
+  const selected = withRevision(cleanFixture.definition, 1, (definition) => {
     assignmentRegion(definition, { centerXPercent: 53.5 })
   })
   const desiredCurrent = selectedProposedValue(
@@ -448,7 +451,7 @@ test('customized preserve plans no write and retains current value, ownership, p
   })
   const reportField = fixture.report.fields.find(({ fieldStatus }) =>
     fieldStatus === 'value-diverged')!
-  const selected = withRevision(fixture.definition, 2, (definition) =>
+  const selected = withRevision(fixture.definition, 1, (definition) =>
     assignmentRegion(definition, { centerXPercent: 45 }))
   const policy = policyFor(
     fixture,
@@ -487,7 +490,7 @@ test('mixed customized policies produce independent exact dispositions', () => {
   })
   const customized = fixture.report.fields.filter(({ fieldStatus }) =>
     fieldStatus === 'value-diverged')
-  const selected = withRevision(fixture.definition, 2, (definition) =>
+  const selected = withRevision(fixture.definition, 1, (definition) =>
     assignmentRegion(definition, { centerXPercent: 48, centerYPercent: 47 }))
   const policies = customized.map((field, index) => policyFor(
     fixture,
@@ -582,7 +585,7 @@ test('customized policies fail closed when missing, duplicate, foreign, clean, o
 
 test('new claims are explicit and changed claims require exact material consent', () => {
   const fixture = buildFixture()
-  const selected = withRevision(fixture.definition, 2, (definition) => {
+  const selected = withRevision(fixture.definition, 1, (definition) => {
     const slots = definition.slots as Record<string, unknown>[]
     slots.push({
       id: 'case:preset-slot:cover-title-artwork',
@@ -620,7 +623,7 @@ test('retirement preserves current values and movement remains retirement plus n
       aggregate.templates.cover.background.layout.x += 2
     },
   })
-  const selected = withRevision(fixture.definition, 2, (definition) => {
+  const selected = withRevision(fixture.definition, 1, (definition) => {
     const slot = (definition.slots as Record<string, unknown>[])[0]!
     slot.roleId = 'game-title'
     const assignment = (slot.assignments as Record<string, unknown>[])[0]!
@@ -748,12 +751,12 @@ test('invalid, mismatched, incompatible, stale, and forged authorities fail with
   const fixture = buildFixture()
   failed({ ...fixture.input, operation: 'detach' }, 'unsupported-operation')
 
-  const other = withRevision(fixture.definition, 2)
+  const other = withRevision(fixture.definition, 1)
   other.id = 'builtin:case-preset:other-id'
   failed({ ...fixture.input, selectedDefinition: other }, 'preset-identity-mismatch')
   failed({ ...fixture.input, selectedDefinition: {} }, 'invalid-selected-definition')
 
-  const incompatible = withRevision(fixture.definition, 2)
+  const incompatible = withRevision(fixture.definition, 1)
   incompatible.compatibility = {
     mode: 'specific-template',
     templateId: 'unsupported-case-template',
@@ -830,7 +833,7 @@ test('report classification, footprint, identity, and current values are validat
 
 test('required missing targets block, optional missing targets skip, and no partial plan is returned', () => {
   const fixture = buildFixture()
-  const required = withRevision(fixture.definition, 2, (definition) => {
+  const required = withRevision(fixture.definition, 1, (definition) => {
     const slots = definition.slots as Record<string, unknown>[]
     slots.push({
       id: 'case:preset-slot:missing-required',
@@ -879,7 +882,7 @@ test('authoritative coalesced provenance and caller policy ordering remain deter
       return deepFreeze(coalesced)
     },
   })
-  const selected = withRevision(fixture.definition, 2)
+  const selected = withRevision(fixture.definition, 1)
   const policies = fixture.report.fields
     .filter(({ fieldStatus }) => fieldStatus === 'value-diverged')
     .map((field) => policyFor(
@@ -978,7 +981,7 @@ test('text owners plan exact width while image/background owners plan exact scal
   assert.equal(fields.has('layout-width'), true)
 })
 
-test('plan identity binds policy, selected revision, current preconditions, warnings, and consents', () => {
+test('plan identity binds policy, current preconditions, warnings, and consents while cross-revision selection fails closed', () => {
   const fixture = buildFixture({
     mutateCurrent: (aggregate) => {
       aggregate.templates.cover.background.layout.x += 5
@@ -1007,24 +1010,48 @@ test('plan identity binds policy, selected revision, current preconditions, warn
     customizedFieldPolicies: [preserve],
   }).plan
   const selectedRevision = withRevision(fixture.definition, 2)
-  const revisionPolicy = policyFor(
-    fixture,
-    selectedRevision,
-    customized.address,
-    'preserve-current-customization',
-  )
-  const revisionPlan = successful({
+  failed({
     ...fixture.input,
     selectedDefinition: selectedRevision,
-    customizedFieldPolicies: [revisionPolicy],
-  }).plan
+    customizedFieldPolicies: [],
+  }, 'incompatible-selected-definition')
 
   assert.notEqual(overwritePlan.reviewIdentity, preservePlan.reviewIdentity)
-  assert.notEqual(preservePlan.reviewIdentity, revisionPlan.reviewIdentity)
   assert.notEqual(
     overwritePlan.materialConsentRequirements[0]?.id,
     preservePlan.materialConsentRequirements[0]?.id,
   )
+})
+
+test('warning identity preserves legacy bytes and passes through reviewed typed IDs', () => {
+  const legacy = createCaseInsertPresetReapplyWarningIdentity({
+    kind: 'customization-preserved',
+    address: {
+      region: 'tray-card',
+      featureOwnerId: 'case.tray.artwork-slots',
+      bindingKind: 'repeated',
+      bindingId: 'slot-1',
+      runtimeObjectId: 'tray-artwork-1',
+      fieldId: 'layout-x',
+    },
+  })
+  assert.equal(
+    legacy,
+    'case:preset-reapply-warning:v1:' +
+      'o2:222:s7:addresso6:171:s9:bindingIds6:slot-1' +
+      's11:bindingKinds8:repeateds14:featureOwnerIds23:' +
+      'case.tray.artwork-slotss7:fieldIds8:layout-x' +
+      's6:regions9:tray-cards15:runtimeObjectIds14:tray-artwork-1' +
+      's4:kinds23:customization-preserved',
+  )
+
+  const reviewedTypedId =
+    'case:preset-reapply-warning:v2:reviewed-viewport-evidence'
+  assert.equal(createCaseInsertPresetReapplyWarningIdentity({
+    id: reviewedTypedId,
+    kind: 'material-visible-clipping',
+    evidence: { assignmentId: 'case:preset-assignment:screenshot-1' },
+  }), reviewedTypedId)
 })
 
 test('the planner has no execution, detector rerun, first-Apply planner, catalog, persistence, or runtime dependency', () => {

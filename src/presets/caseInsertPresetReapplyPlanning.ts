@@ -30,12 +30,16 @@ import {
   type ResolvedCaseInsertPresetAssignment,
 } from './caseInsertPresetAssignmentResolution.ts'
 import {
+  CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_VERSION,
+  CASE_INSERT_VIEWPORT_APPLIED_PRESET_CONFIGURATION_VERSION,
   getCaseInsertPresetOwnedFieldCurrentValue,
   isCaseInsertPresetOwnedFieldSemanticValue,
   validateCaseInsertAppliedPresetConfiguration,
   validateCaseInsertPresetCustomizationReport,
-  type CaseInsertAppliedPresetConfiguration,
   type CaseInsertAppliedPresetOwnedFieldAddress,
+  type CaseInsertAppliedPresetOwnedFieldAddressV3,
+  type CaseInsertFirstAppliedPresetConfiguration,
+  type CaseInsertReappliedPresetConfiguration,
   type CaseInsertPresetCustomizationReport,
 } from './caseInsertPresetAppliedConfiguration.ts'
 import {
@@ -46,12 +50,25 @@ import {
   createCaseInsertPresetReapplyReviewIdentity,
   encodeCaseInsertPresetDeterministicIdentity,
 } from './caseInsertPresetReapplyIdentity.ts'
+import {
+  planCaseInsertPresetTypedReapply,
+  type CaseInsertPresetTypedCustomizedFieldPolicyRecord,
+  type CaseInsertPresetTypedReapplyPlan,
+} from './caseInsertPresetTypedReapplyPlanning.ts'
 
 export {
   CASE_INSERT_PRESET_REAPPLY_CONFIGURATION_PROJECTION_KIND,
   CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION,
   CASE_INSERT_PRESET_REAPPLY_PLAN_KIND,
 } from './caseInsertPresetReapplyIdentity.ts'
+export {
+  CASE_INSERT_PRESET_TYPED_REAPPLY_PLAN_FORMAT_VERSION,
+} from './caseInsertPresetTypedReapplyPlanning.ts'
+export type {
+  CaseInsertPresetTypedCustomizedFieldPolicyRecord,
+  CaseInsertPresetTypedReapplyMaterialConsentRequirement,
+  CaseInsertPresetTypedReapplyPlan,
+} from './caseInsertPresetTypedReapplyPlanning.ts'
 
 export type CaseInsertPresetCustomizedFieldPolicy =
   | 'overwrite-with-selected-preset'
@@ -67,6 +84,10 @@ export type CaseInsertPresetCustomizedFieldPolicyRecord = Readonly<{
   selectedProposedValue: number
   policy: CaseInsertPresetCustomizedFieldPolicy
 }>
+
+export type CaseInsertPresetAnyCustomizedFieldPolicyRecord =
+  | CaseInsertPresetCustomizedFieldPolicyRecord
+  | CaseInsertPresetTypedCustomizedFieldPolicyRecord
 
 export type PlanCaseInsertPresetReapplyInput = Readonly<{
   operation: unknown
@@ -178,7 +199,7 @@ export type CaseInsertPresetReapplyProjectedOwnedField = Readonly<{
   expectedCustomizationStatus: 'clean' | 'customized'
 }>
 
-export type CaseInsertPresetReapplyPlan = Readonly<{
+export type CaseInsertPresetLegacyReapplyPlan = Readonly<{
   kind: typeof CASE_INSERT_PRESET_REAPPLY_PLAN_KIND
   formatVersion: typeof CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION
   operation: 'reapply'
@@ -263,6 +284,10 @@ export type CaseInsertPresetReapplyPlan = Readonly<{
   reviewIdentity: string
 }>
 
+export type CaseInsertPresetReapplyPlan =
+  | CaseInsertPresetLegacyReapplyPlan
+  | CaseInsertPresetTypedReapplyPlan
+
 export type CaseInsertPresetReapplyPlanningFailureStatus =
   | 'invalid-request'
   | 'invalid-configuration'
@@ -297,7 +322,9 @@ export type CaseInsertPresetReapplyPlanningResult =
       status: CaseInsertPresetReapplyPlanningFailureStatus
       code: string
       dimensions?: readonly string[]
-      address?: CaseInsertAppliedPresetOwnedFieldAddress
+      address?:
+        | CaseInsertAppliedPresetOwnedFieldAddress
+        | CaseInsertAppliedPresetOwnedFieldAddressV3
     }>
 
 type SelectedField = Readonly<{
@@ -308,6 +335,14 @@ type SelectedField = Readonly<{
   actionKind: CaseInsertPresetPlanFieldAction['kind']
   enablement: CaseInsertPresetSnapshotEnablement
 }>
+
+type LegacyConfiguration =
+  | CaseInsertFirstAppliedPresetConfiguration
+  | CaseInsertReappliedPresetConfiguration
+type LegacyCustomizationReport = Extract<
+  CaseInsertPresetCustomizationReport,
+  { formatVersion: typeof CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_VERSION }
+>
 
 const REGION_ORDER = new Map<CaseInsertPresetConcreteRegionId, number>([
   ['front-cover', 0],
@@ -386,7 +421,9 @@ function failure(
   code: string,
   options: Readonly<{
     dimensions?: readonly string[]
-    address?: CaseInsertAppliedPresetOwnedFieldAddress
+    address?:
+      | CaseInsertAppliedPresetOwnedFieldAddress
+      | CaseInsertAppliedPresetOwnedFieldAddressV3
   }> = {},
 ): CaseInsertPresetReapplyPlanningResult {
   return deepFreeze({
@@ -603,8 +640,8 @@ function mapProposalFailure(
 
 function validatePolicyRecords(
   rawPolicies: readonly unknown[],
-  configuration: CaseInsertAppliedPresetConfiguration,
-  report: CaseInsertPresetCustomizationReport,
+  configuration: LegacyConfiguration,
+  report: LegacyCustomizationReport,
   selectedPreset: Readonly<{ id: CaseInsertPresetId; revision: number }>,
   selectedByKey: ReadonlyMap<string, SelectedField>,
 ): Readonly<{
@@ -715,6 +752,10 @@ export function planCaseInsertPresetReapply(
   if (!isRecord(input) || input.operation !== 'reapply') {
     return failure('unsupported-operation', 'operation-must-be-reapply')
   }
+  if (isRecord(input.configuration) && input.configuration.formatVersion ===
+      CASE_INSERT_VIEWPORT_APPLIED_PRESET_CONFIGURATION_VERSION) {
+    return planCaseInsertPresetTypedReapply(input)
+  }
   if (!Array.isArray(input.customizedFieldPolicies) ||
       !isRecord(input.current) || input.current.projectKind !== 'caseInsert' ||
       typeof input.current.sessionId !== 'string' ||
@@ -739,6 +780,10 @@ export function planCaseInsertPresetReapply(
     return failure(validatedConfiguration.status, validatedConfiguration.code)
   }
   const configuration = validatedConfiguration.configuration
+  if (configuration.formatVersion ===
+      CASE_INSERT_VIEWPORT_APPLIED_PRESET_CONFIGURATION_VERSION) {
+    return planCaseInsertPresetTypedReapply(input)
+  }
   const validatedReport = validateCaseInsertPresetCustomizationReport(
     input.customizationReport,
     configuration,
@@ -747,6 +792,13 @@ export function planCaseInsertPresetReapply(
     return failure(validatedReport.status, validatedReport.code)
   }
   const report = validatedReport.report
+  if (report.formatVersion !==
+      CASE_INSERT_PRESET_CUSTOMIZATION_REPORT_VERSION) {
+    return failure(
+      'unsupported-report-version',
+      'legacy-reapply-requires-customization-report-v1',
+    )
+  }
 
   let normalized: ProjectJewelCaseState
   try {
@@ -854,6 +906,12 @@ export function planCaseInsertPresetReapply(
     return failure(
       'preset-identity-mismatch',
       'selected-preset-id-does-not-match-configuration',
+    )
+  }
+  if (selectedDefinition.revision !== configuration.preset.revision) {
+    return failure(
+      'incompatible-selected-definition',
+      'reapply-requires-exact-attached-definition-revision',
     )
   }
   const resolution = resolveCaseInsertPresetAssignmentsForDefinition({
@@ -1232,7 +1290,7 @@ export function planCaseInsertPresetReapply(
   const scopeKey = getCaseInsertPresetApplicationScopeKey(
     configuration.requestedScope,
   )
-  const planContent: Omit<CaseInsertPresetReapplyPlan, 'reviewIdentity'> = {
+  const planContent: Omit<CaseInsertPresetLegacyReapplyPlan, 'reviewIdentity'> = {
     kind: CASE_INSERT_PRESET_REAPPLY_PLAN_KIND,
     formatVersion: CASE_INSERT_PRESET_REAPPLY_PLAN_FORMAT_VERSION,
     operation: 'reapply',

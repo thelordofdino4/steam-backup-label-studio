@@ -37,8 +37,10 @@ import {
 } from './caseInsertPresetReapplyTransition.ts'
 import {
   CASE_INSERT_PRESET_REAPPLY_TRANSITION_IDENTITY_PREFIX,
-  encodeCaseInsertPresetDeterministicIdentity,
 } from './caseInsertPresetReapplyIdentity.ts'
+import {
+  encodeCaseInsertPresetDeterministicIdentity,
+} from './caseInsertPresetDeterministicIdentity.ts'
 import {
   CASE_INSERT_PRESET_DETACH_CONFIGURATION_RELEASE_IDENTITY_PREFIX,
   CASE_INSERT_PRESET_DETACH_TRANSITION_IDENTITY_PREFIX,
@@ -79,6 +81,8 @@ export const CASE_INSERT_PRESET_APPLICATION_STATE_IDENTITY_PREFIX =
   'case:preset-application-state:v1:' as const
 const CASE_INSERT_PRESET_CONFIGURATION_IDENTITY_PREFIX =
   'case:preset-applied-configuration:v1:' as const
+const CASE_INSERT_PRESET_TYPED_CONFIGURATION_IDENTITY_PREFIX =
+  'case:preset-applied-configuration:v2:' as const
 
 type DeepReadonly<T> = T extends readonly (infer Item)[]
   ? readonly DeepReadonly<Item>[]
@@ -1417,7 +1421,8 @@ function isDetachReleaseResult(
         'meaningful-configuration-ownership-release' ||
       !validIdentityString(value.sourceConfigurationIdentity) ||
       (value.sourceConfigurationFormatVersion !== 1 &&
-        value.sourceConfigurationFormatVersion !== 2) ||
+        value.sourceConfigurationFormatVersion !== 2 &&
+        value.sourceConfigurationFormatVersion !== 3) ||
       !validIdentityString(value.planIdentity) ||
       !validIdentityString(value.planReviewIdentity) ||
       !validIdentityString(value.reviewAcceptanceIdentity) ||
@@ -1514,7 +1519,10 @@ function recognizedTransitionOperation(
       ) &&
       isNormalizedCaseAggregate(value.aggregate)) {
     const configuration = validateConfiguration(value.nextConfiguration)
-    return configuration.ok && configuration.configuration.formatVersion === 2 &&
+    return configuration.ok &&
+        (configuration.configuration.formatVersion === 2 ||
+          configuration.configuration.formatVersion === 3) &&
+        configuration.configuration.reapply !== null &&
         configuration.configuration.reapply.transitionIdentity ===
           value.transitionIdentity &&
         configuration.configuration.reapply.transitionStatus === value.status
@@ -1641,8 +1649,9 @@ function validIdentityString(value: unknown): value is string {
 }
 
 function validConfigurationIdentity(value: unknown): value is string {
-  return validIdentityString(value) && value.startsWith(
-    CASE_INSERT_PRESET_CONFIGURATION_IDENTITY_PREFIX,
+  return validIdentityString(value) && (
+    value.startsWith(CASE_INSERT_PRESET_CONFIGURATION_IDENTITY_PREFIX) ||
+    value.startsWith(CASE_INSERT_PRESET_TYPED_CONFIGURATION_IDENTITY_PREFIX)
   )
 }
 

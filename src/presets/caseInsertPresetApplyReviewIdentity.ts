@@ -1,3 +1,7 @@
+import {
+  encodeCaseInsertPresetDeterministicIdentity,
+} from './caseInsertPresetDeterministicIdentity.ts'
+
 const REVIEW_IDENTITY_PREFIX = 'case:preset-apply-review:v1:'
 const CONSENT_REQUIREMENT_PREFIX = 'case:preset-consent:v1:'
 const WARNING_IDENTITY_PREFIX = 'case:preset-warning:v1:'
@@ -24,13 +28,35 @@ type ReviewableWarning =
       regions: readonly string[]
       assignmentIds: readonly string[]
     }>
+  | Readonly<{
+      id: string
+      kind: 'material-visible-clipping'
+      classification: 'derived-cover' | 'explicit-crop'
+      assignmentId: string
+    }>
+  | Readonly<{
+      id: string
+      kind: 'artwork-cover-fitting-deferred'
+      assignmentId: string
+      ownerId: string
+      objectId: string
+      fittingMode: 'cover'
+      reviewMessage: string
+    }>
 
-type ReviewableConsentRequirement = Readonly<{
-  id: `case:preset-consent:${string}`
-  kind: 'multiple-concrete-regions'
-  regions: readonly string[]
-  assignmentIds: readonly string[]
-}>
+type ReviewableConsentRequirement =
+  | Readonly<{
+      id: `case:preset-consent:${string}`
+      kind: 'multiple-concrete-regions'
+      regions: readonly string[]
+      assignmentIds: readonly string[]
+    }>
+  | Readonly<{
+      id: `case:preset-consent:${string}`
+      kind: 'material-visible-clipping'
+      warningId: string
+      assignmentId: string
+    }>
 
 type ReviewablePlan = Readonly<{
   kind: string
@@ -74,6 +100,8 @@ type ReviewablePlan = Readonly<{
       effectiveEnabled: boolean
     }> | null
     fieldActionIds: readonly string[]
+    objectCreationActionId: string | null
+    artworkViewportActionId: string | null
     preservationDecisionIds: readonly string[]
     skip: Readonly<{
       kind: string
@@ -116,6 +144,54 @@ type ReviewablePlan = Readonly<{
       }>
       declaredPolicy: string
     }>[]
+  }>[]
+  objectCreationActions: readonly Readonly<{
+    id: string
+    kind: string
+    source: Readonly<{
+      assignmentId: string
+      declaredPolicy: string
+    }>
+    target: Readonly<{
+      featureOwnerId: string
+      bindingKind: string
+      bindingId: string
+      runtimeObjectId: string
+    }>
+    before: Readonly<{ presence: string; exactMatchCount: number }>
+    canonicalInitialObject: unknown
+    insertionPolicy: string
+    ownedFieldIds: readonly string[]
+    unownedFieldIds: readonly string[]
+    viewportActionId: string
+    semanticNoOp: boolean
+    review: unknown
+  }>[]
+  artworkViewportActions: readonly Readonly<{
+    id: string
+    kind: string
+    source: Readonly<{
+      assignmentId: string
+      declaredPolicy: string
+    }>
+    target: Readonly<{
+      featureOwnerId: string
+      bindingKind: string
+      bindingId: string
+      runtimeObjectId: string
+    }>
+    targetOrigin: string
+    sourceState: unknown
+    evidence: Readonly<{
+      status: string
+      plan: Readonly<{ identity: string }>
+    }>
+    currentValues: unknown
+    proposedValues: unknown
+    ownedFieldIds: readonly string[]
+    preservedFieldIds: readonly string[]
+    semanticNoOp: boolean
+    review: unknown
   }>[]
   preservationDecisions: readonly Readonly<{
     id: string
@@ -165,6 +241,9 @@ type ReviewablePlan = Readonly<{
     fieldActionCount: number
     changedFieldActionCount: number
     noOpFieldActionCount: number
+    objectCreationActionCount: number
+    changedArtworkViewportActionCount: number
+    noOpArtworkViewportActionCount: number
   }>
   preconditions: Readonly<{
     sessionId: string
@@ -230,26 +309,55 @@ function warningPayload(warning: ReviewableWarning) {
         primitiveTuple('regions', warning.regions),
         primitiveTuple('assignments', warning.assignmentIds),
       ])
+    case 'material-visible-clipping':
+      return primitiveTuple(warning.kind, [
+        warning.id,
+        warning.classification,
+        warning.assignmentId,
+      ])
+    case 'artwork-cover-fitting-deferred':
+      return primitiveTuple(warning.kind, [
+        warning.id,
+        warning.assignmentId,
+        warning.ownerId,
+        warning.objectId,
+        warning.fittingMode,
+        warning.reviewMessage,
+      ])
   }
 }
 
-function materialConsentPayload(
-  requirement: Omit<ReviewableConsentRequirement, 'id'>,
-) {
-  return tuple(requirement.kind, [
-    primitiveTuple('regions', requirement.regions),
-    primitiveTuple('assignments', requirement.assignmentIds),
-  ])
+type ReviewableConsentPayload =
+  | Omit<Extract<
+      ReviewableConsentRequirement,
+      Readonly<{ kind: 'multiple-concrete-regions' }>
+    >, 'id'>
+  | Omit<Extract<
+      ReviewableConsentRequirement,
+      Readonly<{ kind: 'material-visible-clipping' }>
+    >, 'id'>
+
+function materialConsentPayload(requirement: ReviewableConsentPayload) {
+  return requirement.kind === 'multiple-concrete-regions'
+    ? tuple(requirement.kind, [
+        primitiveTuple('regions', requirement.regions),
+        primitiveTuple('assignments', requirement.assignmentIds),
+      ])
+    : primitiveTuple(requirement.kind, [
+        requirement.warningId,
+        requirement.assignmentId,
+      ])
 }
 
 export function createCaseInsertPresetPlanWarningIdentity(
   warning: ReviewableWarning,
 ) {
+  if ('id' in warning) return warning.id
   return `${WARNING_IDENTITY_PREFIX}${warningPayload(warning)}`
 }
 
 export function createCaseInsertPresetMaterialConsentRequirementId(
-  requirement: Omit<ReviewableConsentRequirement, 'id'>,
+  requirement: ReviewableConsentPayload,
 ): `case:preset-consent:${string}` {
   return `${CONSENT_REQUIREMENT_PREFIX}${materialConsentPayload(requirement)}`
 }
@@ -269,6 +377,8 @@ export function createCaseInsertPresetApplyPlanReviewIdentity(
       assignment.object.bindingId,
       assignment.object.runtimeId,
       assignment.bindingStatus,
+      assignment.objectCreationActionId,
+      assignment.artworkViewportActionId,
       assignment.semanticNoOp,
     ]),
     assignment.expectedEnablement
@@ -322,6 +432,51 @@ export function createCaseInsertPresetApplyPlanReviewIdentity(
       source.declaredPolicy,
     ]))),
   ]))
+
+  const objectCreationActions = plan.objectCreationActions.map((action) =>
+    primitiveTuple('object-creation-action', [
+      action.id,
+      action.kind,
+      action.source.assignmentId,
+      action.source.declaredPolicy,
+      action.target.featureOwnerId,
+      action.target.bindingKind,
+      action.target.bindingId,
+      action.target.runtimeObjectId,
+      action.before.presence,
+      action.before.exactMatchCount,
+      encodeCaseInsertPresetDeterministicIdentity(
+        action.canonicalInitialObject,
+      ),
+      action.insertionPolicy,
+      encodeCaseInsertPresetDeterministicIdentity(action.ownedFieldIds),
+      encodeCaseInsertPresetDeterministicIdentity(action.unownedFieldIds),
+      action.viewportActionId,
+      action.semanticNoOp,
+      encodeCaseInsertPresetDeterministicIdentity(action.review),
+    ]))
+
+  const artworkViewportActions = plan.artworkViewportActions.map((action) =>
+    primitiveTuple('artwork-viewport-action', [
+      action.id,
+      action.kind,
+      action.source.assignmentId,
+      action.source.declaredPolicy,
+      action.target.featureOwnerId,
+      action.target.bindingKind,
+      action.target.bindingId,
+      action.target.runtimeObjectId,
+      action.targetOrigin,
+      encodeCaseInsertPresetDeterministicIdentity(action.sourceState),
+      action.evidence.status,
+      action.evidence.plan.identity,
+      encodeCaseInsertPresetDeterministicIdentity(action.currentValues),
+      encodeCaseInsertPresetDeterministicIdentity(action.proposedValues),
+      encodeCaseInsertPresetDeterministicIdentity(action.ownedFieldIds),
+      encodeCaseInsertPresetDeterministicIdentity(action.preservedFieldIds),
+      action.semanticNoOp,
+      encodeCaseInsertPresetDeterministicIdentity(action.review),
+    ]))
 
   const preservation = plan.preservationDecisions.map((decision) =>
     primitiveTuple('preservation', [
@@ -415,6 +570,8 @@ export function createCaseInsertPresetApplyPlanReviewIdentity(
     ]),
     tuple('assignments', assignments),
     tuple('field-actions', fieldActions),
+    tuple('object-creation-actions', objectCreationActions),
+    tuple('artwork-viewport-actions', artworkViewportActions),
     tuple('preservation', preservation),
     tuple('skips', skips),
     tuple('warnings', plan.warnings.map(warningPayload)),
@@ -425,6 +582,9 @@ export function createCaseInsertPresetApplyPlanReviewIdentity(
       plan.semanticNoOp.fieldActionCount,
       plan.semanticNoOp.changedFieldActionCount,
       plan.semanticNoOp.noOpFieldActionCount,
+      plan.semanticNoOp.objectCreationActionCount,
+      plan.semanticNoOp.changedArtworkViewportActionCount,
+      plan.semanticNoOp.noOpArtworkViewportActionCount,
     ]),
     primitiveTuple('preconditions', [
       plan.preconditions.sessionId,

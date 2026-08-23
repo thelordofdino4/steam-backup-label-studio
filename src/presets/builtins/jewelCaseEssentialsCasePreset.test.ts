@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import test from 'node:test'
 
 import {
@@ -29,13 +30,17 @@ import {
   getCaseInsertPresetApplicationScopeKey,
   isCaseInsertPresetCoordinateBasisAllowed,
   parseCaseInsertPresetDefinition,
-  type CaseInsertPresetAssignmentDefinitionV1,
+  type CaseInsertPresetAssignmentDefinition,
 } from '../caseInsertPresetDefinition.ts'
 import {
   JEWEL_CASE_ESSENTIALS_CASE_PRESET,
   JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
   JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION,
 } from './jewelCaseEssentialsCasePreset.ts'
+import {
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
+  JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+} from './jewelCaseEssentialsCasePresetV2.ts'
 
 type Rect = Readonly<{
   surface: 'front' | 'back'
@@ -54,6 +59,15 @@ const BACKGROUND_ASSIGNMENT_IDS = new Set([
 
 function assignments() {
   return JEWEL_CASE_ESSENTIALS_CASE_PRESET.slots.flatMap(
+    ({ roleId, assignments }) => assignments.map((assignment) => ({
+      roleId,
+      ...assignment,
+    })),
+  )
+}
+
+function assignmentsV2() {
+  return JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2.slots.flatMap(
     ({ roleId, assignments }) => assignments.map((assignment) => ({
       roleId,
       ...assignment,
@@ -94,7 +108,7 @@ function compatibilityContext(
 }
 
 function toPhysicalRect(
-  assignment: CaseInsertPresetAssignmentDefinitionV1,
+  assignment: CaseInsertPresetAssignmentDefinition,
 ): Rect {
   const basis = getJewelCaseTemplateRegion(
     assignment.coordinateBasis as JewelCaseRegionId,
@@ -205,10 +219,153 @@ test('uses only the reviewed role, owner, object, basis, placement, and presence
   }
 })
 
-test('the production catalog contains exactly one canonical built-in revision and no alias', () => {
+test('preserves revision 1 canonical bytes while revision 2 adds only reviewed screenshot policy', () => {
+  assert.equal(
+    createHash('sha256')
+      .update(JSON.stringify(JEWEL_CASE_ESSENTIALS_CASE_PRESET))
+      .digest('hex'),
+    '895ec63485daea765bddcf00dadb13c397c1dd0b6c4ba0c29e8d542e9d36d3f1',
+  )
+  assert.equal(
+    createHash('sha256')
+      .update(JSON.stringify(JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2))
+      .digest('hex'),
+    'b31f291e474f77c9c34ed3d71e1ab1d95807c7f8e05a9cfd64c17047d15347d0',
+  )
+
+  const v1WithoutRevision = structuredClone(
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET,
+  ) as unknown as Record<string, unknown>
+  const v2WithoutRevision = structuredClone(
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+  ) as unknown as Record<string, unknown>
+  v1WithoutRevision.revision = 2
+  for (const slot of v2WithoutRevision.slots as Record<string, unknown>[]) {
+    for (const assignment of slot.assignments as Record<string, unknown>[]) {
+      if (slot.roleId !== 'screenshots') continue
+      delete assignment.missingTargetPolicy
+      delete assignment.actionRegion
+      delete assignment.artworkViewport
+    }
+  }
+  v2WithoutRevision.formatVersion = 1
+  assert.deepEqual(v2WithoutRevision, v1WithoutRevision)
+})
+
+test('revision 2 declares exact create-empty screenshot viewports and fitting state', () => {
+  const parsed = parseCaseInsertPresetDefinition(
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
+  )
+  assert.equal(parsed.ok, true)
+  assert.equal(JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2.formatVersion, 2)
+  assert.equal(
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2.revision,
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_REVISION_V2,
+  )
+  assert.equal(JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2.slots.length, 10)
+  assert.equal(assignmentsV2().length, 15)
+  assertDeeplyFrozen(JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2)
+
+  const screenshots = assignmentsV2().filter(
+    ({ roleId }) => roleId === 'screenshots',
+  )
+  assert.deepEqual(screenshots.map((assignment) => ({
+    id: assignment.id,
+    objectId: assignment.object.id,
+    presence: assignment.targetPresence,
+    missingTargetPolicy: assignment.missingTargetPolicy,
+    contentRegion: assignment.contentRegion,
+    actionRegion: assignment.actionRegion,
+    artworkViewport: assignment.artworkViewport,
+  })), [
+    {
+      id: 'case:preset-assignment:back-screenshot-one',
+      objectId: 'tray-artwork-1',
+      presence: 'optional',
+      missingTargetPolicy: 'create-empty',
+      contentRegion: {
+        centerXPercent: 17,
+        centerYPercent: 78,
+        widthPercent: 26,
+        heightPercent: 16,
+      },
+      actionRegion: {
+        centerXPercent: 17,
+        centerYPercent: 78,
+        widthPercent: 26,
+        heightPercent: 16,
+      },
+      artworkViewport: {
+        fitting: { mode: 'cover' },
+        focalPosition: { xPercent: 50, yPercent: 50 },
+        zoom: 1,
+      },
+    },
+    {
+      id: 'case:preset-assignment:back-screenshot-three',
+      objectId: 'tray-artwork-3',
+      presence: 'optional',
+      missingTargetPolicy: 'create-empty',
+      contentRegion: {
+        centerXPercent: 83,
+        centerYPercent: 78,
+        widthPercent: 26,
+        heightPercent: 16,
+      },
+      actionRegion: {
+        centerXPercent: 83,
+        centerYPercent: 78,
+        widthPercent: 26,
+        heightPercent: 16,
+      },
+      artworkViewport: {
+        fitting: { mode: 'cover' },
+        focalPosition: { xPercent: 50, yPercent: 50 },
+        zoom: 1,
+      },
+    },
+    {
+      id: 'case:preset-assignment:back-screenshot-two',
+      objectId: 'tray-artwork-2',
+      presence: 'optional',
+      missingTargetPolicy: 'create-empty',
+      contentRegion: {
+        centerXPercent: 50,
+        centerYPercent: 78,
+        widthPercent: 26,
+        heightPercent: 16,
+      },
+      actionRegion: {
+        centerXPercent: 50,
+        centerYPercent: 78,
+        widthPercent: 26,
+        heightPercent: 16,
+      },
+      artworkViewport: {
+        fitting: { mode: 'cover' },
+        focalPosition: { xPercent: 50, yPercent: 50 },
+        zoom: 1,
+      },
+    },
+  ])
+
+  const basis = getJewelCaseTemplateRegion('backPanelSafe')
+  assert.ok(basis)
+  for (const screenshot of screenshots) {
+    const widthMm = basis.bounds.widthMm *
+      screenshot.actionRegion!.widthPercent / 100
+    const heightMm = basis.bounds.heightMm *
+      screenshot.actionRegion!.heightPercent / 100
+    assert.equal(widthMm, 33.76845333333333)
+    assert.equal(heightMm, 17.529386666666667)
+    assert.equal(widthMm / heightMm, 1.9263910355486862)
+  }
+})
+
+test('the production catalog retains exact revision 1 and defaults to revision 2 without alias', () => {
   assert.deepEqual(CASE_INSERT_PRESET_CATALOG.list(), [{
     id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
-    revision: 1,
+    revision: 2,
     name: 'Jewel Case Essentials',
     surface: 'case-insert',
     source: 'builtin',
@@ -224,9 +381,9 @@ test('the production catalog contains exactly one canonical built-in revision an
     CASE_INSERT_PRESET_CATALOG.getLatest(
       JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
     ),
-    JEWEL_CASE_ESSENTIALS_CASE_PRESET,
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
   )
-  assert.strictEqual(
+  assert.notStrictEqual(
     CASE_INSERT_PRESET_CATALOG.getExact(
       JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
       1,
@@ -235,16 +392,16 @@ test('the production catalog contains exactly one canonical built-in revision an
       JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
     ),
   )
-  assert.equal(
+  assert.deepEqual(
     CASE_INSERT_PRESET_CATALOG.getExact(
       JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
       2,
     ),
-    null,
+    JEWEL_CASE_ESSENTIALS_CASE_PRESET_V2,
   )
   const unknown = CASE_INSERT_PRESET_CATALOG.resolve({
     id: JEWEL_CASE_ESSENTIALS_CASE_PRESET_ID,
-    revision: 2,
+    revision: 3,
   })
   assert.equal(unknown.ok, false)
   if (!unknown.ok) assert.equal(unknown.error.code, 'unknown-revision')

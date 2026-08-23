@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  createDefaultCaseInsertImageSlot,
   createDefaultProjectJewelCaseState,
 } from './defaults.ts'
 import {
@@ -133,6 +134,37 @@ function getTrayTextList(
 
   return textList
 }
+
+test('Steam Case defaults preserve Tray artwork and never provision preset screenshot slots', () => {
+  const source = createDefaultProjectJewelCaseState('Portal 2')
+  const customArtwork = createDefaultCaseInsertImageSlot(
+    'tray-artwork-custom',
+    'Custom supporting art',
+    { enabled: true },
+  )
+  source.templates.tray.additionalArtworkEnabled = true
+  source.templates.tray.artworkSlots = [customArtwork]
+  const sourceSlots = source.templates.tray.artworkSlots
+  const before = structuredClone(sourceSlots)
+
+  const state = applySteamImportDefaultsToCaseInsert({
+    caseInsert: source,
+    importedGame: createSteamGame(),
+    legalText: 'Copyright Valve Corporation.',
+    replaceExisting: true,
+    titleArtworkSeed: null,
+    ratingCandidate: null,
+    brandingSources: createBrandingSources(),
+  })
+
+  assert.strictEqual(state.templates.tray.artworkSlots, sourceSlots)
+  assert.deepEqual(state.templates.tray.artworkSlots, before)
+  assert.deepEqual(
+    state.templates.tray.artworkSlots
+      .filter(({ id }) => /^tray-artwork-[123]$/.test(id)),
+    [],
+  )
+})
 
 test('Steam import seeds tray card back-cover text fields', () => {
   const state = applySteamBackCoverImportToCaseInsert(

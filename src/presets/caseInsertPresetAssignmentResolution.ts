@@ -23,22 +23,25 @@ import {
   isBuiltInCaseInsertPresetId,
   parseCaseInsertPresetDefinition,
   type CaseInsertPresetApplicationScope,
-  type CaseInsertPresetAssignmentDefinitionV1,
+  type CaseInsertPresetArtworkViewportDeclarationV2,
+  type CaseInsertPresetAssignmentDefinition,
   type CaseInsertPresetConcreteRegionId,
   type CaseInsertPresetCoordinateBasis,
-  type CaseInsertPresetDefinitionV1,
+  type CaseInsertPresetDefinition,
   type CaseInsertPresetId,
   type CaseInsertPresetNormalizedRegion,
   type CaseInsertPresetObjectBinding,
   type CaseInsertPresetOwnerId,
   type CaseInsertPresetRoleId,
-  type CaseInsertPresetSlotDefinitionV1,
+  type CaseInsertPresetSlotDefinition,
+  type CaseInsertPresetMissingTargetPolicyV2,
   type CaseInsertPresetTargetPresence,
 } from './caseInsertPresetDefinition.ts'
 
 export type CaseInsertPresetAssignmentBindingStatus =
   | 'resolved'
   | 'resolved-disabled'
+  | 'missing-create-empty'
   | 'missing-optional'
   | 'missing-required'
 
@@ -58,6 +61,8 @@ export type ResolvedCaseInsertPresetAssignment = Readonly<{
   enablement: CaseInsertPresetSnapshotEnablement | null
   contentRegion: CaseInsertPresetNormalizedRegion
   actionRegion: CaseInsertPresetNormalizedRegion | null
+  missingTargetPolicy?: CaseInsertPresetMissingTargetPolicyV2
+  artworkViewport?: CaseInsertPresetArtworkViewportDeclarationV2
 }>
 
 export type ResolvedCaseInsertPresetAssignments = Readonly<{
@@ -162,6 +167,21 @@ function frozenObject(
   return Object.freeze({ ...object })
 }
 
+function frozenArtworkViewport(
+  viewport: CaseInsertPresetArtworkViewportDeclarationV2,
+): CaseInsertPresetArtworkViewportDeclarationV2 {
+  return Object.freeze({
+    fitting: viewport.fitting.mode === 'explicit-crop'
+      ? Object.freeze({
+          mode: viewport.fitting.mode,
+          sourceWindow: frozenRegion(viewport.fitting.sourceWindow),
+        })
+      : Object.freeze({ mode: viewport.fitting.mode }),
+    focalPosition: Object.freeze({ ...viewport.focalPosition }),
+    zoom: viewport.zoom,
+  })
+}
+
 function frozenIdentity(
   identity: CaseInsertPresetAssignmentSnapshotIdentity,
 ): CaseInsertPresetAssignmentSnapshotIdentity {
@@ -257,8 +277,8 @@ function isExpectedIdentitySupported(
 function createResolvedAssignment(
   presetId: CaseInsertPresetId,
   presetRevision: number,
-  slot: CaseInsertPresetSlotDefinitionV1,
-  assignment: CaseInsertPresetAssignmentDefinitionV1,
+  slot: CaseInsertPresetSlotDefinition,
+  assignment: CaseInsertPresetAssignmentDefinition,
   snapshot: CaseInsertPresetAssignmentSnapshot,
 ): ResolvedCaseInsertPresetAssignment | CaseInsertPresetAssignmentResolutionResult {
   const binding = resolveCaseInsertPresetSnapshotBinding(
@@ -285,9 +305,12 @@ function createResolvedAssignment(
 
   const bindingStatus: CaseInsertPresetAssignmentBindingStatus =
     binding.status === 'missing'
-      ? assignment.targetPresence === 'required'
-        ? 'missing-required'
-        : 'missing-optional'
+      ? 'missingTargetPolicy' in assignment &&
+          assignment.missingTargetPolicy === 'create-empty'
+        ? 'missing-create-empty'
+        : assignment.targetPresence === 'required'
+          ? 'missing-required'
+          : 'missing-optional'
       : binding.enablement.effectiveEnabled
         ? 'resolved'
         : 'resolved-disabled'
@@ -310,11 +333,17 @@ function createResolvedAssignment(
     actionRegion: assignment.actionRegion
       ? frozenRegion(assignment.actionRegion)
       : null,
+    ...('missingTargetPolicy' in assignment && assignment.missingTargetPolicy
+      ? { missingTargetPolicy: assignment.missingTargetPolicy }
+      : {}),
+    ...('artworkViewport' in assignment && assignment.artworkViewport
+      ? { artworkViewport: frozenArtworkViewport(assignment.artworkViewport) }
+      : {}),
   })
 }
 
 function resolveDefinitionAssignments(input: Readonly<{
-  definition: CaseInsertPresetDefinitionV1
+  definition: CaseInsertPresetDefinition
   source: CaseInsertPresetCatalogSource
   requestedScope: unknown
   snapshot: CaseInsertPresetAssignmentSnapshot
@@ -441,6 +470,7 @@ function resolveDefinitionAssignments(input: Readonly<{
     compatibilityReasons,
   })
   const hasMissingTargets = assignments.some(({ bindingStatus }) =>
+    bindingStatus === 'missing-create-empty' ||
     bindingStatus === 'missing-optional' ||
     bindingStatus === 'missing-required')
 
