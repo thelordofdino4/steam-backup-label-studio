@@ -65,6 +65,7 @@ Key files:
 
 - `package.json`
 - `scripts/run-tests.mjs`
+- `scripts/discover-tests.mjs`
 - `scripts/test-file-list.mjs`
 - `vite.config.ts`
 - `scripts/check-cycles.mjs`
@@ -81,8 +82,8 @@ Implemented scripts:
 - `npm run lint`: runs `eslint .`.
 - `npm run smoke:text-editor`: runs `node scripts/native-tauri-smoke-required.mjs`, which documents the required native `npm run tauri dev` + Any App smoke route and exits nonzero so browser diagnostics cannot satisfy runtime acceptance.
 - `npm run test`: runs `scripts/run-tests.mjs`, which batches Node's built-in
-  test runner with `--experimental-strip-types` over the explicit file list in
-  `scripts/test-file-list.mjs`, then runs the registered
+  test runner with `--experimental-strip-types` over tests automatically discovered
+  under `scripts/` and `src/` by `scripts/discover-tests.mjs`, then runs the registered
   `sbls-package-codec` Rust tests with `--locked --jobs 1`; Node and Rust
   failures are accumulated so the codec suite still runs after a Node failure.
 - `npm run preview`: starts `vite preview`.
@@ -90,9 +91,11 @@ Implemented scripts:
 
 Validation model:
 
-- Node tests and follow-on focused test commands are explicit entries in
-  `scripts/test-file-list.mjs`; newly added tests must be registered there to
-  run under `npm run test`.
+- Node tests are discovered by filename; `scripts/test-file-list.mjs` exposes
+  the generated list and retains the native command list. New Node tests need
+  no registry edit. `scripts/test-discovery.test.mjs` checks runner agreement.
+- `docs/TEST_ORACLE_INVENTORY.md` distinguishes behavioral oracles, intentional
+  architecture boundaries, and temporary implementation-string checks.
 - `scripts/check-cycles.mjs` scans relative imports in `src/**/*.ts(x)` and fails on import cycles.
 - No docs-only validation command is defined.
 - User-visible runtime smoke is not repository-owned automation. It is performed
