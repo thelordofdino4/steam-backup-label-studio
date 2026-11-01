@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   searchSteamStore,
   type SteamImportedGame,
@@ -27,7 +27,12 @@ export function useSteamImport({
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
   const [isSteamImportLoading, setIsSteamImportLoading] = useState(false)
 
+  // Every submission (including empty input), reset and clear supersedes
+  // pending searches. Transport completion alone cannot publish stale state.
+  const searchGeneration = useRef(0)
+
   function resetSteamImportState() {
+    searchGeneration.current += 1
     setGameSearchQuery('')
     setSteamSearchResults([])
     setSelectedSteamGame(null)
@@ -36,7 +41,9 @@ export function useSteamImport({
   }
 
   function clearSteamSearchResults() {
+    searchGeneration.current += 1
     setSteamSearchResults([])
+    setIsSteamSearchLoading(false)
   }
 
   async function runSteamImport(
@@ -58,9 +65,11 @@ export function useSteamImport({
   }
 
   async function handleSteamSearch() {
+    const generation = ++searchGeneration.current
     const trimmedQuery = gameSearchQuery.trim()
 
     if (!trimmedQuery) {
+      setIsSteamSearchLoading(false)
       announceStatus('Enter a Steam game title or App ID to search.')
       return
     }
@@ -70,6 +79,7 @@ export function useSteamImport({
 
     try {
       const results = await searchSteamStore(trimmedQuery)
+      if (generation !== searchGeneration.current) return
       setSteamSearchResults(results)
       announceStatus(
         results.length > 0
@@ -77,9 +87,12 @@ export function useSteamImport({
           : 'Steam returned no results. Manual title entry is still available.',
       )
     } catch (error) {
+      if (generation !== searchGeneration.current) return
       announceStatus(`Steam search failed: ${String(error)}`)
     } finally {
-      setIsSteamSearchLoading(false)
+      if (generation === searchGeneration.current) {
+        setIsSteamSearchLoading(false)
+      }
     }
   }
 
