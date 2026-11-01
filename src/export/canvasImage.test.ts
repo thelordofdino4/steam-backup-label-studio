@@ -62,6 +62,31 @@ test('canvas drawing uses the complete loaded SVG when no content crop is stored
   assert.deepEqual(calls, [[image, 10, 20, 30, 40]])
 })
 
+test('canvas source geometry skips an unloaded uncropped image', () => {
+  const image = {
+    naturalWidth: 0,
+    naturalHeight: 0,
+    width: 0,
+    height: 0,
+  } as HTMLImageElement
+  const calls: unknown[][] = []
+  const context = {
+    drawImage: (...args: unknown[]) => calls.push(args),
+  } as unknown as CanvasRenderingContext2D
+
+  assert.equal(getCanvasImageContentSourceRect(image), null)
+  assert.equal(
+    drawImageContent(
+      context,
+      image,
+      undefined,
+      { x: 10, y: 20, width: 30, height: 40 },
+    ),
+    false,
+  )
+  assert.deepEqual(calls, [])
+})
+
 test('canvas-safe loader retries the original source when the normalized image fails', async () => {
   const originalFetch = globalThis.fetch
   const originalFileReader = globalThis.FileReader

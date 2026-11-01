@@ -134,8 +134,20 @@ export function getCanvasImageContentSourceRect(
   const loadedSize = getLoadedImageSize(image)
   const sourceRect = getImageContentSourceRect(imageSize, loadedSize)
 
+  if (!sourceRect) {
+    return null
+  }
+
+  if (!getImageContentBounds(imageSize)) {
+    return {
+      x: 0,
+      y: 0,
+      width: loadedSize.width,
+      height: loadedSize.height,
+    }
+  }
+
   if (
-    !sourceRect ||
     !imageSize ||
     imageSize.width <= 0 ||
     imageSize.height <= 0
