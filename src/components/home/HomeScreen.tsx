@@ -84,7 +84,7 @@ export function HomeScreen({
             icon="LD"
             title="Load Project"
             description="Open an existing Steam Backup Label Studio project."
-            status="Disc projects supported"
+            status="Disc and jewel case projects supported"
             smokeId="home-load-project"
             onClick={onLoadProject}
           />
@@ -99,8 +99,8 @@ export function HomeScreen({
           <HomeMenuItem
             icon="CI"
             title="New Case Insert"
-            description="Start the separate case insert editor flow."
-            status="Jewel case foundation next"
+            description="Create a jewel case cover, tray card, and spines."
+            status="Jewel case editor - in development"
             smokeId="home-new-case-insert"
             onClick={onNewCaseInsert}
           />
