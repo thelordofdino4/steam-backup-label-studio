@@ -1702,3 +1702,37 @@ fn unbound_logo_evidence_and_direct_mark_absence_have_stable_public_precedence()
             .unwrap_or_else(|error| panic!("{label}: unexpected {error:?}"));
     }
 }
+
+#[test]
+fn ordinary_import_and_package_round_trip_agree_for_every_raster_family() {
+    let _schedule = native::native_test_schedule_lock();
+    let catalog = raster_catalog();
+    for fixture in &catalog {
+        let accepted = crate::validate_imported_image(&fixture.data_url).unwrap();
+        assert_eq!(accepted.mime, fixture.mime);
+        assert!(accepted.width > 0 && accepted.height > 0);
+    }
+    assert_full_public_round_trip(full_disc_project("0.4.0", &catalog), disc_owner_specs(), &catalog, "0.4.0");
+    assert_full_public_round_trip(full_case_project("0.4.0", &catalog), case_owner_specs(), &catalog, "0.4.0");
+}
+
+#[test]
+fn ordinary_import_rejects_vectors_unknown_formats_spoofing_and_unsupported_profiles() {
+    let _schedule = native::native_test_schedule_lock();
+    for mime in ["image/svg+xml", "image/avif", "image/tiff", "image/x-icon", "text/html"] {
+        let url = format!("data:{mime};base64,{}", STANDARD.encode(b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>"));
+        assert_eq!(crate::validate_imported_image(&url).unwrap_err().code, FailureCode::AssetTypeUnsupported);
+    }
+    let svg_as_png = format!("data:image/png;base64,{}", STANDARD.encode(b"<svg/>"));
+    assert_eq!(crate::validate_imported_image(&svg_as_png).unwrap_err().code, FailureCode::AssetTypeInvalid);
+    let jpeg = RasterFixture::new(RasterMime::Jpeg, lossless_jpeg_fixture());
+    assert_eq!(crate::validate_imported_image(&jpeg.data_url).unwrap_err().code, FailureCode::AssetJpegProfileUnsupported);
+    let bmp = RasterFixture::new(RasterMime::Bmp, bmp_32_bit_fixture([0, 0, 0, 0]));
+    assert_eq!(crate::validate_imported_image(&bmp.data_url).unwrap_err().code, FailureCode::AssetBmpProfileUnsupported);
+    for fixture in raster_catalog() {
+        let mut bytes = fixture.bytes;
+        bytes.pop();
+        let truncated = RasterFixture::new(fixture.mime, bytes);
+        assert!(crate::validate_imported_image(&truncated.data_url).is_err());
+    }
+}

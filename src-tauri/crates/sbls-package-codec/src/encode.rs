@@ -23,7 +23,8 @@ use crate::limits::{
 };
 use crate::manifest::{AssetRecord, BindingRecord, ManifestV1, ProjectEntry, Sha256Digest};
 use crate::model::{AssetCapture, AssetCaptureDecision, ProjectPackageEncodeInput};
-use crate::raster::{validate_raster, RasterBudget, RasterError, RasterErrorKind};
+use crate::raster::{validate_raster, RasterBudget};
+use crate::asset_validation::{map_asset_capture_error, map_data_url_error, map_raster_error};
 use crate::registry::{
     classify_unbound_owner, expand_registered_owners, first_unavailable_semantic_builtin,
     qualified_builtin_matches, AssetOwner, CaseRegistryShape, CaseSurfaceRegistryShape,
@@ -870,57 +871,6 @@ fn map_json_error(error: JsonErrorKind, stage: FailureStage) -> ProjectPackageFa
     }
 }
 
-fn map_asset_capture_error(error: AssetError) -> ProjectPackageFailure {
-    match error {
-        AssetError::InvalidDataUrl => {
-            failure(FailureCode::AssetTypeInvalid, FailureStage::AssetCapture)
-        }
-        AssetError::UnsupportedMime => failure(
-            FailureCode::AssetTypeUnsupported,
-            FailureStage::AssetCapture,
-        ),
-        AssetError::ResourceLimitExceeded | AssetError::AllocationFailed => {
-            resource_limit(FailureStage::AssetCapture)
-        }
-        AssetError::HashCollision => {
-            failure(FailureCode::AssetHashCollision, FailureStage::AssetCapture)
-        }
-        AssetError::MetadataMismatch => {
-            failure(FailureCode::AssetTypeInvalid, FailureStage::AssetValidation)
-        }
-    }
-}
-
-fn map_data_url_error(error: AssetError, value: &str) -> ProjectPackageFailure {
-    if error == AssetError::UnsupportedMime {
-        let declared_mime = value
-            .split_once(',')
-            .and_then(|(header, _)| header.strip_prefix("data:"))
-            .map(|header| header.strip_suffix(";base64").unwrap_or(header))
-            .and_then(|header| header.split(';').next());
-        if declared_mime.is_some_and(is_accepted_raster_family_spelling) {
-            // Aliases, casing differences, and parameterized spellings of an
-            // accepted family are malformed normalized envelopes, not
-            // additional package MIME types.
-            return failure(FailureCode::AssetTypeInvalid, FailureStage::AssetCapture);
-        }
-    }
-    map_asset_capture_error(error)
-}
-
-fn is_accepted_raster_family_spelling(value: &str) -> bool {
-    [
-        "image/png",
-        "image/jpeg",
-        "image/jpg",
-        "image/webp",
-        "image/gif",
-        "image/bmp",
-    ]
-    .iter()
-    .any(|accepted| value.eq_ignore_ascii_case(accepted))
-}
-
 fn map_asset_stage_error(error: AssetError) -> ProjectPackageFailure {
     match error {
         AssetError::HashCollision => {
@@ -934,17 +884,6 @@ fn map_asset_stage_error(error: AssetError) -> ProjectPackageFailure {
         }
         AssetError::InvalidDataUrl | AssetError::UnsupportedMime => map_asset_capture_error(error),
     }
-}
-
-fn map_raster_error(error: RasterError) -> ProjectPackageFailure {
-    let code = match error.kind {
-        RasterErrorKind::Invalid => FailureCode::AssetTypeInvalid,
-        RasterErrorKind::UnsupportedJpegProfile => FailureCode::AssetJpegProfileUnsupported,
-        RasterErrorKind::UnsupportedBmpProfile => FailureCode::AssetBmpProfileUnsupported,
-        RasterErrorKind::Dimensions => FailureCode::AssetDimensionsInvalid,
-        RasterErrorKind::ResourceLimit => return resource_limit(FailureStage::AssetValidation),
-    };
-    failure(code, FailureStage::AssetValidation)
 }
 
 const fn failure(code: FailureCode, stage: FailureStage) -> ProjectPackageFailure {

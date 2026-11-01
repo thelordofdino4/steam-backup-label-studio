@@ -7,6 +7,7 @@
 
 mod archive;
 mod assets;
+mod asset_validation;
 mod decode;
 mod encode;
 mod error;
@@ -31,4 +32,5 @@ pub use model::{
     PackageCreator, ProjectPackageEncodeInput,
 };
 pub use raster::RasterMime;
+pub use asset_validation::{validate_imported_image, ValidatedImageAsset};
 pub use registry::{AssetOwner, CaseSurface, LogoRole, PlatformKind, TechnicalKind};

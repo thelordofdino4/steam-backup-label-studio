@@ -20,6 +20,8 @@ This map is the entry point for repository documentation. If two documents disag
 | [`../AGENTS.md`](../AGENTS.md) | Authoritative agent rules | Required safety, preservation, validation, parity, and workflow guardrails for agents. | Always, before agent work. | Agent workflow and safety conflicts defer to `AGENTS.md`; architecture details defer to the SDD. |
 | [`README.md`](README.md) | Authoritative documentation map | Which documents are active, conditional, historical, or merged. | Always, after the root `README.md`. | Documentation routing conflicts defer to this file. |
 
+Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](IMAGE_ASSET_ACCEPTANCE_POLICY.md) documents the shared raster acceptance boundary, format/ingress matrices and remaining native acceptance for #358.
+
 ## Active Authoritative Documents
 
 | Document | Status | Purpose | Read when | Conflict rule |

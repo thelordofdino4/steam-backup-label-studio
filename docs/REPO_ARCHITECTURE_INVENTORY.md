@@ -1712,6 +1712,15 @@ Risks:
 
 ## Image and Artwork Systems
 
+Issue #358 ordinary-import acceptance is owned by `utils/importedImageAsset.ts`,
+`image/importedImagePolicy.ts`, `tauri/importedImageValidation.ts`, the read-only
+native `commands/image_import.rs`, and the codec's `asset_validation.rs` using its
+existing raster decoders. `package/legacyImageFormatWarning.ts` reuses the closed
+capture traversal for compatibility notices. See
+[image asset policy](IMAGE_ASSET_ACCEPTANCE_POLICY.md) for the complete ingress and
+format matrices. No renderer or presentation component owns validation decisions.
+
+
 Purpose: import, normalize, place, frame, render, save, and export background artwork, title artwork, additional artwork, screenshots, and image slots.
 
 Key files:
