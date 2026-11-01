@@ -12,11 +12,25 @@ import type {
   SavedDiscProject,
 } from '../project/projectTypes.ts'
 import {
-  createProjectPackageCapturePlan,
+  createProjectPackageCapturePlan as createPlan,
+  locateProjectPackageCaptures,
   type ProjectPackageAssetCapture,
 } from './projectPackageCapturePlan.ts'
 
 const DATA_URL = 'data:image/png;base64,iVBORw0KGgo='
+
+// Every populated source fixture also checks the transport location against
+// the independently resolved closed path, including repeated array owners.
+function createProjectPackageCapturePlan(project: SavedDiscProject | SavedCaseInsertProject) {
+  for (const { container, key, path } of locateProjectPackageCaptures(project)) {
+    const resolved = path.slice(1).split('/').reduce(
+      (value, segment) => value?.[segment], project,
+    )
+    assert.equal(resolved, container?.[key], path)
+  }
+  return createPlan(project)
+}
+
 
 function byOwner(
   captures: readonly ProjectPackageAssetCapture[],

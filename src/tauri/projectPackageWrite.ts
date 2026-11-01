@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 
+import { createProjectPackageWriteProjection } from '../package/projectPackageWriteProjection.ts'
+
 import type { SavedProject } from '../project/projectTypes.ts'
 import type {
   ProjectPackageCapturePlanV1,
@@ -22,11 +24,15 @@ import {
 
 export const LEGACY_SOURCE_PATH_HEADER_NAME =
   'x-sbls-legacy-source-path-v1'
-export const PROJECT_PACKAGE_WRITE_REQUEST_MAGIC = 'SBLSPSV1'
+export const PROJECT_PACKAGE_WRITE_REQUEST_MAGIC = 'SBLSPSV2'
 export const MAX_PROJECT_PACKAGE_PLAN_BYTES = 2_097_152
 export const MAX_PROJECT_PACKAGE_JSON_BYTES = 16_777_216
+export const MAX_PROJECT_PACKAGE_DATA_URL_BYTES = 89_478_511
+export const MAX_PROJECT_PACKAGE_DATA_URL_FAN_OUT_BYTES = 268_435_456
+export const MAX_PROJECT_PACKAGE_DATA_URLS = 512
 export const MAX_PROJECT_PACKAGE_WRITE_REQUEST_BYTES =
-  16 + MAX_PROJECT_PACKAGE_PLAN_BYTES + MAX_PROJECT_PACKAGE_JSON_BYTES
+  20 + MAX_PROJECT_PACKAGE_PLAN_BYTES + MAX_PROJECT_PACKAGE_JSON_BYTES +
+  4 * MAX_PROJECT_PACKAGE_DATA_URLS + MAX_PROJECT_PACKAGE_DATA_URL_FAN_OUT_BYTES
 
 export type ProjectPackageDestinationFailure = Readonly<{
   status: 'failure'
@@ -145,15 +151,17 @@ function encodeIntoExact(
 
 /**
  * Encodes the narrowly versioned raw request without creating intermediate
- * plan/project byte arrays. The immutable project is serialized once and each
- * UTF-8 payload is written directly into its final request span.
+ * plan/project byte arrays. Registered assets are excluded from metadata JSON
+ * and identical data URLs are encoded once into the final raw request. Their
+ * repeated binding charges remain enforced independently by the codec.
  */
 export function createProjectPackageWriteRequest(
   normalizedProject: SavedProject,
   capturePlan: ProjectPackageCapturePlanV1,
 ): Uint8Array {
-  const planJson = JSON.stringify(capturePlan)
-  const projectJson = JSON.stringify(normalizedProject)
+  const projection = createProjectPackageWriteProjection(normalizedProject, capturePlan)
+  const planJson = JSON.stringify(projection.plan)
+  const projectJson = projection.projectJson
   const planLength = utf8Length(planJson)
   const projectLength = utf8Length(projectJson)
   if (planLength > MAX_PROJECT_PACKAGE_PLAN_BYTES ||
@@ -164,8 +172,15 @@ export function createProjectPackageWriteRequest(
       'project-package-write-request',
     )
   }
-  const totalLength = 16 + planLength + projectLength
-  if (totalLength > MAX_PROJECT_PACKAGE_WRITE_REQUEST_BYTES) {
+  const lengths = projection.dataUrls.map(utf8Length)
+  const poolLength = lengths.reduce((sum, length) => sum + 4 + length, 0)
+  const fanOutLength = projection.plan.captures.reduce((sum, { decision }) =>
+    sum + ('dataUrlIndex' in decision ? lengths[decision.dataUrlIndex] : 0), 0)
+  const totalLength = 20 + planLength + projectLength + poolLength
+  if (projection.dataUrls.length > MAX_PROJECT_PACKAGE_DATA_URLS ||
+    lengths.some((length) => length > MAX_PROJECT_PACKAGE_DATA_URL_BYTES) ||
+    fanOutLength > MAX_PROJECT_PACKAGE_DATA_URL_FAN_OUT_BYTES ||
+    totalLength > MAX_PROJECT_PACKAGE_WRITE_REQUEST_BYTES) {
     throw createProjectFileCommandFailure(
       'project.file-too-large',
       'size-limit-exceeded',
@@ -192,12 +207,18 @@ export function createProjectPackageWriteRequest(
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   writeUint32(view, 8, planLength)
   writeUint32(view, 12, projectLength)
-  encodeIntoExact(encoder, planJson, bytes.subarray(16, 16 + planLength))
-  encodeIntoExact(
-    encoder,
-    projectJson,
-    bytes.subarray(16 + planLength),
-  )
+  writeUint32(view, 16, projection.dataUrls.length)
+  encodeIntoExact(encoder, planJson, bytes.subarray(20, 20 + planLength))
+  let offset = 20 + planLength
+  encodeIntoExact(encoder, projectJson, bytes.subarray(offset, offset + projectLength))
+  offset += projectLength
+  projection.dataUrls.forEach((value, index) => {
+    const length = lengths[index]
+    writeUint32(view, offset, length)
+    offset += 4
+    encodeIntoExact(encoder, value, bytes.subarray(offset, offset + length))
+    offset += length
+  })
   return bytes
 }
 

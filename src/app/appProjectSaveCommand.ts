@@ -102,7 +102,11 @@ function writeFailure(error: unknown): ApplicationCommandResult<never> {
     isProjectPackageDestinationFailure(error)) {
     return failure(
       error.code,
-      error.message,
+      error.code === 'project.file-too-large' ||
+        error.code === 'project.package.resource-limit-exceeded' ||
+        error.code === 'project.package.archive-too-large'
+        ? `${error.message} Reduce image dimensions or remove unneeded artwork and metadata, then save again.`
+        : error.message,
       `The package write boundary returned ${error.code}.`,
       error,
     )

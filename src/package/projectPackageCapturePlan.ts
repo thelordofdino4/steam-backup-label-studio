@@ -247,15 +247,27 @@ function caseSlotBuiltInId(
   return null
 }
 
+export type LocatedProjectPackageCapture = Readonly<{
+  capture: ProjectPackageAssetCapture
+  container: object | null | undefined
+  key: string
+  path: string
+}>
+
 function capture(
   ownerId: ProjectPackageAssetOwnerId,
   decision: ProjectPackageAssetCaptureDecision,
-): ProjectPackageAssetCapture {
-  return Object.freeze({ ownerId, decision })
+  container: object | null | undefined,
+  key: string,
+  path: string,
+): LocatedProjectPackageCapture {
+  return Object.freeze({
+    capture: Object.freeze({ ownerId, decision }), container, key, path,
+  })
 }
 
 function pushDiscPlan(
-  captures: ProjectPackageAssetCapture[],
+  captures: LocatedProjectPackageCapture[],
   project: SavedDiscProject,
 ) {
   captures.push(capture(
@@ -265,6 +277,7 @@ function pushDiscPlan(
       null,
       hasAcceptedEvidence(project.background.imageSource, project.background.imageSize),
     ),
+    project.background, 'imageDataUrl', '/background/imageDataUrl',
   ))
 
   const banner = project.steamBackupLogo
@@ -279,6 +292,7 @@ function pushDiscPlan(
       hasAcceptedEvidence(banner.lockupImageSource, banner.lockupImageSize),
       true,
     ),
+    banner, 'lockupImageDataUrl', '/steamBackupLogo/lockupImageDataUrl',
   ))
 
   const logos = project.logoAssets
@@ -302,6 +316,8 @@ function pushDiscPlan(
           source?.source === 'placeholder' ||
           (!source && !size),
       ),
+      logos, role === 'developer' ? 'developerLogoDataUrl' : 'publisherLogoDataUrl',
+      `/logoAssets/${role}LogoDataUrl`,
     ))
     const additional = role === 'developer'
       ? logos?.additionalDeveloperLogos ?? []
@@ -318,6 +334,8 @@ function pushDiscPlan(
         item.imageSource?.source === 'built-in' ||
           item.imageSource?.source === 'placeholder',
       ),
+      item, 'imageDataUrl',
+      `/logoAssets/${role === 'developer' ? 'additionalDeveloperLogos' : 'additionalPublisherLogos'}/${index}/imageDataUrl`,
     )))
   }
 
@@ -329,6 +347,7 @@ function pushDiscPlan(
       null,
       hasAcceptedEvidence(title?.imageSize, title?.steamArtworkAssetId),
     ),
+    title, 'imageDataUrl', '/titleArtwork/imageDataUrl',
   ))
   captures.push(capture(
     'disc.title.default',
@@ -340,6 +359,7 @@ function pushDiscPlan(
         title?.defaultSteamLogo?.steamArtworkAssetId,
       ),
     ),
+    title?.defaultSteamLogo, 'imageDataUrl', '/titleArtwork/defaultSteamLogo/imageDataUrl',
   ))
 
   ;(project.additionalArtwork?.elements ?? []).forEach((item, index) => {
@@ -350,6 +370,7 @@ function pushDiscPlan(
         null,
         hasAcceptedEvidence(item.imageSize, item.sourceId),
       ),
+      item, 'imageDataUrl', `/additionalArtwork/elements/${index}/imageDataUrl`,
     ))
   })
 
@@ -363,6 +384,7 @@ function pushDiscPlan(
         : ratingBuiltInId(project),
       hasAcceptedEvidence(rating, rating?.customImageSize),
     ),
+    rating, 'customImageDataUrl', '/ratingBadge/customImageDataUrl',
   ))
 
   const media = project.mediaMark
@@ -377,6 +399,7 @@ function pushDiscPlan(
         : mediaBuiltInId(media.value, media.theme ?? 'light'),
       hasAcceptedEvidence(media, media?.customImageSize),
     ),
+    media, 'customImageDataUrl', '/mediaMark/customImageDataUrl',
   ))
 
   for (const platform of PLATFORM_VALUES) {
@@ -393,6 +416,7 @@ function pushDiscPlan(
             : null,
         hasAcceptedEvidence(asset, selected ? true : null, asset?.customImageSize),
       ),
+      asset, 'customImageDataUrl', `/platformMarks/assets/${platform}/customImageDataUrl`,
     ))
   }
 
@@ -410,6 +434,7 @@ function pushDiscPlan(
             : null,
         hasAcceptedEvidence(asset, selected ? true : null, asset?.customImageSize),
       ),
+      asset, 'customImageDataUrl', `/technicalMarks/assets/${technical}/customImageDataUrl`,
     ))
     ;(project.technicalMarks?.additionalAssets?.[technical] ?? [])
       .forEach((additional, index) => captures.push(capture(
@@ -421,6 +446,8 @@ function pushDiscPlan(
             : null,
           hasAcceptedEvidence(additional, additional.customImageSize),
         ),
+        additional, 'customImageDataUrl',
+        `/technicalMarks/additionalAssets/${technical}/${index}/customImageDataUrl`,
       )))
   }
 }
@@ -429,17 +456,19 @@ function caseSurface(
   project: SavedCaseInsertProject,
   surface: CaseSurface,
 ) {
-  if (surface === 'cover') return project.caseInsert.templates.cover
-  if (surface === 'tray') return project.caseInsert.templates.tray
-  if (surface === 'spine-left') return project.caseInsert.spine.left
-  return project.caseInsert.spine.right
+  if (surface === 'cover' || surface === 'tray') {
+    return { value: project.caseInsert.templates[surface], path: `/caseInsert/templates/${surface}` }
+  }
+  const side = surface === 'spine-left' ? 'left' : 'right'
+  return { value: project.caseInsert.spine[side], path: `/caseInsert/spine/${side}` }
 }
 
 function pushCaseSlot(
-  captures: ProjectPackageAssetCapture[],
+  captures: LocatedProjectPackageCapture[],
   ownerId: ProjectPackageAssetOwnerId,
   slot: ProjectCaseInsertImageSlot | undefined,
   kind: 'background' | 'title' | 'artwork' | 'logo' | 'mark',
+  path: string,
 ) {
   const builtInId = caseSlotBuiltInId(slot, kind)
   captures.push(capture(
@@ -450,15 +479,16 @@ function pushCaseSlot(
       hasAcceptedEvidence(slot?.imageSource, slot?.imageSize),
       builtInId !== null,
     ),
+    slot, 'imageDataUrl', `${path}/imageDataUrl`,
   ))
 }
 
 function pushCasePlan(
-  captures: ProjectPackageAssetCapture[],
+  captures: LocatedProjectPackageCapture[],
   project: SavedCaseInsertProject,
 ) {
   for (const surfaceId of CASE_SURFACES) {
-    const surface = caseSurface(project, surfaceId)
+    const { value: surface, path } = caseSurface(project, surfaceId)
     captures.push(capture(
       `case.${surfaceId}.banner`,
       classifyLeaf(
@@ -475,18 +505,21 @@ function pushCasePlan(
         ),
         true,
       ),
+      surface.steamBanner, 'lockupImageDataUrl', `${path}/steamBanner/lockupImageDataUrl`,
     ))
     pushCaseSlot(
       captures,
       `case.${surfaceId}.background`,
       surface.background,
       'background',
+      `${path}/background`,
     )
     pushCaseSlot(
       captures,
       `case.${surfaceId}.title.current`,
       surface.titleArtwork,
       'title',
+      `${path}/titleArtwork`,
     )
     captures.push(capture(
       `case.${surfaceId}.title.default`,
@@ -498,24 +531,28 @@ function pushCasePlan(
           surface.titleArtwork.defaultSteamLogo?.steamArtworkAssetId,
         ),
       ),
+      surface.titleArtwork.defaultSteamLogo, 'imageDataUrl', `${path}/titleArtwork/defaultSteamLogo/imageDataUrl`,
     ))
     surface.artworkSlots.forEach((slot, index) => pushCaseSlot(
       captures,
       `case.${surfaceId}.artwork.${index}`,
       slot,
       'artwork',
+      `${path}/artworkSlots/${index}`,
     ))
     surface.logoSlots.forEach((slot, index) => pushCaseSlot(
       captures,
       `case.${surfaceId}.logo.${index}`,
       slot,
       'logo',
+      `${path}/logoSlots/${index}`,
     ))
     surface.markSlots.forEach((slot, index) => pushCaseSlot(
       captures,
       `case.${surfaceId}.mark.${index}`,
       slot,
       'mark',
+      `${path}/markSlots/${index}`,
     ))
   }
 }
@@ -528,14 +565,23 @@ function pushCasePlan(
 export function createProjectPackageCapturePlan(
   project: SavedProject,
 ): ProjectPackageCapturePlanV1 {
-  const captures: ProjectPackageAssetCapture[] = []
+  return Object.freeze({
+    version: PROJECT_PACKAGE_CAPTURE_PLAN_VERSION,
+    captures: Object.freeze(locateProjectPackageCaptures(project).map(
+      ({ capture: value }) => value,
+    )),
+  })
+}
+
+/** Shares the closed owner walk with transport; never searches arbitrary keys. */
+export function locateProjectPackageCaptures(
+  project: SavedProject,
+): readonly LocatedProjectPackageCapture[] {
+  const captures: LocatedProjectPackageCapture[] = []
   if (project.projectType === 'caseInsert') {
     pushCasePlan(captures, project)
   } else {
     pushDiscPlan(captures, project)
   }
-  return Object.freeze({
-    version: PROJECT_PACKAGE_CAPTURE_PLAN_VERSION,
-    captures: Object.freeze(captures),
-  })
+  return Object.freeze(captures)
 }
