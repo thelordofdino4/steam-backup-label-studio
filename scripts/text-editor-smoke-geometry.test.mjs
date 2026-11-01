@@ -114,11 +114,11 @@ test('text editor smoke geometry preserves paint-edge artifact failure wording',
       'paint-target',
       'Disc Title',
     ),
-    new RegExp(
-      'Disc Title paint touched screenshot edge: ' +
-      'leftMargin=0, rightMargin=0, imageWidth=10, paintLeft=0, paintRight=9, ' +
-      `elementScreenshot=${artifactDir.replace(/\\/g, '\\\\')}\\\\disc-title-element\\.png\\.`,
-    ),
+    {
+      message: 'Disc Title paint touched screenshot edge: ' +
+        'leftMargin=0, rightMargin=0, imageWidth=10, paintLeft=0, paintRight=9, ' +
+        `elementScreenshot=${path.join(artifactDir, 'disc-title-element.png')}.`,
+    },
   )
   assert.equal(
     fs.readFileSync(path.join(artifactDir, 'disc-title-element.png'), 'utf8'),
