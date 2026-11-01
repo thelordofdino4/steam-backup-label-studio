@@ -1,7 +1,7 @@
 # Test discovery and migration oracles
 
 > Status: Current validation reference for #370.
-> Scope: Automatically discovered Node tests and the native codec test command.
+> Scope: Automatically discovered Node tests and native application/codec tests.
 > Baseline: canonical main `2dd921ea`, plus #305 and this focused test-infrastructure change.
 > Runtime evidence: none; browser component tests are diagnostic contract checks.
 
@@ -29,7 +29,7 @@ the existing raw-byte registry oracle continues to verify them.
 | Schema and legacy compatibility | `src/project/projectSchema*.test.ts`, `projectCaseInsert*.test.ts`, `restoreProject*.test.ts`, `src/diagnostics/projectParityHarness*.test.ts` | Legacy normalization, disabled state and uploaded assets survive round trips. |
 | Session/revision/dirty semantics | `src/lifecycle/projectSession*.test.ts`, `canonicalProject*.test.ts`, `applicationLifecycleStateStore*.test.ts` | One authoritative session; saved revision R never marks R+1 clean. |
 | Open/Save/replacement isolation | `src/app/appProject*Command.test.ts`, `appProjectLoad.test.ts`, `appProjectPackageLoad.test.ts`, `appProjectReplacementGuard.test.ts`, `appWorkspaceNavigationCommand.test.ts` | Cancel/failure does not partially adopt data; staged Open and Save identity remain checked. |
-| Package codec and native destination safety | `src-tauri/crates/sbls-package-codec` tests, `src-tauri/src/project_file.rs` tests, `src/tauri/*test.ts`, built-in registry tests | Exact archive/image budgets, hostile-input rejection, binary portability and failure-safe replacement. The app Rust suite is a separate #361 gate until connected. |
+| Package codec and native destination safety | `src-tauri/crates/sbls-package-codec` tests, `src-tauri/src/project_file.rs` tests, `src/tauri/*test.ts`, built-in registry tests | Exact archive/image budgets, hostile-input rejection, binary portability and failure-safe replacement. The native runner tests the full workspace, including Windows filesystem cases. |
 | Render inputs and export parity | `src/render/caseInsertArtworkViewportRenderArtifact.test.ts`, `src/export/*test.ts`, project parity harnesses | Shared resolved geometry, clipping, visibility and layer order; native image comparison remains necessary. |
 | Text and selection | `src/text/*test.ts`, `src/discText/*test.ts`, `src/components/preview/inlinePreviewTextEditor*.test.ts` | Rich runs, whitespace, lists, caret/selection, curved text and rotated spines survive. |
 | Geometry and viewport | `src/templates/*test.ts`, `src/layout/*test.ts`, `src/interaction/*test.ts`, `previewViewportModel.test.ts` | Physical bounds/clamping and transformed pointer math stay equivalent; viewport never changes export coordinates. |
@@ -154,5 +154,25 @@ To refresh the inventory, scan the automatically discovered suite for `readFile`
 
 ## CI boundary
 
-#361 consumes this exact runner, not a copied test list. Its required automated signal must include the discovery agreement test, full Node suite, lint, cycle detection, frontend build, and application plus package Rust tests. Until that CI change is integrated, existing build/check-only green is insufficient evidence. See the live #361 receipt for exact jobs and outcomes.
+#361 consumes this exact runner, not a copied test list. Every push to main and
+every pull request (including stacked branches) runs these jobs:
 
+| Required green job | Checks |
+| --- | --- |
+| Frontend build | Node 24, locked `npm ci`, lint, dependency cycles, TypeScript/Vite production build. |
+| Node behavioral and boundary tests | Node 24, locked `npm ci`, pinned Playwright Chromium plus Linux browser dependencies, discovery agreement, complete `npm run test:node`. |
+| Tauri Rust check | Windows, locked workspace Cargo check, then `npm run test:rust`: application and package codec unit/conformance tests, one build job and one test thread. |
+
+The existing build/check job identities are retained for review/status consumers;
+the Node test job is an additional required review signal. All three must pass.
+Failures and job timeouts fail CI. Superseded runs are cancelled; a cancelled run
+is not a passing result. Timeouts are 15/20/30 minutes respectively. The Rust
+toolchain remains the existing stable channel; reproducible toolchain/version
+provenance is separate #377 work. Branch protection must include all three checks
+when enforced; this change does not modify repository access/ruleset settings.
+
+Green certifies only automated contracts on the tested commit. Headless component
+tests are browser diagnostics; they do not certify native Tauri visuals, OS focus,
+file-dialog interactions, DPI, physical print calibration, signing, installers,
+or Linux/macOS packaged support. Those acceptance obligations remain explicit.
+Until this workflow is integrated, older build/check-only green is insufficient.
