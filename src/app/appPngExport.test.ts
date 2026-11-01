@@ -665,3 +665,25 @@ test('workflow adapters return typed cancellation and stage-specific failure res
     )
   }
 })
+
+for (const kind of ['disc', 'case'] as const) {
+  test(`${kind} export distinguishes renderer failure from atomic destination commit failure`, async () => {
+    for (const stage of ['render', 'write'] as const) {
+      let writes = 0
+      const message = stage === 'render' ? 'render failed' : 'PNG destination commit failed during temporary-file synchronization'
+      const overrides = {
+        ...(stage === 'render' ? { exportPngBytes: async () => { throw new Error(message) } } : {}),
+        writeBinaryFileCommand: async () => { writes++; throw new Error(message) },
+      }
+      const result = kind === 'disc'
+        ? await runDiscPngExportAdapter(createDiscInput(overrides))
+        : await runCaseInsertPngExportAdapter(createCaseInput(overrides))
+      assert.equal(result.status, 'failure')
+      if (result.status !== 'failure') throw new Error('Expected failure')
+      assert.equal(result.error.code, `export.${stage}-failed`)
+      assert.equal(result.feedback?.kind, 'error')
+      assert.ok(result.feedback?.message.includes(message))
+      assert.equal(writes, stage === 'render' ? 0 : 1)
+    }
+  })
+}

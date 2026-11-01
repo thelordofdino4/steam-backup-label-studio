@@ -1012,7 +1012,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_json_commands_and_direct_png_writer_remain_behaviorally_distinct() {
+    fn legacy_json_and_atomic_png_commands_preserve_distinct_payload_semantics() {
         let directory = TestDirectory::new("legacy-regression");
         let json_path = directory.join("project.sbls.json");
         let png_path = directory.join("export.png");
