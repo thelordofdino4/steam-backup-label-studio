@@ -2100,6 +2100,11 @@ Source-of-truth state:
 - Export captures one Disc or Case adapter input behind the registered command;
   those inputs still originate in the same runtime state used by preview.
 - Export dimensions are derived from template geometry and export DPI helpers.
+- `src/export/pngPhysicalResolution.ts` owns explicit PNG `pHYs` encoding and
+  verifies canvas dimensions/chunk CRCs. Both exporters pass their sizing DPI
+  through `canvasToPngBytes`; non-density chunks and pixels remain untouched.
+  `PNG_PHYSICAL_OUTPUT_CONTRACT.md` records exact sizing and pending native/print
+  acceptance under #359.
 
 Render path:
 

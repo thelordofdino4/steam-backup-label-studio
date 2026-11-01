@@ -2675,6 +2675,13 @@ authorizes it and adopts state.
 
 Export renders PNG bytes through canvas helpers. Disc export is circular and 300 DPI by selected/custom disc geometry. Case insert export is rectangular and template-driven. Export preflight summarizes output and warnings before writing files.
 
+The #359 source checkpoint makes physical resolution explicit in the shared
+canvas serializer: the caller's sizing DPI becomes one PNG `pHYs` chunk, with
+IHDR dimensions and chunk CRCs checked before writing. Non-density chunks and
+pixels are preserved. See [`PNG_PHYSICAL_OUTPUT_CONTRACT.md`](PNG_PHYSICAL_OUTPUT_CONTRACT.md)
+for integer rounding, existing Disc border margins, representative sizes and
+the still-pending native/physical calibration checklist.
+
 ### 16.2 Key Files
 
 - `src/export/exportPng.ts`
@@ -2683,6 +2690,7 @@ Export renders PNG bytes through canvas helpers. Disc export is circular and 300
 - `src/export/caseInsertPngImage.ts`
 - `src/export/caseInsertPngText.ts`
 - `src/export/canvasImage.ts`
+- `src/export/pngPhysicalResolution.ts`
 - `src/export/exportPreflight.ts`
 - `src/export/discDesignCheck.ts`
 - `src/export/caseInsertExportPreflight.ts`
