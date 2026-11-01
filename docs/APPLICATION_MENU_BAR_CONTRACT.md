@@ -13,6 +13,8 @@
 > Focused Tools-routing checkpoint: current worktree on 2026-08-05 connects five descriptor-owned Tools launchers to one typed editor-navigation router and one shared nonmodal workflow host; launchers reveal/focus existing owners only, and sidebar compatibility presentations remain.
 > Focused Windows acceptance checkpoint: on 2026-07-31 the user completed the real native-Tauri manual checklist and reported all Tools-host, focus, input-ownership, modal, sidebar, File/Export regression, and representative responsive checks passing. This does not establish Linux or macOS acceptance.
 
+> Focused termination source checkpoint, 2026-11-01 (#360): Close Window and Quit now route through the existing lifecycle guard and a bridge-scoped one-use native permit. Windows native acceptance is pending; Linux/macOS remain tracked by #333/#334. Headless tests are not native acceptance.
+
 ## 1. Status, scope, and authority
 
 **CURRENT FACT —** This remains a draft target-state normative contract. The
@@ -21,12 +23,12 @@ and first native runtime adapter now exist. The native adapter constructs the
 platform hierarchy from the TypeScript-owned descriptor, installs every item
 disabled and unchecked, applies validated generation-ordered enabled, checked,
 and dynamic-label presentation state, and forwards typed activations to a
-frontend ingress. That ingress resolves the seven implemented File lifecycle
+frontend ingress. That ingress resolves the nine implemented File lifecycle
 commands plus `export.png` from their descriptor semantic targets and routes
 the five Tools descriptors through one typed editor-navigation router. One
 shared nonmodal host temporarily presents the existing Game, Disc Template,
 Disc Layout Presets, Case Layout Presets, or Export Options controls and focuses their registered
-control after commit. Close/termination, Edit, Window, application history,
+control after commit. Close Project, Edit, Window, application history,
 and Help surfaces remain unimplemented.
 
 **TARGET REQUIREMENT —** This contract owns:
@@ -133,17 +135,17 @@ verification performed against the evidence baseline.
 | CURRENT FACT / TARGET REQUIREMENT | Native application menu | `src-tauri/src/application_menu.rs` constructs the native hierarchy from the TypeScript-owned platform descriptor, retains checkable native item handles, applies enabled/checked/label presentation state, and registers one process-level menu-event handler. Seven lifecycle-routed File items, `Export PNG…`, and the compatible Tools launchers may become enabled from their owner capabilities; all other items remain conservatively disabled and unchecked. | Rust continues to own only presentation/native-window adaptation. |
 | CURRENT FACT / TARGET REQUIREMENT | Windows accelerator delivery | In the real Windows Tauri window, native Ctrl accelerators do not produce menu events even though clicking the same enabled File items reaches the shared ingress. This matches open upstream Tauri #6981 and Wry #451: WebView2 consumes the key message before the Win32 menu accelerator path. A bounded Windows WebView fallback now derives command-owned chords from the authoritative descriptor, consumes only the latest projected-enabled item after earlier key owners, and enters the same validated ingress with cross-source deduplication. | Keep the native menu as presentation authority. Until upstream delivery is fixed and accepted, the Windows fallback must remain descriptor-derived, window-local, capability-rechecked, modal/default/repeat/composition aware, deduplicated against native events, and disconnected on teardown. It must never become a parallel semantic callback registry or system-global shortcut owner. |
 | CURRENT FACT / TARGET REQUIREMENT | Custom React application menu | No React menubar, `role="menubar"`, or application-menu component exists. Home “menu cards” are ordinary buttons, not an application menu. | No production React imitation is introduced; the native menu is the default target. |
-| CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | One bridge-instance-scoped adapter listens before installation, validates window/bridge/item/invocation identity, rejects duplicate invocations, and forwards typed native envelopes to a frontend ingress. The ingress additionally rechecks bridge/window/projection generation, resolves seven lifecycle targets plus descriptor-owned `export.png`, and resolves Tools navigation from the same authoritative descriptors. | Later semantic owners consume the same ingress without adding a second native registry or callback path. |
+| CURRENT FACT / TARGET REQUIREMENT | Menu event bridge | One bridge-instance-scoped adapter listens before installation, validates window/bridge/item/invocation identity, rejects duplicate invocations, and forwards typed native envelopes to a frontend ingress. The ingress additionally rechecks bridge/window/projection generation, resolves nine lifecycle targets plus descriptor-owned `export.png`, and resolves Tools navigation from the same authoritative descriptors. | Later semantic owners consume the same ingress without adding a second native registry or callback path. |
 | CURRENT FACT / TARGET REQUIREMENT | Workflow host and navigation router | `applicationWorkflowNavigationStore.ts`, `editorNavigationRouter.ts`, and `ApplicationWorkflowHost.tsx` provide one typed router, committed owner registration, one nonmodal named host, exact post-commit focus, close restoration, and fail-closed modal/readiness behavior. Stable portal containers move each existing owner presentation between its original sidebar slot and the host, so there is one live control/ID and owner state is preserved. | Launchers remain reveal/focus-only adapters; later sidebar removal still requires the migration parity gates. |
 | CURRENT FACT / TARGET REQUIREMENT | Command registry/dispatcher | One application root owns a typed registry/dispatcher and busy coordinator. The lifecycle-only subset stays distinct while `export.png` is registered in the same application catalog. Home, Project File controls, and connected native File items dispatch through one feedback adapter. | Menu, Home, sidebar compatibility adapters, buttons, shortcuts, and native close events share the lifecycle/domain dispatcher. |
-| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | A committed React-owned ingress enables lifecycle, export, and workflow-navigation boundaries only after their dependencies are ready. Seven lifecycle File items, `Export PNG…`, and compatible Tools items consume owner capabilities and recheck at dispatch/navigation; Home, missing host/owner/router, lifecycle transition, application modal, teardown, and remount gaps fail closed. Focused edit, native window, Help, Close, and termination remain disabled. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
+| CURRENT FACT / TARGET REQUIREMENT | Central capabilities | A committed React-owned ingress enables lifecycle, export, and workflow-navigation boundaries only after their dependencies are ready. Nine lifecycle File items, `Export PNG…`, and compatible Tools items consume owner capabilities and recheck at dispatch/navigation; Home, missing host/owner/router, lifecycle transition, application modal, teardown, and remount gaps fail closed. Focused edit, native window sizing, Help, and Close Project remain disabled. Close Window/Quit require a ready native termination port and no modal or conflicting operation. | Semantic owners project centralized capabilities to all adapters and recheck at dispatch. |
 | CURRENT FACT / TARGET REQUIREMENT | Home | `HomeScreen.tsx` exposes Resume only when one lifecycle session is retained on Home, plus Open, New Disc, and New Case Insert. Its Resume copy projects kind, display name, dirty/clean state, and exact route from the session; its live status surface receives shared command feedback. | Future File items dispatch these same commands and consume the same capabilities; the native menu must not copy Home callbacks. |
 | CURRENT FACT / TARGET REQUIREMENT | Disc Project File | `ProjectPanel.tsx` exposes Main Menu, New Disc, Save Project, Load Project, Export PNG, and New Case Insert. | Those application-level actions move to File; the panel remains until replacement parity is proven. |
 | CURRENT FACT / TARGET REQUIREMENT | Case Project File | `CaseInsertEditorShell.tsx` duplicates Main Menu, New Case Insert, New Disc, Save, Load, and Export PNG. | The same File adapters serve Disc and Case; no Case-only command copies remain. |
 | CURRENT FACT / TARGET REQUIREMENT | Save | `project.save` now writes directly only for a truthful package-v1 session at an eligible `.sbls` path; pathless, legacy-format, and wrong-suffix sessions use Save As. Save captures lifecycle-owned `R`, and post-commit adoption preserves a newer current `R+1` as dirty without editor recapture. | Menu adapters dispatch these same owners; `project.save-as` always chooses an eligible package destination. |
-| CURRENT FACT / TARGET REQUIREMENT | New/Open replacement | `project.new-disc`, `project.new-case`, and `project.open` are production owners. No-session and clean replacement proceed without a prompt; dirty/baseline-less replacement uses one accessible Save/Discard Changes/Cancel guard bound to session ID/revision. | File/Home/sidebar adapters continue sharing these owners; Close Project and native Close Window/Quit remain later lifecycle work. |
+| CURRENT FACT / TARGET REQUIREMENT | New/Open replacement | `project.new-disc`, `project.new-case`, and `project.open` are production owners. No-session and clean replacement proceed without a prompt; dirty/baseline-less replacement uses one accessible Save/Discard Changes/Cancel guard bound to session ID/revision. | File/Home/sidebar adapters continue sharing these owners; Close Window/Quit reuse this guard under #360; Close Project remains later lifecycle work. |
 | CURRENT FACT / TARGET REQUIREMENT | Return Home / Resume | `workspace.return-home` and `project.resume` are production owners. Return Home uses no replacement guard and retains the exact session; Resume performs no read/restore and returns to Disc or the exact Case Front/Back/Spine route. Route synchronization is session-only and does not change project revision or dirty state. | Future File adapters dispatch these owners; Close Project separately retires the session. |
-| CURRENT FACT / TARGET REQUIREMENT | Command feedback | Home/sidebar controls and the eight connected File items use one `ApplicationCommandDispatchResult`/`ApplicationCommandFeedbackIntent` owner. The menu runtime publishes each dispatcher result once through the React-committed adapter; active deduplication keys prevent duplicate visible publication, and accepted messages reach editor toasts and the Home live status surface. | Later menu events reuse the same boundary and cannot publish a second result. |
+| CURRENT FACT / TARGET REQUIREMENT | Command feedback | Home/sidebar controls and the ten connected File items use one `ApplicationCommandDispatchResult`/`ApplicationCommandFeedbackIntent` owner. The menu runtime publishes each dispatcher result once through the React-committed adapter; active deduplication keys prevent duplicate visible publication, and accepted messages reach editor toasts and the Home live status surface. | Later menu events reuse the same boundary and cannot publish a second result. |
 | CURRENT FACT / TARGET REQUIREMENT | Export | Disc and Case Project File buttons plus File `Export PNG…` dispatch one `export.png` owner. It centrally resolves Disc/Cover/complete Tray targets, preserves preflight-before-destination order, owns export busy scopes, and returns typed feedback once. Home remains disabled; direct PNG writing and Disc preview-width coupling remain. | Tools `Export Options…` only reveals owner-backed configuration. |
 | CURRENT FACT / TARGET REQUIREMENT | Game | `GamePanel.tsx` combines query, Search, immediate result-import activation, metadata fields, candidate discovery/application, and feedback. | Tools `Game…` opens the rich Game host; explicit selection, immutable planning, review, and owner apply replace immediate target behavior. |
 | CURRENT FACT / TARGET REQUIREMENT | Disc Template | `TemplatePanel.tsx` selects and immediately changes built-in/custom Disc geometry; custom fields are direct controlled inputs. | Tools `Disc Template…` opens the Disc geometry owner and its choose/draft/plan/review/apply flow. |
@@ -416,8 +418,8 @@ accelerator.
 | TARGET REQUIREMENT | `menu.file.return-home` | Return Home | File 100 | file-session | Direct command | `workspace.return-home` | — | — | File all platforms | Connected; enabled from the shared lifecycle capability |
 | TARGET REQUIREMENT | `menu.file.resume-project` | Resume Project | File 110 | file-session | Direct command | `project.resume` | — | — | File all platforms | Connected; enabled from the shared lifecycle capability |
 | TARGET REQUIREMENT | `menu.file.close-project` | Close Project | File 120 | file-session | Direct command | `project.close` | — | — | File all platforms | Native item present but disabled; semantic owner not implemented |
-| TARGET REQUIREMENT | `menu.file.close-window` | Close Window | File 140 | file-termination | Guarded application command | `application.close-window` | Ctrl+W | Command+W | File all platforms | Native item present but disabled; interception/semantic owner not implemented |
-| TARGET REQUIREMENT | `menu.file.quit` | Quit Steam Backup Label Studio | File 150 | file-termination | Guarded application command | `application.quit` | Ctrl+Q | Command+Q | File on Windows/Linux; macOS application menu | Native item present but disabled; interception/semantic owner not implemented |
+| TARGET REQUIREMENT | `menu.file.close-window` | Close Window | File 140 | file-termination | Guarded application command | `application.close-window` | Ctrl+W | Command+W | File all platforms | Connected to shared guard and native permit; real native acceptance pending under #360 |
+| TARGET REQUIREMENT | `menu.file.quit` | Quit Steam Backup Label Studio | File 150 | file-termination | Guarded application command | `application.quit` | Ctrl+Q | Command+Q | File on Windows/Linux; macOS application menu | Connected to shared guard and native permit; real native acceptance pending under #360 |
 | TARGET REQUIREMENT | `menu.edit.undo` | Undo | Edit 10 | edit-history | Focused-edit role; future history fallback | `focused-edit.undo`; future `history.undo` | Ctrl+Z | Command+Z | Edit all platforms | Native item present but disabled; focused-edit routing/application history not implemented |
 | TARGET REQUIREMENT | `menu.edit.redo` | Redo | Edit 20 | edit-history | Focused-edit role; future history fallback | `focused-edit.redo`; future `history.redo` | Ctrl+Y | Command+Shift+Z | Edit all platforms | Native item present but disabled; focused-edit routing/application history not implemented |
 | TARGET REQUIREMENT | `menu.edit.cut` | Cut | Edit 40 | edit-transfer | Focused-edit role | `focused-edit.cut` | Ctrl+X | Command+X | Edit all platforms | Native item present but disabled; focused-edit routing not implemented |
@@ -972,9 +974,9 @@ later step must not bypass an incomplete earlier semantic owner.
    binary project-write adapters that reuse #312's byte writer and preserve its
    verified failure behavior.
 3. Home Return/Resume, exact session-only route retention, and shared
-   Home/editor command feedback are present under #308/#300. Extend the
-   implemented dirty-aware guard only when later Close/termination owners are
-   implemented, using #303 only as historical wording/test input.
+   Home/editor command feedback are present under #308/#300. The
+   implemented dirty-aware guard is reused by #360 Close Window/Quit, with
+   #303 retained only as historical wording/test input.
 4. Retain the implemented #309 shared image-candidate-picker focus lifecycle and
    #298 preview-Space ownership prerequisites. Their source/browser component
    evidence does not substitute for native Tauri and assistive-technology
@@ -984,7 +986,7 @@ later step must not bypass an incomplete earlier semantic owner.
 6. Retain the implemented native Tauri construction, presentation-state
    application, typed event bridge, bridge-scoped teardown, platform placement,
    and conservative disabled-until-routed boundary. Semantic dispatch and
-   guarded native close routing remain later work.
+   guarded native close routing now exist; native acceptance remains required.
 7. Wire File commands, including #302-conforming `export.png`, through the
    shared dispatcher and validate Home/Disc/Case/pathless/dirty outcomes.
 8. Implement the shared accessible workflow host and Tools launchers, then
@@ -998,13 +1000,14 @@ later step must not bypass an incomplete earlier semantic owner.
 12. Run focused automated coverage and real native Tauri acceptance on supported
     platforms before claiming the menu implemented.
 
-**CURRENT FACT / TARGET REQUIREMENT —** File command routing for seven lifecycle
+**CURRENT FACT / TARGET REQUIREMENT —** File command routing for nine lifecycle
 owners and `export.png` now uses one typed ingress, dispatch-time capability
 rechecks, shared busy arbitration, and exact-once feedback. `export.png`
 preserves PR #332's ordering; Home export, full immutable snapshot isolation,
 typed diagnostics/blockers, Disc DOM-size independence, filename policy, and
-safe PNG replacement remain future work. Close Project, Close Window, Quit,
-Edit, Window, and Help remain disabled.
+safe PNG replacement retain their separate issue gates. Close Project, Edit,
+Window sizing, and Help remain disabled. Close Window/Quit source is connected
+under #360, with native acceptance pending.
 Compatible Tools launchers are connected; no sidebar removal has begun.
 
 ## 14. Issue mapping, migration boundaries, non-goals, and evidence index
@@ -1076,14 +1079,14 @@ current functionality.
 
 | Claim | Area | Classification | Consequence for menu work |
 | --- | --- | --- | --- |
-| CURRENT FACT | Tauri 2.11 desktop shell, one window, dialog/file invoke ports, native menu adapter | Implemented dependency/runtime slice | The TypeScript descriptor drives native construction and generation-ordered presentation state; seven File lifecycle actions plus `export.png` are connected. Windows command-owned accelerators use the bounded descriptor-derived WebView fallback because the upstream native path is blocked. |
+| CURRENT FACT | Tauri 2.11 desktop shell, one window, dialog/file invoke ports, native menu adapter | Implemented dependency/runtime slice | The TypeScript descriptor drives native construction and generation-ordered presentation state; nine File lifecycle actions plus `export.png` are connected. Windows command-owned accelerators use the bounded descriptor-derived WebView fallback because the upstream native path is blocked. |
 | CURRENT FACT | Home New/Load, Disc/Case Project buttons, Export Options, Game, Disc Template, Disc presets | Implemented compatibility presentations | Preserve until replacement adapters pass parity gates. |
 | CURRENT FACT | Contextual ribbon, preview viewport, Design Check, Guide Legend | Implemented separate systems | Do not relocate or redefine. |
-| CURRENT FACT / TARGET REQUIREMENT | Session aggregate, dispatcher, capabilities, dirty/baseline, Save/Save As, Return Home/Resume | Implemented dependency | File menu behavior may consume these semantic owners; Close Project and guarded close/Quit remain unimplemented under #308. |
+| CURRENT FACT / TARGET REQUIREMENT | Session aggregate, dispatcher, capabilities, dirty/baseline, Save/Save As, Return Home/Resume | Implemented dependency | File menu behavior may consume these semantic owners; Close Project remains unimplemented under #308; guarded close/Quit source is connected under #360 with native acceptance pending. |
 | CURRENT FACT / TARGET REQUIREMENT | Atomic byte writer plus package-safe binary project adapters | Primitive implemented; adapters required | Reuse the merged #312 writer and add bounded binary read/structured atomic binary write before package-aware target Save is accepted. |
 | CURRENT FACT / TARGET REQUIREMENT | Shared result/feedback/focus and modal/shortcut prerequisites | Feedback, Home/editor navigation focus, preview-Space ownership, shared image-candidate-picker focus lifecycle, and bounded Windows command-accelerator fallback implemented | #298/#309 focused source prerequisites are present. Native/assistive-technology acceptance and any broader modal or shortcut owner remain separate. |
 | CURRENT FACT / TARGET REQUIREMENT | Export, Game, geometry, preset target workflows | Existing compatibility owners are host-connected; target workflow redesigns remain dependencies for full migration | Launchers reveal/focus existing owners only; they do not claim the future plan/review/apply workflows exist. |
-| CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection, native bridge, and workflow host | Descriptor/projection, native runtime bridge, eight-command File routing, Windows WebView accelerator fallback, typed Tools routing, and shared nonmodal host implemented | Native construction, projection, typed ingress, lifecycle/export dispatch, Tools navigation, shared feedback, deduplication, readiness, and teardown are connected. Edit, native-window, Help, Close, and termination owners remain disconnected. |
+| CURRENT FACT / TARGET REQUIREMENT | Descriptor/projection, native bridge, and workflow host | Descriptor/projection, native runtime bridge, ten-command File routing, Windows WebView accelerator fallback, typed Tools routing, and shared nonmodal host implemented | Native construction, projection, typed ingress, lifecycle/export dispatch, Tools navigation, shared feedback, deduplication, readiness, and teardown are connected. Edit, native-window sizing, Help, and Close Project owners remain disconnected. Close Window/Quit use the shared guard and one-use native permit under #360. |
 | TARGET REQUIREMENT | Help and About informational owners | Menu implementation work | IDs and sources are decided here; surfaces remain unimplemented. |
 | FUTURE EXTENSION | Application project Undo/Redo | Future owner | Edit placement reserved; history binding omitted until designed/implemented. |
 | FUTURE EXTENSION | Report an Issue | Future configured resource | Item omitted until trusted target and external-navigation policy exist. |

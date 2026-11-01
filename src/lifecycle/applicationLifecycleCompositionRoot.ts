@@ -78,6 +78,7 @@ export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   ports?: ApplicationLifecycleCommandPorts
   exportPng?: ApplicationPngExportCommandOwner
   termination?: ApplicationTerminationCapabilities
+  getTerminationCapabilities?: () => ApplicationTerminationCapabilities
   createOperationId?: () => string
   createSessionId?: () => string
   onSubscriberError?: (error: unknown) => void
@@ -203,7 +204,7 @@ export function createApplicationLifecycleCompositionRoot(
     return executableProjectLifecycleCommandCapabilities({
       lifecycle: stateSnapshot.state,
       busy,
-      termination,
+      termination: options.getTerminationCapabilities?.() ?? termination,
       owners: ownerAvailability,
     })
   }

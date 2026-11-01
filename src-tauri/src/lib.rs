@@ -1,6 +1,7 @@
 mod application_menu;
 mod commands;
 mod legacy_project_identity;
+mod native_termination;
 mod platform;
 mod project_binary_io;
 mod project_file;
@@ -9,6 +10,9 @@ mod project_format_recognition;
 fn application_invoke_handler(
 ) -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
+        native_termination::install_native_termination,
+        native_termination::commit_native_termination,
+        native_termination::dispose_native_termination,
         application_menu::application_menu_platform,
         application_menu::install_application_menu,
         application_menu::apply_application_menu_projection,
@@ -40,6 +44,8 @@ fn application_invoke_handler(
 pub fn run() {
     tauri::Builder::default()
         .manage(application_menu::ApplicationMenuManager::default())
+        .manage(native_termination::NativeTerminationManager::default())
+        .on_window_event(native_termination::on_window_event)
         .on_menu_event(application_menu::forward_application_menu_event)
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(application_invoke_handler())
@@ -53,8 +59,9 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(native_termination::on_run_event);
 }
 
 #[cfg(test)]

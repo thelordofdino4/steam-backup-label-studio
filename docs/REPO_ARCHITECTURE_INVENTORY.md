@@ -150,6 +150,19 @@ Source-of-truth state:
 - React app state is owned in `src/app/App.tsx` plus feature hooks imported by `App`.
 - Native state is not persisted in Rust; Rust commands perform filesystem, HTTP, and platform integration work on request.
 
+- Native termination ownership (#360): `src/app/appNativeTerminationCommand.ts`
+  reuses `appProjectReplacementGuard.ts` and the existing nested Save owner;
+  `applicationTerminationRuntime.ts` connects native requests to the existing
+  dispatcher and readiness/modal capabilities. `useApplicationTerminationIngress.ts`
+  supplies shared feedback after React commit. `nativeTerminationInteraction.ts`
+  flushes pending UI work and temporarily prevents input during final handoff,
+  restoring it on failure. `src/tauri/nativeTermination.ts` validates bridge,
+  window, monotonic sequence and command responses.
+  `src-tauri/src/native_termination.rs` intercepts main-window close/application
+  exit events and owns one-use native permits, with no project state. File
+  Close Window/Quit use the same command owners. Source/headless validation
+  does not establish native Windows/Linux/macOS acceptance.
+
 Render path:
 
 - `index.html` exposes `#root`.
@@ -248,8 +261,9 @@ Source-of-truth state:
   dependency ref keeps the root stable while New/Open/Save/guard/workspace
   adapters change. `project.new-disc`, `project.new-case`, `project.open`,
   `project.save`, `project.save-as`, `workspace.return-home`, and
-  `project.resume` have production command owners; Close/termination ports
-  remain explicitly disabled. After committed React updates, focused adapters
+  `project.resume`, `application.close-window`, and `application.quit` have
+  production command owners; Close Project remains disabled. #360 native
+  termination acceptance is pending. After committed React updates, focused adapters
   synchronize one complete normalized Disc or Case aggregate and the exact
   session-only Disc or Case Front/Back/Spine route into the active lifecycle
   session. Canonical content and identical route synchronization are no-ops;
@@ -263,7 +277,7 @@ Source-of-truth state:
   `src-tauri/src/application_menu.rs` constructs the descriptor-driven native
   hierarchy, applies exact-window generation-ordered enabled/checked/label state, forwards typed
   activation envelopes, and owns bridge-scoped teardown. A focused
-  descriptor-driven ingress routes the seven implemented File lifecycle
+  descriptor-driven ingress routes the nine implemented File lifecycle
   commands and `export.png` through the existing application root after
   committed React feedback dependencies make each boundary ready. Native item
   clicks are production-connected. In the real Windows WebView2 window, the
@@ -286,7 +300,7 @@ Source-of-truth state:
   Presets are Disc-only; Case Layout Presets is Case-only. Combined Spine
   resolves only equivalent left/right
   area/owner/control entries and retains the combined Spine route. Sidebar
-  migration has not begun. Close/termination, Edit, native window actions,
+  migration has not begun. Close Project, Edit, native window sizing actions,
   and Help remain disconnected and disabled. The user reported the complete
   focused Windows native-Tauri manual checklist passing on 2026-07-31; Linux
   and macOS remain separately unverified.
