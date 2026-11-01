@@ -1,3 +1,4 @@
+import { createProjectPackageCommandFailure } from '../tauri/packageProjectFile.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -673,4 +674,36 @@ test('capacity rejection gives recovery guidance and preserves the session', asy
     assert.equal(result.result.error.cause, expected)
     assert.match(result.result.error.userMessage, /Reduce image dimensions.*save again/)
   } else assert.fail('Expected a safe capacity failure')
+})
+
+test('unsupported legacy image save gives replacement guidance without changing session or source path', async () => {
+  const expected = createProjectPackageCommandFailure('project.package.asset-type-unsupported', 'asset-capture')
+  const harness = createHarness({
+    state: stateFor(discProject('Legacy vector'), 'legacy-json', 'original.sbls.json'),
+    dialogResult: 'converted.sbls',
+    write: async () => { throw expected },
+  })
+  const before = harness.root.getStateSnapshot()
+  const result = await harness.root.dispatch('project.save')
+  assert.equal(harness.root.getStateSnapshot(), before)
+  if (result.disposition === 'executed' && result.result.status === 'failure') {
+    assert.equal(result.result.error.cause, expected)
+    assert.match(result.result.error.userMessage, /Convert SVG.*PNG/)
+  } else assert.fail('Expected a safe unsupported-image failure')
+})
+
+test('noncanonical legacy image rejection also explains how to replace the image', async () => {
+  const expected = createProjectPackageCommandFailure('project.package.asset-type-invalid', 'asset-capture')
+  const harness = createHarness({
+    state: stateFor(discProject('Legacy image'), 'legacy-json', 'original.sbls.json'),
+    dialogResult: 'converted.sbls',
+    write: async () => { throw expected },
+  })
+  const before = harness.root.getStateSnapshot()
+  const result = await harness.root.dispatch('project.save')
+  assert.equal(harness.root.getStateSnapshot(), before)
+  if (result.disposition === 'executed' && result.result.status === 'failure') {
+    assert.equal(result.result.error.cause, expected)
+    assert.match(result.result.error.userMessage, /Re-export.*PNG/)
+  } else assert.fail('Expected a safe image-format failure')
 })

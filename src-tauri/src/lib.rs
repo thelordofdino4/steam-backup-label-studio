@@ -28,6 +28,7 @@ fn application_invoke_handler(
         commands::local_steam::find_steam_screenshots,
         commands::local_steam::find_steam_library_cache_assets,
         commands::local_images::read_local_image_file,
+        commands::image_import::validate_imported_image_asset,
         platform::open_folder::open_local_folder,
         commands::steam::download_steam_artwork,
         commands::official_site::fetch_official_logo_discovery_html,
@@ -63,6 +64,7 @@ mod tests {
     fn dedicated_project_persistence_commands_are_registered_in_the_application_handler() {
         let source = include_str!("lib.rs");
         for (module, command) in [
+            ("image_import", "validate_imported_image_asset"),
             ("project_files", "read_binary_project_file"),
             ("project_files", "recognize_project_file_format"),
             ("project_files", "write_binary_project_file"),

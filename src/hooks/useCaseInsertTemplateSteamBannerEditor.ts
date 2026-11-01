@@ -1,3 +1,4 @@
+import { ImportedImagePolicyError } from '../image/importedImagePolicy'
 import type {
   ChangeEvent,
   Dispatch,
@@ -75,8 +76,10 @@ export function useCaseInsertTemplateSteamBannerEditor({
         ),
       )
       announceStatus(`Using ${file.name} as the Steam banner lockup.`)
-    } catch {
-      announceStatus('The Steam banner lockup image could not be read.')
+    } catch (error) {
+      announceStatus(error instanceof ImportedImagePolicyError
+        ? error.message
+        : 'The Steam banner lockup image could not be read.')
     }
   }
 

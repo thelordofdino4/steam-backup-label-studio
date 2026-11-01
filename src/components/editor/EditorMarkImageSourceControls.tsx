@@ -1,3 +1,4 @@
+import { IMPORTED_IMAGE_ACCEPT } from '../../image/importedImagePolicy'
 import type { ChangeEvent, ReactNode, Ref } from 'react'
 import {
   getMarkImageSourceStatus,
@@ -97,7 +98,7 @@ export function EditorMarkImageSourceControls({
             id={fieldId(uploadId)}
             className="logo-file-input"
             type="file"
-            accept="image/*"
+            accept={IMPORTED_IMAGE_ACCEPT}
             onChange={(event) => void onUpload(event)}
           />
 

@@ -1,3 +1,4 @@
+import { ImportedImagePolicyError } from '../image/importedImagePolicy.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
@@ -262,4 +263,15 @@ test('case insert web artwork loader preserves failure status copy', async () =>
     'Downloading Web Art for additional artwork...',
     'Web artwork import failed for additional artwork: Error: offline',
   ])
+})
+
+test('Case upload policy failure preserves its actionable message and returns no adopted image', async () => {
+  const messages: string[] = []
+  const result = await loadUploadedCaseInsertImageSlotImage({
+    announceStatus: (message) => messages.push(message),
+    uploadFile: { file: new File(['svg'], 'art.svg', { type: 'image/svg+xml' }), statusLabel: 'cover artwork' },
+    createImage: async () => { throw new ImportedImagePolicyError('Convert SVG to PNG before importing.') },
+  })
+  assert.equal(result, null)
+  assert.deepEqual(messages, ['Convert SVG to PNG before importing.'])
 })

@@ -1,3 +1,4 @@
+import { ImportedImagePolicyError } from '../image/importedImagePolicy.ts'
 import {
   readLocalImageAsDataUrl,
   type LocalSteamScreenshotAsset,
@@ -108,8 +109,10 @@ export async function loadUploadedCaseInsertImageSlotImage({
 }): Promise<CaseInsertImageSlotImageInput | null> {
   try {
     return await createImage(uploadFile.file, uploadFile.statusLabel)
-  } catch {
-    announceStatus(`The ${uploadFile.statusLabel} image could not be read.`)
+  } catch (error) {
+    announceStatus(error instanceof ImportedImagePolicyError
+      ? error.message
+      : `The ${uploadFile.statusLabel} image could not be read.`)
     return null
   }
 }
