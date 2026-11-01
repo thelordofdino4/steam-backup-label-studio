@@ -38,7 +38,7 @@ impl AtomicProjectWritePhase {
         }
     }
 
-    fn description(self) -> &'static str {
+    pub(crate) fn description(self) -> &'static str {
         match self {
             Self::ValidateDestination => "destination validation",
             Self::CreateTemporary => "temporary-file creation",
@@ -1079,6 +1079,128 @@ mod tests {
         assert_eq!(error.phase, AtomicProjectWritePhase::ReplaceDestination);
         drop(lock);
         assert_eq!(fs::read(&destination).unwrap(), b"known good Windows bytes");
+        assert_no_operation_temporaries(&directory);
+    }
+
+    #[test]
+    fn png_command_creates_and_replaces_exact_binary_bytes_without_touching_neighbors() {
+        use crate::commands::files::write_binary_file;
+        let directory = TestDirectory::new("png-command");
+        let destination = directory.join("export-\u{00e9}.png");
+        let neighbor = directory.join("keep.png");
+        fs::write(&neighbor, b"neighbor bytes").unwrap();
+        for bytes in [
+            b"\x89PNG\r\n\x1a\n\0larger-export\xff".as_slice(),
+            b"\x89PNG\0small".as_slice(),
+        ] {
+            write_binary_file(destination.to_str().unwrap().into(), bytes.to_vec()).unwrap();
+            assert_eq!(fs::read(&destination).unwrap(), bytes);
+            assert_eq!(fs::read(&neighbor).unwrap(), b"neighbor bytes");
+            assert_no_operation_temporaries(&directory);
+        }
+    }
+
+    #[test]
+    fn png_command_failure_phases_preserve_destination_and_clean_temporary() {
+        use crate::commands::files::write_binary_file_with;
+        for phase in [
+            AtomicProjectWritePhase::CreateTemporary,
+            AtomicProjectWritePhase::WriteTemporary,
+            AtomicProjectWritePhase::FlushTemporary,
+            AtomicProjectWritePhase::SyncTemporary,
+            AtomicProjectWritePhase::CloseTemporary,
+            AtomicProjectWritePhase::ReplaceDestination,
+        ] {
+            let directory = TestDirectory::new("png-failure");
+            let destination = directory.join("export.png");
+            let temporary = directory.join("injected.tmp");
+            let old = b"\x89PNG\0prior-export\xff";
+            fs::write(&destination, old).unwrap();
+            let mut file_system = InjectedAtomicFileSystem::new(Some(phase));
+            let error = write_binary_file_with(
+                destination.to_str().unwrap(),
+                b"\x89PNG\0replacement",
+                |path, bytes| {
+                    write_with_injection(Path::new(path), &temporary, bytes, &mut file_system)
+                },
+            )
+            .unwrap_err();
+            assert_eq!(fs::read(&destination).unwrap(), old, "phase {phase:?}");
+            assert!(!temporary.exists(), "phase {phase:?}");
+            assert!(error.contains("PNG destination commit failed"));
+            assert!(error.contains(phase.description()));
+            assert!(error.contains("destination was not replaced"));
+            assert!(!error.contains("Project file save"));
+        }
+    }
+
+    #[test]
+    fn png_cleanup_failure_retains_primary_failure_and_only_its_own_temporary() {
+        let directory = TestDirectory::new("png-cleanup");
+        let destination = directory.join("export.png");
+        let temporary = directory.join("injected.tmp");
+        fs::write(&destination, b"prior PNG").unwrap();
+        let mut file_system =
+            InjectedAtomicFileSystem::new(Some(AtomicProjectWritePhase::WriteTemporary));
+        file_system.fail_cleanup = true;
+        let error = crate::commands::files::write_binary_file_with(
+            destination.to_str().unwrap(),
+            b"replacement",
+            |path, bytes| {
+                write_with_injection(Path::new(path), &temporary, bytes, &mut file_system)
+            },
+        )
+        .unwrap_err();
+        assert_eq!(fs::read(&destination).unwrap(), b"prior PNG");
+        assert!(temporary.exists());
+        assert_eq!(fs::read_dir(&directory.path).unwrap().count(), 2);
+        assert!(error.contains("temporary-file write"));
+        assert!(error.contains("injected cleanup failure"));
+    }
+
+    #[test]
+    fn png_command_rejects_directory_destination_without_modifying_it() {
+        let directory = TestDirectory::new("png-directory");
+        let destination = directory.join("export.png");
+        fs::create_dir(&destination).unwrap();
+        fs::write(destination.join("keep"), b"keep me").unwrap();
+        let error = crate::commands::files::write_binary_file(
+            destination.to_str().unwrap().into(),
+            b"PNG".to_vec(),
+        )
+        .unwrap_err();
+        assert!(error.contains("destination replacement"), "{error}");
+        assert_eq!(fs::read(destination.join("keep")).unwrap(), b"keep me");
+        assert_no_operation_temporaries(&directory);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_png_command_locked_destination_preserves_old_bytes_and_retry_succeeds() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let directory = TestDirectory::new("png-locked");
+        let destination = directory.join("locked.png");
+        fs::write(&destination, b"old PNG").unwrap();
+        let lock = OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(&destination)
+            .unwrap();
+        let error = crate::commands::files::write_binary_file(
+            destination.to_str().unwrap().into(),
+            b"new PNG".to_vec(),
+        )
+        .unwrap_err();
+        assert!(error.contains("destination replacement"));
+        drop(lock);
+        assert_eq!(fs::read(&destination).unwrap(), b"old PNG");
+        assert_no_operation_temporaries(&directory);
+        crate::commands::files::write_binary_file(
+            destination.to_str().unwrap().into(),
+            b"new PNG".to_vec(),
+        )
+        .unwrap();
+        assert_eq!(fs::read(&destination).unwrap(), b"new PNG");
         assert_no_operation_temporaries(&directory);
     }
 }
