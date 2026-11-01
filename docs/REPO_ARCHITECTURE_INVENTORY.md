@@ -84,8 +84,8 @@ Implemented scripts:
 - `npm run test`: runs `scripts/run-tests.mjs`, which batches Node's built-in
   test runner with `--experimental-strip-types` over tests automatically discovered
   under `scripts/` and `src/` by `scripts/discover-tests.mjs`, then runs the registered
-  `sbls-package-codec` Rust tests with `--locked --jobs 1`; Node and Rust
-  failures are accumulated so the codec suite still runs after a Node failure.
+  application and `sbls-package-codec` workspace Rust tests with `--locked --jobs 1`;
+  Node and Rust failures are accumulated so native tests still run after a Node failure.
 - `npm run preview`: starts `vite preview`.
 - `npm run tauri`: invokes the Tauri CLI.
 
