@@ -348,6 +348,6 @@ export async function exportCaseInsertPngBytes(params: {
     await layerRenderers[layerId]()
   }
 
-  const bytes = await canvasToPngBytes(canvas)
+  const bytes = await canvasToPngBytes(canvas, dpi)
   return { bytes, width: layout.width, height: layout.height, dpi }
 }

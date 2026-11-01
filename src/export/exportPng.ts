@@ -1,6 +1,6 @@
 import type { DiscTextLayoutSettings, DiscTextHtmlSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText/index'
 import type { DiscTextStyleSettings } from '../discText/styles'
-import { mmToPixels } from '../disc/geometry'
+import { EXPORT_DPI, mmToPixels } from '../disc/geometry'
 import { getBackgroundDrawSize } from '../image/backgroundImage'
 import type { ExportGuideSelection } from './exportGuides'
 import type { BackgroundImageSize, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
@@ -260,6 +260,6 @@ export async function exportDiscLabelPngBytes(params: {
     await postClipExportLayerRenderers[layerId]()
   }
 
-  const bytes = await canvasToPngBytes(canvas)
+  const bytes = await canvasToPngBytes(canvas, EXPORT_DPI)
   return { bytes, width: exportSize, height: exportSize }
 }
