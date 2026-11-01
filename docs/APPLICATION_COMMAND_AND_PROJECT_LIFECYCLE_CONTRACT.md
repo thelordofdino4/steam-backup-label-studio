@@ -6,7 +6,7 @@
 > Authoritative source: This document for the target application-command and project-session contract; `PROJECT_FILE_SPEC.md` remains authoritative for hydrated serialized project schema, `PROJECT_PACKAGE_FORMAT_CONTRACT.md` owns target package/container behavior, and the SDD remains authoritative for broader architecture and current as-built boundaries.
 > Evidence baseline: PR #327 merged to `main` at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172`, PR #349 merged to `main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996`, plus the focused pure Case session-application and adoption-commit checkpoints documented below.
 
-Last refreshed: 2026-08-03.
+Last refreshed: 2026-11-01 (focused #360 source checkpoint; native acceptance pending).
 
 Implementation checkpoint, 2026-07-30: one production lifecycle composition
 root is mounted at the React application boundary. `project.new-disc`,
@@ -57,8 +57,9 @@ route without read, restore, or project mutation. One command-feedback boundary
 projects typed terminal results to Home and editor status surfaces with active
 deduplication-key enforcement. The native File menu now resolves and dispatches
 the same seven implemented lifecycle owners through descriptor semantic targets
-and that shared feedback boundary. Close Project, guarded native Close
-Window/Quit, shortcuts, history, and all other menu semantics remain absent.
+and that shared feedback boundary. The #360 source checkpoint also connects
+Close Window/Quit as described below. Close Project and history remain absent;
+current menu/accelerator facts are maintained in the menu contract.
 
 Production Open exposes `.sbls` and `.json` chooser affordances, uses a focused
 bounded native recognizer, and calls the existing native-owned bounded package
@@ -66,6 +67,41 @@ read/decode adapter only for recognized package content. Raw package bytes never
 enter TypeScript. Recognition and staging do not establish identity; only the
 existing lifecycle compare-and-swap commit adopts path, format, revision-zero
 state, route, and the matching clean baseline.
+
+Focused native termination source checkpoint, 2026-11-01 (#360):
+`appNativeTerminationCommand.ts` reuses the existing session-ID/revision-bound
+Save/Discard/Cancel guard and nested Save owner. Clean/no-session requests do
+not prompt; retained Home sessions use the same guard. Saving R while R+1 is
+current re-prompts for the remaining dirty state. Before final handoff,
+`nativeTerminationInteraction.ts` flushes pending React work, verifies that no
+application modal still owns interaction, temporarily makes the root inert,
+and the command owner rechecks session ID/revision. A stale or failed handoff
+restores interaction and leaves the session available.
+
+`applicationTerminationRuntime.ts` connects one native port outside React
+StrictMode remounts, projects readiness/modal/handoff capabilities, and routes
+native requests through the existing dispatcher/busy scopes and feedback owner.
+File Close Window/Quit and their descriptor accelerators use that same root.
+`native_termination.rs` owns only bridge identity, request sequence and one-use
+native permits: it has no second project/dirty store. A permitted window close
+also permits the resulting last-window exit without a second prompt. Wrong
+window/bridge, disconnected bridge, poisoned gate, or exhausted sequence fails
+closed; a close-call failure removes the outstanding permit. A failed bridge
+installation is logged and leaves termination unavailable, never silently
+Discard. This does not provide crash recovery or protection from forced OS
+termination, process kill, or Tauri restart semantics.
+
+Headless lifecycle, transport and Rust gate coverage cannot establish actual
+native event ordering, modal focus, accelerator delivery, or platform window
+behavior. #360 remains open until native acceptance is recorded: Windows
+main-window X/Alt+F4, File Close Window/Ctrl+W and Quit/Ctrl+Q, clean/no-project
+and dirty Disc/Case including retained Home, Cancel, Save As cancellation,
+write failure, Save R/R+1, repeated activation and busy/modal rejection. Confirm
+one native termination after Save/Discard, focus/interaction restoration after
+failure/Cancel, and no second prompt at last-window exit. Linux #333 and macOS
+#334 require their corresponding window-manager, Command+W/Command+Q and
+application-menu checks. No native launch or manual acceptance is claimed by
+this source checkpoint.
 
 ## 1. Status, Authority, And Document Relationships
 
@@ -154,21 +190,21 @@ slice.
 | Current fact / later checkpoint correction | Evidence | Architectural consequence |
 | --- | --- | --- |
 | Historical “Save Project” was dialog-only JSON Save As. The current Project File control dispatches `project.save`; `project.save-as` is a distinct semantic owner. Only a truthful package session with an eligible `.sbls` path writes directly, while pathless, legacy, and wrong-suffix sessions route internally through Save As. A successful clean direct write remains successful when baseline adoption is already a semantic no-op. | `src/app/appProjectSaveCommand.ts`, `src/app/App.tsx`, focused tests | The production bypass was removed without adding menu presentation. |
-| A project successfully accepted through `project.open` receives an authoritative session ID, selected path, content-recognized `legacy-json` or `sbls-package-v1`, exact normalized project and clean baseline, revision zero, and editor route. New Disc/New Case establish pathless, baseline-less, dirty sessions with null persistence identity. Successful package writes preserve the session ID and adopt `sbls-package-v1` only after commit. | `src/app/appProjectLoad.ts`, `src/app/appProjectOpenCommand.ts`, `src/app/appProjectNewCommand.ts`, `src/app/appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for Close, termination, and broader lifecycle completion. |
+| A project successfully accepted through `project.open` receives an authoritative session ID, selected path, content-recognized `legacy-json` or `sbls-package-v1`, exact normalized project and clean baseline, revision zero, and editor route. New Disc/New Case establish pathless, baseline-less, dirty sessions with null persistence identity. Successful package writes preserve the session ID and adopt `sbls-package-v1` only after commit. | `src/app/appProjectLoad.ts`, `src/app/appProjectOpenCommand.ts`, `src/app/appProjectNewCommand.ts`, `src/app/appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the lifecycle parent; #360 owns the native termination source and acceptance gap. |
 | Disc and Case editor owners still own their editable React state. A committed-render adapter supplies one complete normalized aggregate to `synchronizeCurrentProject`; equal canonical content is a reference/state/revision/publication no-op, while a real content change preserves session metadata and advances revision once. | `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleCompositionRoot.ts`, focused tests | The lifecycle session is now the authoritative Save/dirty source without moving editor state into a reducer. Session-only route, pane, focus, zoom, selection, modal, and workflow-host state stays outside dirty comparison. |
 | `ProjectSession` is discriminated by project kind. A Case session keeps its sole complete persistable aggregate at `project.caseInsert` and carries one required `caseInsertPresetApplication` companion containing only session-scoped attachment, assignment-snapshot identity, distinct application revision, recovery status, and application-state identity. New Case sessions start unattached at application revision zero; Open reconstructs the explicit schema `0.4.0` projection. The source adoption owner emits one validated operation-discriminated bundle; the pure lifecycle boundary binds it to the exact source session; the existing command installs the complete authorized successor under full-session/store-generation CAS; and the presentation-neutral application owner now coordinates explicit selection/review through that command. | `src/lifecycle/projectSession.ts`, `src/lifecycle/caseInsertPresetSessionApplication.ts`, `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`, `src/project/caseInsertPresetProjectPersistence.ts`, `src/app/appCaseInsertPresetWorkflow.ts`, focused tests | An aggregate-changing adoption advances persisted-content `revision` once; attachment-only adoption retains that revision while its application revision advances once. The production Case catalog contains only Jewel Case Essentials revision 1; the accessible Case workflow starts with neutral selection and invokes orchestration only after explicit user selection. Orchestration reuses the existing installation owner rather than duplicating it. |
-| Home, Disc, and Case New controls dispatch `project.new-disc` or `project.new-case`; all current Load controls dispatch `project.open`. These three owners stage/prepare a complete candidate, consume one shared dirty-aware Save/Discard/Cancel guard when necessary, recheck session ID/revision, and commit lifecycle/editor state atomically. | `src/app/appProjectNewCommand.ts`, `src/app/appProjectReplacementGuard.ts`, `src/app/appProjectOpenCommand.ts`, `src/components/project/ProjectReplacementDialog.tsx`, `src/app/App.tsx` | #303's always-prompt direction is superseded in production for New/Open. Later Close/termination guarding remains separate #308 work. |
+| Home, Disc, and Case New controls dispatch `project.new-disc` or `project.new-case`; all current Load controls dispatch `project.open`. These three owners stage/prepare a complete candidate, consume one shared dirty-aware Save/Discard/Cancel guard when necessary, recheck session ID/revision, and commit lifecycle/editor state atomically. | `src/app/appProjectNewCommand.ts`, `src/app/appProjectReplacementGuard.ts`, `src/app/appProjectOpenCommand.ts`, `src/components/project/ProjectReplacementDialog.tsx`, `src/app/App.tsx` | #303's always-prompt direction is superseded in production for New/Open. Native Close Window/Quit now reuse this guard under #360; Close Project remains separate #308 work. |
 | Open now completes dialog, read, parse, validation/migration, route resolution, Disc image inspection, restoration, preset reconstruction, and Case branding projection before returning one immutable discriminated candidate. Its lifecycle CAS and complete editor aggregate are then scheduled inside one React batch; stale CAS applies no editor state. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, `src/app/appProjectOpenCommand.ts`, focused tests | The two-phase Open and atomic application seam is runtime-connected for current Home, Disc, and Case Load controls. |
 | Production Open calls a focused native content recognizer, then either the legacy text reader or the bounded native package reader/codec. The package branch transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open without fallback after a package failure. | `src-tauri/src/project_format_recognition.rs`, `src-tauri/src/commands/project_files.rs`, `src-tauri/src/commands/project_packages.rs`, `src/tauri/projectFileFormat.ts`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing, restoration, and lifecycle commit stay shared. Extensions affect chooser visibility and Save eligibility, never Open identity. |
 | New, Open, Save, Return Home, and Resume controls dispatch through one application adapter that consumes `ApplicationCommandDispatchResult`, selects at most one `ApplicationCommandFeedbackIntent`, enforces active deduplication keys in the shared status owner, and mirrors accepted feedback to Home. | `src/app/appApplicationCommandFeedback.ts`, `src/hooks/useStatusToasts.ts`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx`, focused tests | Home-originated Open cancellation/failure is now visible and announced. Issue #300 remains open on GitHub but its source acceptance gap is resolved by this checkpoint. |
 | Rust project writes delegate opaque bytes to a focused same-directory temporary-write-and-replace owner. The package write command fully encodes first, then passes the owned package buffer directly to that writer; conversion adds native source/destination identity preflight and a final pre-commit recheck. | `src-tauri/src/commands/project_packages.rs`, `src-tauri/src/legacy_project_identity.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | #312 remains the atomic primitive owner; the new composition does not move package or lifecycle semantics into filesystem code. |
-| `src/main.tsx` constructs one application-scoped command/lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed lifecycle and PNG-export adapters without recreating the root, registry, dispatcher, or busy coordinator. New Disc, New Case, Open, Save, Save As, Return Home, Resume, and `export.png` are production ports. One committed-render menu ingress resolves those eight File targets from the descriptor and publishes every typed outcome through the shared feedback owner. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/ApplicationMenuBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, `src/app/useApplicationMenuLifecycleIngress.ts`, `src/applicationMenu/applicationMenuLifecycleRouting.ts`, focused tests | `export.png` shares application command infrastructure without entering the lifecycle-only ID subset or mutating lifecycle state. Close, termination, other menus, recovery, and history remain unimplemented. |
+| `src/main.tsx` constructs one application-scoped command/lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed lifecycle and PNG-export adapters without recreating the root, registry, dispatcher, or busy coordinator. New Disc, New Case, Open, Save, Save As, Return Home, Resume, Close Window, Quit, and `export.png` are production ports. One committed-render menu ingress resolves those ten File targets from the descriptor and publishes every typed outcome through the shared feedback owner. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/ApplicationMenuBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, `src/app/useApplicationMenuLifecycleIngress.ts`, `src/applicationMenu/applicationMenuLifecycleRouting.ts`, focused tests | `export.png` shares application command infrastructure without entering the lifecycle-only ID subset or mutating lifecycle state. Close Project, recovery, and history remain unimplemented. Native termination acceptance is pending under #360. |
 | Text controls have browser/native editing behavior, but no application-level project history owner exists. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
 | PNG export dispatches one registered `export.png` application command. It builds preflight before destination, confirms only warnings, returns typed outcomes, and uses the shared capability/busy/feedback boundaries for Disc and Case. | `src/app/appPngExportCommand.ts`, `src/app/appPngExport.ts`, menu routing, focused tests | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) owns export semantics. `export.png` is intentionally excluded from this contract's lifecycle-only minimum catalog. |
 | The runtime Case navigation identity is Front/Back/Spine, while saved project data retains the coarser Cover/Tray compatibility field. A committed-render route adapter synchronizes the exact surface into session-only `lastEditorRoute`; equality, stale sessions, and wrong kinds are no-ops. | `src/editor/editorNavigationShell.ts`, `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/project/projectTypes.ts` | Return Home/Resume now restores Back versus Spine exactly without changing project revision, dirty comparison, schema, or persisted compatibility data. |
 | The Guide Legend is currently a collapsed preview-local panel for both Disc and Case Insert previews, not a Disc sidebar panel. | `src/components/preview/DiscPreview.tsx`, `src/components/preview/CaseInsertPreview.tsx` | Stale sidebar descriptions must not be copied into command or menu design. |
 | Preview Space handling is window-level and excludes form-editing targets, but interactive control activation remains the focused gap in #298. | `src/components/preview/PreviewViewport.tsx` | A future shortcut router needs explicit focus precedence. |
-| Tauri registration contains file/network/platform commands but no window-close lifecycle adapter. | `src-tauri/src/lib.rs` | Native close and Quit integration remain target behavior. |
+| Tauri intercepts main-window CloseRequested and normal application ExitRequested, forwards bridge-scoped requests into existing lifecycle commands, and consumes one-use permits after the shared guard. | `src-tauri/src/native_termination.rs`, `src/tauri/nativeTermination.ts`, `src/app/applicationTerminationRuntime.ts`, `src/app/appNativeTerminationCommand.ts` | Source and headless coverage under #360; native Windows/Linux/macOS acceptance remains pending. |
 
 This implementation checkpoint was validated through focused and repository
 tests plus static build/lint/cycle checks; no browser or native Tauri runtime
@@ -878,7 +914,8 @@ Dependency-focused implementation order:
    remain future work.
 8. Home Return/Resume, exact session-only route retention, and shared
    Home/editor feedback are present, resolving #300's source gap.
-9. Native Close Window/Quit adapter with one-use termination authorization.
+9. Native Close Window/Quit adapter with one-use termination authorization is
+   implemented under #360; native acceptance remains required.
 10. Shortcut router, #298 focus behavior, and future menu adapters.
 11. Transaction/history owner when separately designed.
 
@@ -887,10 +924,9 @@ Dependency-focused implementation order:
 Beyond the implementation checkpoint above, this contract does not claim
 current support for:
 
-- application-menu behavior beyond the seven implemented File lifecycle
-  commands; Export, Close/termination, Edit, Tools, Window, and Help remain
-  disabled under
-  [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md);
+- menu behavior beyond the connected File lifecycle/export and Tools owners
+  described in [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md);
+- native acceptance of the #360 Close Window/Quit adapter;
 - recent projects;
 - autosave, crash recovery, or resumable drafts across process restarts;
 - multi-document editing;

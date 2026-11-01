@@ -24,6 +24,8 @@ export const CONNECTED_FILE_LIFECYCLE_COMMAND_IDS = Object.freeze([
   'project.save-as',
   'workspace.return-home',
   'project.resume',
+  'application.close-window',
+  'application.quit',
 ] as const satisfies readonly ApplicationLifecycleCommandId[])
 
 export const CONNECTED_FILE_APPLICATION_COMMAND_IDS = Object.freeze([
