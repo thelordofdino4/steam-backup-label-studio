@@ -12,6 +12,9 @@
     "lint": "eslint .",
     "smoke:text-editor": "node scripts/native-tauri-smoke-required.mjs",
     "test": "node scripts/run-tests.mjs",
+    "test:discovery": "node --test scripts/test-discovery.test.mjs",
+    "test:node": "node scripts/run-tests.mjs --node-only",
+    "test:rust": "node scripts/run-tests.mjs --rust-only",
     "test:spine-editor-actions": "node --test --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts",
     "preview": "vite preview",
     "tauri": "tauri"

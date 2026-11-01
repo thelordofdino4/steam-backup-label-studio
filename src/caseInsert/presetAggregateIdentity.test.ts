@@ -281,10 +281,22 @@ test('equivalent clones and record order share one detached immutable identity',
 
   const frozen = deepFreeze(structuredClone(mutable))
   assert.equal(identity(frozen), first.aggregateContentIdentity)
+})
+
+test('fixed asset fixtures preserve golden v1 identities independently of checkout paths', () => {
+  const mutable = createBlankJewelCaseSavedProject().caseInsert
+  // Built-in URLs resolve relative to import.meta.url in Node. Pin fixture bytes
+  // so this compatibility oracle is identical in worktrees, CI, and installed paths.
+  for (const surface of [
+    mutable.templates.cover, mutable.templates.tray,
+    mutable.spine.left, mutable.spine.right,
+  ]) {
+    surface.steamBanner.lockupImageDataUrl = 'data:image/png;base64,QUJDRA=='
+  }
   assert.equal(
-    first.aggregateContentIdentity,
+    identity(mutable),
     `${CASE_INSERT_PRESET_AGGREGATE_CONTENT_IDENTITY_PREFIX}` +
-      'a08bc3f71e9f7b641bbfb6ae90d01617af4bc0c48f085dae68d64c5c423fa1a7',
+      '9cec6926974770ce7c541b36211b6b3ae91f4db36a79dca4e1f5cc7fdaa6b1d1',
   )
 
   const assetBearing = structuredClone(mutable)
@@ -299,7 +311,7 @@ test('equivalent clones and record order share one detached immutable identity',
   assert.equal(
     identity(assetBearing),
     `${CASE_INSERT_PRESET_AGGREGATE_CONTENT_IDENTITY_PREFIX}` +
-      '2c15753089b1a0d7c049d62cb41e29f9af7b6c7dc6fefda07cbdbb5571fcba4f',
+      '50a57de66f3c042ee0c1d9af8282185540f3fb6d21fbee62611828773770452d',
   )
 })
 

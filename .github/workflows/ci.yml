@@ -32,6 +32,9 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Verify complete test discovery
+        run: npm run test:discovery
+
   tauri-check:
     name: Tauri Rust check
     runs-on: windows-latest

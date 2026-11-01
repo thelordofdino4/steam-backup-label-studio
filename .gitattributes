@@ -1,0 +1,3 @@
+# Package-v1 built-in SVGs have published byte digests. Preserve their LF bytes
+# on Windows checkouts as well as Linux/macOS; do not change registry hashes.
+src/assets/**/*.svg text eol=lf
