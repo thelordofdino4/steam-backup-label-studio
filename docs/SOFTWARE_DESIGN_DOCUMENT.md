@@ -2709,7 +2709,9 @@ Export reads current runtime project state and template geometry. Layer order po
 - Destination cancellation stops before rendering or writing. Disc preview
   measurement remains deferred until rendering is about to begin.
 - Canvas export builds PNG bytes.
-- Tauri writes binary PNG bytes directly to the selected path.
+- Tauri commits complete PNG bytes through the same-directory atomic writer
+  under #362; a failed write/flush/sync/replacement preserves the destination
+  and reports cleanup failures without a direct-write fallback.
 
 The merged issue #302 checkpoint and shared-command checkpoint implement the
 ordering, conditional warning decision, central capability/busy arbitration,
@@ -2717,7 +2719,9 @@ typed terminal results, and exact-once feedback using the current string-based
 preflight summaries. The remaining target in
 [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) still requires a
 fully immutable normalized request, typed diagnostics/blockers, Disc DOM-size
-independence, a final filename policy, and safe destination replacement.
+independence and a final filename policy. #362 connects safe destination
+replacement to the existing writer, with focused headless Windows evidence;
+native GUI/platform workflow acceptance is not implied.
 
 ### 16.5 Invariants And Future-Change Rules
 

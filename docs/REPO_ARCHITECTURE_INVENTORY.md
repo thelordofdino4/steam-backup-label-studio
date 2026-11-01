@@ -2113,7 +2113,9 @@ Edit/interaction path:
 
 - Export is initiated by `export.png`. Its shared root scope prevents a second
   export and conflicts with lifecycle transitions/navigation; child scopes own
-  warning, destination, and direct PNG write phases. Disc preview measurement
+  warning, destination, and atomic PNG write phases. `commands/files.rs` reuses
+  `project_file::write` under #362, with no PNG renderer or project-save policy
+  changes. Disc preview measurement
   remains deferred until rendering is about to begin.
 
 Save/load path:

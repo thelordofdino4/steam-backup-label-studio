@@ -17,6 +17,14 @@ the target immutable normalized request, typed diagnostics/blockers/results,
 central command/busy/feedback ownership, safe destination replacement, or File
 menu connection defined by the remainder of this contract.
 
+Focused destination-safety checkpoint, 2026-11-01 (#362): `write_binary_file`
+now delegates opaque PNG bytes to the existing #312 atomic byte writer. The
+frontend protocol, preflight/render order, pixel bytes, filenames and lifecycle
+state are unchanged. Native command errors describe PNG destination commit
+failure and retain the underlying phase plus secondary cleanup diagnostics.
+Headless Windows filesystem and injected-phase tests cover this adapter; no
+native GUI workflow acceptance is claimed.
+
 ## 1. Status, purpose, authority, and related documents
 
 This is a **draft target-state normative contract**. Requirements labeled as
@@ -89,7 +97,7 @@ menu ingress, the Tauri dialog plugin, and `write_binary_file`.
 | --- | --- |
 | Disc Project File and Case Project File each expose an `Export PNG` button; Home exposes no export activation. | `ProjectPanel.tsx`, `CaseInsertEditorShell.tsx`, and `HomeScreen.tsx`. Both buttons project the central capability and dispatch `export.png`; the native File `Export PNG…` item resolves the same command from its authoritative descriptor. |
 | `handleExportPng` only dispatches `export.png`; the registered command owner resolves Disc Label, Case Cover Sheet, or complete Case Tray Card and captures the matching adapter input once. | `App.tsx`, `appPngExportCommand.ts`. Current combined Case Spine navigation resolves to the complete Tray Card, never a spine-only PNG. |
-| Both routes execute **preflight -> optional warning confirmation -> destination chooser -> render/encode -> direct write -> status**. | `appPngExport.ts` and `appPngExport.test.ts`. A clean summary skips confirmation; warning decline and destination cancellation both occur before render/write. |
+| Both routes execute **preflight -> optional warning confirmation -> destination chooser -> render/encode -> atomic destination commit -> status**. | `appPngExport.ts` and `appPngExport.test.ts`. A clean summary skips confirmation; warning decline and destination cancellation both occur before render/write. |
 | Confirmation is conditional on the existing `hasWarnings` result. | Clean preflight proceeds directly to destination selection. Any current advisory warnings produce exactly one aggregated confirmation before the destination chooser. |
 | Current warning confirmation uses title `Export PNG preflight`, kind `warning`, OK label `Export PNG`, Cancel label `Cancel`, and a message ending `Continue with export?`. | Warning summaries append one `Warnings:` list. Clean summaries open no information dialog, and there is still no blocker presentation. |
 | Preflight returns `{ message, hasWarnings, warnings: string[] }`. | `exportPreflight.ts` and `caseInsertExportPreflight.ts`. There are no typed diagnostic IDs, severities, blockers, targets, or focus destinations. |
@@ -106,7 +114,7 @@ menu ingress, the Tauri dialog plugin, and `write_binary_file`.
 | Feedback is application-owned and published once. | Button and native-menu dispatch outcomes pass through `appApplicationCommandFeedback.ts`; accepted messages use the shared toast owner, deduplication keys, and Home live-status mirror. |
 | One central export capability and the shared busy coordinator arbitrate execution. | Home/no-session/unresolved/missing-adapter states are disabled. `export.execution` plus focused warning, destination, and write child scopes prevent duplicate dialogs/renders/writes and conflict with lifecycle transitions/navigation. |
 | Rendering and PNG encoding complete in memory before native writing begins. | Both exporters await `canvasToPngBytes`; `canvasImage.ts` creates a Blob, ArrayBuffer, and `number[]` before invoking Rust. Render/encode failure therefore occurs before the current write call. |
-| Native PNG writing is a direct `std::fs::write(path, bytes)`. | `src-tauri/src/commands/files.rs`. An existing file can be truncated before a later write failure; no same-directory temporary file, flush policy, atomic replace, rollback, or Windows replacement guarantee exists. |
+| Native PNG writing uses the existing atomic byte writer. | `src-tauri/src/commands/files.rs` delegates to `project_file::write`: adjacent exclusive temporary creation, complete write, flush/sync/close, then one replacement. Failure preserves the destination and attempts owned-temp cleanup; #362 tests cover command outcomes and Windows locked-destination retry. |
 | Export execution does not call project save/snapshot adapters or update lifecycle path, baseline, format, revision, or dirty state. | The export route only assesses the current editor inputs, chooses a PNG destination after permitted preflight, renders, writes, and announces status. |
 
 The issue #302 checkpoint corrects the original Phase 2 ordering and
@@ -459,10 +467,12 @@ Legend, Design Check, focus/hover/selection outlines, drag handles, contextual
 ribbon, sidebar, panel chrome, status/toasts, and modal UI. Exported proof guides
 are the sole guide exception and require captured configuration.
 
-The current frontend fully renders and encodes into memory before calling Rust.
-This already prevents render/encode failure from beginning the direct native
-write. It does **not** make overwrite safe: current `std::fs::write` can truncate
-an existing destination before a later error.
+The frontend fully renders and encodes into memory before calling Rust.
+Under #362, `write_binary_file` passes the complete bytes to the existing
+`project_file::write` primitive. It does not open/truncate the destination for
+streaming output. Rendering failure remains `export.render-failed`; a failed
+native destination commit remains the distinct `export.write-failed` outcome,
+with phase-specific PNG failure text and no success announcement.
 
 Target destination safety invariant:
 
@@ -470,16 +480,27 @@ Target destination safety invariant:
 > invalid PNG. Success is reported only after the complete captured PNG is
 > written/committed to the selected destination.
 
-Implementation must determine and prove whether an export-specific
-same-directory temporary-file/flush/replace primitive or another recoverable
-mechanism is required. It must cover write, flush, replacement, collision,
-cleanup, and failure injection. Windows same-volume replacement and overwrite
-semantics require native verification; this contract does not invent atomicity
-guarantees.
+The #312 primitive is reused without changing project-save behavior. It creates
+an exclusive temporary in the destination directory, trying at most 16 unique
+candidates; writes all bytes; flushes, synchronizes and closes; then performs
+one same-volume replacement. Windows uses `MoveFileExW` with replace-existing
+and write-through flags, without copy/delete fallback; Unix uses rename.
+There is no second direct-write attempt if commit fails. Existing collision,
+phase-order and failure tests remain the primitive's authority.
 
-Issue #312 is scoped to **project-save** atomicity. A safe native primitive may
-later be shared, but satisfying #312 does not automatically satisfy PNG export
-destination safety, and PNG export must not adopt project baseline semantics.
+The temporary-name marker remains `.sbls-project-write-` because it belongs to
+the shared writer. Only the current operation's owned temporary is removed on
+failure. Cleanup failure preserves the primary error and reports the secondary
+failure; at most that operation's one owned temporary can remain. Existing
+neighbor/collision files are never deleted. This is failure-safe replacement,
+not a claim of crash recovery or universal power-loss durability on every
+filesystem; no new parent-directory synchronization guarantee is introduced.
+
+#362 adds command-boundary PNG binary success, injected create/write/flush/sync/
+close/replace failures, cleanup failure, invalid directory destination, and a
+real Windows locked-destination preservation/retry test. The native GUI dialog
+workflow and Linux/macOS packaged acceptance remain separate. PNG export does
+not adopt any project path, baseline, persistence-format or dirty semantics.
 
 Render, encode, and write remain distinguishable failure boundaries:
 
@@ -717,9 +738,9 @@ This contract does not implement or decide:
 These questions do not weaken the mandatory command ID, ordering, snapshot,
 severity, result, guide, feedback, focus, busy, dirty, or safety invariants:
 
-1. Which native export-write mechanism provides recoverable replacement, which
-   flush/sync guarantees are required, and how Windows overwrite/collision and
-   same-volume constraints are tested.
+1. #362 resolves the source mechanism and headless Windows overwrite tests
+   through the shared atomic writer above. Native GUI workflow and other
+   supported-platform acceptance still need recorded evidence.
 2. Whether stable asset bytes are captured eagerly or through another proven
    immutable operation-owned asset reference.
 3. How Disc background offsets are normalized so late preview DOM width is no
