@@ -1509,3 +1509,7 @@ mod tests {
         include!("project_package_capacity_tests.rs");
     }
 }
+
+#[cfg(test)]
+#[path = "project_package_performance.rs"]
+mod performance;
