@@ -7,6 +7,7 @@ import {
 import {
   applyCaseInsertBackCoverLegalText,
   applySteamBackCoverImportToCaseInsert,
+  getSteamBackCoverImportStatus,
 } from './steamBackCoverImport.ts'
 import {
   applyCaseInsertSteamImportBrandingDefaults,
@@ -14,7 +15,12 @@ import {
 } from './steamImportBrandingDefaults.ts'
 import {
   applySteamImportDefaultsToCaseInsert,
+  prepareCaseInsertSteamImport,
 } from './steamImportDefaults.ts'
+import {
+  createCaseInsertProjectSnapshot,
+  restoreCaseInsertProjectStateFromContents,
+} from '../project/caseInsertProjectAdapters.ts'
 import type {
   CaseInsertTitleArtworkImportSeed,
 } from './titleArtwork.ts'
@@ -134,6 +140,86 @@ function getTrayTextList(
 
   return textList
 }
+
+function prepareImport(caseInsert = createDefaultProjectJewelCaseState(), game = createSteamGame()) {
+  return prepareCaseInsertSteamImport({
+    caseInsert, importedGame: game, legalText: game.legalNotice ?? '',
+    replaceExisting: false, titleArtworkSeed: null, ratingCandidate: null,
+    brandingSources: createBrandingSources(),
+  })
+}
+
+for (const enabled of [false, true]) {
+  test(`Case import preserves ${enabled ? 'enabled' : 'disabled'} text and describes the exact prepared after-state`, () => {
+    const source = createDefaultProjectJewelCaseState()
+    source.templates.tray.textBlocks.forEach((block) => { block.enabled = enabled })
+    source.templates.tray.textLists.forEach((list) => { list.enabled = enabled })
+    const before = structuredClone(source)
+    const result = prepareImport(source)
+    assert.deepEqual(source, before)
+    assert.ok(result.caseInsert.templates.tray.textBlocks.every((block) => block.enabled === enabled))
+    assert.ok(result.caseInsert.templates.tray.textLists.every((list) => list.enabled === enabled))
+    assert.equal(result.statusMessage, getSteamBackCoverImportStatus(result.caseInsert))
+    if (enabled) {
+      assert.equal(result.statusMessage, 'Steam back-cover text: 5 enabled, 0 hidden. Existing visibility settings were preserved.')
+    } else {
+      assert.equal(result.statusMessage, 'Steam back-cover text: 0 enabled, 5 hidden. To show hidden text, open Back and enable it under Game Description Text, Feature Bullets / Callouts, System Requirements, Legal Info.')
+    }
+    const repeated = prepareImport(result.caseInsert)
+    assert.deepEqual(repeated.caseInsert, result.caseInsert)
+    assert.equal(repeated.statusMessage, result.statusMessage)
+  })
+}
+
+test('fresh-default import truthfully reports hidden text without enabling unrelated content', () => {
+  const result = prepareImport()
+  assert.match(result.statusMessage, /0 enabled, 5 hidden/)
+  assert.equal(getTrayTextBlock(result.caseInsert, 'tray-description').enabled, false)
+  assert.equal(getTrayTextBlock(result.caseInsert, 'tray-description').source, 'steam')
+})
+
+test('mixed visibility guides only to sections with non-empty hidden Steam text', () => {
+  const source = createDefaultProjectJewelCaseState()
+  getTrayTextBlock(source, 'tray-description').enabled = true
+  getTrayTextList(source, 'tray-feature-bullets').enabled = true
+  const result = prepareImport(source)
+  assert.equal(result.statusMessage, 'Steam back-cover text: 2 enabled, 3 hidden. To show hidden text, open Back and enable it under System Requirements, Legal Info.')
+})
+
+test('preserved manual overrides are not falsely reported as imported hidden content', () => {
+  const source = createDefaultProjectJewelCaseState()
+  const description = getTrayTextBlock(source, 'tray-description')
+  description.source = 'manual'
+  description.value = 'My own description.'
+  description.enabled = true
+  const result = prepareImport(source)
+  assert.deepEqual(getTrayTextBlock(result.caseInsert, 'tray-description'), description)
+  assert.match(result.statusMessage, /0 enabled, 4 hidden/)
+  assert.doesNotMatch(result.statusMessage, /Game Description Text/)
+})
+
+test('empty import does not invent available or visible text', () => {
+  const result = prepareImport(undefined, createSteamGame({
+    shortDescription: '', detailedDescription: '', minimumRequirements: '',
+    recommendedRequirements: '', legalNotice: '', categories: [], genres: [],
+  }))
+  assert.equal(result.statusMessage, 'No non-empty Steam back-cover text is available. Text visibility settings were preserved.')
+})
+
+test('Case save/load retains imported hidden copy, enabled copy, and manual override choices', () => {
+  const source = createDefaultProjectJewelCaseState()
+  const description = getTrayTextBlock(source, 'tray-description')
+  description.value = 'Manual description'
+  description.source = 'manual'
+  description.enabled = false
+  getTrayTextBlock(source, 'tray-minimum-requirements').enabled = true
+  const result = prepareImport(source)
+  const saved = createCaseInsertProjectSnapshot({ caseInsert: result.caseInsert, manualGameTitle: 'Portal 2' })
+  const restored = restoreCaseInsertProjectStateFromContents(JSON.stringify(saved)).caseInsert
+  assert.deepEqual(restored.templates.tray.textBlocks, result.caseInsert.templates.tray.textBlocks)
+  assert.deepEqual(restored.templates.tray.textLists, result.caseInsert.templates.tray.textLists)
+  assert.equal(getSteamBackCoverImportStatus(restored), result.statusMessage)
+})
 
 test('Steam Case defaults preserve Tray artwork and never provision preset screenshot slots', () => {
   const source = createDefaultProjectJewelCaseState('Portal 2')
