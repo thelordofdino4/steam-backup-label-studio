@@ -42,6 +42,8 @@ This map is the entry point for repository documentation. If two documents disag
 
 ## Conditional Reference Documents
 
+Case back copy review preparation: [`CASE_BACK_COPY_FIT_REVIEW.md`](CASE_BACK_COPY_FIT_REVIEW.md) records the read-only #181 owner, estimated fit evidence, and remaining Game planning/application gates.
+
 | Document | Status | Purpose | Read when | Conflict rule |
 | --- | --- | --- | --- | --- |
 | [`TEST_ORACLE_INVENTORY.md`](TEST_ORACLE_INVENTORY.md) | Conditional validation reference | Automatic test discovery, migration behavioral oracles, and file-reading test classification. | Test-runner changes, CI work, or document/asset migrations. | Current runner owns inclusion; feature contracts own behavior; native acceptance remains separate. |

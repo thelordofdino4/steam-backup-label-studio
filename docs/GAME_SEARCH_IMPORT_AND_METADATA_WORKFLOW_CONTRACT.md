@@ -326,6 +326,8 @@ Existing project metadata
 
 ## 12. Case text visibility and copy/layout boundaries
 
+**CURRENT FACT —** The #181 preparation exposes a read-only [copy-fit review](CASE_BACK_COPY_FIT_REVIEW.md) using existing generated variants and preflight estimates. It has no selected variant, mutation authority, production chooser or apply integration. Section 17's planning/atomic-apply order remains unchanged.
+
 **TARGET REQUIREMENT —** For [#310](https://github.com/thelordofdino4/steam-backup-label-studio/issues/310), any selected non-empty Case text value accepted in an import plan must be visibly rendered after successful apply. The plan must include the minimum necessary `enable` impact for that exact text owner.
 
 **TARGET REQUIREMENT —** Visibility is not navigation. Enabling an accepted Case text owner makes it render; navigating to `surface.case.back` or focusing its control merely reveals the owner. Neither action may stand in for the other.
