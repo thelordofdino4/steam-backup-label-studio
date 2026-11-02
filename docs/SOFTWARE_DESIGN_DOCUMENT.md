@@ -394,6 +394,8 @@ Application-menu presentation IDs are separate from semantic command and owner I
   and remain available across Home/editor workspace changes.
 - Export: `App.tsx` opens the native destination chooser, calls preflight helpers, always requests confirmation (information for clean summaries and warning for summaries with warnings), calls canvas export helpers, then writes PNG bytes through Tauri.
 
+Disc background rendering now consumes one immutable numeric layout from `image/backgroundImage.ts` for preview placement, interaction extents, offset clamps and canvas output projection. Preview sizing and PNG invocation use the untransformed local width; viewport zoom/pan never enters the offset basis. See [Resolved Layout Inputs](RESOLVED_LAYOUT_INPUTS.md) for the owner inventory, legacy missing-metadata boundary and pending native acceptance.
+
 ### 5.5 Invariants And Future-Change Rules
 
 - Keep `App.tsx` as orchestration where practical.

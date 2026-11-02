@@ -1,23 +1,17 @@
 import type { PointerEvent } from 'react'
 import { hasActiveImageContent } from '../../image/imageContentBounds'
-import type { BackgroundImageSize, BackgroundOffset } from '../../project/projectTypes'
+import type { BackgroundImageSize } from '../../project/projectTypes'
+import type { BackgroundImageLayout } from '../../image/backgroundImage'
 import {
   createPreviewEditableAttributes,
   createPreviewEditableElementId,
 } from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
-export type BackgroundPreviewSize = {
-  width: string
-  height: string
-}
-
 export type BackgroundLayerProps = {
   backgroundImageUrl: string | null
   backgroundImageSize: BackgroundImageSize | null
-  backgroundPreviewSize: BackgroundPreviewSize
-  backgroundOffset: BackgroundOffset
-  backgroundScale: number
+  layout: BackgroundImageLayout
   handleBackgroundPointerDown: (event: PointerEvent<HTMLDivElement>) => void
   handleBackgroundPointerMove: (event: PointerEvent<HTMLDivElement>) => void
   handleBackgroundPointerUp: (event: PointerEvent<HTMLDivElement>) => void
@@ -26,9 +20,7 @@ export type BackgroundLayerProps = {
 export function BackgroundLayer({
   backgroundImageUrl,
   backgroundImageSize,
-  backgroundPreviewSize,
-  backgroundOffset,
-  backgroundScale,
+  layout,
   handleBackgroundPointerDown,
   handleBackgroundPointerMove,
   handleBackgroundPointerUp,
@@ -40,6 +32,12 @@ export function BackgroundLayer({
           className="background-image-layer"
           role="img"
           aria-label="Uploaded background image layer"
+          style={{
+            left: layout.interactionRect.x,
+            top: layout.interactionRect.y,
+            width: layout.interactionRect.width,
+            height: layout.interactionRect.height,
+          }}
           {...createPreviewEditableAttributes({
             id: createPreviewEditableElementId('disc', 'background'),
             label: 'Background artwork',
@@ -56,9 +54,10 @@ export function BackgroundLayer({
             imageSize={backgroundImageSize}
             draggable={false}
             style={{
-              width: backgroundPreviewSize.width,
-              height: backgroundPreviewSize.height,
-              transform: `translate(-50%, -50%) translate(${backgroundOffset.x}px, ${backgroundOffset.y}px) scale(${backgroundScale})`,
+              left: layout.contentRect.x,
+              top: layout.contentRect.y,
+              width: layout.contentRect.width,
+              height: layout.contentRect.height,
             }}
           />
         </div>
