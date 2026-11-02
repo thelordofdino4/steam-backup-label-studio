@@ -61,7 +61,7 @@ for (const enabled of [false, true]) {
   }
 }
 
-test('unexpected title file-read failure keeps the existing fallback and accepted state', async () => {
+test('unexpected title file-read failure keeps typed recovery guidance and accepted state', async () => {
   const before = await seed(true)
   await page.evaluate(async () => {
     // A non-Blob object reaches FileReader's real type check and rejects.
@@ -70,7 +70,7 @@ test('unexpected title file-read failure keeps the existing fallback and accepte
   })
   const after = await page.evaluate(() => window.__titleUploadHarness.snapshot())
   assert.deepEqual(after.artwork, before)
-  assert.deepEqual(after.messages, ['Game logo image could not be read.'])
+  assert.deepEqual(after.messages, ['The image could not be read. Check the file and try again.'])
   assert.equal(after.placements, 0)
   assert.equal(after.completions, 0)
 })

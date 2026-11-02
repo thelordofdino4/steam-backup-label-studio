@@ -4,6 +4,11 @@ import { flushSync } from 'react-dom'
 import { useTitleArtwork } from '../useTitleArtwork'
 import { discTemplates } from '../../templates/discTemplates'
 import type { ProjectTitleArtwork } from '../../project/projectTypes'
+import { createApplicationLifecycleRuntime } from '../../app/applicationLifecycleRuntime.ts'
+import { ApplicationLifecycleRuntimeContext } from '../../app/applicationLifecycleRuntimeContext.ts'
+import { createApplicationLifecycleCompositionRoot } from '../../lifecycle/applicationLifecycleCompositionRoot.ts'
+import { createNewProjectSession } from '../../lifecycle/projectSession.ts'
+import { createBlankDiscSavedProject } from '../../project/blankDiscProject.ts'
 
 function rasterDataUrl(width: number, height: number) {
   const canvas = document.createElement('canvas')
@@ -65,4 +70,14 @@ export function TitleArtworkUploadHarness() {
   return null
 }
 
-createRoot(document.getElementById('root')!).render(<TitleArtworkUploadHarness />)
+const runtime = createApplicationLifecycleRuntime({
+  createRoot: (options) => createApplicationLifecycleCompositionRoot({
+    ...options,
+    initialState: createNewProjectSession({ sessionId: 'title-upload', project: createBlankDiscSavedProject() }),
+  }),
+})
+createRoot(document.getElementById('root')!).render(
+  <ApplicationLifecycleRuntimeContext.Provider value={runtime}>
+    <TitleArtworkUploadHarness />
+  </ApplicationLifecycleRuntimeContext.Provider>,
+)
