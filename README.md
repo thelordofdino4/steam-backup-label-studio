@@ -3,10 +3,10 @@
 > Purpose: Product summary, current feature surface, and top-level repository orientation.
 > Read when: Always, before repository work.
 > Authoritative source: Product/scope details defer to docs/PRD.md; architecture details defer to docs/SOFTWARE_DESIGN_DOCUMENT.md.
-> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
+> Current-state corrections reviewed against `923f7b7fcbfa6569439e26ba049c265816a1db65` on 2026-11-02; no new native acceptance is claimed.
 
 
-A cross-platform desktop app for designing print-ready Steam backup disc labels and, later, case artwork for personal Steam backup media.
+A desktop app for designing Steam backup disc labels and jewel case inserts for personal Steam backup media. Windows is the exercised native development target; broader platform goals and acceptance are separate below.
 
 ## Project Goal
 
@@ -30,19 +30,15 @@ The **disc-label editor** is now past the indev finish line and is the first alp
 
 The broader product is still early because the jewel case editor is active but not alpha-complete, and DVD/Amaray and Blu-ray case editors are not implemented yet. The next major milestone remains the **jewel case editor** finish line tracked by #126.
 
-Issue #69 is closed as the disc-editor alpha finish-line tracker. The large-file refactor tracker (#266) is also closed after merge commit `6feb262bed2abd36b1371e5c0674013018132d16`. Ongoing polish and future expansion remain tracked separately, including Guide Legend relocation (#124), historical mark catalog expansion (#125), the closed schema/migration baseline (#48), the closed project-packaging decision (#56) now specified by `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md`, and architecture cleanup (#44, #46, #47).
+Issue #69 is closed as the disc-editor alpha finish-line tracker. The large-file refactor tracker (#266) is also closed after merge commit `6feb262bed2abd36b1371e5c0674013018132d16`. Ongoing polish and future expansion remain tracked separately, including historical mark catalog expansion (#125), the closed schema/migration baseline (#48), the closed project-packaging decision (#56) now specified by `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md`, and architecture cleanup (#44, #46, #47).
 
 Do not treat historical "recent validation" notes in older docs as proof that native/Tauri manual smoke has happened for the current checkout. For this docs pass, no `npm run tauri dev` verification is claimed.
 
-## Current Sidebar Flow
+## Current Editor Navigation
 
-The intended main sidebar flow is:
+At source baseline `923f7b7f`, Disc setup panels are Project File → Export Options → Template → Game → Steam Branding → Disc Layout Presets, followed by packaging-role panels. Case has surface tabs, Project File → Export Options → Template → Case Layout Presets → Game, dedicated Steam branding, and surface-specific role panels. Tools launchers reveal/focus existing workflow owners through a shared host; sidebar presentations remain available when their workflow is not hosted there.
 
-Project File → Export Options → Template → Game → Steam Branding → Background Image → Game Title → Game Info Logos → Company Logos → Legal Text → Additional Artwork → Additional Text
-
-The sidebar sections are currently implemented as independently collapsible panels. The role panels are being introduced as top-level panel siblings during #272. Template and Steam Branding are setup panels above the packaging roles. Remaining legacy panels stay functional at the end of the stack while their controls migrate into role panels, and their visible panel headers should say "Migrating Soon". Do not reorder them during documentation or unrelated feature work.
-
-Guide Legend is still in the sidebar today. The likely future improvement is to move it into the live preview as a bottom-right, collapsible, open-by-default panel; that is tracked separately by #124 and should not be bundled into unrelated docs or feature work.
+Guide Legend is already a preview-local, collapsible app-shell panel in both editors; #124 is closed. It is not saved design content or exported artwork. Earlier sidebar-order descriptions in historical notes and agent instructions are not the current component inventory. This documentation correction does not reorder controls or relax the instruction against unrelated UI changes. See the [current behavior map](docs/README.md#current-behavior-at-the-reconciled-baseline) for source owners.
 
 ## Current Disc-Label Workflow
 
@@ -116,7 +112,7 @@ The structural disc-face elements are now mostly represented:
 - Media-format and operating-system marks.
 - Additional artwork elements.
 
-Remaining work is polish, validation, and future expansion rather than an indev blocker. Historical technology mark families (#125), Guide Legend relocation (#124), broader schema migration, packaging, and additional runtime smoke should continue as focused follow-up work.
+Remaining work is polish, validation, and future expansion rather than an indev blocker. Historical technology mark families (#125), remaining schema/package limits, and additional runtime smoke continue as focused follow-up work. Guide Legend relocation (#124) is implemented and closed.
 
 Disabled optional visual features should hide dependent controls, should not render in preview or PNG export, and should preserve saved state so re-enabling restores previous selections, uploaded assets, layout, scale, source choices, and settings.
 
@@ -136,27 +132,19 @@ The project should not bundle official trademarked assets unless licensing is cl
 ## Near-Term Work
 
 - Treat #69 as the closed baseline for the disc-editor alpha finish line.
-- Start the jewel case editor as the next major product surface; see #126 and the product/architecture boundaries in `docs/PRD.md` and `docs/SOFTWARE_DESIGN_DOCUMENT.md`. The older local issue mirror is archived at `docs/archive/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
+- Continue the active jewel case editor toward alpha completion; see #126 and the product/architecture boundaries in `docs/PRD.md` and `docs/SOFTWARE_DESIGN_DOCUMENT.md`. The older local issue mirror is archived at `docs/archive/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
 - Keep built-in asset routing centralized, keep official replacements in domain folders under `src/assets/`, and keep true placeholder-named fallbacks under `src/assets/placeholders/`.
-- Keep #124 separate: move Guide Legend into the live preview only when that issue is explicitly worked.
+- Preserve the implemented preview-local Guide Legend; #124 is closed. New placement changes require their own scoped work.
 - Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, export preflight, and future case layouts so manual preview/export checks match the current feature set.
 - Continue architecture cleanup tracked by open issues such as #44, #46, and #47 only where it supports alpha work; #48 is the closed schema-validation/migration baseline, and future schema work follows `docs/PROJECT_FILE_SPEC.md`.
 - Use `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md` as the package authority; closed issue #56 remains the historical ZIP-container decision record. Codec, bounded native recognition/read/decode, shared immutable staging, session format identity, authoritative current-project and exact route synchronization, package Open/Save/Save As, the shared dirty-aware New/Open replacement guard, Home Return/Resume, and shared command feedback are source-connected. Close/termination guarding and native Tauri workflow acceptance remain future work.
 - Defer Guided Start (#17), DVD/Amaray and Blu-ray case editors, direct printer support, official asset packs, automatic rating lookup, full arbitrary layer management, and broad refactors unless they become necessary for a focused alpha blocker.
 
-## Planned Platforms
+## Platform Targets And Acceptance
 
-Initial target platforms:
+Windows and Linux are product targets. Windows native development and focused historical smoke have been exercised; neither those runs nor a frontend build establish packaged release acceptance for this checkout. Linux native menus/input/packaging remain tracked by #333, macOS by #334, and release/support acceptance by #376/#382. Steam Deck desktop mode, macOS, Flatpak, and AppImage remain possible future targets or distribution formats, not supported-release promises.
 
-- Windows
-- Linux
-
-Possible future targets:
-
-- Steam Deck desktop mode
-- macOS
-- Flatpak
-- AppImage
+The existing CI builds the frontend on Ubuntu and runs Rust/native checks on Windows. See [CI](.github/workflows/ci.yml) and the [validation inventory](docs/TEST_ORACLE_INVENTORY.md).
 
 ## Tech Stack
 
@@ -187,4 +175,4 @@ Steam Backup Label Studio is an unofficial personal backup labeling tool. It is 
 
 ## License
 
-License not chosen yet.
+The repository includes an [MIT license text](LICENSE). The application Cargo manifest still has an empty license field; release metadata and attribution reconciliation remain tracked by #381/#376. Vendored codec notices are separate and retained under [vendor/LICENSES](src-tauri/crates/sbls-package-codec/vendor/LICENSES/). This documentation correction does not change any license or release policy.

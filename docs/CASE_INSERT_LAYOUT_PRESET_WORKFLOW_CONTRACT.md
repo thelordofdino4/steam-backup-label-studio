@@ -2050,7 +2050,7 @@ or feedback decisions.
 | CURRENT FACT | Reserved-artwork viewport runtime checkpoint | Retains the separately versioned pure plan; adds canonical-success validation, action-v1-local repeated Spine artwork owner IDs, pure ordinary-owner adoption for four repeated-artwork families, schema `0.4.0` state/migration, package-v1 schema registry support without a binding, and one shared preview/export/text/preflight/drag artifact. It does not change definition v1, Jewel Case Essentials revision 1, the production catalog, package version 1, existing Apply/Reapply/Detach, React workflow controls, Rust dependencies, or native behavior |
 | CURRENT FACT | Jewel Case Essentials revision-2 checkpoint | Retains revision 1 and its exact hash; adds strict definition format 2, exact revision 2, a closed three-target empty Tray artwork-slot capability, reviewed viewport-aware Apply/Reapply ownership and format-3 configuration persistence under schema `0.4.0`, exact-revision status/selection behavior, and zero-write Detach preservation; adds no automatic upgrade, import/source selection, owner enablement, renderer/export/package/Rust/dependency change, or new canonical preset identity |
 
-**CURRENT FACT —** Read-only review at this checkpoint confirmed the prerequisite
+**HISTORICAL CHECKPOINT —** Read-only review at this checkpoint confirmed the prerequisite
 work, including the accessible Case presentation, is merged into `origin/main`
 through PR #353 at `dde67fac36de8f473c4ca7082e123ef801810a95`.
 No open pull request or newer exact Case reserved-artwork viewport/crop-planning

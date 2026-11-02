@@ -1011,7 +1011,7 @@ Compatible Tools launchers are connected; no sidebar removal has begun.
 
 ### Issue and authority matrix
 
-**CURRENT FACT —** Required and adjacent issues were read on 2026-07-26. No
+**HISTORICAL CHECKPOINT —** Required and adjacent issues were read on 2026-07-26. No
 open or closed issue was found under exact searches for “Application Menu Bar,”
 “application menu,” “native menu,” “menu bar,” or “menubar.” Issue #176 is a
 separate preview context-menu proposal and is not an application-menu owner.
@@ -1019,7 +1019,7 @@ separate preview context-menu proposal and is not an application-menu owner.
 | Claim | Issue/authority | State at review | Relationship |
 | --- | --- | --- | --- |
 | CURRENT FACT / TARGET REQUIREMENT | [#308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308) | Open | Principal lifecycle/session/Save/Resume and command foundation; this menu consumes it and does not widen it. |
-| CURRENT FACT / TARGET REQUIREMENT | [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | Open; atomic byte primitive merged in PR #317 | Current JSON Save already consumes the atomic primitive. Package/menu Save still depends on bounded binary project read and structured atomic binary write adapters, not a second atomic algorithm. |
+| CURRENT FACT / TARGET REQUIREMENT | [#312](https://github.com/thelordofdino4/steam-backup-label-studio/issues/312) | Closed after #356 reconciliation; atomic byte primitive merged in PR #317 | Production package Save/Save As consume the existing native codec and atomic byte primitive. Retained legacy adapters share that primitive; a second atomic algorithm is not authorized. |
 | CURRENT FACT / TARGET REQUIREMENT | [#302](https://github.com/thelordofdino4/steam-backup-label-studio/issues/302) | Closed; ordering merged in PR #332 | Shared `export.png` preserves the accepted clean/warning/cancel ordering. |
 | CURRENT FACT / TARGET REQUIREMENT | [#300](https://github.com/thelordofdino4/steam-backup-label-studio/issues/300) | Open; source acceptance path implemented | Home-originated Open cancellation/failure now uses the shared result/feedback boundary; the issue was not mutated. |
 | CURRENT FACT / TARGET REQUIREMENT | [#303](https://github.com/thelordofdino4/steam-backup-label-studio/issues/303) | Open | Temporary conservative replacement direction; lifecycle contract supersedes it as final dirty-aware architecture. |

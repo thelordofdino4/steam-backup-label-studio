@@ -14,6 +14,51 @@ This map is the entry point for repository documentation. If two documents disag
 
 Native codec maintenance: [`NATIVE_CODEC_MAINTENANCE.md`](NATIVE_CODEC_MAINTENANCE.md) owns update/advisory review and source replay; it separates observed toolchain evidence from unverified release/platform claims.
 
+## Authority And Time
+
+Use these four classes at document or section level. A status header saying “authoritative” identifies who owns a rule; it does not prove that a target requirement has shipped.
+
+- **CURRENT / AS-BUILT AUTHORITY:** source-backed behavior at the explicitly named baseline. Source and focused tests establish implementation; only recorded native evidence establishes native acceptance. Product scope remains owned by the PRD, agent workflow by AGENTS, architecture by the SDD, and persisted fields by the project schema.
+- **TARGET CONTRACT:** required future behavior or an extension rule. Mixed contracts retain their requirements, but only their explicitly identified implemented subset is current. “Should,” future gaps, and not-yet-implemented acceptance criteria are not feature claims.
+- **HISTORICAL CHECKPOINT:** a dated/commit-scoped audit, implementation receipt, manual test, or superseded design. Every checkpoint in an active document is scoped to its own stated revision; it does not silently revalidate the current checkout.
+- **ARCHIVE / EXPERIMENT:** documents under `archive/` and the failed material branch recorded in the material contract. Preserve them for context; do not use them as current behavior or merge them as an implementation.
+
+When documents conflict, first identify the class and baseline, then use the domain conflict rules below. Verify current source for implementation facts, preserve stricter architecture/safety rules, and correct stale facts in place. Do not turn a planned contract into shipped behavior, erase history, or weaken an acceptance gate to resolve a documentation disagreement.
+
+## Current Behavior At The Reconciled Baseline
+
+Source baseline: `923f7b7fcbfa6569439e26ba049c265816a1db65`, reconciled under #356 and checked on 2026-11-02. These are source facts, not a new native acceptance receipt. Draft pull requests and unmerged branches are pending proposals, not part of this main baseline. Their passing source checks do not establish integration or native acceptance. Update this map against the actual merged source before treating their behavior as current. The #377 maintenance rehearsal is separately identified in its own receipt.
+
+| Area | Current implementation and owner | Target or remaining gate |
+| --- | --- | --- |
+| Project lifecycle | [Open/staging](../src/app/appProjectLoad.ts) handles Disc and Case; [replacement guard](../src/app/appProjectReplacementGuard.ts) protects New/Open; [session](../src/lifecycle/projectSession.ts) owns identity/path/baseline; Home Return/Resume is connected. [Lifecycle contract](APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md) separates the implemented subset from the full target. | Native Close/Quit and full workflow acceptance remain open under #360/#308. |
+| Package and schema | [Native package commands](../src-tauri/src/commands/project_packages.rs) call the Rust codec for content-recognized Open and atomic Save/Save As. `.sbls` v1 packages and legacy JSON load into Disc or Case. [Project schema](PROJECT_FILE_SPEC.md) owns hydrated fields and migration; [package contract](PROJECT_PACKAGE_FORMAT_CONTRACT.md) owns container rules. | Capacity/import-limit gaps #357/#358 and native IPC/memory acceptance remain open. Codec linkage exists; whole-app memory bounds are not proven by allocation ledgers. |
+| Rendering | [SDD](SOFTWARE_DESIGN_DOCUMENT.md), [Disc layer order](DISC_EDITOR_LAYER_ORDER.md), [Case layer order](CASE_INSERT_EDITOR_LAYER_ORDER.md), and [text contract](TEXT_EDITOR_CONTRACT.md) protect visible-renderer ownership and preview/export parity. | Native parity and physical calibration evidence are separate from source tests; #359/#371 remain open. Failed #165 materials are not the current renderer. |
+| Menus and tools | [Menu registry](../src/applicationMenu/applicationMenuRegistry.ts), [native adapter](../src/applicationMenu/nativeApplicationMenuPort.ts), and [menu contract](APPLICATION_MENU_BAR_CONTRACT.md) describe the connected menu/dispatcher and Tools host. | A descriptor is not proof every target command is implemented. Preserve explicitly disabled/unavailable entries; Linux/macOS acceptance remains under #333/#334. |
+| Sidebar and Guide Legend | [Disc composition](../src/app/App.tsx): Project File, Export Options, Template, Game, Steam Branding, Disc Layout Presets, then roles. [Case setup order](../src/caseInsert/sidebarWorkflow.ts): Project File, Export Options, Template, Case Layout Presets, Game; [Case shell](../src/components/caseInsert/CaseInsertEditorShell.tsx) adds branding and surface roles. [Guide Legend](../src/components/preview/PreviewGuideLegendPanel.tsx) is preview-local in both editors (#124 closed). | Tools may host the same workflow owner. Old sidebar inventory in AGENTS/notes is stale; the no-unrelated-reordering rule remains binding. #380 inspector cleanup is not part of this baseline. |
+| Presets | [Disc model](ROLE_BASED_PRESET_MODEL.md) and [guided slots](GUIDED_PRESET_SLOT_MODEL.md) describe existing Disc owners. [Case contract](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md) identifies implemented exact revisions 1/2, reviewed Apply/Reapply/Detach, persistence and viewport ownership. | The full [Disc workflow](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md) remains a target. Case alpha/native acceptance and unresolved gaps under #126/#149/#168/#281 remain open. |
+| Home and product identity | [Home](../src/components/home/HomeScreen.tsx) exposes New Disc, New Case, Load and conditional Resume. Case loading is implemented despite stale Home labels. [Tauri config](../src-tauri/tauri.conf.json) identifies Steam Backup Label Studio, version `0.1.0`. [Root license text](../LICENSE) exists. | #381 owns stale Home copy and placeholder manifest cleanup. Publisher/release/license metadata must not be invented. |
+| Platforms and release | [README platform scope](../README.md#platform-targets-and-acceptance), [CI](../.github/workflows/ci.yml), [test inventory](TEST_ORACLE_INVENTORY.md), and [native smoke guide](TEXT_EDITOR_SMOKE_AUTOMATION.md) distinguish source checks from native evidence. | Windows is the exercised native development target; no blanket packaged-release/support claim follows. #333/#334/#376/#382 own remaining platform/release acceptance. |
+
+## Classification Of Active References
+
+The detailed routing tables below still own per-domain conflict rules. This inventory classifies all top-level Markdown documents; historical section labels apply even inside a current reference.
+
+| Class | Documents or sections |
+| --- | --- |
+| CURRENT / AS-BUILT AUTHORITY | This map, root README, current implementation sections of SDD and repo inventory, PROJECT_FILE_SPEC, TEXT_EDITOR_CONTRACT, CSS_STYLE_OWNERSHIP, DISC_EDITOR_LAYER_ORDER, CASE_INSERT_EDITOR_LAYER_ORDER, METADATA_DISC_TEXT_BINDING, TEST_ORACLE_INVENTORY. |
+| CURRENT / AS-BUILT AUTHORITY with TARGET CONTRACT sections | PRD product scope and goals; TEMPLATE_SPEC vocabulary and future forms; PACKAGING_ROLE_MODEL, ROLE_BASED_PRESET_MODEL, GUIDED_PRESET_SLOT_MODEL current owners plus extension rules. Current data/model support does not imply the entire application workflow is accepted. |
+| TARGET CONTRACT with explicit implemented subsets and HISTORICAL CHECKPOINT sections | APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT, APPLICATION_MENU_BAR_CONTRACT, PROJECT_PACKAGE_FORMAT_CONTRACT, CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT, EDITOR_NAVIGATION_AND_CONTROL_OWNERSHIP. Use the baseline map above before interpreting older checkpoints. |
+| TARGET CONTRACT | DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT, DISC_TEMPLATE_AND_PHYSICAL_GEOMETRY_WORKFLOW_CONTRACT, EXPORT_WORKFLOW_CONTRACT, GAME_SEARCH_IMPORT_AND_METADATA_WORKFLOW_CONTRACT. Existing owners may implement part of the target; do not infer full workflow completion. |
+| CURRENT / AS-BUILT AUTHORITY for validation procedure; HISTORICAL CHECKPOINT for recorded runs | TEXT_EDITOR_SMOKE_AUTOMATION, MANUAL_SMOKE_CHECKLISTS, VISUAL_REGRESSION_WORKFLOW. A checklist is not an executed run. |
+| TARGET CONTRACT for maintenance/restart; HISTORICAL CHECKPOINT for evidence | NATIVE_CODEC_MAINTENANCE (same-version source replay, not release certification); ARTWORK_FRAME_MATERIAL_CONTRACT (failed branch is ARCHIVE / EXPERIMENT, future restart requires its gates). |
+| HISTORICAL CHECKPOINT | PROJECT_PACKAGE_FORMAT_DECISION, ISSUE_271_ROLE_NAVIGATION_SHELL, refactor-audit-working-log; dated/commit-scoped receipts in any active document. |
+| ARCHIVE / EXPERIMENT | All documents in [archive/](archive/); failed material branch identified by [the material contract](ARTWORK_FRAME_MATERIAL_CONTRACT.md). |
+
+Local asset/fixture/vendor READMEs remain scoped to their folders and source provenance. They are listed below or linked by their owning subsystem, not alternative architecture authorities.
+
+Documentation validation: `npm run check:docs` checks active top-level Markdown local link targets, balanced fenced blocks, table column counts, and known stale current-state markers. Historical documents are checked for an explicit warning/classification but their old claims are preserved. It does not validate external URLs, heading anchors, runtime behavior, or native acceptance.
+
 ## Always Read
 
 | Document | Status | Purpose | Read when | Conflict rule |

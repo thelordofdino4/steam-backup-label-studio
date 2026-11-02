@@ -42,17 +42,11 @@ The app should avoid unnecessary hand-holding in blank projects. Users should be
 
 Guided Start should wait until the editor systems are stable. It is closer to a last step before beta than a blocker for the disc editor or jewel case editor to move forward.
 
-## Current Sidebar Flow
+## Current Editor Navigation
 
-The intended main sidebar flow is:
+The [current behavior map](README.md#current-behavior-at-the-reconciled-baseline) records the source-backed Disc and Case panel composition and Tools-host routing. Packaging roles follow setup panels; the semantic taxonomy is in [PACKAGING_ROLE_MODEL.md](PACKAGING_ROLE_MODEL.md). Guide Legend is already preview-local app-shell information in both editors (#124 closed). Preserve current owners and do not reorder controls during unrelated work.
 
-Project File → Export Options → Game → Template → Artwork → Branding → Text → Guide Legend
-
-The sections are currently independently collapsible sidebar panels. The flow should not be reordered during unrelated work.
-
-The semantic packaging role taxonomy behind the role panels is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). It distinguishes current UI role-panel homes from future preset/model work; #168, #269, and #270 remain the preset track.
-
-Guide Legend remains in the sidebar today. The likely future improvement is to move it into the live preview as a bottom-right, collapsible, open-by-default panel. That work is tracked by #124 and is not part of docs-only freshness work.
+This is current implementation context. Product goals and future requirements elsewhere in this PRD do not establish platform or runtime acceptance.
 
 ## Core User Workflow
 
@@ -369,7 +363,7 @@ For case templates, the app should support or plan for:
 
 The current MVP focuses on one complete path:
 
-1. Open the app on Windows or Linux.
+1. Open the desktop app (Windows and Linux are product targets; platform/release acceptance remains separate under #333/#334/#376/#382).
 2. Create a new disc label project.
 3. Choose a standard printable disc template or custom disc dimensions.
 4. Search/import a Steam game or enter metadata manually.
@@ -382,13 +376,12 @@ The current MVP focuses on one complete path:
 
 ## Out of Scope For Current Disc-Label MVP
 
-- Jewel case support.
+- Jewel case alpha completion (the editor and project loading already exist).
 - DVD case support.
 - Blu-ray case support.
 - Multi-disc wizard.
 - Guided Start / setup wizard.
-- Application-connected `.sbls` Open/content recognition and dirty-aware
-  replacement workflow.
+- Native Close/Quit guarding and complete native package workflow acceptance. Content-recognized `.sbls` Open/Save and dirty-aware New/Open replacement are already source-connected.
 - Official asset/logo packs.
 - IGDB or automatic rating lookup.
 - Direct printer integration.

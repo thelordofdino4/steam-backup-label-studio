@@ -572,9 +572,9 @@ Package-domain codec boundary:
   (`e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564`)
   archives, license/patent notices, source provenance, allocator overlays, and
   patch rationale are checked in under `vendor/`. The root `LICENSE` contains
-  MIT text, while `README.md` says a license has not been chosen and the
-  application manifest leaves `license` empty; this slice does not resolve that
-  repository-level conflict. The child manifest currently declares
+  MIT text; the application manifest leaves `license` empty. Release metadata
+  reconciliation remains under #381/#376; this does not change licensing policy.
+  The child manifest currently declares
   `MIT AND BSD-3-Clause AND IJG`; checked-in upstream notices remain
   authoritative for the vendored sources.
 - The package libjpeg configuration disables `JPEGMEM`/environment reads with
@@ -2073,7 +2073,7 @@ Tests:
 Risks:
 
 - Guide legend placement and preview/export guide parity need visual/manual verification.
-- Repository instructions note issue `#124` tracks a future guide legend move, but the current intended flow still includes Guide Legend in the sidebar.
+- `#124` is closed. `DiscPreview` and `CaseInsertPreview` mount preview-local Guide Legend panels. Older sidebar-flow wording in repository instructions is historical inventory, not evidence that the panel is still in the sidebar; the prohibition on unrelated UI reordering remains in force.
 
 ## PNG and Export Systems
 
