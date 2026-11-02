@@ -898,3 +898,83 @@ for (const failedStage of ['projection-window-state', 'projection-capabilities',
     root.dispose()
   })
 }
+
+
+test('Help routes only to its informational owner and rechecks stale capability without dispatching project commands', async () => {
+  const root = createApplicationLifecycleCompositionRoot()
+  const before = root.getLifecycleState()
+  const projections: ApplicationMenuProjection[] = []
+  let receive: ((invocation: ApplicationMenuInvocation) => void) | undefined
+  let opened = 0
+  let blocked = false
+  let feedback = 0
+  const runtime = createApplicationMenuRuntime(root, {
+    nativeAvailable: () => true,
+    createNativePort: async ingress => { receive = ingress; return fakePort(projections, () => {}) },
+    captureWindowState: async () => ({ windowLabel: 'main', live: true, maximized: false, fullscreen: false }),
+    subscribeWindowState: async () => () => {},
+    installWindowsWebviewAccelerators: () => () => {},
+    onDiagnostic: () => {},
+  })
+  runtime.connectCommandIngress({
+    publishFeedback: () => { feedback += 1 },
+    workflowNavigation: fakeWorkflowNavigation(),
+    informational: {
+      getCapabilities: () => ({
+        'help.open-documentation': blocked ? { canExecute: false, reasonCode: 'application-help.modal-active' } : { canExecute: true },
+        'help.show-about': { canExecute: false, reasonCode: 'application-menu.owner-unavailable' },
+      }),
+      invoke: operation => { assert.equal(operation, 'help.open-documentation'); opened += 1; return true },
+    },
+  })
+  await runtime.start()
+  await flush()
+  const projection = projections.at(-1)!
+  assert.equal(projection.items.find(item => item.itemId === 'menu.help.documentation')?.enabled, true)
+  assert.equal(projection.items.find(item => item.itemId === 'menu.help.about')?.enabled, false)
+  assert.equal(projection.items.some(item => item.itemId === 'menu.help.report-issue'), false)
+  const invocation = { invocationId: 'help-1', bridgeInstanceId: 'bridge-1', windowLabel: 'main', itemId: 'menu.help.documentation', projectionGeneration: projection.generation } as const
+  receive!(invocation)
+  receive!(invocation)
+  assert.equal(opened, 1)
+  blocked = true
+  receive!({ ...invocation, invocationId: 'help-2' })
+  receive!({ ...invocation, invocationId: 'help-3', itemId: 'menu.help.about' })
+  assert.equal(opened, 1)
+  assert.equal(feedback, 0)
+  assert.equal(root.getLifecycleState(), before)
+  assert.deepEqual(root.getBusyState().occupiedScopes, [])
+  await runtime.dispose()
+  root.dispose()
+})
+
+
+test('Tools dismiss informational presentation before delegating to the existing navigation owner', async () => {
+  const order: string[] = []
+  const root = fakeDiscLifecycle(async () => { throw new Error('unexpected lifecycle dispatch') })
+  const projections: ApplicationMenuProjection[] = []
+  let receive: ((invocation: ApplicationMenuInvocation) => void) | undefined
+  const runtime = createApplicationMenuRuntime(root, {
+    nativeAvailable: () => true,
+    createNativePort: async ingress => { receive = ingress; return fakePort(projections, () => {}) },
+    captureWindowState: async () => ({ windowLabel: 'main', live: true, maximized: false, fullscreen: false }),
+    subscribeWindowState: async () => () => {},
+    installWindowsWebviewAccelerators: () => () => {},
+    onDiagnostic: () => {},
+  })
+  runtime.connectCommandIngress({
+    publishFeedback: () => { throw new Error('unexpected command feedback') },
+    workflowNavigation: fakeWorkflowNavigation(() => { order.push('navigate') }),
+    informational: {
+      getCapabilities: () => ({ 'help.open-documentation': { canExecute: true }, 'help.show-about': { canExecute: false, reasonCode: 'unavailable' } }),
+      invoke: () => true,
+      dismissForNavigation: () => { order.push('dismiss-help') },
+    },
+  })
+  await runtime.start()
+  await flush()
+  receive!({ invocationId: 'tools-after-help', bridgeInstanceId: 'bridge-1', windowLabel: 'main', itemId: 'menu.tools.game', projectionGeneration: projections.at(-1)!.generation })
+  await flush()
+  assert.deepEqual(order, ['dismiss-help', 'navigate'])
+  await runtime.dispose()
+})

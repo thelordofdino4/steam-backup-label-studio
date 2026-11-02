@@ -1,3 +1,4 @@
+import { useApplicationHelp } from './useApplicationHelp'
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { buildSteamMetadataCandidatesFromImportedGame } from '../steam/steamMetadataCandidates'
 import {
@@ -2022,10 +2023,18 @@ function App() {
     onCapabilitiesChanged:
       applicationLifecycleRoot.refreshCommandCapabilities,
   })
+  const applicationHelp = useApplicationHelp({
+    getFallbackFocus: getWorkflowFallbackFocus,
+    announceStatus,
+    setHomeStatusMessage,
+    closeWorkflow: workflowNavigationRouter.controller.closeActiveWorkflow,
+    modalActive: applicationModalActive,
+  })
   useApplicationMenuCommandIngress({
     announceStatus,
     setHomeStatusMessage,
     workflowNavigation: workflowNavigationRouter.menuPort,
+    informational: applicationHelp.menuPort,
   })
   useApplicationDocumentSelectionOwnership()
 
@@ -2284,6 +2293,8 @@ function App() {
     return (
       <>
         <HomeScreen
+          onOpenHelp={applicationHelp.open}
+          helpDisabled={!applicationHelp.canOpen}
           onLoadProject={handleLoadProject}
           onNewDisc={handleStartNewDiscProject}
           onNewCaseInsert={handleOpenCaseInsertEditor}
@@ -2291,6 +2302,7 @@ function App() {
           resumeProject={homeResumeProject}
           statusMessage={homeStatusMessage}
         />
+        {applicationHelp.surface}
         <ProjectReplacementDialog
           onDecision={replacementPrompt.decide}
           open={replacementPrompt.open}
@@ -2378,6 +2390,7 @@ function App() {
         }}
         />
         </ApplicationWorkflowHostBoundary>
+        {applicationHelp.surface}
         <ProjectReplacementDialog
           onDecision={replacementPrompt.decide}
           open={replacementPrompt.open}
@@ -2558,6 +2571,7 @@ function App() {
       </main>
       </ApplicationWorkflowHostBoundary>
       </EditorRoleFocusProvider>
+      {applicationHelp.surface}
       <ProjectReplacementDialog
         onDecision={replacementPrompt.decide}
         open={replacementPrompt.open}

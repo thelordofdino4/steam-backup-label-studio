@@ -119,6 +119,14 @@ export function publishApplicationCommandFeedback(
   const feedback = selectApplicationCommandFeedback(dispatch)
   if (!feedback) return null
 
+  return publishApplicationFeedbackIntent(feedback, dependencies)
+}
+
+/** Shared presentation owner for informational and command feedback. */
+export function publishApplicationFeedbackIntent(
+  feedback: ApplicationCommandFeedbackIntent,
+  dependencies: ApplicationCommandFeedbackPublicationDependencies,
+): ApplicationCommandFeedbackIntent | null {
   const published = dependencies.announceStatus(feedback.message, {
     kind: statusToastKind(feedback.kind),
     deduplicationKey: feedback.deduplicationKey,

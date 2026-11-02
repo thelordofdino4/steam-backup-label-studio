@@ -1,4 +1,6 @@
 export type HomeScreenProps = {
+  onOpenHelp?: () => void
+  helpDisabled?: boolean
   onLoadProject: () => void
   onNewDisc: () => void
   onNewCaseInsert: () => void
@@ -51,6 +53,8 @@ function HomeMenuItem({
 }
 
 export function HomeScreen({
+  onOpenHelp,
+  helpDisabled,
   onLoadProject,
   onNewDisc,
   onNewCaseInsert,
@@ -105,6 +109,8 @@ export function HomeScreen({
             onClick={onNewCaseInsert}
           />
         </div>
+
+        {onOpenHelp ? <button type="button" onClick={onOpenHelp} disabled={helpDisabled}>Help and local diagnostics</button> : null}
 
         {statusMessage ? (
           <p

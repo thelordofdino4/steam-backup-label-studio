@@ -1,3 +1,4 @@
+import type { ApplicationMenuInformationalPort } from './applicationMenuInformationalPort.ts'
 import {
   createApplicationMenuDiagnosticReporter,
   type ApplicationMenuDiagnosticStage,
@@ -112,6 +113,7 @@ export type ApplicationMenuCommandIngressDependencies = Readonly<{
     dispatch: ApplicationCommandDispatchResult<unknown>,
   ): void
   workflowNavigation: EditorWorkflowNavigationPort
+  informational?: ApplicationMenuInformationalPort
 }>
 
 export type ApplicationMenuRuntime = Readonly<{
@@ -152,7 +154,7 @@ function productionOwnerCapabilities(
       APPLICATION_MENU_NATIVE_WINDOW_OPERATION_IDS,
       OWNER_UNAVAILABLE,
     ),
-    informational: mappedCapabilities<ApplicationMenuInformationalOperationId>(
+    informational: commandIngress?.informational?.getCapabilities() ?? mappedCapabilities<ApplicationMenuInformationalOperationId>(
       APPLICATION_MENU_INFORMATIONAL_OPERATION_IDS,
       OWNER_UNAVAILABLE,
     ),
@@ -168,7 +170,9 @@ function productionOwnerCapabilities(
         : SEMANTIC_ROUTING_UNAVAILABLE,
       'focused-edit': SEMANTIC_ROUTING_UNAVAILABLE,
       'native-window': SEMANTIC_ROUTING_UNAVAILABLE,
-      informational: SEMANTIC_ROUTING_UNAVAILABLE,
+      informational: commandIngressReady && commandIngress.informational
+        ? ENABLED_CAPABILITY
+        : SEMANTIC_ROUTING_UNAVAILABLE,
     }),
   })
 }
@@ -377,6 +381,21 @@ export function createApplicationMenuRuntime(
       return false
     }
 
+    if (descriptor.semanticTarget.kind === 'informational') {
+      const owner = ingress.dependencies.informational
+      const operation = descriptor.semanticTarget.operationId
+      try {
+        if (!owner?.getCapabilities()[operation].canExecute || !owner.invoke(operation)) {
+          rejectInvocation('informational-owner-unavailable')
+          return false
+        }
+      } catch (error) {
+        onDiagnostic({ code: 'application-menu.invocation-unexpected', detail: errorDetail(error) })
+        return false
+      }
+      return true
+    }
+
     if (descriptor.eventRoutingOwner === 'editor-navigation-router') {
       const resolution = resolveApplicationMenuWorkflow(
         invocation.itemId,
@@ -384,6 +403,11 @@ export function createApplicationMenuRuntime(
       )
       if (resolution.status === 'rejected') {
         rejectInvocation(resolution.reason)
+        return false
+      }
+      try { ingress.dependencies.informational?.dismissForNavigation?.() }
+      catch (error) {
+        onDiagnostic({ code: 'application-menu.invocation-unexpected', detail: errorDetail(error) })
         return false
       }
       void ingress.dependencies.workflowNavigation.navigate(resolution.intent)
