@@ -106,6 +106,27 @@ guardrail rejection, guide ratios, export pixel sizing, owner safe-zone clamps,
 project restore, and preset/template resolution. They do not establish the
 target draft/plan/apply/recover transaction.
 
+### Pure-validation prerequisite (#307)
+
+**CURRENT FACT -** `src/templates/discGeometryDraft.ts` now provides raw draft
+construction and intrinsic validation beside the existing template owner. It
+preserves exact input, distinguishes incomplete/invalid/valid evidence, names
+field and cross-field conflicts, and constructs a candidate through the existing
+custom-template builder only after every intrinsic check passes. Decimal and
+complete exponent input are accepted; empty/sign/trailing-decimal/unfinished
+exponent input stays incomplete. Units, hexadecimal/binary forms and nonfinite
+numbers are rejected without coercion. The shared geometry owner supplies the
+outer scalar limits. Candidate metadata is detached from the source template.
+
+**CURRENT FACT -** This is implementation-order step 1 only. No production
+control calls this prerequisite yet. There is no session draft/last-valid owner,
+field error association, Apply/Discard UI, owner feasibility plan, atomic
+transaction or recovery token added here. Existing normalization, load/save and
+committed geometry remain unchanged. A valid result proves intrinsic geometry,
+not project-content feasibility or permission to commit. Steps 2-8 and native
+typing/focus/narrow-layout acceptance remain required before #307/#311 closure.
+No fallback through the old setter sequence is authorized by this prerequisite.
+
 ## 4. Physical Geometry Vocabulary And Intrinsic Invariants
 
 **TARGET REQUIREMENT —** The exact template data vocabulary remains owned by
