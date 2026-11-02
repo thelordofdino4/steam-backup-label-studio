@@ -2275,3 +2275,7 @@ workspace-aware Rust checks:
 - `cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets --locked`
 - `cargo test --manifest-path src-tauri/Cargo.toml --workspace --locked --jobs 1`
 - `cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --locked -- -D warnings`
+
+### Release diagnostics composition (#379)
+
+`main.tsx` owns a bounded diagnostics collector before dynamic application loading; `app/bootstrapApplication.tsx` preserves lifecycle/menu construction and the existing React boundary tree. `applicationStartup.ts`, `ApplicationRendered.tsx` and `applicationStartupFallback.ts` observe named prerequisites and provide safe report access after startup/render failure. An injected collector remains entry-owned through lifecycle cleanup. `startup_diagnostics.rs` handles returned native startup failures before WebView availability. Diagnostics never own project data or authorize commands. Shared image failures implement the existing application error shape; ProjectAsyncWork alone still authorizes image/discovery completion. See `RELEASE_DIAGNOSTICS.md` for scope, privacy and remaining native gates.

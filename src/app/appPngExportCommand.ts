@@ -143,14 +143,14 @@ function snapshotFailure(error: unknown): ApplicationCommandResult<never> {
     status: 'failure',
     error: Object.freeze({
       code: 'export.snapshot-failed',
-      userMessage: `Export failed: ${String(error)}`,
+      userMessage: 'The export snapshot could not be prepared. Check the project and try again.',
       diagnosticMessage: error instanceof Error ? error.message : String(error),
       cause: error,
       recoverable: true,
     }),
     feedback: Object.freeze({
       kind: 'error',
-      message: `Export failed: ${String(error)}`,
+      message: 'The export snapshot could not be prepared. Check the project and try again.',
       deduplicationKey: 'export.png:failure:snapshot',
     }),
   })

@@ -1,3 +1,4 @@
+import { discoveryFailure, discoveryOutcome } from '../steam/discoveryFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useCallback, useState } from 'react'
@@ -69,10 +70,6 @@ function getSearchLabel(
   return projectMetadata.title || 'this project'
 }
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
-}
-
 function getCandidateCountMessage(
   ratingCount: number,
   legalCount: number,
@@ -138,9 +135,7 @@ export function useSteamMetadataAssistance({
     const lastSearchedLabel = getSearchLabel(selectedSteamGame, projectMetadata)
 
     if (!canFindMetadataCandidates) {
-      announceStatus(
-        'Import a Steam game or enter a numeric Steam App ID before finding rating/legal candidates.',
-      )
+      asyncWork.fail(request, discoveryFailure(undefined, 'discovery.input-missing'), (failure) => { announceStatus(failure.userMessage) })
       return null
     }
 
@@ -176,11 +171,11 @@ export function useSteamMetadataAssistance({
         announceStatus(getCandidateCountMessage(ratingCount, legalCount, lastSearchedLabel))
         applyCandidates?.(result)
       }
-      if (applyCandidates) asyncWork.commit(request, publish)
-      else asyncWork.publish(request, publish)
+      if (applyCandidates) asyncWork.commit(request, publish, discoveryOutcome(result.sourceStatuses))
+      else asyncWork.publish(request, publish, discoveryOutcome(result.sourceStatuses))
     } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      asyncWork.fail(request, discoveryFailure(error), (failure) => {
+        const message = failure.userMessage
 
         setMetadataAssistance((currentState) => ({
           ...currentState,

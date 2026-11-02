@@ -1,3 +1,5 @@
+import { imageImportFailure } from '../image/imageImportFailure.ts'
+import { discoveryFailure, discoveryOutcome } from '../steam/discoveryFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useCallback, useState } from 'react'
@@ -41,10 +43,6 @@ const EMPTY_WEB_ARTWORK_DISCOVERY: WebArtworkDiscoveryState = {
   error: null,
   hasSearched: false,
   inputKey: null,
-}
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function hasUsefulNames(names: string[], metadataName: string) {
@@ -100,15 +98,16 @@ export function useWebArtworkDiscovery({
     ].filter((target): target is 'developer' | 'publisher' => Boolean(target))
 
     if (discoveryTargets.length === 0) {
-      setWebArtworkDiscovery({
-        ...EMPTY_WEB_ARTWORK_DISCOVERY,
-        error: 'Import a Steam game or enter developer/publisher metadata before finding web artwork.',
-        hasSearched: true,
-        inputKey: discoveryInputKey,
-        sessionId: request.sessionId,
+      asyncWork.fail(request, discoveryFailure(undefined, 'discovery.input-missing'), () => {
+        setWebArtworkDiscovery({
+          ...EMPTY_WEB_ARTWORK_DISCOVERY,
+          error: 'Import a Steam game or enter developer/publisher metadata before finding web artwork.',
+          hasSearched: true,
+          inputKey: discoveryInputKey,
+          sessionId: request.sessionId,
+        })
+        announceStatus('Import a Steam game or enter developer/publisher metadata before finding web artwork.')
       })
-      asyncWork.publish(request, () => {})
-      announceStatus('Import a Steam game or enter developer/publisher metadata before finding web artwork.')
       return
     }
 
@@ -144,7 +143,7 @@ export function useWebArtworkDiscovery({
           fulfilledResults.flatMap((result) => result.sourceStatuses),
         )
         const firstFailure = settledResults.find((result) => result.status === 'rejected')
-        const error = firstFailure?.status === 'rejected' ? getErrorMessage(firstFailure.reason) : null
+        const error = firstFailure?.status === 'rejected' ? discoveryFailure(firstFailure.reason).userMessage : null
 
         setWebArtworkDiscovery((currentState) => ({
           ...currentState,
@@ -161,10 +160,13 @@ export function useWebArtworkDiscovery({
             : 'No web artwork candidates found. Steam artwork and local upload are still available.',
         )
 
-      })
+      }, discoveryOutcome(
+        settledResults.flatMap(result => result.status === 'fulfilled' ? result.value.sourceStatuses : []),
+        settledResults.some(result => result.status === 'rejected'),
+      ))
     } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      asyncWork.fail(request, discoveryFailure(error), (failure) => {
+        const message = failure.userMessage
         setWebArtworkDiscovery((currentState) => ({
           ...currentState,
           candidates: [],
@@ -213,8 +215,8 @@ export function useWebArtworkDiscovery({
 
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        const message = failure.userMessage
         setWebArtworkDiscovery((currentState) => ({
           ...currentState,
           isApplying: false,

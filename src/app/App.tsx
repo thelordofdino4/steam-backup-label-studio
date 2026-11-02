@@ -1412,8 +1412,8 @@ function App() {
     try {
       await navigator.clipboard.writeText(candidate.text)
       announceStatus('Copied suggested legal text.')
-    } catch (error) {
-      announceStatus(`Copying legal text failed: ${String(error)}`)
+    } catch {
+      announceStatus('Legal text could not be copied. Select the text field and copy it with your keyboard.')
     }
   }
 

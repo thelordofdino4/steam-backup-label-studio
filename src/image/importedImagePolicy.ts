@@ -1,3 +1,4 @@
+import { ImageImportError } from './imageImportFailure.ts'
 // Ordinary project-owned images use the package v1 raster allowlist. Built-in
 // reconstruction and legacy Open are separate owners, not upload bypasses.
 export const IMPORTED_IMAGE_ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,image/bmp,.png,.jpg,.jpeg,.webp,.gif,.bmp'
@@ -8,9 +9,9 @@ export const MAX_IMPORTED_IMAGE_FILE_BYTES = 67_108_864
 
 const RASTER_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp'])
 
-export class ImportedImagePolicyError extends Error {
-  constructor(message: string) {
-    super(message)
+export class ImportedImagePolicyError extends ImageImportError {
+  constructor(message: string, cause?: unknown) {
+    super('image.validation-failed', cause, message)
     this.name = 'ImportedImagePolicyError'
   }
 }

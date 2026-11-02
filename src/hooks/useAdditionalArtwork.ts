@@ -1,3 +1,4 @@
+import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useState, type ChangeEvent } from 'react'
@@ -114,8 +115,8 @@ export function useAdditionalArtwork({
         announceStatus(`Using ${file.name} as additional artwork.`)
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(`Additional artwork import failed: ${String(error)}`)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(`Additional artwork import failed: ${failure.userMessage}`)
       })
     }
   }
@@ -147,8 +148,8 @@ export function useAdditionalArtwork({
         announceStatus(`Using ${asset.label} as additional artwork.`)
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(`Steam artwork import failed: ${String(error)}`)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(`Steam artwork import failed: ${failure.userMessage}`)
       })
     }
   }
@@ -180,8 +181,8 @@ export function useAdditionalArtwork({
         announceStatus(`Using ${asset.label} as additional artwork.`)
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(`Local screenshot import failed: ${String(error)}`)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(`Local screenshot import failed: ${failure.userMessage}`)
       })
     }
   }
@@ -214,8 +215,8 @@ export function useAdditionalArtwork({
         announceStatus(`Using ${candidate.label} as additional artwork.`)
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(`Web artwork import failed: ${String(error)}`)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(`Web artwork import failed: ${failure.userMessage}`)
       })
     }
   }

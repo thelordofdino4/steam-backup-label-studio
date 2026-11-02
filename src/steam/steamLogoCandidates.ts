@@ -544,12 +544,12 @@ async function discoverOfficialLogoCandidates(officialSiteUrls: string[], entity
           ? `Checked static HTML and ${stylesheetUrls.length} linked CSS file${stylesheetUrls.length === 1 ? '' : 's'}.`
           : 'Checked static HTML; no linked CSS files were available.',
       })
-    } catch (error) {
+    } catch {
       sourceStatuses.push({
         source: 'official-site',
         label,
         status: 'error',
-        detail: error instanceof Error ? error.message : String(error),
+        detail: 'This candidate source could not be checked. Retry or use another source.',
       })
     }
   }

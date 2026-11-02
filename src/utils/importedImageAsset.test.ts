@@ -35,3 +35,20 @@ test('accepted bytes use existing display dimensions and active-pixel inspection
 test('over-limit files fail before FileReader allocation', async () => {
   await assert.rejects(readImageFileAsDataUrl({ size: 67_108_865, name: 'large.png' } as File), /at most 64 MiB/)
 })
+
+for (const stage of ['decode', 'inspect'] as const) {
+  test(`shared importer retains ${stage} failure provenance and safe copy`, async () => {
+    const cause = Error('private-path')
+    await assert.rejects(createImportedImageAssetFromDataUrl('data:image/png;base64,AA==', 'private-name', {
+      validate: async value => value,
+      load: async () => { if (stage === 'decode') throw cause; return {} as HTMLImageElement },
+      inspect: () => { throw cause },
+    }), (error: unknown) => {
+      const failure = error as Error & { code: string }
+      assert.equal(failure.code, `image.${stage}-failed`)
+      assert.equal(failure.cause, cause)
+      assert.doesNotMatch(failure.message, /private/)
+      return true
+    })
+  })
+}

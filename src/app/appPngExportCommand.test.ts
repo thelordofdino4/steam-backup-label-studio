@@ -295,3 +295,15 @@ test('export conflicts with lifecycle transitions and blocks workspace navigatio
   await activeExport
   assert.deepEqual(root.getBusyState().occupiedScopes, [])
 })
+
+test('export capture failure preserves typed stage and cause without exposing exception text', async () => {
+  const cause = Error('private-project-path')
+  const root = createDiscRoot({ ...discAdapter([]), captureInvocation() { throw cause } })
+  const result = await root.dispatch('export.png')
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition !== 'executed' || result.result.status !== 'failure') assert.fail('expected failure')
+  assert.equal(result.result.error.code, 'export.snapshot-failed')
+  assert.equal(result.result.error.cause, cause)
+  assert.match(result.result.error.userMessage, /snapshot.*Check the project/)
+  assert.doesNotMatch(result.result.error.userMessage + result.result.feedback?.message, /private/)
+})

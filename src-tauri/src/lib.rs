@@ -1,3 +1,4 @@
+mod startup_diagnostics;
 mod application_menu;
 mod commands;
 mod legacy_project_identity;
@@ -39,7 +40,8 @@ fn application_invoke_handler(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let started = std::time::Instant::now();
+    let result = tauri::Builder::default()
         .manage(application_menu::ApplicationMenuManager::default())
         .on_menu_event(application_menu::forward_application_menu_event)
         .plugin(tauri_plugin_dialog::init())
@@ -54,8 +56,11 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!());
+    if let Err(error) = result {
+        startup_diagnostics::report_failure(&error, started.elapsed());
+        std::process::exit(1);
+    }
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
@@ -154,8 +155,8 @@ export function usePlatformMarksState({
         return nextMarks
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(`Platform mark import failed: ${String(error)}`)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(`Platform mark import failed: ${failure.userMessage}`)
       })
     }
   }

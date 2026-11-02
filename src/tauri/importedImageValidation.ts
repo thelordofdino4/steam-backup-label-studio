@@ -19,7 +19,7 @@ export async function validateImportedImageDataUrl(
   try {
     result = await invokeCommand('validate_imported_image_asset', bytes)
   } catch (error) {
-    throw new ImportedImagePolicyError(imageImportFailureMessage(error))
+    throw new ImportedImagePolicyError(imageImportFailureMessage(error), error)
   }
   const response = result as Record<string, unknown> | null
   const mime = canonical.slice(5, canonical.indexOf(';'))

@@ -22,7 +22,7 @@ This map is the entry point for repository documentation. If two documents disag
 
 ## Current Diagnostics Checkpoint
 
-[Local Release Diagnostics](RELEASE_DIAGNOSTICS.md) records the #379 command-observation slice, its bounded data policy and remaining workflow/native acceptance. It is an implementation checkpoint, not a replacement for the lifecycle/menu contracts or a complete release-diagnostics claim.
+[Local Release Diagnostics](RELEASE_DIAGNOSTICS.md) records the #379 command/admission, Help/report, Steam/image/discovery and startup source paths, bounded data policy, and remaining integration/native/packaged acceptance. Lifecycle/menu contracts remain authoritative.
 
 Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](IMAGE_ASSET_ACCEPTANCE_POLICY.md) documents the shared raster acceptance boundary, format/ingress matrices and remaining native acceptance for #358.
 

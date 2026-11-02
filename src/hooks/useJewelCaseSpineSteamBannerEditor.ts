@@ -1,4 +1,4 @@
-import { ImportedImagePolicyError } from '../image/importedImagePolicy'
+import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import type {
@@ -78,10 +78,8 @@ export function useJewelCaseSpineSteamBannerEditor({
         announceStatus(`Using ${file.name} as the ${side} spine Steam banner icon.`)
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(error instanceof ImportedImagePolicyError
-          ? error.message
-          : 'The Steam spine banner icon could not be read.')
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(failure.userMessage)
       })
     }
   }

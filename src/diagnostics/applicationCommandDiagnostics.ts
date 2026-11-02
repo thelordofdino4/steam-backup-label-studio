@@ -1,3 +1,7 @@
+import { APPLICATION_STARTUP_FAILURES, type ApplicationStartupObserver } from '../app/applicationStartup.ts'
+import type { ProjectAsyncObserver } from '../lifecycle/projectAsyncWork.ts'
+import { IMAGE_IMPORT_FAILURES } from '../image/imageImportFailure.ts'
+import { DISCOVERY_FAILURES } from '../steam/discoveryFailure.ts'
 import {
   STEAM_WORKFLOW_IDS, STEAM_WORKFLOW_STAGES, STEAM_WORKFLOW_FAILURES,
   type SteamWorkflowId, type SteamWorkflowObserver,
@@ -11,6 +15,7 @@ import type { ApplicationMenuRuntimeDiagnostic } from '../applicationMenu/applic
 import {
   APPLICATION_COMMAND_IDS,
   type ApplicationCommandExecutionObserver,
+  type ApplicationCommandAdmissionObserver,
   type ApplicationCommandId,
   type ApplicationCommandResult,
 } from '../lifecycle/applicationCommandTypes.ts'
@@ -21,6 +26,10 @@ import { PROJECT_PACKAGE_FAILURE_REGISTRY, PROJECT_PACKAGE_FAILURE_STAGES, isPro
 // contain private data. Unknown owner codes remain unclassified in reports.
 const KNOWN_FAILURE_CODES = new Set<string>([
   ...Object.keys(STEAM_WORKFLOW_FAILURES),
+  ...Object.keys(APPLICATION_STARTUP_FAILURES).map(stage => `startup.${stage}-failed`),
+  ...Object.keys(IMAGE_IMPORT_FAILURES),
+  ...Object.keys(DISCOVERY_FAILURES),
+  'project.async-apply-failed',
   ...Object.keys(PROJECT_FILE_FAILURE_MESSAGES),
   ...Object.keys(PROJECT_PACKAGE_FAILURE_REGISTRY),
   'application.command-owner-not-executable',
@@ -79,18 +88,20 @@ const MAX_RECORDS = 200
 const MAX_ELAPSED_MS = 86_400_000
 
 type Outcome = Readonly<{
-  status: ApplicationCommandResult<unknown>['status'] | 'running' | 'started' | 'unavailable' | 'failed' | 'disposed' | 'reported'
+  status: ApplicationCommandResult<unknown>['status'] | 'running' | 'started' | 'unavailable' | 'failed' | 'disposed' | 'reported' | 'not-executed'
+  reason?: string
   diagnosticCode?: string
   failureCode?: string
+  causeCode?: string
   stage?: string
 }>
 type Identity = Readonly<{
   commandId?: ApplicationCommandId | 'unknown'
   operationId?: string
-  workflowId?: SteamWorkflowId | 'unknown'
+  workflowId?: SteamWorkflowId | 'image.import' | 'discovery.metadata' | 'discovery.artwork' | 'discovery.logo' | 'discovery.screenshots' | 'unknown'
   requestId?: number
-  component?: 'application-menu'
-  event?: 'startup' | 'diagnostic'
+  component?: 'application-menu' | 'application'
+  event?: 'startup' | 'diagnostic' | 'runtime' | 'admission'
 }>
 type Entry = Readonly<{
   sequence: number
@@ -108,11 +119,17 @@ function projectOutcome(result: ApplicationCommandResult<unknown>): Outcome {
   const nativeStage = typeof cause === 'object' && cause !== null && 'stage' in cause ? cause.stage : undefined
   const exportStage = /^export\.(preflight|confirmation|destination|render|write|snapshot)-failed$/.exec(failureCode)?.[1]
   const knownStage = ({ 'project.read-failed': 'read', 'project.write-failed': 'write', 'project.parse-failed': 'parse', 'project.validation-failed': 'validate', 'project.migration-failed': 'migrate', 'project.package.asset-capture-failed': 'asset-capture', 'project.format.unsupported': 'content-recognition', 'project.package.destination-extension-invalid': 'destination-validation', 'project.legacy-conversion.destination-conflicts-source': 'destination-identity' } as Record<string, string>)[failureCode]
+    ?? (IMAGE_IMPORT_FAILURES as Readonly<Record<string, { stage: string }>>)[failureCode]?.stage
+    ?? (DISCOVERY_FAILURES as Readonly<Record<string, { stage: string }>>)[failureCode]?.stage
+    ?? (failureCode.startsWith('startup.') && failureCode.endsWith('-failed') ? failureCode.slice(8, -7) : undefined)
+    ?? (failureCode === 'project.async-apply-failed' ? 'apply' : undefined)
     ?? (STEAM_WORKFLOW_FAILURES as Readonly<Record<string, { stage: string }>>)[failureCode]?.stage
     ?? (failureCode.startsWith('project.atomic-write.') ? failureCode.slice('project.atomic-write.'.length) : exportStage)
   const stage = typeof nativeStage === 'string' && KNOWN_STAGES.has(nativeStage) ? nativeStage : knownStage
   // Never retain userMessage, diagnosticMessage, cause, feedback or success value.
-  return Object.freeze({ status: 'failure', failureCode, ...(stage ? { stage } : {}) })
+  const causeCode = typeof cause === 'object' && cause !== null && 'code' in cause &&
+    typeof cause.code === 'string' && cause.code !== failureCode && KNOWN_FAILURE_CODES.has(cause.code) ? cause.code : undefined
+  return Object.freeze({ status: 'failure', failureCode, ...(stage ? { stage } : {}), ...(causeCode ? { causeCode } : {}) })
 }
 
 export function createApplicationCommandDiagnostics(options: Readonly<{
@@ -174,6 +191,14 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
       update(outcome)
     }
   }
+  const observeAdmission: ApplicationCommandAdmissionObserver = event => {
+    const result = event.result
+    const stage = new Set(['command-resolution', 'capability', 'repeat-key', 'busy-acquire']).has(event.stage) ? event.stage : 'unclassified'
+    const outcome: Outcome = result.disposition === 'not-executed'
+      ? { status: 'not-executed', reason: new Set(['unknown-command', 'disabled', 'busy']).has(result.reason) ? result.reason : 'unclassified' }
+      : projectOutcome(result.result)
+    begin(Object.freeze({ commandId: KNOWN_COMMAND_IDS.has(result.commandId) ? result.commandId as ApplicationCommandId : 'unknown', event: 'admission' }))?.({ stage, ...outcome })
+  }
   const steamWorkflows = new Set<string>(STEAM_WORKFLOW_IDS)
   const steamStages = new Set<string>(STEAM_WORKFLOW_STAGES)
   const observeSteamWorkflow: SteamWorkflowObserver = operation => {
@@ -187,6 +212,52 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
     return Object.freeze({
       stage(value) {
         stage = steamStages.has(value) ? value : 'unclassified'
+        update({ status: 'running', stage }, false)
+      },
+      complete(result) {
+        let outcome: Outcome
+        try { outcome = projectOutcome(result) }
+        catch { outcome = { status: 'failure', failureCode: 'unclassified' } }
+        update({ stage, ...outcome })
+      },
+    })
+  }
+  const observeProjectAsync: ProjectAsyncObserver = request => {
+    // Lane suffixes contain user-created slot IDs. Never retain them or session IDs.
+    const lane = request.lane
+    if (lane === 'steam-game' || lane === 'image:case-branding-reconciliation') return
+    const workflowId = lane === 'steam-metadata' ? 'discovery.metadata'
+      : lane === 'artwork-discovery' ? 'discovery.artwork'
+      : lane === 'screenshot-discovery' ? 'discovery.screenshots'
+      : lane.startsWith('logo-discovery:') ? 'discovery.logo'
+      : lane === 'background-artwork' || lane === 'title-artwork' || lane.startsWith('image:') ? 'image.import' : 'unknown'
+    const update = begin(Object.freeze({ workflowId,
+      ...(Number.isSafeInteger(request.requestId) && request.requestId > 0 ? { requestId: request.requestId } : {}),
+    }))
+    if (!update) return
+    let stage = workflowId.startsWith('discovery.') ? 'discover' : 'prepare'
+    update({ status: 'running', stage }, false)
+    return Object.freeze({
+      stage(value) {
+        if (value !== 'prepare') stage = value === 'apply' || value === 'publish' ? value : 'unclassified'
+        update({ status: 'running', stage }, false)
+      },
+      complete(result) {
+        let outcome: Outcome
+        try { outcome = projectOutcome(result) }
+        catch { outcome = { status: 'failure', failureCode: 'unclassified' } }
+        update({ stage, ...outcome })
+      },
+    })
+  }
+  const applicationStartupStages = new Set(Object.keys(APPLICATION_STARTUP_FAILURES))
+  const observeApplicationStartup: ApplicationStartupObserver = event => {
+    const update = begin(Object.freeze({ component: 'application', event: event === 'runtime' ? 'runtime' : 'startup' }))
+    if (!update) return
+    let stage = 'document-root'
+    return Object.freeze({
+      stage(value) {
+        stage = applicationStartupStages.has(value) ? value : 'unclassified'
         update({ status: 'running', stage }, false)
       },
       complete(result) {
@@ -220,7 +291,7 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
   }
   function snapshot() {
     const currentTime = now()
-    return Object.freeze({ format: 'sbls-command-diagnostics', version: 3, capacity, evicted,
+    return Object.freeze({ format: 'sbls-command-diagnostics', version: 4, capacity, evicted,
       records: Object.freeze(entries.map(entry => {
         const elapsed = Math.max(0, (entry.finished ?? currentTime) - entry.started)
         return Object.freeze({ sequence: entry.sequence, ...entry.identity,
@@ -230,7 +301,7 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
       })),
     })
   }
-  return Object.freeze({ observeExecution, observeMenuStartup, recordMenuDiagnostic, observeSteamWorkflow, snapshot,
+  return Object.freeze({ observeExecution, observeAdmission, observeMenuStartup, recordMenuDiagnostic, observeSteamWorkflow, observeProjectAsync, observeApplicationStartup, snapshot,
     toJson: () => JSON.stringify(snapshot(), null, 2),
     clear() { entries = []; evicted = 0 },
     dispose() { disposed = true; entries = []; evicted = 0 },

@@ -8,19 +8,19 @@ import {
   createImportedImageAssetFromDataUrl,
 } from '../utils/importedImageAsset'
 import { readImageFileAsDataUrl } from '../utils/imageFile'
-import { ImportedImagePolicyError } from './importedImagePolicy'
+import { ImageImportError } from './imageImportFailure.ts'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type { ProjectImageAssetProvenance } from '../project/projectTypes'
 
-export class BackgroundImageReadError extends Error {
-  constructor() {
-    super('Background image could not be read.')
+export class BackgroundImageReadError extends ImageImportError {
+  constructor(cause?: unknown) {
+    super('image.read-failed', cause)
   }
 }
 
-export class BackgroundImageLoadError extends Error {
-  constructor() {
-    super('Background image could not be loaded.')
+export class BackgroundImageLoadError extends ImageImportError {
+  constructor(cause?: unknown) {
+    super('image.decode-failed', cause)
   }
 }
 
@@ -58,8 +58,8 @@ export async function createUploadedBackgroundImageImport(
   try {
     imageDataUrl = await readImageFileAsDataUrl(file)
   } catch (error) {
-    if (error instanceof ImportedImagePolicyError) throw error
-    throw new BackgroundImageReadError()
+    if (error instanceof ImageImportError) throw error
+    throw new BackgroundImageReadError(error)
   }
 
   try {
@@ -72,8 +72,8 @@ export async function createUploadedBackgroundImageImport(
       }),
     )
   } catch (error) {
-    if (error instanceof ImportedImagePolicyError) throw error
-    throw new BackgroundImageLoadError()
+    if (error instanceof ImageImportError) throw error
+    throw new BackgroundImageLoadError(error)
   }
 }
 
