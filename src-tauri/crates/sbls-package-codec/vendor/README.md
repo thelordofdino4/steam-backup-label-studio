@@ -1,7 +1,7 @@
 # Vendored native codec sources
 
 This directory contains pinned, pristine upstream source archives and the
-small audited overlay/patch set used by the runtime-disconnected package codec.
+small audited overlay/patch set used by the runtime-connected package codec.
 Exact versions, archive digests, licenses, and patch rationale are documented
 in `PROVENANCE.md`. Build scripts never consult system-installed JPEG or WebP
 libraries.
@@ -17,3 +17,7 @@ libraries.
 - [`overlays/`](overlays/) contains the only substituted upstream source inputs.
   Their digests and the pristine originals' digests are enforced by the crate
   build.
+
+The current update/advisory procedure and repeatable complete-overlay rehearsal
+are in [`docs/NATIVE_CODEC_MAINTENANCE.md`](../../../../docs/NATIVE_CODEC_MAINTENANCE.md).
+The original provenance intake date remains historical evidence.
