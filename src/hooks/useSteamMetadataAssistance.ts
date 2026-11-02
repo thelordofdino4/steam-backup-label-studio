@@ -145,7 +145,9 @@ export function useSteamMetadataAssistance({
     }
 
     setMetadataAssistance((currentState) => ({
-      ...currentState,
+      ...(currentState.inputKey === discoveryInputKey && currentState.sessionId === request.sessionId
+        ? currentState
+        : EMPTY_METADATA_ASSISTANCE),
       isLoading: true,
       error: null,
       lastSearchedLabel,

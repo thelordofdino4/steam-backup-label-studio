@@ -125,7 +125,9 @@ export function useLogoAssetDiscovery({
     const lastSearchedLabel = getLogoEntityLabel(logoKey, selectedSteamGame, projectMetadata)
 
     updateSlot(logoKey, (slot) => ({
-      ...slot,
+      ...(slot.inputKey === discoveryInputKey && slot.sessionId === request.sessionId
+        ? slot
+        : EMPTY_DISCOVERY_SLOT),
       isLoading: true,
       pendingSearch: request,
       sessionId: request.sessionId,
@@ -185,7 +187,6 @@ export function useLogoAssetDiscovery({
       ...slot,
       isApplying: true,
       pendingApply: request,
-      sessionId: request.sessionId,
       error: null,
     }))
 

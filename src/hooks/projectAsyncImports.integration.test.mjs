@@ -76,7 +76,7 @@ function imageFile(name) {
 }
 window.importHarness = {
  async start(kind,name) {
-  const event={target:{files:[imageFile(name)],value:name}}
+  const event={target:{files:[name==='malformed.png' ? new File(['invalid PNG'],name,{type:'image/png'}) : imageFile(name)],value:name}}
   await act(async()=>{
    let promise
    if(kind==='background')promise=api.background.handleBackgroundUpload(event)
@@ -86,6 +86,10 @@ window.importHarness = {
    if(kind==='rating')promise=api.rating.handleRatingBadgeUpload(event,value=>adopted.push({kind,source:value.source}))
    if(kind==='cover'||kind==='tray')promise=api.caseEditor.handleImageSlotUpload(kind,'background','Background',event)
    if(kind==='left'||kind==='right')promise=api.spine.handleSpineImageSlotUpload(kind,'background','Background',event)
+   if(kind==='cover-group')promise=api.caseEditor.handleGroupedImageSlotUpload('cover','artworkSlots','test-slot','Artwork',event)
+   if(kind==='left-group')promise=api.spine.handleSpineGroupedImageSlotUpload('left','artworkSlots','test-slot','Artwork',event)
+   if(kind==='cover-logo')promise=api.caseEditor.handlePrimaryLogoSlotUpload('cover','developer',event)
+   if(kind==='left-logo')promise=api.spine.handleSpinePrimaryLogoSlotUpload('left','developer',event)
    completions.push(promise)
   })
  },
@@ -106,7 +110,7 @@ window.importHarness = {
 let server,browser,page,url
 
 test.before(async()=>{
- server=await createServer({logLevel:'silent',server:{host:'127.0.0.1',port:0},plugins:[{name:'async-imports-fixture',configureServer(vite){vite.middlewares.use(async(req,res,next)=>{if(req.url!==route)return next();try{res.setHeader('Content-Type','text/html');res.end(await vite.transformIndexHtml(route,html))}catch(e){next(e)}})}}]})
+ server=await createServer({cacheDir:'node_modules/.vite-project-async-imports',logLevel:'silent',server:{host:'127.0.0.1',port:0},plugins:[{name:'async-imports-fixture',configureServer(vite){vite.middlewares.use(async(req,res,next)=>{if(req.url!==route)return next();try{res.setHeader('Content-Type','text/html');res.end(await vite.transformIndexHtml(route,html))}catch(e){next(e)}})}}]})
  await server.listen();url=`http://127.0.0.1:${server.httpServer.address().port}${route}`
  browser=await chromium.launch({headless:true})
 })
@@ -148,3 +152,23 @@ test('metadata completion after New cannot publish candidates or auto-apply',asy
  await page.evaluate(()=>window.importHarness.metadataStart(1));await page.evaluate(()=>window.importHarness.newProject());const current=await snapshot()
  await page.evaluate(()=>window.importHarness.metadataSettle(0,false));assert.deepEqual(await snapshot(),current);assert.deepEqual(current.adopted,[])
 })
+
+for(const kind of ['cover','tray','left','right','cover-group','left-group','cover-logo','left-logo','logo']) {
+ test(kind + ': malformed upload does not revoke a valid import in another lane',async()=>{
+  const before=await snapshot()
+  await start('background','A.png')
+  await start(kind,'malformed.png')
+  await settle(1)
+  const failed=await snapshot()
+  assert.deepEqual(failed.caseState,before.caseState)
+  assert.deepEqual(failed.logos,before.logos)
+  assert.equal(failed.background,before.background)
+  assert.match(failed.statuses.at(-1), /could not|failed|Unable|invalid/i)
+  await settle(0)
+  const accepted=await snapshot()
+  assert.match(accepted.background,/^data:image\/png;base64,/)
+  assert.deepEqual(accepted.caseState,before.caseState)
+  assert.deepEqual(accepted.logos,before.logos)
+  assert.doesNotMatch(accepted.statuses.at(-1), /could not|failed|Unable|invalid/i)
+ })
+}

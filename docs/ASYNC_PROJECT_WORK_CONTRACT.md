@@ -14,6 +14,8 @@ Each request has an immutable numeric ID, typed semantic destination lane, sessi
 
 Preparation may download, decode, analyze, and produce a candidate. It must not call project setters. Immediately before application, `commit` checks the current authoritative session/content revision and consumes the request. Application is synchronous, with no further await. A local mutation generation retires competing old-revision work before React's committed-render lifecycle synchronization runs. `publish` consumes a current discovery/feedback completion without claiming a document mutation. Current synchronous application failures can report once without regaining mutation authority; later work retires that feedback permission too.
 
+Accepted discovery arrays retain their originating session and input identity. Starting a search for a different identity clears the previous candidates and source statuses before publishing loading or failure state; refreshing the same identity may keep its accepted proposals while pending. An image loader returning no prepared image completes without a document mutation: it must not advance mutation generation or revoke valid work in other lanes.
+
 This is an authorization boundary around existing owners, not a rollback transaction. It does not claim that arbitrary throwing React setters can be rolled back. #366 replaces the final application adapter with document transactions while preserving these request and session preconditions. No external project schema or package codec changes are introduced here.
 
 ## Current owner inventory

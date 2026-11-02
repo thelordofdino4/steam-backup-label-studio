@@ -100,19 +100,22 @@ export function useWebArtworkDiscovery({
     ].filter((target): target is 'developer' | 'publisher' => Boolean(target))
 
     if (discoveryTargets.length === 0) {
-      setWebArtworkDiscovery((currentState) => ({
-        ...currentState,
+      setWebArtworkDiscovery({
+        ...EMPTY_WEB_ARTWORK_DISCOVERY,
         error: 'Import a Steam game or enter developer/publisher metadata before finding web artwork.',
         hasSearched: true,
         inputKey: discoveryInputKey,
         sessionId: request.sessionId,
-      }))
+      })
+      asyncWork.publish(request, () => {})
       announceStatus('Import a Steam game or enter developer/publisher metadata before finding web artwork.')
       return
     }
 
     setWebArtworkDiscovery((currentState) => ({
-      ...currentState,
+      ...(currentState.inputKey === discoveryInputKey && currentState.sessionId === request.sessionId
+        ? currentState
+        : EMPTY_WEB_ARTWORK_DISCOVERY),
       isLoading: true,
       error: null,
       hasSearched: true,

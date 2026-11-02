@@ -449,12 +449,12 @@ export function useJewelCaseSpineEditor({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
+    if (!image) {
+      asyncWork.publish(request, () => {})
+      return
+    }
+
     asyncWork.commit(request, () => {
-
-      if (!image) {
-        return
-      }
-
       updateSpineImageSlot(side, slotKey, (slot) =>
         slotKey === 'titleArtwork'
           ? setCustomCaseInsertTitleArtworkImage(slot, image)
@@ -738,12 +738,12 @@ export function useJewelCaseSpineEditor({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
+    if (!image) {
+      asyncWork.publish(request, () => {})
+      return
+    }
+
     asyncWork.commit(request, () => {
-
-      if (!image) {
-        return
-      }
-
       updateSpineGroupedImageSlot(
         side,
         slotKey,
