@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "rehearsal": "same-version-complete-diff-replay",
+  "buildScriptSha256": "b59be7d73633b257a1403eb4e5ad76091de9adb8cb05d29e51e26725dc0b2fa2",
+  "archives": [
+    {
+      "archive": "libjpeg-turbo-3.1.4.1.tar.gz",
+      "sha256": "ecae8008e2cc9ade2f2c1bb9d5e6d4fb73e7c433866a056bd82980741571a022"
+    },
+    {
+      "archive": "libwebp-1.6.0.tar.gz",
+      "sha256": "e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564"
+    }
+  ],
+  "overlays": [
+    {
+      "id": "jpeg-allocator",
+      "source": "libjpeg-turbo-3.1.4.1/src/jmemnobs.c",
+      "pristineSha256": "328ff841f437fa7c2de846c4e295e9145cc628b9041aed718a06eb087c55786c",
+      "overlaySha256": "4670e58975779b5a423ac6a796d8d22e162aab3e5cb7725e806ff3054f55e4c8",
+      "reviewPatch": "0001-libjpeg-turbo-operation-ledger.patch",
+      "reviewPatchSha256": "afedbb8b44eb9594f3aa05adac3c3c84032c7a14100e64b0ef84768e5ab272f3",
+      "reviewPatchKind": "abbreviated-review-not-applyable",
+      "generatedCompletePatch": "jpeg-allocator.patch",
+      "generatedCompletePatchSha256": "7ceb78c06a79809dbff7ffbe1c863e290f14c5e4a06c1b6edaab9a27744f1650",
+      "replayMatchesCompiledOverlay": true
+    },
+    {
+      "id": "webp-allocator",
+      "source": "libwebp-1.6.0/src/utils/utils.c",
+      "pristineSha256": "c8d90b4ccd536136ac710321c2632912a1f6ee2492a423e14ab9deb159490a56",
+      "overlaySha256": "31e838dba1b69e2ef0de0df455298a12cedaf75bec33ab54658db4819a7a1469",
+      "reviewPatch": "0002-libwebp-operation-ledger.patch",
+      "reviewPatchSha256": "419bc50edfb90dda1db4194fa06ff1b2ccdf1ea3add06556a6786be744a4a0cf",
+      "reviewPatchKind": "abbreviated-review-not-applyable",
+      "generatedCompletePatch": "webp-allocator.patch",
+      "generatedCompletePatchSha256": "abcdbd37bf1ddb48e01af84494bb5e1287aee1588f42aeb17efa751314e3b15f",
+      "replayMatchesCompiledOverlay": true
+    },
+    {
+      "id": "webp-cpu",
+      "source": "libwebp-1.6.0/src/dsp/cpu.h",
+      "pristineSha256": "272cb2a8aa81d6355afecdea7ea344c90c2df58e6f51e01aa8bc4bf866d0be59",
+      "overlaySha256": "8f077d3bb09747cd796aa94b2be789d04a881a116b044a579ce4fed0d710d369",
+      "reviewPatch": "0003-libwebp-generic-c-only.patch",
+      "reviewPatchSha256": "7dda5f0cd8ab1555471f0bdaebeecd6bd8e5754d94cfaf67d77b74e9c3f52c56",
+      "reviewPatchKind": "review-diff",
+      "generatedCompletePatch": "webp-cpu.patch",
+      "generatedCompletePatchSha256": "53575126dc1f69d15cb3352352bbfbc6879cbf1c6601b8bc2659b44bbb8450b9",
+      "replayMatchesCompiledOverlay": true
+    }
+  ],
+  "limitations": [
+    "Not an upstream version upgrade.",
+    "Not a security advisory clearance or packaged-app acceptance."
+  ],
+  "sourceBaseline": "923f7b7fcbfa6569439e26ba049c265816a1db65",
+  "observedDate": "2026-11-01",
+  "releaseCodecBuild": {
+    "command": "cargo test --manifest-path src-tauri/crates/sbls-package-codec/Cargo.toml --release --locked --offline -vv",
+    "freshTargetDirectory": true,
+    "target": "x86_64-pc-windows-msvc",
+    "rustc": [
+      "rustc 1.95.0 (59807616e 2026-04-14)",
+      "binary: rustc",
+      "commit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860",
+      "commit-date: 2026-04-14",
+      "host: x86_64-pc-windows-msvc",
+      "release: 1.95.0",
+      "LLVM version: 22.1.2"
+    ],
+    "cargo": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+    "msvcCompilerFileVersion": "19.51.36244.0",
+    "msvcCompilerProductVersion": "14.51.36244.0",
+    "cargoLockSha256": "5c5956f22d0cca2c9b9edce9b1b0b6d4da31795ebc1935dc7ae07a7b953d5946",
+    "nativeStaticArchiveSha256": "3054ad05aabb56df278c73fae4a6684bc6dce97390f550b8578ffbdf23cfa946",
+    "testsPassed": 241,
+    "testsFailed": 0,
+    "packagedApplicationTested": false,
+    "bitForBitReproducibilityClaimed": false
+  },
+  "nativeInputs": [
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/config/libjpeg-turbo/jconfig.h",
+      "sha256": "1b60dc219ee7efa30f4232b7cfbd0d6f614a3de5f416e405f9a354b290ff6488"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/config/libjpeg-turbo/jconfigint.h",
+      "sha256": "e2ffe04a7fc56f2b9e41165e965101f918ec119a28060030c4c53ffb33ea43b4"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/config/libjpeg-turbo/jversion.h",
+      "sha256": "338f62630866115bd3e2d49cf15f39ffa24aef13ec0f17f7876f5269bfc61c95"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/config/libwebp/src/webp/config.h",
+      "sha256": "ff0491a2be722f7f5d376c4436dbcfae363bed1c79eaa1ea8b9fa305593c0f27"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/include/sbls_allocation_ledger.h",
+      "sha256": "2d1963d3ec49dd8784e321656d147ab68fcd73c3657e9fd2df6801ca964b8bf0"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/include/sbls_codec_shim.h",
+      "sha256": "d47c6b62920f6c037a3e648499820ac930728a26afc6057afc1c0fbfa3667d76"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/src/allocation_ledger.c",
+      "sha256": "39491cf64e13dd2b3099dcbaab93267aed841bb13699f8ac60a3ae0d996f0e4a"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/src/jpeg_rejected_precision_guards.c",
+      "sha256": "67df4717c166cf0e2877fbec1eabefa123fd497aff7b8db49864bece786aa613"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/src/jpeg_validator.c",
+      "sha256": "d0c8f7012b471c9d77c7837e06a90551663223e8f4735d7148ee63b99d765477"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/src/webp_single_thread_worker.c",
+      "sha256": "6c0f16ac5586e324d5e83673f49773f50f9d942a316768d56ec8377310763a0a"
+    },
+    {
+      "path": "src-tauri/crates/sbls-package-codec/native/src/webp_validator.c",
+      "sha256": "061b6bfcaeaae57cc876bee4c511362c056c5e07d5dbcc9c25ee6748ce30b6e2"
+    }
+  ],
+  "rehearsalGuards": {
+    "alteredPristineDigestRejectedBeforeOutput": true,
+    "existingReportNotOverwritten": true,
+    "gitLineEndingOptionsScopedToSubprocesses": true
+  }
+}
