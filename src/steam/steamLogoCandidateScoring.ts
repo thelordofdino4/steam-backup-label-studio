@@ -295,18 +295,18 @@ export function scoreLogoCandidate(
     if (seed.width <= EXTREMELY_SMALL_MAX_DIMENSION && seed.height <= EXTREMELY_SMALL_MAX_DIMENSION) {
       score -= 120
       reject = true
-      reasons.push('Extremely small image')
+      reasons.push('Extremely small image (estimated dimensions)')
     } else if (shortestSide <= SMALL_SHORTEST_SIDE) {
       score -= 22
-      reasons.push('Small image')
+      reasons.push('Small image (estimated dimensions)')
     }
 
     if (seed.sourceKind === 'steam-avatar' && aspectRatio > 0.8 && aspectRatio < 1.25) {
       score += 8
-      reasons.push('Avatar-like dimensions')
+      reasons.push('Avatar-like estimated dimensions')
     } else if (aspectRatio >= 1.2 && aspectRatio <= 6) {
       score += 8
-      reasons.push('Logo-like aspect ratio')
+      reasons.push('Logo-like estimated aspect ratio')
     }
   } else {
     score -= 6

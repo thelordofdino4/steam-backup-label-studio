@@ -3,6 +3,7 @@ import type { SteamArtworkAsset } from '../../steam/steamApi'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import {
   getImageCandidateRanking,
+  normalizeImageCandidateDimensions,
   type ImageCandidateRanking,
   type ImageCandidateTarget,
 } from '../../editor/imageCandidateRanking.ts'
@@ -98,6 +99,7 @@ export function createEditorSteamArtworkPickerItems(
     assets.map((asset, originalIndex) => {
       const dimensions = inferSteamArtworkDimensions(asset)
       const ranking = getImageCandidateRanking({
+        dimensionEvidence: 'estimated',
         height: dimensions?.height,
         kind: asset.kind,
         target,
@@ -176,8 +178,9 @@ export function formatEditorWebArtworkSourceKind(
 }
 
 function formatWebArtworkCandidateDimensions(candidate: RemoteLogoCandidate) {
-  return candidate.width && candidate.height
-    ? ` · ${candidate.width} x ${candidate.height}px`
+  const dimensions = normalizeImageCandidateDimensions(candidate)
+  return dimensions
+    ? ` · Estimated ${dimensions.width} x ${dimensions.height}px`
     : ''
 }
 
@@ -189,6 +192,7 @@ export function createEditorWebArtworkPickerItems(
   return sortRankedPickerItems(
     candidates.map((candidate, originalIndex) => {
       const ranking = getImageCandidateRanking({
+        dimensionEvidence: 'estimated',
         baseScore: candidate.score,
         contentKind: candidate.contentKind,
         height: candidate.height,
