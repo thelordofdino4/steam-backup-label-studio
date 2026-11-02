@@ -6,7 +6,8 @@ import {
   createEditorWebArtworkPickerItems,
 } from './editorImageSourcePickerItems.ts'
 import type { SteamArtworkAsset } from '../../steam/steamApi.ts'
-import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates.ts'
+import { parseOfficialLogoCandidatesFromHtml, type RemoteLogoCandidate } from '../../steam/steamLogoCandidates.ts'
+import { createLogoCandidateAssetProvenance } from '../../steam/steamLogoCandidateImport.ts'
 
 function createSteamArtworkAsset(
   overrides: Partial<SteamArtworkAsset>,
@@ -57,8 +58,8 @@ test('Steam artwork picker items are ranked for background use', () => {
   ])
 
   assert.equal(items[0]?.id, 'background')
-  assert.equal(items[0]?.qualityLabel, 'Best for background')
-  assert.ok(items[0]?.details?.includes('Dimensions: 1920 x 1080px'))
+  assert.equal(items[0]?.qualityLabel, 'Resolution estimated')
+  assert.ok(items[0]?.details?.includes('Estimated dimensions: 1920 x 1080px'))
 })
 
 test('web artwork picker items are ranked for logo use', () => {
@@ -106,4 +107,71 @@ test('unknown and corrupt remote image evidence does not imply print suitability
   assert.equal(items[0].isSelected, true)
   assert.doesNotMatch(JSON.stringify(items), /Infinity|NaN/)
   assert.ok(items.every(item => item.qualityLabel === 'Resolution unknown' && item.qualityTone === 'neutral'))
+})
+
+
+test('Steam kind, label and URL guesses stay estimated rather than measured print evidence', () => {
+  const assets = [
+    createSteamArtworkAsset({ id: 'kind-only', label: 'Background' }),
+    createSteamArtworkAsset({ id: 'label', kind: 'library', label: 'Library 2048x1024' }),
+    createSteamArtworkAsset({ id: 'url', kind: 'library', url: 'https://example.test/2048x1024.jpg' }),
+  ]
+  const items = createEditorSteamArtworkPickerItems(assets, 'kind-only')
+  for (const item of items) {
+    assert.equal(item.qualityLabel, 'Resolution estimated')
+    assert.equal(item.qualityTone, 'neutral')
+    assert.ok(item.details?.some(detail => detail.startsWith('Estimated dimensions: ')))
+    assert.ok(item.details?.includes('Print quality: unverified (estimated dimensions)'))
+    assert.ok(!item.details?.some(detail => detail.startsWith('Measured dimensions: ')))
+    const source = assets.find(asset => asset.id === item.id)!
+    assert.equal(item.imageUrl, source.url)
+    assert.equal(item.title, source.label)
+    assert.equal(item.isSelected, item.id === 'kind-only')
+  }
+})
+
+
+test('web metadata dimensions are estimated in both subtitle and details without changing selection or rank', () => {
+  const candidates = [
+    createRemoteCandidate({ id: 'first', width: 1920, height: 1080, score: 12 }),
+    createRemoteCandidate({ id: 'second', width: 1920, height: 1080, score: 12 }),
+    createRemoteCandidate({ id: 'small', width: 320, height: 240, score: 0 }),
+  ]
+  const items = createEditorWebArtworkPickerItems(candidates, 'second')
+  assert.deepEqual(items.map(item => item.id), ['first', 'second', 'small'])
+  assert.deepEqual(items.map(item => item.isSelected), [false, true, false])
+  for (const item of items) {
+    const candidate = candidates.find(candidate => candidate.id === item.id)!
+    assert.match(item.subtitle, /Estimated \d+ x \d+px/)
+    assert.equal(item.qualityLabel, 'Resolution estimated')
+    assert.equal(item.qualityTone, 'neutral')
+    assert.ok(item.details?.includes('Print quality: unverified (estimated dimensions)'))
+    assert.ok(item.details?.includes('Candidate reason'))
+    assert.equal(item.imageUrl, candidate.url)
+  }
+})
+
+
+test('actual HTML discovery metadata reaches the picker as an estimate and retains import identity', () => {
+  const candidates = parseOfficialLogoCandidatesFromHtml(
+    '<img src="/studio-logo.png" alt="Studio logo" width="960" height="480">',
+    'https://example.test/',
+    ['Studio'],
+  )
+  assert.equal(candidates.length, 1)
+  const candidate = candidates[0]
+  assert.equal(candidate.width, 960)
+  assert.equal(candidate.height, 480)
+  assert.ok(candidate.reasons.includes('Logo-like estimated aspect ratio'))
+  const before = structuredClone(candidate)
+  const provenance = createLogoCandidateAssetProvenance(candidate)
+  const [item] = createEditorWebArtworkPickerItems(candidates, candidate.id, 'logo')
+  assert.equal(item.qualityLabel, 'Resolution estimated')
+  assert.ok(item.details?.includes('Estimated dimensions: 960 x 480px'))
+  assert.match(item.subtitle, /Estimated 960 x 480px/)
+  assert.equal(item.id, provenance.sourceId)
+  assert.equal(item.imageUrl, provenance.sourceUrl)
+  assert.equal(item.isSelected, true)
+  assert.deepEqual(candidate, before)
+  assert.deepEqual(createLogoCandidateAssetProvenance(candidate), provenance)
 })

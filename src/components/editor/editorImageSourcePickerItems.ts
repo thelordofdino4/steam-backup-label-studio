@@ -99,6 +99,7 @@ export function createEditorSteamArtworkPickerItems(
     assets.map((asset, originalIndex) => {
       const dimensions = inferSteamArtworkDimensions(asset)
       const ranking = getImageCandidateRanking({
+        dimensionEvidence: 'estimated',
         height: dimensions?.height,
         kind: asset.kind,
         target,
@@ -179,7 +180,7 @@ export function formatEditorWebArtworkSourceKind(
 function formatWebArtworkCandidateDimensions(candidate: RemoteLogoCandidate) {
   const dimensions = normalizeImageCandidateDimensions(candidate)
   return dimensions
-    ? ` · ${dimensions.width} x ${dimensions.height}px`
+    ? ` · Estimated ${dimensions.width} x ${dimensions.height}px`
     : ''
 }
 
@@ -191,6 +192,7 @@ export function createEditorWebArtworkPickerItems(
   return sortRankedPickerItems(
     candidates.map((candidate, originalIndex) => {
       const ranking = getImageCandidateRanking({
+        dimensionEvidence: 'estimated',
         baseScore: candidate.score,
         contentKind: candidate.contentKind,
         height: candidate.height,

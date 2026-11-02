@@ -5,9 +5,13 @@ export type ImageCandidateTarget =
 
 export type ImageCandidateQualityTone = 'good' | 'neutral' | 'warning'
 
+export type ImageCandidateDimensionEvidence = 'measured' | 'estimated' | 'unknown'
+
 export type ImageCandidateRankingInput = {
   baseScore?: number
   contentKind?: 'artwork' | 'logo'
+  // Only decoded source pixels qualify as measured; metadata and guesses are estimates.
+  dimensionEvidence?: Exclude<ImageCandidateDimensionEvidence, 'unknown'>
   height?: number | null
   isVector?: boolean
   kind?: string
@@ -17,6 +21,7 @@ export type ImageCandidateRankingInput = {
 }
 
 export type ImageCandidateRanking = {
+  dimensionEvidence: ImageCandidateDimensionEvidence
   details: string[]
   qualityLabel: string
   qualityTone: ImageCandidateQualityTone
@@ -59,6 +64,9 @@ export function getImageCandidateRanking(
   input: ImageCandidateRankingInput,
 ): ImageCandidateRanking {
   const dimensions = normalizeImageCandidateDimensions(input)
+  const dimensionEvidence: ImageCandidateDimensionEvidence = !dimensions
+    ? 'unknown'
+    : input.dimensionEvidence === 'measured' ? 'measured' : 'estimated'
   const profile = TARGET_PRINT_PROFILES[input.target]
   const isLogoLike = isCandidateLogoLike(input)
   const isTooSmall = Boolean(
@@ -70,8 +78,9 @@ export function getImageCandidateRanking(
     ),
   )
   const cropsHeavily = hasHeavyCropRisk(input, dimensions)
-  const printQuality = getPrintQualityLabel(input, dimensions, isTooSmall)
+  const printQuality = getPrintQualityLabel(input, dimensions, isTooSmall, dimensionEvidence)
   const qualityLabel = getQualityLabel({
+    dimensionEvidence,
     dimensions,
     cropsHeavily,
     input,
@@ -81,10 +90,11 @@ export function getImageCandidateRanking(
   const qualityTone = getQualityTone(qualityLabel)
 
   return {
+    dimensionEvidence,
     details: [
-      formatDimensions(dimensions),
-      formatAspect(dimensions),
-      `Print quality: ${printQuality}`,
+      formatDimensions(dimensions, dimensionEvidence),
+      formatAspect(dimensions, dimensionEvidence),
+      `${dimensionEvidence === 'measured' && !input.isVector ? 'Print quality estimate' : 'Print quality'}: ${printQuality}`,
     ],
     qualityLabel,
     qualityTone,
@@ -134,12 +144,14 @@ function hasHeavyCropRisk(
 }
 
 function getQualityLabel({
+  dimensionEvidence,
   dimensions,
   cropsHeavily,
   input,
   isLogoLike,
   isTooSmall,
 }: {
+  dimensionEvidence: ImageCandidateDimensionEvidence
   dimensions: { width: number; height: number } | null
   cropsHeavily: boolean
   input: ImageCandidateRankingInput
@@ -147,6 +159,7 @@ function getQualityLabel({
   isTooSmall: boolean
 }) {
   if (!dimensions && !input.isVector) return 'Resolution unknown'
+  if (dimensionEvidence === 'estimated') return 'Resolution estimated'
   if (isTooSmall) return 'Too small for print'
   if (input.target === 'logo' && isLogoLike) return 'Good for logo'
   if (input.target === 'background' && cropsHeavily) return 'Crops heavily'
@@ -216,7 +229,9 @@ function getPrintQualityLabel(
   input: ImageCandidateRankingInput,
   dimensions: { width: number; height: number } | null,
   isTooSmall: boolean,
+  dimensionEvidence: ImageCandidateDimensionEvidence,
 ) {
+  if (dimensionEvidence === 'estimated') return 'unverified (estimated dimensions)'
   if (input.isVector) return 'vector'
   if (!dimensions) return 'unknown dimensions'
   if (isTooSmall) return 'low'
@@ -233,16 +248,20 @@ function getPrintQualityLabel(
 
 function formatDimensions(
   dimensions: { width: number; height: number } | null,
+  evidence: ImageCandidateDimensionEvidence,
 ) {
   return dimensions
-    ? `Dimensions: ${dimensions.width} x ${dimensions.height}px`
+    ? `${evidence === 'measured' ? 'Measured' : 'Estimated'} dimensions: ${dimensions.width} x ${dimensions.height}px`
     : 'Dimensions unknown'
 }
 
-function formatAspect(dimensions: { width: number; height: number } | null) {
+function formatAspect(
+  dimensions: { width: number; height: number } | null,
+  evidence: ImageCandidateDimensionEvidence,
+) {
   if (!dimensions) {
     return 'Aspect ratio unknown'
   }
 
-  return `Aspect ratio: ${(dimensions.width / dimensions.height).toFixed(2)}:1`
+  return `${evidence === 'estimated' ? 'Estimated aspect ratio' : 'Aspect ratio'}: ${(dimensions.width / dimensions.height).toFixed(2)}:1`
 }
