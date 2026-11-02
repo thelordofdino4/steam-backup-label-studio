@@ -175,13 +175,23 @@ export function usePointerDrag<
     if (activeDrag.activated) onDragCancel?.(activeDrag.dragState)
   }, [clearActiveDrag, onDragCancel, stopPropagation])
 
-  useEffect(() => () => {
+  const releaseActiveDrag = useCallback(() => {
     const releasedDrag = activeDragRef.current
     clearActiveDrag()
     if (releasedDrag?.activated) {
       onDragRelease?.(releasedDrag.dragState)
     }
   }, [clearActiveDrag, onDragRelease])
+
+  // The hook can outlive its capture element when a feature is hidden. That
+  // element can no longer deliver React's lost-capture handler. Release after
+  // the commit, just like unmount cleanup, so its latest edit is not stranded.
+  useEffect(() => {
+    if (activeDragRef.current?.currentTarget.isConnected === false) {
+      releaseActiveDrag()
+    }
+  })
+  useEffect(() => releaseActiveDrag, [releaseActiveDrag])
 
   return {
     beginPointerDrag,

@@ -122,7 +122,7 @@ test('range completion handles every native end signal once per active edit', ()
   )
   assert.match(
     completeRangeInteraction,
-    /rangeInteractionActiveRef\.current = false[\s\S]*?finishLiveValue\(getEditorRangeFieldValue\(rawValue\)\)/,
+    /rangeInteractionActiveRef\.current = false[\s\S]*?finishLiveValue\(onInput && continuousEdit\s*\? undefined\s*: getEditorRangeFieldValue\(rawValue\)\)/,
   )
 
   for (const eventName of [

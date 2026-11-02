@@ -548,7 +548,20 @@ latest visible value once. Direct Case drag uses the same coordinator; pointer-
 up projects the exact release point before finish, while pointer cancel, lost
 capture, and Case inline-text document lost capture finish or retire the exact
 active target. Surface change and session-keyed unmount cannot carry scheduled
-work into another Case target or session.
+work into another Case target or session. While a Case range projection waits
+for its frame, the control retains a local scalar thumb draft so React's
+controlled-input restoration cannot lose rapid keyboard steps. Completion
+finishes the coordinator's accepted input rather than restaging a possibly
+older DOM value. The shared pointer owner also releases a drag after a commit
+that detaches its capture element, even when the owning hook stays mounted.
+
+Mounted diagnostics in
+`src/components/testing/caseContinuousEdit.test.mjs` exercise the production
+App, lifecycle runtime, range controls, and Case preview pointer hooks with a
+controllable animation-frame queue. They cover final-value publication,
+completion/cancellation/capture loss, target hiding, whole-App teardown,
+command observation, and immediate non-Case range behavior. They do not prove
+native frame timing, Windows input behavior, or preview/export visual parity.
 
 **CURRENT FACT —** The existing React Case aggregate setter and lifecycle
 synchronization boundary remain the only runtime project commit path. During

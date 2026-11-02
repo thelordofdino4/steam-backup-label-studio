@@ -69,6 +69,8 @@ function EditorRangeInput({
 }: EditorRangeInputProps) {
   const continuousEdit = useCaseInsertContinuousEditPresentationPort()
   const rangeInteractionActiveRef = useRef(false)
+  // Keep the native thumb current while the Case aggregate waits for its frame.
+  const [rangeDraftValue, setRangeDraftValue] = useState<number | null>(null)
   useEffect(() => () => {
     rangeInteractionActiveRef.current = false
     continuousEdit?.release(id)
@@ -185,13 +187,20 @@ function EditorRangeInput({
 
   const handleRangeInput = (rawValue: string) => {
     rangeInteractionActiveRef.current = true
-    projectLiveValue(getEditorRangeFieldValue(rawValue))
+    const nextValue = getEditorRangeFieldValue(rawValue)
+    if (onInput && continuousEdit) setRangeDraftValue(nextValue)
+    projectLiveValue(nextValue)
   }
 
   const completeRangeInteraction = (rawValue: string) => {
     if (!rangeInteractionActiveRef.current) return
     rangeInteractionActiveRef.current = false
-    finishLiveValue(getEditorRangeFieldValue(rawValue))
+    // The coordinator owns the latest accepted Case input. A controlled DOM
+    // value can still reflect the previous aggregate before its queued frame.
+    finishLiveValue(onInput && continuousEdit
+      ? undefined
+      : getEditorRangeFieldValue(rawValue))
+    setRangeDraftValue(null)
   }
 
   return (
@@ -202,7 +211,7 @@ function EditorRangeInput({
         min={sliderMin ?? min}
         max={sliderMax ?? max}
         step={sliderStep ?? step}
-        value={sliderValue ?? value}
+        value={rangeDraftValue ?? sliderValue ?? value}
         disabled={disabled || sliderDisabled}
         aria-describedby={describedBy}
         aria-valuetext={sliderValueText}

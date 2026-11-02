@@ -4,6 +4,7 @@ import test from 'node:test'
 
 function readSource(relativePath: string) {
   return readFileSync(new URL(relativePath, import.meta.url), 'utf8')
+    .replaceAll('\r\n', '\n')
 }
 
 function countOccurrences(source: string, token: string) {
