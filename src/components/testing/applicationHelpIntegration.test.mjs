@@ -4,15 +4,25 @@ import { chromium } from 'playwright'
 import { createServer } from 'vite'
 
 let server, browser, page, url
+const loadErrors = []
 test.before(async () => {
-  server = await createServer({ logLevel: 'silent', server: { host: '127.0.0.1', port: 0 } })
+  server = await createServer({
+    // Parallel fixture servers must not mutate one shared Vite dependency cache.
+    cacheDir: 'node_modules/.vite-test-application-help', logLevel: 'silent', server: { host: '127.0.0.1', port: 0 } })
   await server.listen()
   url = `http://127.0.0.1:${server.httpServer.address().port}/src/components/testing/application-help-integration.html`
   browser = await chromium.launch({ headless: true })
   page = await browser.newPage({ viewport: { width: 1000, height: 720 } })
+  page.on('pageerror', error => { if (loadErrors.length < 12) loadErrors.push(error.message) })
+  page.on('response', response => { if (response.status() >= 400 && loadErrors.length < 12) loadErrors.push(`${response.status()} ${new URL(response.url()).pathname}`) })
 })
 test.after(async () => { await page?.close(); await browser?.close(); await server?.close() })
-async function load() { await page.goto(url); await page.waitForFunction(() => Boolean(window.__applicationHelpHarness)) }
+async function load() {
+  loadErrors.length = 0
+  await page.goto(url)
+  try { await page.waitForFunction(() => Boolean(window.__applicationHelpHarness)) }
+  catch (cause) { throw new Error(`Help fixture did not mount: ${JSON.stringify(loadErrors)}`, { cause }) }
+}
 async function focusId() { return page.evaluate(() => document.activeElement?.id) }
 const opener = () => page.getByRole('button', { name: 'Help and local diagnostics' })
 const panel = () => page.getByRole('region', { name: 'Steam Backup Label Studio Help' })
