@@ -37,7 +37,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   const ribbonHostSource = readRepoFile(
     'src/components/preview/ContextualTextRibbon.tsx',
-  )
+  ) + readRepoFile('src/components/preview/contextualTextRibbonDomLayout.ts')
   const ribbonCss = readContextualTextRibbonCss()
   const packed = packContextualTextRibbonColumns({
     rowCount: 2,
