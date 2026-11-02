@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   createEditorSteamArtworkPickerItems,
+  createEditorLocalSteamScreenshotPickerItems,
   createEditorWebArtworkPickerItems,
 } from './editorImageSourcePickerItems.ts'
 import type { SteamArtworkAsset } from '../../steam/steamApi.ts'
@@ -81,4 +82,28 @@ test('web artwork picker items are ranked for logo use', () => {
   assert.equal(items[0]?.id, 'vector-logo')
   assert.equal(items[0]?.qualityLabel, 'Good for logo')
   assert.ok(items[0]?.details?.includes('Print quality: vector'))
+})
+
+test('local screenshot evidence stays neutral while thumbnail, selection and stable order are preserved', () => {
+  const assets = [
+    { id: 'a', label: 'A', path: 'a.png', folderPath: '.', fileName: 'a.png' },
+    { id: 'b', label: 'B', path: 'b.png', folderPath: '.', fileName: 'b.png' },
+  ]
+  const items = createEditorLocalSteamScreenshotPickerItems(assets, { a: 'data:image/png;base64,AA==' }, 'b')
+  assert.deepEqual(items.map(item => item.id), ['a','b'])
+  assert.equal(items[0].qualityLabel, 'Resolution unknown')
+  assert.equal(items[0].qualityTone, 'neutral')
+  assert.equal(items[0].imageUrl, 'data:image/png;base64,AA==')
+  assert.equal(items[1].isSelected, true)
+})
+
+test('unknown and corrupt remote image evidence does not imply print suitability or alter selected identity', () => {
+  const items = createEditorWebArtworkPickerItems([
+    createRemoteCandidate({ id: 'a', score: NaN, width: Infinity, height: 1000 }),
+    createRemoteCandidate({ id: 'b' }),
+  ], 'a', 'background')
+  assert.deepEqual(items.map(item => item.id), ['a','b'])
+  assert.equal(items[0].isSelected, true)
+  assert.doesNotMatch(JSON.stringify(items), /Infinity|NaN/)
+  assert.ok(items.every(item => item.qualityLabel === 'Resolution unknown' && item.qualityTone === 'neutral'))
 })

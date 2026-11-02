@@ -3,6 +3,7 @@ import type { SteamArtworkAsset } from '../../steam/steamApi'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import {
   getImageCandidateRanking,
+  normalizeImageCandidateDimensions,
   type ImageCandidateRanking,
   type ImageCandidateTarget,
 } from '../../editor/imageCandidateRanking.ts'
@@ -176,8 +177,9 @@ export function formatEditorWebArtworkSourceKind(
 }
 
 function formatWebArtworkCandidateDimensions(candidate: RemoteLogoCandidate) {
-  return candidate.width && candidate.height
-    ? ` · ${candidate.width} x ${candidate.height}px`
+  const dimensions = normalizeImageCandidateDimensions(candidate)
+  return dimensions
+    ? ` · ${dimensions.width} x ${dimensions.height}px`
     : ''
 }
 
