@@ -16,7 +16,10 @@ import App from './app/App.tsx'
 
 function mountApplication() {
   const lifecycleRuntime = createApplicationLifecycleRuntime()
-  const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
+  const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root, {
+    observeStartup: lifecycleRuntime.diagnostics.observeMenuStartup,
+    onDiagnostic: lifecycleRuntime.diagnostics.recordMenuDiagnostic,
+  })
 
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {

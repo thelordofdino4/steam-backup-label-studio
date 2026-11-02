@@ -78,3 +78,50 @@ test('clock failures and backwards readings do not affect outcomes; long pending
   finish({ status: 'declined', reason: 'replacement-not-authorized' })
   assert.equal(diagnostics.snapshot().records[0].status, 'declined')
 })
+
+
+test('startup and diagnostic events share the command budget and cannot revive after eviction, clear or disposal', () => {
+  let time = 0
+  const diagnostics = createApplicationCommandDiagnostics({ capacity: 2, now: () => time })
+  const startup = diagnostics.observeMenuStartup()!
+  startup.stage('native-install')
+  time = 12
+  assert.equal(diagnostics.snapshot().records[0].elapsedMs, 12)
+  diagnostics.observeExecution(operation)
+  diagnostics.recordMenuDiagnostic({ code: 'application-menu.invocation-rejected', detail: 'private-query' })
+  startup.complete('started')
+  assert.equal(diagnostics.snapshot().evicted, 1)
+  assert.deepEqual(diagnostics.snapshot().records.map(record => record.sequence), [2, 3])
+  const cleared = diagnostics.observeMenuStartup()!
+  diagnostics.clear()
+  cleared.stage('native-platform')
+  cleared.complete('failed')
+  assert.deepEqual(diagnostics.snapshot().records, [])
+  const late = diagnostics.observeMenuStartup()!
+  diagnostics.dispose()
+  late.stage('native-install')
+  late.complete('started')
+  diagnostics.recordMenuDiagnostic({ code: 'application-menu.dispose-failed' })
+  assert.equal(diagnostics.observeMenuStartup(), undefined)
+  assert.deepEqual(diagnostics.snapshot().records, [])
+})
+
+test('menu reports omit arbitrary diagnostic values and retain only exact stages and terminal startup status', () => {
+  const diagnostics = createApplicationCommandDiagnostics({ now: () => 0 })
+  const startup = diagnostics.observeMenuStartup()!
+  startup.stage('private-stage' as never)
+  startup.complete('private-result' as never)
+  startup.stage('native-platform')
+  startup.complete('started')
+  diagnostics.recordMenuDiagnostic({ code: 'private-code', stage: 'private-stage', detail: 'private-detail', bytes: 'private-bytes' } as never)
+  diagnostics.recordMenuDiagnostic({ code: 'application-menu.projection-failed', stage: 'projection-native-apply', detail: 'private-path' })
+  const report = diagnostics.snapshot()
+  assert.equal(report.version, 2)
+  assert.equal(report.records[0].status, 'failed')
+  assert.equal(report.records[0].stage, 'unclassified')
+  assert.equal(report.records[1].diagnosticCode, 'application-menu.unclassified')
+  assert.equal(report.records[1].stage, undefined)
+  assert.equal(report.records[2].stage, 'projection-native-apply')
+  assert.doesNotMatch(diagnostics.toJson(), /private|bytes|detail/)
+  assert.ok(Object.isFrozen(report.records[2]))
+})

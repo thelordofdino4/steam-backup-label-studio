@@ -1,4 +1,10 @@
 import {
+  APPLICATION_MENU_STARTUP_STAGES,
+  projectApplicationMenuDiagnostic,
+  type ApplicationMenuStartupObserver,
+} from '../applicationMenu/applicationMenuDiagnostics.ts'
+import type { ApplicationMenuRuntimeDiagnostic } from '../applicationMenu/applicationMenuRuntime.ts'
+import {
   APPLICATION_COMMAND_IDS,
   type ApplicationCommandExecutionObserver,
   type ApplicationCommandId,
@@ -68,14 +74,20 @@ const MAX_RECORDS = 200
 const MAX_ELAPSED_MS = 86_400_000
 
 type Outcome = Readonly<{
-  status: ApplicationCommandResult<unknown>['status'] | 'running'
+  status: ApplicationCommandResult<unknown>['status'] | 'running' | 'started' | 'unavailable' | 'failed' | 'disposed' | 'reported'
+  diagnosticCode?: string
   failureCode?: string
   stage?: string
 }>
+type Identity = Readonly<{
+  commandId?: ApplicationCommandId | 'unknown'
+  operationId?: string
+  component?: 'application-menu'
+  event?: 'startup' | 'diagnostic'
+}>
 type Entry = Readonly<{
   sequence: number
-  commandId: ApplicationCommandId | 'unknown'
-  operationId?: string
+  identity: Identity
   started: number
   finished?: number
   outcome: Outcome
@@ -117,14 +129,12 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
     } catch { /* A diagnostic clock cannot interrupt an operation. */ }
     return lastTime
   }
-  const observeExecution: ApplicationCommandExecutionObserver = operation => {
+  function begin(identity: Identity) {
     if (disposed || sequence >= Number.MAX_SAFE_INTEGER) return
     sequence += 1
     const id = sequence
-    const operationId = /^application-command-[1-9][0-9]{0,14}$/.test(operation.operationId) ? operation.operationId : undefined
-    const entry: Entry = Object.freeze({ sequence: id,
-      commandId: KNOWN_COMMAND_IDS.has(operation.commandId) ? operation.commandId : 'unknown',
-      ...(operationId ? { operationId } : {}), started: now(), outcome: Object.freeze({ status: 'running' }),
+    const entry: Entry = Object.freeze({ sequence: id, identity,
+      started: now(), outcome: Object.freeze({ status: 'running' }),
     })
     if (entries.length === capacity) {
       entries.shift()
@@ -132,31 +142,64 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
     }
     entries.push(entry)
     let completed = false
-    return result => {
+    return (outcome: Outcome, terminal = true) => {
       if (completed || disposed) return
-      completed = true
+      completed = terminal
       const index = entries.findIndex(candidate => candidate.sequence === id)
       if (index < 0) return // An evicted/cleared operation cannot reappear.
+      entries[index] = Object.freeze({ ...entry, outcome: Object.freeze(outcome),
+        ...(terminal ? { finished: now() } : {}),
+      })
+    }
+  }
+  const observeExecution: ApplicationCommandExecutionObserver = operation => {
+    const operationId = /^application-command-[1-9][0-9]{0,14}$/.test(operation.operationId) ? operation.operationId : undefined
+    const update = begin(Object.freeze({
+      commandId: KNOWN_COMMAND_IDS.has(operation.commandId) ? operation.commandId : 'unknown',
+      ...(operationId ? { operationId } : {}),
+    }))
+    if (!update) return
+    return result => {
       let outcome: Outcome
       try { outcome = projectOutcome(result) }
       catch { outcome = Object.freeze({ status: 'failure', failureCode: 'unclassified' }) }
-      entries[index] = Object.freeze({ ...entry, outcome, finished: now() })
+      update(outcome)
     }
+  }
+  const startupStages = new Set<string>(APPLICATION_MENU_STARTUP_STAGES)
+  const startupResults = new Set(['started', 'unavailable', 'failed', 'disposed'])
+  const observeMenuStartup: ApplicationMenuStartupObserver = () => {
+    const update = begin(Object.freeze({ component: 'application-menu', event: 'startup' }))
+    if (!update) return
+    let stage: string = 'native-availability'
+    update({ status: 'running', stage }, false)
+    return Object.freeze({
+      stage(value) {
+        stage = startupStages.has(value) ? value : 'unclassified'
+        update({ status: 'running', stage }, false)
+      },
+      complete(result) {
+        update({ status: startupResults.has(result) ? result : 'failed', stage })
+      },
+    })
+  }
+  function recordMenuDiagnostic(diagnostic: ApplicationMenuRuntimeDiagnostic) {
+    const safe = projectApplicationMenuDiagnostic(diagnostic)
+    begin(Object.freeze({ component: 'application-menu', event: 'diagnostic' }))?.({ status: 'reported', ...safe })
   }
   function snapshot() {
     const currentTime = now()
-    return Object.freeze({ format: 'sbls-command-diagnostics', version: 1, capacity, evicted,
+    return Object.freeze({ format: 'sbls-command-diagnostics', version: 2, capacity, evicted,
       records: Object.freeze(entries.map(entry => {
         const elapsed = Math.max(0, (entry.finished ?? currentTime) - entry.started)
-        return Object.freeze({ sequence: entry.sequence, commandId: entry.commandId,
-          ...(entry.operationId ? { operationId: entry.operationId } : {}),
+        return Object.freeze({ sequence: entry.sequence, ...entry.identity,
           ...entry.outcome, elapsedMs: Math.min(MAX_ELAPSED_MS, Math.round(elapsed)),
           elapsedCapped: elapsed > MAX_ELAPSED_MS,
         })
       })),
     })
   }
-  return Object.freeze({ observeExecution, snapshot,
+  return Object.freeze({ observeExecution, observeMenuStartup, recordMenuDiagnostic, snapshot,
     toJson: () => JSON.stringify(snapshot(), null, 2),
     clear() { entries = []; evicted = 0 },
     dispose() { disposed = true; entries = []; evicted = 0 },
