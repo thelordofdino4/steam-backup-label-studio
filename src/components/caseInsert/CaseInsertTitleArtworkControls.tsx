@@ -1,3 +1,4 @@
+import { IMPORTED_IMAGE_ACCEPT } from '../../image/importedImagePolicy'
 import type { ChangeEvent } from 'react'
 import {
   CASE_INSERT_GAME_LOGO_EMPTY_HINT,
@@ -85,7 +86,7 @@ export function CaseInsertTitleArtworkControls({
         id={uploadId}
         className="logo-file-input"
         type="file"
-        accept="image/*"
+        accept={IMPORTED_IMAGE_ACCEPT}
         onChange={onUpload}
       />
 

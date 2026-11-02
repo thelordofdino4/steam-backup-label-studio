@@ -1,6 +1,7 @@
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { ImportedImagePolicyError } from '../image/importedImagePolicy'
 import type { SteamLogoPlacement } from '../discText/index'
 import {
   completeDiscGuidedSlotWhenSatisfied,
@@ -198,9 +199,11 @@ export function useTitleArtwork({
         )
         announceStatus('Custom game logo artwork selected.')
       })
-    } catch {
+    } catch (error) {
       asyncWork.publish(request, () => {
-        announceStatus('Game logo image could not be read.')
+        announceStatus(error instanceof ImportedImagePolicyError
+          ? error.message
+          : 'Game logo image could not be read.')
       })
     }
   }

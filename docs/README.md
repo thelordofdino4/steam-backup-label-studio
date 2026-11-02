@@ -24,6 +24,8 @@ This map is the entry point for repository documentation. If two documents disag
 
 [Local Release Diagnostics](RELEASE_DIAGNOSTICS.md) records the #379 command-observation slice, its bounded data policy and remaining workflow/native acceptance. It is an implementation checkpoint, not a replacement for the lifecycle/menu contracts or a complete release-diagnostics claim.
 
+Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](IMAGE_ASSET_ACCEPTANCE_POLICY.md) documents the shared raster acceptance boundary, format/ingress matrices and remaining native acceptance for #358.
+
 ## Active Authoritative Documents
 
 | Document | Status | Purpose | Read when | Conflict rule |
