@@ -1,15 +1,13 @@
 import type { DiscTextLayoutSettings, DiscTextHtmlSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText/index'
 import type { DiscTextStyleSettings } from '../discText/styles'
 import { mmToPixels } from '../disc/geometry'
-import { getBackgroundDrawSize } from '../image/backgroundImage'
+import { drawBackgroundArtwork } from './drawBackgroundArtwork'
 import type { ExportGuideSelection } from './exportGuides'
 import type { BackgroundImageSize, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
 import type { DiscTemplate } from '../types/template'
 import {
   canvasToPngBytes,
-  drawImageContent,
-  getCanvasImageContentSize,
   loadCanvasSafeImage,
 } from './canvasImage'
 import { drawDiscTextElements } from './drawDiscText'
@@ -117,7 +115,7 @@ export async function exportDiscLabelPngBytes(params: {
   const safeZoneRadius =
     (params.selectedDiscTemplate.safeDiameterMm / params.selectedDiscTemplate.outerDiameterMm) * outerRadius
 
-  async function drawBackgroundArtwork() {
+  async function drawBackgroundLayer() {
     if (!params.backgroundImageUrl) {
       return
     }
@@ -126,32 +124,16 @@ export async function exportDiscLabelPngBytes(params: {
       params.backgroundImageUrl,
       'background artwork image',
     )
-    const offsetScale = discContentSize / params.previewSize
-    const contentSize = getCanvasImageContentSize(image, params.backgroundImageSize)
-
-    if (!contentSize) {
-      return
-    }
-
-    const drawSize = getBackgroundDrawSize(
-      params.backgroundImageSize ?? contentSize,
-      params.backgroundScale,
-      discContentSize,
-    )
-    const drawWidth = drawSize.width
-    const drawHeight = drawSize.height
-    const drawX = center - drawWidth / 2 + params.backgroundOffset.x * offsetScale
-    const drawY = center - drawHeight / 2 + params.backgroundOffset.y * offsetScale
-    drawImageContent(
+    drawBackgroundArtwork(
       context,
       image,
       params.backgroundImageSize,
-      {
-        x: drawX,
-        y: drawY,
-        width: drawWidth,
-        height: drawHeight,
-      },
+      params.backgroundScale,
+      params.backgroundOffset,
+      params.previewSize,
+      discContentSize,
+      discOrigin,
+      true,
     )
   }
 
@@ -166,7 +148,7 @@ export async function exportDiscLabelPngBytes(params: {
       context.fillStyle = '#e5e7eb'
       context.fillRect(0, 0, exportSize, exportSize)
     },
-    'background-artwork': drawBackgroundArtwork,
+    'background-artwork': drawBackgroundLayer,
     'additional-artwork': () =>
       drawAdditionalArtwork(
         context,

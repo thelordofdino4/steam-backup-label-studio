@@ -47,6 +47,8 @@ This inventory covers all **98** discovered tests importing/using `readFile` or 
 - **ARCHITECTURE_BOUNDARY**: intentionally retains static checks for domain ownership, adapter wiring, transaction purity, renderer authority, bounded allocation, or native-port separation. Update spelling when an approved ownership boundary moves; preserve the boundary.
 - **STRUCTURAL_IMPLEMENTATION_CHECK**: temporary JSX/CSS/import/file-shape checks. Keep them now; when their owner is refactored, replace them with mounted behavior or an explicit boundary assertion before removing the old spelling assertion. They do not certify visual correctness.
 
+The #371 background slice replaces `discBackgroundPresetAdapter.test.ts` JSX/CSS/export source-spelling assertions with real mounted preview, pointer, selection and canvas assertions in `backgroundLayout.integration.test.mjs`. All preset behavior assertions remain. The original 98-file baseline inventory below is historical at its recorded commit; this preset file no longer reads source files.
+
 No test is deleted or disabled in this change. A change to a structural assertion requires evidence for the behavior it protected; a passing regex is not runtime acceptance.
 
 | Test file | File-reading assertion class |

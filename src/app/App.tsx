@@ -1,4 +1,5 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
+import { getDiscPreviewCoordinateSize } from '../interaction/discPreviewCoordinates'
 import {
   useCallback,
   useLayoutEffect,
@@ -427,7 +428,7 @@ function App() {
     selectedArtworkId,
     setSelectedArtworkId,
     isArtworkLoading,
-    backgroundPreviewSize,
+    backgroundLayout,
     backgroundOffsetSliderRanges,
     effectiveBackgroundImageUrl,
     effectiveBackgroundImageSize,
@@ -1942,8 +1943,7 @@ function App() {
               discTextLayout,
             }),
             getPreviewSize: () =>
-              discPreviewRef.current?.getBoundingClientRect().width ??
-              discExportPreviewFallbackSize,
+              getDiscPreviewCoordinateSize(discPreviewRef.current, discExportPreviewFallbackSize),
             saveDialog: save,
             confirmDialog: confirm,
             writeBinaryFileCommand: writeBinaryFile,
@@ -2481,7 +2481,7 @@ function App() {
         background={{
           imageUrl: effectiveBackgroundImageUrl,
           imageSize: effectiveBackgroundImageSize,
-          previewSize: backgroundPreviewSize,
+          layout: backgroundLayout,
           offset: backgroundOffset,
           scale: backgroundScale,
         }}

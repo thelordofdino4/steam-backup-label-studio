@@ -681,6 +681,7 @@ Source-of-truth state:
 Render path:
 
 - Disc geometry flows through disc template layout and safe-zone helpers.
+- Disc background content/interaction rectangles, clipping and output projection are resolved by `src/image/backgroundImage.ts`; preview and canvas adapters consume that owner. `src/interaction/discPreviewCoordinates.ts` keeps viewport transforms out of the offset basis. See [Resolved Layout Inputs](RESOLVED_LAYOUT_INPUTS.md) for the migration inventory and acceptance limits.
 - Jewel case geometry flows through case-insert template and jewel-case layout helpers.
 - Neutral slider/range clamping, step rounding, finite fallback helpers, and range value precision live in `src/layout/layoutRangeMath.ts`; disc and case modules still interpret those numbers in their own geometry.
 

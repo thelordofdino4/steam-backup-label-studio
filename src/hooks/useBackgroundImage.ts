@@ -11,7 +11,7 @@ import {
   createDefaultBackgroundOffset,
   createEmptyBackgroundImageState,
   getBackgroundOffsetSliderRanges,
-  getBackgroundPreviewSize,
+  resolveBackgroundImageLayout,
   updateBackgroundOffsetField,
   updateBackgroundScale,
   type BackgroundOffsetField,
@@ -75,9 +75,11 @@ export function useBackgroundImage({
   })
   const [isBackgroundArtworkEnabled, setIsBackgroundArtworkEnabled] = useState(true)
 
-  const backgroundPreviewSize = useMemo(
-    () => getBackgroundPreviewSize(backgroundImageSize),
-    [backgroundImageSize],
+  const backgroundLayout = useMemo(
+    () => resolveBackgroundImageLayout(
+      backgroundImageSize, backgroundScale, backgroundOffset, discPreviewSize,
+    ),
+    [backgroundImageSize, backgroundScale, backgroundOffset, discPreviewSize],
   )
   const backgroundOffsetSliderRanges = useMemo(
     () =>
@@ -290,7 +292,7 @@ export function useBackgroundImage({
     selectedArtworkId,
     setSelectedArtworkId,
     isArtworkLoading,
-    backgroundPreviewSize,
+    backgroundLayout,
     backgroundOffsetSliderRanges,
     effectiveBackgroundImageUrl,
     effectiveBackgroundImageSize,
