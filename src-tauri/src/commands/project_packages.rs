@@ -1406,3 +1406,7 @@ mod tests {
         assert_eq!(leftovers, 0);
     }
 }
+
+#[cfg(test)]
+#[path = "project_package_performance.rs"]
+mod performance;
