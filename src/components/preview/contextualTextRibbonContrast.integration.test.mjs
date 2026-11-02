@@ -81,7 +81,8 @@ async function bounds() {
     return {
       text: element.selectedOptions[0].textContent,
       color: style.color,
-      textWidth: ctx.measureText(element.selectedOptions[0].textContent).width,
+      textWidth: ctx.measureText(element.selectedOptions[0].textContent).width
+        + Math.max(0, element.selectedOptions[0].textContent.length - 1) * (parseFloat(style.letterSpacing) || 0),
       usableWidth: box.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth),
       fits: box.left >= header.right && box.right <= cardBox.right && box.top >= cardBox.top && box.bottom <= cardBox.bottom,
       cardWidth: cardBox.width, colorWidth: colorCard.getBoundingClientRect().width,
@@ -109,6 +110,30 @@ for (const width of [320, 519, 719, 1200]) {
     }
   })
 }
+
+test('contrast reserves the full option catalog under wider font metrics', async () => {
+  const style = await page.addStyleTag({ content: '[data-ribbon-group="contrast"] select { font-family: monospace; font-size: 18px; letter-spacing: 0.7px; }' })
+  try {
+    await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setWidth(1210) })
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const { options } = await page.evaluate(() => window.__contrast)
+    let first
+    for (const option of options) {
+      await select().selectOption(option.value)
+      const box = await bounds()
+      assert.ok(box.usableWidth >= box.textWidth, JSON.stringify(box))
+      assert.equal(box.fits, true, JSON.stringify(box))
+      assert.equal(box.cardWidth, box.colorWidth)
+      if (first) assert.deepEqual([box.cardWidth, box.previewY], [first.cardWidth, first.previewY])
+      first = box
+    }
+  } finally {
+    await style.evaluate(node => node.remove())
+    await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setWidth(720) })
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  }
+})
+
 test('mixed selection stays visible and choosing a mode dispatches the original selection', async () => {
   await page.evaluate(() => window.__contrast.setMixed(true))
   assert.equal((await bounds()).text, 'Mixed')
