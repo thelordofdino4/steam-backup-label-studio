@@ -793,7 +793,7 @@ test('Game Info role adapter owns independent panel state and registrations', ()
   assert.match(adapterSource, /useRef<HTMLInputElement \| null>\(null\)/)
   assert.match(adapterSource, /useRef<HTMLSelectElement \| null>\(null\)/)
   assert.equal(
-    (adapterSource.match(/useRef<HTMLDetailsElement \| null>\(null\)/g) ?? [])
+    (adapterSource.match(/useRef<HTMLElement \| null>\(null\)/g) ?? [])
       .length,
     2,
   )
@@ -854,12 +854,12 @@ test('generic controls forward refs to exact Rating, Media, and OS elements', ()
   assert.match(ratingSource, /sourceControlRef=\{sourceControlRef\}/)
   assert.match(markSource, /<select\s+ref=\{sourceControlRef\}/)
   assert.match(gameInfoSource, /open=\{mediaPanelOpen\}/)
-  assert.match(gameInfoSource, /detailsRef=\{mediaPanelDetailsRef\}/)
+  assert.match(gameInfoSource, /inspectorSectionRef=\{mediaInspectorSectionRef\}/)
   assert.match(gameInfoSource, /onOpenChange=\{onMediaPanelOpenChange\}/)
   assert.match(gameInfoSource, /open=\{operatingSystemPanelOpen\}/)
   assert.match(
     gameInfoSource,
-    /detailsRef=\{operatingSystemPanelDetailsRef\}/,
+    /inspectorSectionRef=\{operatingSystemInspectorSectionRef\}/,
   )
   assert.match(
     gameInfoSource,

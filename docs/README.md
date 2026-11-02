@@ -12,6 +12,8 @@
 
 This map is the entry point for repository documentation. If two documents disagree, use the conflict rule listed here rather than treating older status reports, audits, or implementation plans as current truth.
 
+Current inspector structure: [`EDITOR_INSPECTOR_STRUCTURE.md`](EDITOR_INSPECTOR_STRUCTURE.md) records the #380 role/feature hierarchy, local presentation ownership, and pending native acceptance.
+
 ## Always Read
 
 | Document | Status | Purpose | Read when | Conflict rule |

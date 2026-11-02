@@ -3,6 +3,7 @@ import { globSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
+import ts from 'typescript'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = dirname(dirname(dirname(currentDir)))
@@ -80,9 +81,16 @@ test('only navigation-owned panels use controlled or registered-ref contracts', 
 
   for (const callerFile of callerFiles) {
     const callerSource = readFileSync(join(repoRoot, callerFile), 'utf8')
-    const panelTags = callerSource.match(
-      /<Editor(?:Feature)?Panel\b[\s\S]*?>/g,
-    ) ?? []
+    const panelTags: string[] = []
+    const parsed = ts.createSourceFile(callerFile, callerSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+    function collectPanelTags(node: ts.Node) {
+      if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+        ['EditorPanel', 'EditorFeaturePanel'].includes(node.tagName.getText(parsed))) {
+        panelTags.push(node.getText(parsed))
+      }
+      ts.forEachChild(node, collectPanelTags)
+    }
+    collectPanelTags(parsed)
 
     assert.ok(panelTags.length > 0, callerFile)
 
@@ -125,14 +133,14 @@ test('only navigation-owned panels use controlled or registered-ref contracts', 
         if (panelTag.includes('title="Rating badge"')) {
           assert.doesNotMatch(panelTag, /\bdetailsRef=/)
         } else {
-          const expectedDetailsRef = panelTag.includes(
+          const expectedSectionRef = panelTag.includes(
             'title="Media format mark"',
           )
-            ? 'mediaPanelDetailsRef'
-            : 'operatingSystemPanelDetailsRef'
+            ? 'mediaInspectorSectionRef'
+            : 'operatingSystemInspectorSectionRef'
           assert.match(
             panelTag,
-            new RegExp(`detailsRef=\\{${expectedDetailsRef}\\}`),
+            new RegExp(`inspectorSectionRef=\\{${expectedSectionRef}\\}`),
           )
         }
         assert.doesNotMatch(panelTag, /\bsummaryRef=/)
