@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "capture:ribbon:browser": "node scripts/capture-ribbon.mjs",
     "check:cycles": "node scripts/check-cycles.mjs",
+    "check:docs": "node scripts/check-docs.mjs",
     "diagnose:text-editor:browser": "node scripts/text-editor-smoke.mjs",
     "lint": "eslint .",
     "smoke:text-editor": "node scripts/native-tauri-smoke-required.mjs",

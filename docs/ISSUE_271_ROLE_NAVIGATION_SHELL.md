@@ -1,5 +1,6 @@
 # Issue #271 Role-Based Editor Navigation Shell
-> Status: Implementation design note.
+> Status: HISTORICAL CHECKPOINT — issue #271 design and implementation record; not the current component inventory.
+> Current ownership: [Documentation Map](README.md#current-behavior-at-the-reconciled-baseline) and current source.
 > Purpose: Scope the docs-first implementation approach for GitHub issue #271.
 > Read when: Working on the role-based editor navigation shell or follow-up UI-overhaul chunks.
 > Authoritative source: `AGENTS.md` for agent workflow, `docs/SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts, and current source for exact ownership.

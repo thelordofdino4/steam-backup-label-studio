@@ -727,9 +727,9 @@ system allocator; one-byte-over rejection and failure cleanup are exercised.
 JPEG fatal `longjmp` remains inside one C wrapper frame. Exact
 versions, source/archive/overlay digests, notices, exclusions, and patch
 rationale live under `src-tauri/crates/sbls-package-codec/vendor/`.
-The root `LICENSE` contains MIT text, but `README.md` still says a license has
-not been chosen and the application manifest leaves `license` empty; this
-package slice does not resolve that repository-level conflict. The unpublished
+The root `LICENSE` contains MIT text and the application manifest leaves
+`license` empty; release metadata reconciliation remains under #381/#376.
+This documentation does not change licensing policy. The unpublished
 codec manifest currently declares `MIT AND BSD-3-Clause AND IJG`, while the
 checked-in libjpeg-turbo IJG/Modified-BSD notices and libwebp Modified-BSD
 notice/patent grant remain the authoritative upstream texts.
@@ -3144,8 +3144,8 @@ Consequences:
 
 The following are documented future plans or active gaps, not current implemented guarantees:
 
-- Guided Start and opening-screen workflow.
-- Home Return/Resume, Close/termination use of the dirty-aware guard, and native
+- Guided Start (Home with New/Open/Resume is already implemented).
+- Close/termination use of the dirty-aware guard and native
   package workflow acceptance; the guard is already active for New Disc, New
   Case, and Open, while content-recognized `.sbls` Open/Save/Save As,
   encoder/write composition, session format identity, bounded binary project
