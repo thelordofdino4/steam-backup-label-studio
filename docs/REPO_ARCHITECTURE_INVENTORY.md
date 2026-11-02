@@ -10,6 +10,14 @@
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
 
+## Document-owner migration reference
+
+The focused #363 [committed document ownership contract](COMMITTED_DOCUMENT_OWNERSHIP_CONTRACT.md)
+maps current React/project/lifecycle/preset representations at integrated
+`923f7b7f` and records the Case continuous-edit integration boundary. It defines the target single installation and first Disc-background
+removal ledger; it does not claim that runtime ownership has changed. The
+[#368 baseline](PERFORMANCE_BASELINE.md) retains explicit native evidence gaps.
+
 ## Basis
 
 - Branch: `main`
