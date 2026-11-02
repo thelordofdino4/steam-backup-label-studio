@@ -7,6 +7,12 @@ export type PointerDragActivationOptions = {
 }
 
 type PointerDragOptions<TDragState extends PointerDragStart, TElement extends Element> = {
+  onDragCancel?: (dragState: TDragState) => void
+  onDragEnd?: (
+    dragState: TDragState,
+    event: PointerEvent<TElement>,
+  ) => void
+  onDragRelease?: (dragState: TDragState) => void
   onDragMove: (dragState: TDragState, event: PointerEvent<TElement>) => void
   stopPropagation?: boolean
 }
@@ -37,6 +43,9 @@ export function usePointerDrag<
   TDragState extends PointerDragStart,
   TElement extends Element = Element,
 >({
+  onDragCancel,
+  onDragEnd,
+  onDragRelease,
   onDragMove,
   stopPropagation = false,
 }: PointerDragOptions<TDragState, TElement>) {
@@ -50,6 +59,8 @@ export function usePointerDrag<
       return
     }
 
+    activeDragRef.current = null
+
     if (activeDrag.activationTimeoutId !== null) {
       window.clearTimeout(activeDrag.activationTimeoutId)
     }
@@ -58,7 +69,6 @@ export function usePointerDrag<
       activeDrag.currentTarget.releasePointerCapture(activeDrag.pointerId)
     }
 
-    activeDragRef.current = null
   }, [])
 
   const beginPointerDrag = useCallback(
@@ -71,7 +81,11 @@ export function usePointerDrag<
         event.stopPropagation()
       }
 
+      const replacedDrag = activeDragRef.current
       clearActiveDrag()
+      if (replacedDrag?.activated) {
+        onDragCancel?.(replacedDrag.dragState)
+      }
       event.currentTarget.setPointerCapture(event.pointerId)
 
       const activationDelayMs = activationOptions.activationDelayMs ?? 0
@@ -97,7 +111,7 @@ export function usePointerDrag<
 
       activeDragRef.current = activeDrag
     },
-    [clearActiveDrag, stopPropagation],
+    [clearActiveDrag, onDragCancel, stopPropagation],
   )
 
   const handlePointerMove = useCallback(
@@ -144,15 +158,30 @@ export function usePointerDrag<
       }
 
       clearActiveDrag()
+      if (activeDrag.activated) {
+        onDragEnd?.(activeDrag.dragState, event)
+      }
     },
-    [clearActiveDrag, stopPropagation],
+    [clearActiveDrag, onDragEnd, stopPropagation],
   )
 
-  const cancelPointerDrag = useCallback(() => {
+  const cancelPointerDrag = useCallback((event?: PointerEvent<TElement>) => {
+    const activeDrag = activeDragRef.current
+    if (!activeDrag || (event && activeDrag.pointerId !== event.pointerId)) {
+      return
+    }
+    if (event && stopPropagation) event.stopPropagation()
     clearActiveDrag()
-  }, [clearActiveDrag])
+    if (activeDrag.activated) onDragCancel?.(activeDrag.dragState)
+  }, [clearActiveDrag, onDragCancel, stopPropagation])
 
-  useEffect(() => cancelPointerDrag, [cancelPointerDrag])
+  useEffect(() => () => {
+    const releasedDrag = activeDragRef.current
+    clearActiveDrag()
+    if (releasedDrag?.activated) {
+      onDragRelease?.(releasedDrag.dragState)
+    }
+  }, [clearActiveDrag, onDragRelease])
 
   return {
     beginPointerDrag,

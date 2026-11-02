@@ -342,7 +342,13 @@ function validateOperationSemantics(
   }
   if (evidence.operation === 'apply') {
     const apply = evidence as ApplyEvidence
-    return proof.sourceConfigurationIdentity === null &&
+    const sourceEdgeMatches = proof.sourceAttachment.status === 'unattached'
+      ? proof.sourceConfigurationIdentity === null
+      : proof.sourceConfigurationIdentity ===
+        proof.sourceAttachment.configurationIdentity
+    return sourceEdgeMatches && proof.successorAttachment.status === 'attached' &&
+        proof.successorAttachment.configurationIdentity ===
+          apply.transitionResult.successorConfiguration.configurationIdentity &&
         proof.successorConfigurationIdentity ===
           apply.transitionResult.successorConfiguration.configurationIdentity &&
         proof.configurationReleaseIdentity === null
@@ -475,7 +481,9 @@ function createReceipt(
     ? 'exact-unchanged-semantic-transition-result' as const
     : 'exact-transition-result' as const
   const action = evidence.operation === 'apply'
-    ? 'attached' as const
+    ? proof.sourceAttachment.status === 'unattached'
+      ? 'attached' as const
+      : 'replaced' as const
     : evidence.operation === 'reapply'
       ? 'replaced' as const
       : 'released' as const

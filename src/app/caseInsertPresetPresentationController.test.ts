@@ -7,173 +7,31 @@ import type {
 import type {
   AppCaseInsertPresetInspectionResult,
   AppCaseInsertPresetWorkflowOwner,
-  AppCaseInsertPresetWorkflowReview,
 } from './appCaseInsertPresetWorkflow.ts'
 import {
   createCaseInsertPresetPresentationController,
 } from './caseInsertPresetPresentationController.ts'
 
-const PRESET = Object.freeze({
-  id: 'builtin:case-preset:jewel-case-essentials',
-  revision: 1,
-})
-
 const LATEST_PRESET = Object.freeze({
-  ...PRESET,
+  id: 'builtin:case-preset:jewel-case-essentials',
   revision: 2,
 })
 
-function applyReview(sessionId = 'case-one') {
-  return Object.freeze({
-    operation: 'apply',
-    source: {
-      sessionId,
-      projectRevision: 0,
-      applicationRevision: 0,
-    },
-    selectedPreset: LATEST_PRESET,
-    reviewIdentity: `review:${sessionId}`,
-    warningIds: ['warning-one'],
-    materialConsentRequirementIds: ['consent-one'],
-    plan: { blockers: [], resolvedRegions: ['front-cover'] },
-  }) as unknown as AppCaseInsertPresetWorkflowReview
-}
-
 function detachedInspection(
   sessionId = 'case-one',
+  projectRevision = 0,
 ): AppCaseInsertPresetInspectionResult {
   return Object.freeze({
     ok: true,
     status: 'detached',
     sessionId,
-    projectRevision: 0,
+    projectRevision,
     applicationRevision: 0,
     recoveryStatus: Object.freeze({ status: 'not-applicable' }),
   })
 }
 
-function restrictedAttachedInspection(
-  recoveryStatus: 'unavailable' | 'incompatible' = 'unavailable',
-): AppCaseInsertPresetInspectionResult {
-  return Object.freeze({
-    ok: true,
-    status: 'attached',
-    sessionId: 'case-unavailable',
-    projectRevision: 4,
-    applicationRevision: 2,
-    configuration: {
-      preset: { ...PRESET, source: 'builtin' },
-      configurationIdentity: 'configuration-one',
-    },
-    recoveryStatus: recoveryStatus === 'unavailable'
-      ? { status: 'unavailable', code: 'exact-definition-unavailable' }
-      : { status: 'incompatible', code: 'preset-source-mismatch' },
-    customization: {
-      ok: true,
-      status: 'clean',
-      reportIdentity: 'customization-one',
-      fields: [],
-      summary: {
-        fieldCount: 0,
-        unchangedFieldCount: 0,
-        customizedFieldCount: 0,
-      },
-    },
-  }) as unknown as AppCaseInsertPresetInspectionResult
-}
-
-function staleRevisionOneInspection(): AppCaseInsertPresetInspectionResult {
-  return Object.freeze({
-    ok: true,
-    status: 'attached',
-    sessionId: 'case-stale-revision-one',
-    projectRevision: 7,
-    applicationRevision: 3,
-    configuration: {
-      preset: { ...PRESET, source: 'builtin' },
-      configurationIdentity: 'configuration-revision-one',
-    },
-    recoveryStatus: {
-      status: 'stale',
-      savedRevision: 1,
-      latestAvailableRevision: 2,
-      customization: 'clean',
-    },
-    customization: {
-      ok: true,
-      status: 'clean',
-      reportIdentity: 'customization-revision-one',
-      fields: [],
-      summary: {
-        fieldCount: 0,
-        unchangedFieldCount: 0,
-        customizedFieldCount: 0,
-      },
-    },
-  }) as unknown as AppCaseInsertPresetInspectionResult
-}
-
-function missingRevisionTwoScreenshotInspection():
-  AppCaseInsertPresetInspectionResult {
-  return Object.freeze({
-    ok: true,
-    status: 'attached',
-    sessionId: 'case-missing-revision-two-screenshot',
-    projectRevision: 9,
-    applicationRevision: 4,
-    configuration: {
-      formatVersion: 3,
-      preset: { ...LATEST_PRESET, source: 'builtin' },
-      configurationIdentity: 'configuration-revision-two',
-    },
-    recoveryStatus: {
-      status: 'current',
-      customization: 'customized',
-    },
-    customization: {
-      ok: true,
-      status: 'customized',
-      formatVersion: 2,
-      reportIdentity: 'typed-customization-revision-two',
-      configurationIdentity: 'configuration-revision-two',
-      fields: [{
-        address: {
-          region: 'tray-card',
-          featureOwnerId: 'case.tray.artwork-slots',
-          bindingKind: 'repeated',
-          bindingId: 'tray-artwork-1',
-          runtimeObjectId: 'tray-artwork-1',
-          fieldId: 'object-presence',
-        },
-        lastAppliedValue: { kind: 'object-presence', value: 'present' },
-        observation: { status: 'absent-owned-object' },
-        fieldStatus: 'object-absent',
-        sources: [],
-      }, {
-        address: {
-          region: 'tray-card',
-          featureOwnerId: 'case.tray.artwork-slots',
-          bindingKind: 'repeated',
-          bindingId: 'tray-artwork-1',
-          runtimeObjectId: 'tray-artwork-1',
-          fieldId: 'layout-x',
-        },
-        lastAppliedValue: { kind: 'number', value: 17 },
-        observation: { status: 'unavailable-object-absent' },
-        fieldStatus: 'target-unavailable',
-        sources: [],
-      }],
-      summary: {
-        fieldCount: 2,
-        unchangedFieldCount: 0,
-        customizedFieldCount: 2,
-        unavailableFieldCount: 1,
-      },
-    },
-  }) as unknown as AppCaseInsertPresetInspectionResult
-}
-
-function catalog(calls: { getLatest: number }): CaseInsertPresetCatalog {
+function catalog(): CaseInsertPresetCatalog {
   return Object.freeze({
     list: () => Object.freeze([{
       ...LATEST_PRESET,
@@ -182,7 +40,7 @@ function catalog(calls: { getLatest: number }): CaseInsertPresetCatalog {
       source: 'builtin' as const,
     }]),
     getExact: () => null,
-    getLatest: () => { calls.getLatest += 1; return null },
+    getLatest: () => null,
     resolve: () => ({
       ok: false as const,
       error: {
@@ -194,258 +52,243 @@ function catalog(calls: { getLatest: number }): CaseInsertPresetCatalog {
   })
 }
 
-test('detached presentation starts neutral with one exact latest revision-2 option', () => {
-  const calls = { getLatest: 0 }
+function successCompletion() {
+  return Object.freeze({
+    ok: true as const,
+    status: 'dispatched' as const,
+    operation: 'apply' as const,
+    dispatch: Object.freeze({
+      disposition: 'executed' as const,
+      commandId: 'case.layoutPreset.apply' as const,
+      result: Object.freeze({
+        status: 'success' as const,
+        value: Object.freeze({}),
+      }),
+    }),
+  })
+}
+
+test('presentation starts neutral with exact catalog options and selection is inert', () => {
+  const calls = { applySelected: 0 }
+  const sourceInspection = detachedInspection()
   const workflow = {
-    inspectCurrent: () => detachedInspection(),
-    beginApply: () => assert.fail('Selection alone must not begin Apply.'),
-    beginReapply: () => assert.fail('Detached presentation cannot Reapply.'),
-    beginDetach: () => assert.fail('Detached presentation cannot Detach.'),
-    complete: async () => assert.fail('Selection alone must not complete.'),
+    inspectCurrent: () => sourceInspection,
+    applySelected: async () => {
+      calls.applySelected += 1
+      return successCompletion()
+    },
   } as unknown as AppCaseInsertPresetWorkflowOwner
   const controller = createCaseInsertPresetPresentationController({
     workflow,
-    catalog: catalog(calls),
-    publishDispatchFeedback: () => assert.fail('No feedback is expected.'),
+    catalog: catalog(),
+    publishDispatchFeedback: () => assert.fail('Selection has no feedback.'),
   })
 
-  const before = controller.getSnapshot()
-  assert.equal(before.selectedOptionValue, '')
-  assert.deepEqual(before.options.map(({ id, revision, name }) => ({
+  const initial = controller.getSnapshot()
+  assert.equal(initial.selectedOptionValue, '')
+  assert.equal(initial.pending, false)
+  assert.equal(initial.notice, null)
+  assert.deepEqual(initial.options.map(({ id, revision, name }) => ({
     id,
     revision,
     name,
   })), [{
-    id: LATEST_PRESET.id,
-    revision: 2,
+    ...LATEST_PRESET,
     name: 'Jewel Case Essentials',
   }])
 
-  assert.equal(controller.selectOption(before.options[0]!.value).ok, true)
-  assert.notEqual(controller.getSnapshot().selectedOptionValue, '')
-  assert.equal(calls.getLatest, 0)
-})
-
-test('stale revision-1 attachment Reapply remains bound to exact revision 1', () => {
-  const calls = { getLatest: 0, reapply: 0 }
-  let selectedPreset: unknown
-  const workflow = {
-    inspectCurrent: () => staleRevisionOneInspection(),
-    beginApply: () => assert.fail('An attached preset cannot Apply.'),
-    beginReapply: (input: unknown) => {
-      calls.reapply += 1
-      selectedPreset = (input as { selectedPreset: unknown }).selectedPreset
-      return {
-        ok: false as const,
-        status: 'planning-failed' as const,
-        code: 'planned-test-stop',
-        operation: 'reapply' as const,
-      }
-    },
-    beginDetach: () => assert.fail('Detach is not exercised here.'),
-    complete: async () => assert.fail('No review is completed.'),
-  } as unknown as AppCaseInsertPresetWorkflowOwner
-  const controller = createCaseInsertPresetPresentationController({
-    workflow,
-    catalog: catalog(calls),
-    publishDispatchFeedback: () => assert.fail('No feedback is expected.'),
-  })
-
-  const result = controller.beginReapplyReview()
-  assert.equal(result.ok, false)
-  assert.equal(calls.reapply, 1)
-  assert.deepEqual(selectedPreset, PRESET)
-  assert.equal(calls.getLatest, 0)
-  assert.equal(controller.getSnapshot().selectedOptionValue, '')
-})
-
-test('typed missing object prompts once and forwards observation without dependent unavailable-field prompts', () => {
-  const calls = { getLatest: 0, reapply: 0 }
-  let policies: readonly Record<string, unknown>[] = []
-  const workflow = {
-    inspectCurrent: () => missingRevisionTwoScreenshotInspection(),
-    beginApply: () => assert.fail('An attached preset cannot Apply.'),
-    beginReapply: (input: unknown) => {
-      calls.reapply += 1
-      policies = (input as {
-        customizedFieldPolicies: readonly Record<string, unknown>[]
-      }).customizedFieldPolicies
-      return {
-        ok: false as const,
-        status: 'planning-failed' as const,
-        code: 'planned-test-stop',
-        operation: 'reapply' as const,
-      }
-    },
-    beginDetach: () => assert.fail('Detach is not exercised here.'),
-    complete: async () => assert.fail('No review is completed.'),
-  } as unknown as AppCaseInsertPresetWorkflowOwner
-  const controller = createCaseInsertPresetPresentationController({
-    workflow,
-    catalog: catalog(calls),
-    publishDispatchFeedback: () => assert.fail('No feedback is expected.'),
-  })
-
-  const snapshot = controller.getSnapshot()
-  assert.equal(snapshot.reapplyPolicies.length, 1)
-  const choice = snapshot.reapplyPolicies[0]!
-  assert.equal(choice.field.fieldStatus, 'object-absent')
-  assert.equal(controller.setReapplyPolicy(
-    choice.key,
-    'overwrite-with-selected-preset',
-  ).ok, true)
-  const result = controller.beginReapplyReview()
-  assert.equal(result.ok, false)
-  assert.equal(calls.reapply, 1)
-  assert.equal(policies.length, 1)
-  assert.deepEqual(policies[0]?.observation, {
-    status: 'absent-owned-object',
-  })
-  assert.equal('currentValue' in policies[0]!, false)
-  assert.deepEqual(policies[0]?.selectedPreset, LATEST_PRESET)
-  assert.equal(calls.getLatest, 0)
-})
-
-test('selection and review stay transient; cancellation never completes or dispatches', () => {
-  const calls = { beginApply: 0, complete: 0, getLatest: 0 }
-  let inspection = detachedInspection()
-  const workflow = {
-    inspectCurrent: () => inspection,
-    beginApply: () => {
-      calls.beginApply += 1
-      return { ok: true as const, status: 'review-required' as const,
-        review: applyReview() }
-    },
-    beginReapply: () => ({ ok: false as const, status: 'not-attached' as const,
-      code: 'not-attached' }),
-    beginDetach: () => ({ ok: false as const, status: 'not-attached' as const,
-      code: 'not-attached' }),
-    complete: async () => {
-      calls.complete += 1
-      throw new Error('Cancellation must stay presentation-local.')
-    },
-  } as AppCaseInsertPresetWorkflowOwner
-  const controller = createCaseInsertPresetPresentationController({
-    workflow,
-    catalog: catalog(calls),
-    publishDispatchFeedback: () => assert.fail('No command feedback expected.'),
-  })
-  const stateBefore = inspection
-  const option = controller.getSnapshot().options[0]!
+  const option = initial.options[0]!
   assert.equal(controller.selectOption(option.value).ok, true)
-  assert.strictEqual(inspection, stateBefore)
-  assert.equal(calls.beginApply, 0)
-  assert.equal(controller.beginApplyReview().ok, true)
-  assert.equal(calls.beginApply, 1)
-  controller.cancelReview()
-  assert.equal(controller.getSnapshot().review, null)
-  assert.equal(calls.complete, 0)
+  assert.equal(controller.getSnapshot().selectedOptionValue, option.value)
+  assert.equal(calls.applySelected, 0)
+  assert.strictEqual(controller.getSnapshot().inspection, sourceInspection)
 
-  inspection = detachedInspection('case-two')
-  controller.selectOption(option.value)
-  controller.beginApplyReview()
-  assert.ok(controller.getSnapshot().review)
-  controller.synchronize()
-  assert.equal(controller.getSnapshot().review, null)
-  assert.equal(controller.getSnapshot().selectedOptionValue, '')
+  assert.equal(controller.selectOption('not-a-catalog-option').ok, false)
+  const rejected = controller.getSnapshot()
+  assert.equal(rejected.selectedOptionValue, '')
+  assert.equal(rejected.notice?.code,
+    'case.layoutPreset.selection-unavailable')
+  assert.equal(rejected.focusRequest?.target, 'error-summary')
+  assert.equal(calls.applySelected, 0)
 })
 
-test('repeated confirmation while pending completes and publishes feedback once', async () => {
-  const calls = { complete: 0, feedback: 0, getLatest: 0 }
-  let release: ((value: unknown) => void) | undefined
-  const review = Object.freeze({
-    ...applyReview(),
-    warningIds: Object.freeze([]),
-    materialConsentRequirementIds: Object.freeze([]),
-  }) as unknown as AppCaseInsertPresetWorkflowReview
+test('one Apply activation binds the exact selection and duplicate pending activation is inert', async () => {
+  const calls = { applySelected: 0, feedback: 0 }
+  let receivedInput: unknown
+  let release: ((value: ReturnType<typeof successCompletion>) => void) | null =
+    null
   const workflow = {
     inspectCurrent: () => detachedInspection(),
-    beginApply: () => ({
-      ok: true as const,
-      status: 'review-required' as const,
-      review,
-    }),
-    beginReapply: () => assert.fail('Detached presentation cannot Reapply.'),
-    beginDetach: () => assert.fail('Detached presentation cannot Detach.'),
-    complete: () => {
-      calls.complete += 1
-      return new Promise((resolve) => { release = resolve })
+    applySelected: (input: unknown) => {
+      calls.applySelected += 1
+      receivedInput = input
+      return new Promise<ReturnType<typeof successCompletion>>((resolve) => {
+        release = resolve
+      })
     },
   } as unknown as AppCaseInsertPresetWorkflowOwner
   const controller = createCaseInsertPresetPresentationController({
     workflow,
-    catalog: catalog(calls),
+    catalog: catalog(),
     publishDispatchFeedback: () => { calls.feedback += 1 },
   })
   const option = controller.getSnapshot().options[0]!
   controller.selectOption(option.value)
-  assert.equal(controller.beginApplyReview().ok, true)
 
-  const first = controller.confirmReview()
+  const first = controller.applySelectedPreset()
   assert.equal(controller.getSnapshot().pending, true)
-  const repeated = await controller.confirmReview()
-  assert.deepEqual(repeated, {
-    ok: false,
-    code: 'case.layoutPreset.confirmation-pending',
+  assert.equal(calls.applySelected, 1)
+  assert.deepEqual(receivedInput, {
+    selectedPreset: LATEST_PRESET,
+    requestedScope: { kind: 'complete' },
   })
-  assert.equal(calls.complete, 1)
 
-  release?.({
-    ok: true,
-    status: 'dispatched',
-    operation: 'apply',
-    dispatch: Object.freeze({}),
+  const duplicate = await controller.applySelectedPreset()
+  assert.deepEqual(duplicate, {
+    ok: false,
+    code: 'case.layoutPreset.apply-pending',
   })
-  const completed = await first
-  assert.equal(completed.ok, true)
-  assert.equal(calls.complete, 1)
+  assert.equal(calls.applySelected, 1)
+  assert.equal(controller.selectOption('').ok, false)
+  assert.equal(controller.getSnapshot().selectedOptionValue, option.value)
+
+  release?.(successCompletion())
+  const result = await first
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'case.layoutPreset.apply.completed',
+  })
+  assert.equal(calls.applySelected, 1)
   assert.equal(calls.feedback, 1)
-  assert.equal(controller.getSnapshot().review, null)
+  const completed = controller.getSnapshot()
+  assert.equal(completed.pending, false)
+  assert.equal(completed.selectedOptionValue, '')
+  assert.equal(completed.notice?.message, 'Preset applied.')
+  assert.equal(completed.focusRequest?.target, 'status')
 })
 
-for (const recoveryStatus of ['unavailable', 'incompatible'] as const) {
-test(`${recoveryStatus} attachment keeps catalog-independent Detach and disables Reapply planning`, () => {
-  const calls = { detach: 0, reapply: 0, getLatest: 0 }
-  const detachReview = Object.freeze({
-    operation: 'detach',
-    source: {
-      sessionId: 'case-unavailable',
-      projectRevision: 4,
-      applicationRevision: 2,
-    },
-    selectedPreset: PRESET,
-    reviewIdentity: 'detach-review',
-    warningIds: ['detach-warning'],
-    materialConsentRequirementIds: [],
-    plan: { resolvedRegions: ['front-cover'], warnings: [{}] },
-  }) as unknown as AppCaseInsertPresetWorkflowReview
+test('selection is required and a typed failure remains concise and retryable', async () => {
+  const calls = { applySelected: 0 }
   const workflow = {
-    inspectCurrent: () => restrictedAttachedInspection(recoveryStatus),
-    beginApply: () => ({ ok: false as const, status: 'already-attached' as const,
-      code: 'already-attached' }),
-    beginReapply: () => {
-      calls.reapply += 1
-      return { ok: false as const, status: 'preset-unavailable' as const,
-        code: 'preset-unavailable' }
+    inspectCurrent: () => detachedInspection(),
+    applySelected: async () => {
+      calls.applySelected += 1
+      return Object.freeze({
+        ok: false as const,
+        status: 'planning-failed' as const,
+        code: 'case.layoutPreset.apply.blocked',
+        operation: 'apply' as const,
+      })
     },
-    beginDetach: () => {
-      calls.detach += 1
-      return { ok: true as const, status: 'review-required' as const,
-        review: detachReview }
-    },
-    complete: async () => ({ ok: true as const, status: 'cancelled' as const,
-      operation: 'detach' as const }),
-  } as AppCaseInsertPresetWorkflowOwner
+  } as unknown as AppCaseInsertPresetWorkflowOwner
   const controller = createCaseInsertPresetPresentationController({
     workflow,
-    catalog: catalog(calls),
-    publishDispatchFeedback: () => {},
+    catalog: catalog(),
+    publishDispatchFeedback: () => assert.fail('No dispatch was returned.'),
   })
 
-  assert.equal(controller.beginReapplyReview().ok, false)
-  assert.equal(calls.reapply, 0)
-  assert.equal(controller.beginDetachReview().ok, true)
-  assert.equal(calls.detach, 1)
-  assert.equal(calls.getLatest, 0)
+  assert.equal((await controller.applySelectedPreset()).ok, false)
+  assert.equal(calls.applySelected, 0)
+  assert.equal(controller.getSnapshot().focusRequest?.target, 'selector')
+
+  const option = controller.getSnapshot().options[0]!
+  controller.selectOption(option.value)
+  const result = await controller.applySelectedPreset()
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'case.layoutPreset.apply.blocked',
+  })
+  assert.equal(calls.applySelected, 1)
+  const failed = controller.getSnapshot()
+  assert.equal(failed.pending, false)
+  assert.equal(failed.selectedOptionValue, option.value)
+  assert.equal(failed.notice?.message,
+    'The layout preset could not be prepared.')
+  assert.equal(failed.focusRequest?.target, 'error-summary')
 })
-}
+
+test('ordinary content changes preserve selection while session replacement clears it', () => {
+  let inspection = detachedInspection('case-one', 0)
+  const workflow = {
+    inspectCurrent: () => inspection,
+    applySelected: async () => successCompletion(),
+  } as unknown as AppCaseInsertPresetWorkflowOwner
+  const controller = createCaseInsertPresetPresentationController({
+    workflow,
+    catalog: catalog(),
+    publishDispatchFeedback: () => {},
+  })
+  const option = controller.getSnapshot().options[0]!
+  controller.selectOption(option.value)
+
+  inspection = detachedInspection('case-one', 1)
+  controller.synchronize()
+  assert.equal(controller.getSnapshot().selectedOptionValue, option.value)
+
+  inspection = detachedInspection('case-two', 0)
+  controller.synchronize()
+  const replaced = controller.getSnapshot()
+  assert.equal(replaced.selectedOptionValue, '')
+  assert.equal(replaced.focusRequest?.target, 'selector')
+})
+
+test('session replacement retires a pending Apply without stale feedback, result, or focus', async () => {
+  let inspection = detachedInspection('case-one', 0)
+  const releases: Array<(
+    value: ReturnType<typeof successCompletion>,
+  ) => void> = []
+  const calls = { applySelected: 0, feedback: 0 }
+  const workflow = {
+    inspectCurrent: () => inspection,
+    applySelected: () => {
+      calls.applySelected += 1
+      return new Promise<ReturnType<typeof successCompletion>>((resolve) => {
+        releases.push(resolve)
+      })
+    },
+  } as unknown as AppCaseInsertPresetWorkflowOwner
+  const controller = createCaseInsertPresetPresentationController({
+    workflow,
+    catalog: catalog(),
+    publishDispatchFeedback: () => { calls.feedback += 1 },
+  })
+  const option = controller.getSnapshot().options[0]!
+  controller.selectOption(option.value)
+  const first = controller.applySelectedPreset()
+  assert.equal(controller.getSnapshot().pending, true)
+
+  inspection = detachedInspection('case-two', 0)
+  controller.synchronize()
+  const replacement = controller.getSnapshot()
+  assert.equal(replacement.pending, false)
+  assert.equal(replacement.selectedOptionValue, '')
+  assert.equal(replacement.notice, null)
+  assert.equal(replacement.focusRequest?.target, 'selector')
+  const replacementFocus = replacement.focusRequest
+
+  controller.selectOption(option.value)
+  const second = controller.applySelectedPreset()
+  assert.equal(controller.getSnapshot().pending, true)
+  assert.equal(calls.applySelected, 2)
+
+  releases[0]!(successCompletion())
+  assert.deepEqual(await first, {
+    ok: false,
+    code: 'case.layoutPreset.presentation-session-replaced',
+  })
+  const afterRetiredCompletion = controller.getSnapshot()
+  assert.equal(afterRetiredCompletion.pending, true)
+  assert.equal(afterRetiredCompletion.notice, null)
+  assert.strictEqual(afterRetiredCompletion.focusRequest, replacementFocus)
+  assert.equal(calls.feedback, 0)
+
+  releases[1]!(successCompletion())
+  assert.deepEqual(await second, {
+    ok: true,
+    code: 'case.layoutPreset.apply.completed',
+  })
+  assert.equal(controller.getSnapshot().pending, false)
+  assert.equal(controller.getSnapshot().notice?.message, 'Preset applied.')
+  assert.equal(controller.getSnapshot().focusRequest?.target, 'status')
+  assert.equal(calls.feedback, 1)
+})

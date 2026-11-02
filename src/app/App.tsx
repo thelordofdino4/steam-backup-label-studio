@@ -6,7 +6,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
-import { unstable_batchedUpdates } from 'react-dom'
+import { flushSync, unstable_batchedUpdates } from 'react-dom'
 import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
 import {
   normalizeCaseInsertNavigationSurfaceForPane,
@@ -20,6 +20,9 @@ import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditor
 import {
   createAppCaseInsertPresetWorkflowOwner,
 } from './appCaseInsertPresetWorkflow'
+import {
+  createApplicationCaseInsertPresetEditorApplyPort,
+} from './appCaseInsertPresetEditorApply'
 import {
   createCaseInsertPresetPresentationController,
 } from './caseInsertPresetPresentationController'
@@ -214,6 +217,16 @@ import {
 import { useCaseInsertPreviewPointerDrag } from '../interaction/useCaseInsertPreviewPointerDrag'
 import { useDiscPreviewPointerDrag } from '../interaction/useDiscPreviewPointerDrag'
 import {
+  createCaseInsertContinuousEditCoordinator,
+  type CaseInsertContinuousEditValue,
+} from '../interaction/caseInsertContinuousEditCoordinator'
+import {
+  CaseInsertContinuousEditBoundary,
+} from '../interaction/caseInsertContinuousEditContext'
+import type {
+  CaseInsertContinuousEditPresentationPort,
+} from '../interaction/caseInsertContinuousEditPresentationPort'
+import {
   getDiscTextPreviewTransform,
   type SteamLogoPlacement,
 } from '../discText/index'
@@ -270,6 +283,9 @@ import { selectHomeResumeProjectSummary } from './appHomeResume'
 import type {
   ApplicationCommandId,
 } from '../lifecycle/applicationCommandTypes'
+import type {
+  ApplicationCaseInsertContinuousEditPort,
+} from './applicationCaseInsertContinuousEditPort'
 
 type SteamMetadataApplyOptions = {
   announce?: boolean
@@ -338,6 +354,76 @@ function App() {
   const [projectJewelCase, setProjectJewelCase] = useState(() =>
     createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
   )
+  const activeCaseInsertSessionIdRef = useRef<string | null>(null)
+  const [caseInsertContinuousEditCoordinator] = useState(() =>
+    createCaseInsertContinuousEditCoordinator({
+      frameScheduler: {
+        schedule: (callback) => window.requestAnimationFrame(callback),
+        cancel: (frameHandle) => window.cancelAnimationFrame(frameHandle),
+      },
+      getActiveCaseSessionId: () => activeCaseInsertSessionIdRef.current,
+    }),
+  )
+  const [
+    caseInsertContinuousEditSynchronizationEpoch,
+    setCaseInsertContinuousEditSynchronizationEpoch,
+  ] = useState(0)
+  const completeCaseInsertContinuousEdit = useCallback((
+    targetId: string | undefined,
+    flush: boolean,
+  ) => {
+    const complete = () => {
+      const sessionId = activeCaseInsertSessionIdRef.current
+      const result = targetId && sessionId
+        ? caseInsertContinuousEditCoordinator.finish({ sessionId, targetId })
+        : caseInsertContinuousEditCoordinator.finish()
+      if (result.status === 'finished') {
+        setCaseInsertContinuousEditSynchronizationEpoch((epoch) => epoch + 1)
+      }
+    }
+
+    if (flush) {
+      flushSync(complete)
+    } else {
+      complete()
+    }
+  }, [caseInsertContinuousEditCoordinator])
+  const finishCaseInsertContinuousEdit = useCallback((targetId?: string) => {
+    completeCaseInsertContinuousEdit(targetId, true)
+  }, [completeCaseInsertContinuousEdit])
+  const releaseCaseInsertContinuousEdit = useCallback((targetId?: string) => {
+    completeCaseInsertContinuousEdit(targetId, false)
+  }, [completeCaseInsertContinuousEdit])
+  const [caseInsertContinuousEditPresentationPort] =
+    useState<CaseInsertContinuousEditPresentationPort>(() => ({
+      update<Value extends CaseInsertContinuousEditValue>({
+        targetId,
+        value,
+        project,
+      }: Readonly<{
+        targetId: string
+        value: Value
+        project(value: Value): void
+      }>) {
+        const sessionId = activeCaseInsertSessionIdRef.current
+        if (!sessionId) return
+        caseInsertContinuousEditCoordinator.stage({
+          sessionId,
+          targetId,
+          value,
+          project,
+        })
+      },
+      finish: finishCaseInsertContinuousEdit,
+      release: releaseCaseInsertContinuousEdit,
+    }))
+  const [caseInsertContinuousEditApplicationPort] =
+    useState<ApplicationCaseInsertContinuousEditPort>(() => ({
+      finish() {
+        finishCaseInsertContinuousEdit()
+        return Object.freeze({ status: 'success', value: undefined })
+      },
+    }))
   const [activeCaseInsertTemplatePane, setActiveCaseInsertTemplatePane] =
     useState<CaseInsertTemplatePaneId>('cover')
   const [
@@ -925,6 +1011,7 @@ function App() {
     cancelCaseInsertPreviewPointerDrag,
     caseInsertPreviewPointerHandlers,
   } = useCaseInsertPreviewPointerDrag({
+    continuousEdit: caseInsertContinuousEditPresentationPort,
     preview: {
       caseInsertPreviewRef,
       activeTemplatePane: activeCaseInsertTemplatePane,
@@ -1419,6 +1506,7 @@ function App() {
       : null
     cancelPreviewPointerDrag()
     cancelCaseInsertPreviewPointerDrag()
+    caseInsertContinuousEditCoordinator.retire()
     activeDiscPreset.clearActivePreset()
 
     resetDiscTemplateState()
@@ -1447,6 +1535,7 @@ function App() {
       : null
     const blankTitle = blank?.game.manualTitle ?? DEFAULT_CASE_INSERT_PROJECT_TITLE
     cancelCaseInsertPreviewPointerDrag()
+    caseInsertContinuousEditCoordinator.retire()
     activeDiscPreset.clearActivePreset()
 
     setManualGameTitle(blankTitle)
@@ -1471,6 +1560,7 @@ function App() {
   function handleCaseInsertNavigationSurfaceChange(
     surfaceId: CaseInsertNavigationSurfaceId,
   ) {
+    finishCaseInsertContinuousEdit()
     const route = getCaseInsertNavigationRoute(surfaceId)
 
     setActiveCaseInsertNavigationSurface(route.navigationSurfaceId)
@@ -1480,6 +1570,7 @@ function App() {
   function handleActiveCaseInsertTemplatePaneChange(
     paneId: CaseInsertTemplatePaneId,
   ) {
+    finishCaseInsertContinuousEdit()
     setActiveCaseInsertTemplatePane(paneId)
     setActiveCaseInsertNavigationSurface(
       normalizeCaseInsertNavigationSurfaceForPane(
@@ -1760,6 +1851,12 @@ function App() {
   }
 
   const applicationLifecycleRoot = useApplicationLifecycleRoot({
+    caseInsertContinuousEdit: caseInsertContinuousEditApplicationPort,
+    caseInsertPresetEditorApply:
+      createApplicationCaseInsertPresetEditorApplyPort({
+        batchReactUpdates: (apply) => unstable_batchedUpdates(apply),
+        setProjectJewelCase,
+      }),
     open: {
       stageCandidate: () => stageAppProjectOpen({
       openDialog: async (options) => open({
@@ -1959,6 +2056,24 @@ function App() {
     applicationLifecycleRoot.getSnapshot,
     applicationLifecycleRoot.getSnapshot,
   )
+  const activeCaseInsertSessionId =
+    applicationCommandSnapshot.lifecycle.activeSession?.kind === 'caseInsert'
+      ? applicationCommandSnapshot.lifecycle.activeSession.id
+      : null
+  useLayoutEffect(() => {
+    activeCaseInsertSessionIdRef.current = activeCaseInsertSessionId
+    const status = caseInsertContinuousEditCoordinator.getStatus()
+    if (status.active && status.sessionId !== activeCaseInsertSessionId) {
+      caseInsertContinuousEditCoordinator.retire()
+    }
+  }, [
+    activeCaseInsertSessionId,
+    caseInsertContinuousEditCoordinator,
+  ])
+  useLayoutEffect(() => () => {
+    activeCaseInsertSessionIdRef.current = null
+    caseInsertContinuousEditCoordinator.retire()
+  }, [caseInsertContinuousEditCoordinator])
   const [caseInsertPresetWorkflowOwner] = useState(() =>
     createAppCaseInsertPresetWorkflowOwner({
       lifecycle: applicationLifecycleRoot,
@@ -1975,6 +2090,12 @@ function App() {
         })
       },
     }))
+  useLayoutEffect(() => {
+    caseInsertPresetPresentation.synchronize()
+  }, [
+    applicationCommandSnapshot.stateGeneration,
+    caseInsertPresetPresentation,
+  ])
   const exportPngDisabled =
     !applicationCommandSnapshot.capabilities['export.png'].canExecute
   const getWorkflowFallbackFocus = useCallback(() => {
@@ -2021,12 +2142,29 @@ function App() {
     if (activeWorkspace === 'home') return
     const session = applicationLifecycleRoot.getLifecycleState().activeSession
     if (!session || session.kind !== activeWorkspace) return
+    if (
+      activeWorkspace === 'caseInsert' &&
+      caseInsertContinuousEditCoordinator.isActive()
+    ) return
 
     applicationLifecycleRoot.synchronizeCurrentProject({
       sessionId: session.id,
       kind: activeWorkspace,
       project: captureCurrentSavedProject(),
     })
+  }, [
+    activeWorkspace,
+    applicationLifecycleRoot,
+    captureCurrentSavedProject,
+    caseInsertContinuousEditCoordinator,
+    caseInsertContinuousEditSynchronizationEpoch,
+  ])
+
+  useLayoutEffect(() => {
+    if (activeWorkspace === 'home') return
+    const session = applicationLifecycleRoot.getLifecycleState().activeSession
+    if (!session || session.kind !== activeWorkspace) return
+
     applicationLifecycleRoot.synchronizeCurrentEditorRoute({
       sessionId: session.id,
       kind: activeWorkspace,
@@ -2041,7 +2179,6 @@ function App() {
     activeCaseInsertNavigationSurface,
     activeWorkspace,
     applicationLifecycleRoot,
-    captureCurrentSavedProject,
   ])
 
   useLayoutEffect(() => {
@@ -2292,6 +2429,10 @@ function App() {
   if (activeWorkspace === 'caseInsert') {
     return (
       <>
+        <CaseInsertContinuousEditBoundary
+          key={activeCaseInsertSessionId ?? 'case-session-unavailable'}
+          port={caseInsertContinuousEditPresentationPort}
+        >
         <ApplicationWorkflowHostBoundary
           controller={workflowNavigationRouter.controller}
           hostContentRef={workflowNavigationRouter.hostContentRef}
@@ -2368,6 +2509,7 @@ function App() {
         }}
         />
         </ApplicationWorkflowHostBoundary>
+        </CaseInsertContinuousEditBoundary>
         <ProjectReplacementDialog
           onDecision={replacementPrompt.decide}
           open={replacementPrompt.open}

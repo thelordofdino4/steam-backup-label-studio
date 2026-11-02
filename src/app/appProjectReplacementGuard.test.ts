@@ -24,6 +24,9 @@ import {
   isProjectReplacementAuthorizationCurrent,
   type ProjectReplacementDecision,
 } from './appProjectReplacementGuard.ts'
+import type {
+  ApplicationCaseInsertContinuousEditFinishResult,
+} from './applicationCaseInsertContinuousEditPort.ts'
 
 function project(title: string): SavedDiscProject {
   const blank = createBlankDiscSavedProject()
@@ -153,6 +156,69 @@ test('dirty Cancel mutates nothing and Discard authorizes one exact revision', a
       )
     }
   }
+})
+
+test('replacement guard finishes continuous edits before each state inspection', async () => {
+  const initial = createNewProjectSession({
+    sessionId: 'finish-before-inspect',
+    project: project('Dirty'),
+  })
+  const harness = createHarness(initial)
+  const calls: string[] = []
+  const guard = createProjectReplacementGuard(
+    () => ({
+      promptForReplacementDecision: async () => {
+        calls.push('prompt')
+        return 'discard'
+      },
+    }),
+    async () => commandSucceeded(undefined),
+    () => ({
+      finish() {
+        calls.push('finish')
+        return Object.freeze({ status: 'success', value: undefined })
+      },
+    }),
+  )
+
+  const result = await guard(harness.context, harness.operation)
+
+  assert.equal(result.status, 'success')
+  assert.deepEqual(calls, ['finish', 'prompt', 'finish'])
+})
+
+test('replacement guard aborts before inspection when continuous-edit finish fails', async () => {
+  const initial = createNewProjectSession({
+    sessionId: 'finish-failure',
+    project: project('Keep me'),
+  })
+  const harness = createHarness(initial)
+  let promptCount = 0
+  const finishFailure: ApplicationCaseInsertContinuousEditFinishResult =
+    Object.freeze({
+      status: 'failure',
+      error: Object.freeze({
+        code: 'case.continuous-edit-stale-session',
+        userMessage: 'The edit belongs to a replaced project.',
+        recoverable: true,
+      }),
+    })
+  const guard = createProjectReplacementGuard(
+    () => ({
+      promptForReplacementDecision: async () => {
+        promptCount += 1
+        return 'discard'
+      },
+    }),
+    async () => commandSucceeded(undefined),
+    () => ({ finish: () => finishFailure }),
+  )
+
+  const result = await guard(harness.context, harness.operation)
+
+  assert.equal(result, finishFailure)
+  assert.equal(promptCount, 0)
+  assert.equal(harness.getState(), initial)
 })
 
 test('Save permits replacement only when the latest session becomes clean', async () => {

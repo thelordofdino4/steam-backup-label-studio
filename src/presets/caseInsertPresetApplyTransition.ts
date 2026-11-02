@@ -45,7 +45,6 @@ import type {
 } from './caseInsertPresetArtworkViewport.ts'
 import {
   createCaseInsertPresetAttachedEndpoint,
-  createCaseInsertPresetUnattachedEndpoint,
   isCaseInsertPresetAttachmentEndpoint,
   type CaseInsertPresetAttachmentEndpoint,
 } from './caseInsertPresetAttachmentEndpoint.ts'
@@ -90,6 +89,8 @@ export const CASE_INSERT_PRESET_APPLY_REVIEW_APPROVAL_KIND =
   'sbls/case-insert-preset-apply-review-approval' as const
 export const CASE_INSERT_PRESET_MATERIAL_CONSENT_ACCEPTANCE_KIND =
   'sbls/case-insert-preset-material-consent-acceptance' as const
+export const CASE_INSERT_PRESET_ONE_SHOT_EXECUTION_IDENTITY_PREFIX =
+  'case:preset-apply-one-shot-execution:v1:' as const
 export const CASE_INSERT_PRESET_APPLY_TRANSITION_SUCCESS_VERSION = 1 as const
 
 export {
@@ -127,7 +128,7 @@ export type CaseInsertPresetMaterialConsentAcceptance =
 export type CaseInsertPresetAttachmentAssertion =
   CaseInsertPresetAttachmentEndpoint
 
-export type ApplyCaseInsertPresetFirstTimeInput = Readonly<{
+type ApplyCaseInsertPresetFirstTimeInputCommon = Readonly<{
   planningResult: CaseInsertPresetApplyPlanningResult
   source: Readonly<{
     projectKind: 'caseInsert'
@@ -140,10 +141,22 @@ export type ApplyCaseInsertPresetFirstTimeInput = Readonly<{
     requestedScope: CaseInsertPresetApplicationScope
   }>
   attachment: CaseInsertPresetAttachmentAssertion
-  reviewApproval: CaseInsertPresetApplyReviewApproval | null
-  materialConsentAcceptances:
-    readonly CaseInsertPresetMaterialConsentAcceptance[]
 }>
+
+export type ApplyCaseInsertPresetFirstTimeInput =
+  ApplyCaseInsertPresetFirstTimeInputCommon & (
+    | Readonly<{
+        executionMode?: 'reviewed'
+        reviewApproval: CaseInsertPresetApplyReviewApproval | null
+        materialConsentAcceptances:
+          readonly CaseInsertPresetMaterialConsentAcceptance[]
+      }>
+    | Readonly<{
+        executionMode: 'one-shot-content-preserving'
+        reviewApproval?: never
+        materialConsentAcceptances?: never
+      }>
+  )
 
 type FailureCode = Readonly<{
   ok: false
@@ -932,6 +945,48 @@ function validateConsent(
     : null
 }
 
+function isOneShotContentPreservingPlan(plan: CaseInsertPresetApplyPlan) {
+  const viewportPreservedFieldIds = [
+    'image-data',
+    'image-provenance',
+    'image-dimensions',
+    'label',
+    'enabled',
+    'frame',
+    'layout-rotation',
+  ] as const
+  const ownersOutsideScope = plan.preservationDecisions.find((decision) =>
+    decision.category === 'owners-outside-requested-scope')
+  return plan.requestedScope.kind === 'complete' &&
+    plan.blockers.length === 0 &&
+    plan.fieldActions.every((action) =>
+      actionKindMatchesField(action) &&
+      action.preservationClassification === 'layout-only-preserve-content') &&
+    plan.objectCreationActions.every((action) =>
+      action.kind === 'create-empty-repeated-artwork-slot' &&
+      action.before.presence === 'absent' &&
+      action.before.exactMatchCount === 0 &&
+      action.canonicalInitialObject.imageDataUrl === null &&
+      action.canonicalInitialObject.enabled === false) &&
+    plan.artworkViewportActions.every((action) =>
+      action.kind === 'adopt-reserved-artwork-viewport' &&
+      viewportPreservedFieldIds.every((fieldId) =>
+        action.preservedFieldIds.includes(fieldId)) &&
+      action.evidence.plan.preservation.imageBytes ===
+        'preserved-outside-boundary' &&
+      action.evidence.plan.preservation.provenance ===
+        'preserved-by-identity' &&
+      action.evidence.plan.preservation.contentBounds ===
+        'read-only-source-authority' &&
+      action.evidence.plan.preservation.destructiveCrop === 'not-performed' &&
+      action.evidence.plan.preservation.assetReplacement === 'not-requested' &&
+      action.evidence.plan.preservation.projectMutation === 'not-performed') &&
+    plan.preservationDecisions.every((decision) =>
+      decision.classification === 'preserved') &&
+    ownersOutsideScope?.classification === 'preserved' &&
+    ownersOutsideScope.evidence.present === true
+}
+
 function currentFieldValue(
   target: CaseInsertPresetSnapshotObjectState,
   fieldId: CaseInsertPresetPlanFieldId,
@@ -1041,6 +1096,7 @@ function preflightTargets(
 function buildConfigurationCandidate(
   plan: CaseInsertPresetApplyPlan,
   acceptedConsentIds: readonly `case:preset-consent:${string}`[],
+  reviewedWarningIds: readonly string[],
 ): CaseInsertPresetAppliedConfigurationCandidate {
   if (plan.objectCreationActions.length === 0 &&
       plan.artworkViewportActions.length === 0) {
@@ -1066,9 +1122,7 @@ function buildConfigurationCandidate(
           object: { ...source.object },
         })),
       })),
-      reviewedWarningIds: plan.warnings.map(
-        createCaseInsertPresetPlanWarningIdentity,
-      ),
+      reviewedWarningIds: [...reviewedWarningIds],
       acceptedMaterialConsentRequirementIds: [...acceptedConsentIds],
     })
   }
@@ -1194,9 +1248,7 @@ function buildConfigurationCandidate(
     reviewedPlanIdentity: plan.reviewIdentity,
     sourceSnapshotIdentity: cloneMutable(plan.source.snapshotIdentity),
     ownedFields: fields,
-    reviewedWarningIds: plan.warnings.map(
-      createCaseInsertPresetPlanWarningIdentity,
-    ),
+    reviewedWarningIds: [...reviewedWarningIds],
     acceptedMaterialConsentRequirementIds: [...acceptedConsentIds],
   })
 }
@@ -1253,21 +1305,26 @@ export function applyCaseInsertPresetFirstTime(
   if (!validated.ok) return validated
   const { plan, planningStatus } = validated
 
-  const reviewFailure = validateReview(plan, input.reviewApproval)
-  if (reviewFailure) return reviewFailure
-  const consentFailure = validateConsent(
-    plan,
-    input.materialConsentAcceptances,
-  )
-  if (consentFailure) return consentFailure
+  const oneShot = input.executionMode === 'one-shot-content-preserving'
+  if (oneShot) {
+    if (!isOneShotContentPreservingPlan(plan)) {
+      return failure(
+        'unsupported-action',
+        'one-shot-content-destructive-plan-blocked',
+      )
+    }
+  } else {
+    const reviewFailure = validateReview(plan, input.reviewApproval)
+    if (reviewFailure) return reviewFailure
+    const consentFailure = validateConsent(
+      plan,
+      input.materialConsentAcceptances,
+    )
+    if (consentFailure) return consentFailure
+  }
 
   if (!isCaseInsertPresetAttachmentEndpoint(input.attachment)) {
     return failure('invalid-source-aggregate', 'attachment-assertion-invalid')
-  }
-  if (input.attachment.status === 'attached') {
-    return failure('already-attached', 'preset-configuration-already-attached', {
-      configurationIdentity: input.attachment.configurationIdentity,
-    })
   }
 
   if (!isRecord(input.source) || input.source.projectKind !== 'caseInsert') {
@@ -1380,10 +1437,16 @@ export function applyCaseInsertPresetFirstTime(
   }
   const normalizedResult = fieldTransition.aggregate as ProjectJewelCaseState
 
-  const acceptedConsentIds = plan.materialConsentRequirements.map(({ id }) => id)
+  const acceptedConsentIds = oneShot
+    ? []
+    : plan.materialConsentRequirements.map(({ id }) => id)
+  const reviewedWarningIds = oneShot
+    ? []
+    : plan.warnings.map(createCaseInsertPresetPlanWarningIdentity)
   const configurationCandidate = buildConfigurationCandidate(
     plan,
     acceptedConsentIds,
+    reviewedWarningIds,
   )
   const aggregate = deepFreeze(cloneMutable(normalizedResult))
   const status = planningStatus === 'semantic-no-op'
@@ -1419,15 +1482,27 @@ export function applyCaseInsertPresetFirstTime(
   const planIdentity = `case:preset-apply-plan:v2:${
     encodeCaseInsertPresetDeterministicIdentity(plan)
   }`
-  const reviewAcceptanceIdentity =
-    `case:preset-apply-review-acceptance:v1:${
-      encodeCaseInsertPresetDeterministicIdentity(input.reviewApproval)
-    }`
-  const materialConsentAcceptanceIdentities =
-    input.materialConsentAcceptances.map((acceptance) =>
-      `case:preset-apply-consent-acceptance:v1:${
-        encodeCaseInsertPresetDeterministicIdentity(acceptance)
-      }`)
+  const sourceAttachment = input.attachment
+  const sourceConfigurationIdentity = sourceAttachment.status === 'attached'
+    ? sourceAttachment.configurationIdentity
+    : null
+  const reviewAcceptanceIdentity = oneShot
+    ? `${CASE_INSERT_PRESET_ONE_SHOT_EXECUTION_IDENTITY_PREFIX}${
+        encodeCaseInsertPresetDeterministicIdentity({
+          executionMode: input.executionMode,
+          planReviewIdentity: plan.reviewIdentity,
+          sourceAttachment,
+        })
+      }`
+    : `case:preset-apply-review-acceptance:v1:${
+        encodeCaseInsertPresetDeterministicIdentity(input.reviewApproval)
+      }`
+  const materialConsentAcceptanceIdentities = oneShot
+    ? []
+    : input.materialConsentAcceptances.map((acceptance) =>
+        `case:preset-apply-consent-acceptance:v1:${
+          encodeCaseInsertPresetDeterministicIdentity(acceptance)
+        }`)
   const successorConfiguration = validatedConfiguration.configuration
   const successEvidence = createCaseInsertPresetTransitionSuccessEvidence({
     operation: 'apply',
@@ -1451,11 +1526,11 @@ export function applyCaseInsertPresetFirstTime(
       sourceAggregateContent.aggregateContentIdentity,
     resultAggregateContentIdentity:
       resultAggregateContent.aggregateContentIdentity,
-    sourceAttachment: createCaseInsertPresetUnattachedEndpoint(),
+    sourceAttachment,
     successorAttachment: createCaseInsertPresetAttachedEndpoint(
       successorConfiguration.configurationIdentity,
     ),
-    sourceConfigurationIdentity: null,
+    sourceConfigurationIdentity,
     successorConfigurationIdentity:
       successorConfiguration.configurationIdentity,
     configurationReleaseIdentity: null,
@@ -1594,19 +1669,23 @@ export function validateCaseInsertPresetApplyTransitionSuccess(
     CaseInsertPresetTransitionSuccessEvidence
   if (!isRecord(evidence.context) || !isRecord(evidence.lineage) ||
       !isCaseInsertPresetAttachmentEndpoint(evidence.sourceAttachment) ||
-      !isCaseInsertPresetAttachmentEndpoint(evidence.successorAttachment) ||
-      evidence.sourceAttachment.status !== 'unattached') {
+      !isCaseInsertPresetAttachmentEndpoint(evidence.successorAttachment)) {
     return applySuccessValidationFailure(
       'source-attachment-mismatch',
-      'apply-source-attachment-not-authoritative-absence',
+      'apply-source-attachment-invalid',
     )
   }
+  const expectedSourceConfigurationIdentity =
+    evidence.sourceAttachment.status === 'attached'
+      ? evidence.sourceAttachment.configurationIdentity
+      : null
   if (evidence.successorAttachment.status !== 'attached' ||
       evidence.successorAttachment.configurationIdentity !==
         promoted.configuration.configurationIdentity ||
       evidence.successorConfigurationIdentity !==
         promoted.configuration.configurationIdentity ||
-      evidence.sourceConfigurationIdentity !== null ||
+      evidence.sourceConfigurationIdentity !==
+        expectedSourceConfigurationIdentity ||
       evidence.configurationReleaseIdentity !== null) {
     return applySuccessValidationFailure(
       'successor-attachment-mismatch',
@@ -1619,13 +1698,21 @@ export function validateCaseInsertPresetApplyTransitionSuccess(
       !evidence.lineage.planReviewIdentity.startsWith(
         'case:preset-apply-review:v1:',
       ) || typeof evidence.lineage.reviewAcceptanceIdentity !== 'string' ||
-      !evidence.lineage.reviewAcceptanceIdentity.startsWith(
+      (!evidence.lineage.reviewAcceptanceIdentity.startsWith(
         'case:preset-apply-review-acceptance:v1:',
-      ) || !Array.isArray(
+      ) && !evidence.lineage.reviewAcceptanceIdentity.startsWith(
+        CASE_INSERT_PRESET_ONE_SHOT_EXECUTION_IDENTITY_PREFIX,
+      )) || !Array.isArray(
         evidence.lineage.materialConsentAcceptanceIdentities,
       ) || evidence.lineage.planReviewIdentity !==
-        promoted.configuration.reviewedPlanIdentity ||
+      promoted.configuration.reviewedPlanIdentity ||
       evidence.lineage.operationTransitionIdentity !== null ||
+      (evidence.lineage.reviewAcceptanceIdentity.startsWith(
+        CASE_INSERT_PRESET_ONE_SHOT_EXECUTION_IDENTITY_PREFIX,
+      ) && (evidence.lineage.materialConsentAcceptanceIdentities.length !== 0 ||
+        promoted.configuration.reviewedWarningIds.length !== 0 ||
+        promoted.configuration.acceptedMaterialConsentRequirementIds.length !==
+          0)) ||
       evidence.lineage.materialConsentAcceptanceIdentities.some(
         (identity) => typeof identity !== 'string' || !identity.startsWith(
           'case:preset-apply-consent-acceptance:v1:',
@@ -1672,7 +1759,7 @@ export function validateCaseInsertPresetApplyTransitionSuccess(
       resultAggregate.aggregateContentIdentity,
     sourceAttachment: evidence.sourceAttachment,
     successorAttachment: evidence.successorAttachment,
-    sourceConfigurationIdentity: null,
+    sourceConfigurationIdentity: expectedSourceConfigurationIdentity,
     successorConfigurationIdentity:
       promoted.configuration.configurationIdentity,
     configurationReleaseIdentity: null,

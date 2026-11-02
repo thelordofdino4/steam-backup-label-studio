@@ -4,9 +4,9 @@
 > Purpose: Define application-command semantics, the single-project session lifecycle, dirty/baseline rules, lifecycle guards, and shared result/feedback boundaries for future implementation.
 > Read when: Application commands, Home/editor navigation, project New/Open/Save/Save As/Close behavior, native close/Quit handling, global shortcuts, or lifecycle feedback are being designed or changed.
 > Authoritative source: This document for the target application-command and project-session contract; `PROJECT_FILE_SPEC.md` remains authoritative for hydrated serialized project schema, `PROJECT_PACKAGE_FORMAT_CONTRACT.md` owns target package/container behavior, and the SDD remains authoritative for broader architecture and current as-built boundaries.
-> Evidence baseline: PR #327 merged to `main` at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172`, PR #349 merged to `main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996`, plus the focused pure Case session-application and adoption-commit checkpoints documented below.
+> Evidence baseline: PR #327 merged to `main` at `43a6d8f5ca7b1b2e040c68e0a7cace2b111a4172`, PR #349 merged to `main` at `e9ae6f9d3002816aeb48f85281211f07b3b22996`, plus the focused Case lifecycle/store, schema `0.4.0`, exact-selection, one-shot Apply, and continuous-edit scheduling checkpoints documented below through 2026-08-24.
 
-Last refreshed: 2026-08-03.
+Last refreshed: 2026-08-24.
 
 Implementation checkpoint, 2026-07-30: one production lifecycle composition
 root is mounted at the React application boundary. `project.new-disc`,
@@ -17,7 +17,12 @@ candidate through the shared owner, and commits a path-bearing clean session
 with truthful `sbls-package-v1` or `legacy-json` identity. After every committed
 React editor update, one focused boundary synchronizes the complete normalized
 Disc or Case aggregate into the active session; canonical equality is a
-revision/publication no-op. Save and Save As capture immutable snapshot `R`
+revision/publication no-op. During one active continuous Case range or direct-
+drag interaction, a Case-only coordinator may project the latest editor value
+at most once per animation frame while that ordinary synchronization effect is
+paused. Completion synchronously publishes the complete normalized aggregate
+once before Save, Save As, replacement guarding, Return Home, or PNG export
+captures state. Save and Save As capture immutable snapshot `R`
 from that lifecycle-owned current project,
 write `.sbls` package bytes through the native codec/atomic-writer composition,
 and adopt `sbls-package-v1`, the committed path, and the exact written baseline
@@ -25,19 +30,21 @@ only after success. They perform no post-commit editor recapture. If current
 content advances to `R+1` while `R` writes, `R+1` remains current, baseline `R`
 is adopted, and the session remains dirty.
 
-Focused Case checkpoint, 2026-08-03: Case sessions are now discriminated from
+Focused Case checkpoint, 2026-08-23: Case sessions are discriminated from
 Disc sessions. The complete normalized Case aggregate still exists only at
 `ProjectSession.project.caseInsert`; a
 required `caseInsertPresetApplication` companion owns only session-scoped preset
 attachment, a distinct application revision, the exact assignment-snapshot
-identity, and one canonical application-state identity. New and Open initialize
-that companion as unattached at application revision zero. Complete editor
+identity, recovery status, and one canonical application-state identity. New
+initializes that companion as unattached at application revision zero; Open
+reconstructs the exact schema `0.4.0` persisted attachment/configuration.
+Complete editor
 synchronization advances the persisted-content revision once for a real
 canonical Case project-content change. It advances the Case application
 revision only when `project.caseInsert`, and therefore the reconstructed
 application snapshot, changes; a canonical project-content no-op advances
-neither revision. This representation can express a future Detach whose Case
-aggregate is unchanged but whose attachment and application identity advance.
+neither revision. The retained Detach domain can represent an unchanged Case
+aggregate whose attachment and application identity advance.
 A source-owned validated, versioned, operation-discriminated adoption bundle
 now retains the exact current application snapshot, audited transition evidence,
 successor application state, and existing adoption receipt. A pure lifecycle
@@ -45,9 +52,15 @@ preparer binds one exact source `ProjectSession` and that bundle into a complete
 deterministic successor-authorization envelope; its pure commit boundary
 revalidates the envelope, performs full-session compare-and-swap, and returns
 the complete successor session and existing receipt together or neither. The
-adapter does not install that successor in the lifecycle store, and no workflow
-UI, schema, save/load, package, persistence, or runtime production connection is
-implemented by this checkpoint.
+existing command installs that successor under full-session/store-generation
+CAS. Save/Open project and recover the narrow schema `0.4.0` state. The
+production Case panel exposes a neutral exact selector plus one **Apply preset**
+action. Its explicit `one-shot-content-preserving` path may attach or replace
+the exact current attachment, including selected revision 2 over revision 1,
+without synthesizing legacy review/acknowledgement/consent artifacts or
+substituting latest implicitly. Low-level reviewed Apply, same-exact-revision
+Reapply, and Detach remain compatibility/domain infrastructure rather than
+ordinary controls.
 
 New Disc, New Case, and Open consume one shared dirty-aware
 Save/Discard/Cancel guard with session-ID/revision authorization. Return Home
@@ -156,7 +169,11 @@ slice.
 | Historical “Save Project” was dialog-only JSON Save As. The current Project File control dispatches `project.save`; `project.save-as` is a distinct semantic owner. Only a truthful package session with an eligible `.sbls` path writes directly, while pathless, legacy, and wrong-suffix sessions route internally through Save As. A successful clean direct write remains successful when baseline adoption is already a semantic no-op. | `src/app/appProjectSaveCommand.ts`, `src/app/App.tsx`, focused tests | The production bypass was removed without adding menu presentation. |
 | A project successfully accepted through `project.open` receives an authoritative session ID, selected path, content-recognized `legacy-json` or `sbls-package-v1`, exact normalized project and clean baseline, revision zero, and editor route. New Disc/New Case establish pathless, baseline-less, dirty sessions with null persistence identity. Successful package writes preserve the session ID and adopt `sbls-package-v1` only after commit. | `src/app/appProjectLoad.ts`, `src/app/appProjectOpenCommand.ts`, `src/app/appProjectNewCommand.ts`, `src/app/appProjectSaveCommand.ts`, `src/lifecycle/projectSession.ts`, `src/app/App.tsx` | Issue #308 remains the principal owner for Close, termination, and broader lifecycle completion. |
 | Disc and Case editor owners still own their editable React state. A committed-render adapter supplies one complete normalized aggregate to `synchronizeCurrentProject`; equal canonical content is a reference/state/revision/publication no-op, while a real content change preserves session metadata and advances revision once. | `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/lifecycle/applicationLifecycleCompositionRoot.ts`, focused tests | The lifecycle session is now the authoritative Save/dirty source without moving editor state into a reducer. Session-only route, pane, focus, zoom, selection, modal, and workflow-host state stays outside dirty comparison. |
-| `ProjectSession` is discriminated by project kind. A Case session keeps its sole complete persistable aggregate at `project.caseInsert` and carries one required `caseInsertPresetApplication` companion containing only session-scoped attachment, assignment-snapshot identity, distinct application revision, recovery status, and application-state identity. New Case sessions start unattached at application revision zero; Open reconstructs the explicit schema `0.4.0` projection. The source adoption owner emits one validated operation-discriminated bundle; the pure lifecycle boundary binds it to the exact source session; the existing command installs the complete authorized successor under full-session/store-generation CAS; and the presentation-neutral application owner now coordinates explicit selection/review through that command. | `src/lifecycle/projectSession.ts`, `src/lifecycle/caseInsertPresetSessionApplication.ts`, `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`, `src/project/caseInsertPresetProjectPersistence.ts`, `src/app/appCaseInsertPresetWorkflow.ts`, focused tests | An aggregate-changing adoption advances persisted-content `revision` once; attachment-only adoption retains that revision while its application revision advances once. The production Case catalog contains only Jewel Case Essentials revision 1; the accessible Case workflow starts with neutral selection and invokes orchestration only after explicit user selection. Orchestration reuses the existing installation owner rather than duplicating it. |
+| Before the focused continuous-edit checkpoint, a Case range with a live `onInput` path also supplied React `onChange`; React 19 range-event behavior could therefore invoke the same mutation twice for one native input tick. Each real committed Case change then ran complete normalization, canonical project serialization/comparison, complete Case aggregate SHA-256/application projection, lifecycle revision/publication, identical-route recheck, and the unchanged native-menu projection path. A deterministic 20-update harness observed 20 synchronizations, publications, project/application revision advances, and menu projection opportunities. A supplemental 4 MiB embedded-asset diagnostic measured approximately 24.3 ms per full lifecycle synchronization, 20.7 ms for preset application projection, 21.5 ms for aggregate validation/hash, and 0.008 ms for the viewport artifact alone. | `src/components/editor/EditorRangeField.tsx`, `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/caseInsert/presetAggregateIdentity.ts`, application-menu projection source, focused diagnostic tests | These are deterministic source/harness measurements, not native frame-time acceptance. The bottleneck was complete synchronous project/lifecycle identity work, not viewport geometry. |
+| The current Case-only continuous-edit coordinator retains only the active session ID, stable target ID, latest validated scalar-or-point projection, and at most one animation-frame handle; it owns no project aggregate or second editor store. Latest input wins and React visual state projects at most once per frame. While active, the ordinary React-to-lifecycle project synchronization effect skips intermediate Case projections. Finish retires the edit first, synchronously projects any unpainted latest value, and advances a completion epoch so one complete aggregate synchronization runs even when the latest value was already painted. Wrong-session work is retired; wrong-target completion cannot authorize another target. | `src/interaction/caseInsertContinuousEditCoordinator.ts`, `src/interaction/caseInsertContinuousEditPresentationPort.ts`, `src/interaction/caseInsertContinuousEditContext.tsx`, `src/app/App.tsx`, focused tests | React feature owners remain the live editor authority and lifecycle remains the final authoritative Save/dirty authority. Dirty state and attached-preset customization observe the completed aggregate, not every intermediate input sample. |
+| Native range/number controls retain their labels, focus, keyboard semantics, validation, and browser input ownership. The shared neutral range field now uses only its live native-input adapter when one is supplied, removing the duplicate React change route without changing immediate behavior outside the Case boundary. Range pointer-up/cancel/lost-capture, blur and keyboard completion finish the latest visible value once; direct Case pointer drag uses the same coordinator and finishes on pointer end/cancel/lost capture. Case surface changes finish first, and component/session retirement cancels stale scheduled work. | `src/components/editor/EditorRangeField.tsx`, `src/interaction/usePointerDrag.ts`, `src/interaction/usePointerDragAdapters.ts`, `src/interaction/useCaseInsertPreviewPointerDrag.ts`, Case preview adapters, focused tests | The optimization does not replace native inputs, suppress focus, change Case geometry, or create a new persistence value. Native smoothness and event ordering still require manual Tauri verification. |
+| Save, Save As, each dirty-replacement-guard inspection/recheck, Return Home, and Disc/Case PNG export synchronously finish a pending Case continuous edit before reading lifecycle or editor snapshot state. The project and route synchronization effects are separate, so a content tick no longer performs an identical route CAS. The Case preset presentation controller synchronizes only when lifecycle `stateGeneration` changes. | `src/app/applicationCaseInsertContinuousEditPort.ts`, `src/app/appProjectSaveCommand.ts`, `src/app/appProjectReplacementGuard.ts`, `src/app/appWorkspaceNavigationCommand.ts`, `src/app/appPngExportCommand.ts`, `src/app/applicationLifecycleRuntime.ts`, `src/app/App.tsx`, focused tests | File/menu controls and native-menu ingress still consume the same semantic owners. No native-menu projection optimization was introduced; the reduced projection frequency follows only from publishing completed continuous edits once. |
+| `ProjectSession` is discriminated by project kind. A Case session keeps its sole complete persistable aggregate at `project.caseInsert` and carries one required `caseInsertPresetApplication` companion containing only session-scoped attachment, assignment-snapshot identity, distinct application revision, recovery status, and application-state identity. New Case sessions start unattached at application revision zero; Open reconstructs the explicit schema `0.4.0` projection. The source adoption owner emits one validated operation-discriminated bundle; the pure lifecycle boundary binds it to the exact source session; and the existing command installs the complete authorized successor under full-session/store-generation CAS. The ordinary application owner coordinates exact selection and a closed one-shot Apply through that command. | `src/lifecycle/projectSession.ts`, `src/lifecycle/caseInsertPresetSessionApplication.ts`, `src/presets/caseInsertPresetApplyTransition.ts`, `src/presets/caseInsertPresetApplicationAdoptionTransition.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommit.ts`, `src/lifecycle/caseInsertPresetSessionApplicationCommand.ts`, `src/project/caseInsertPresetProjectPersistence.ts`, `src/app/appCaseInsertPresetWorkflow.ts`, focused tests | An aggregate-changing adoption advances persisted-content `revision` once; attachment-only adoption retains that revision while its application revision advances once. The production Case catalog retains Jewel Case Essentials exact revisions 1 and 2 under one identity; `list()` exposes revision 2 as the exact latest option. The neutral selector is non-dirty, and one-shot Apply can attach or replace the exact current attachment without implicit latest substitution. |
 | Home, Disc, and Case New controls dispatch `project.new-disc` or `project.new-case`; all current Load controls dispatch `project.open`. These three owners stage/prepare a complete candidate, consume one shared dirty-aware Save/Discard/Cancel guard when necessary, recheck session ID/revision, and commit lifecycle/editor state atomically. | `src/app/appProjectNewCommand.ts`, `src/app/appProjectReplacementGuard.ts`, `src/app/appProjectOpenCommand.ts`, `src/components/project/ProjectReplacementDialog.tsx`, `src/app/App.tsx` | #303's always-prompt direction is superseded in production for New/Open. Later Close/termination guarding remains separate #308 work. |
 | Open now completes dialog, read, parse, validation/migration, route resolution, Disc image inspection, restoration, preset reconstruction, and Case branding projection before returning one immutable discriminated candidate. Its lifecycle CAS and complete editor aggregate are then scheduled inside one React batch; stale CAS applies no editor state. | `src/app/appProjectLoad.ts`, `src/app/appProjectRestore.ts`, `src/app/appProjectOpenCommand.ts`, focused tests | The two-phase Open and atomic application seam is runtime-connected for current Home, Disc, and Case Load controls. |
 | Production Open calls a focused native content recognizer, then either the legacy text reader or the bounded native package reader/codec. The package branch transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open without fallback after a package failure. | `src-tauri/src/project_format_recognition.rs`, `src-tauri/src/commands/project_files.rs`, `src-tauri/src/commands/project_packages.rs`, `src/tauri/projectFileFormat.ts`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing, restoration, and lifecycle commit stay shared. Extensions affect chooser visibility and Save eligibility, never Open identity. |
@@ -361,8 +378,21 @@ A save captures one immutable normalized project snapshot `S` at persisted-
 content revision `R`. If the write succeeds, the baseline becomes exactly `S`.
 If current revision/content advanced while `S` was being written, current
 content is compared with `S` and the session remains dirty. Save success must
-never blindly force dirty to false, and it must not read or persist the Case
-preset companion.
+never blindly force dirty to false. For Case, Save captures one coherent
+aggregate-plus-application snapshot and projects the narrow
+`caseInsertLayoutPreset` schema envelope. Clean baseline and dirty comparison
+remain content-only; attachment/application metadata does not independently
+dirty the project.
+
+**Current continuous-edit checkpoint:** intermediate Case range/number/direct-
+drag projections remain ordinary React editor state, but they do not publish
+partial lifecycle snapshots. The Case coordinator finishes synchronously at an
+interaction boundary, and the committed completion epoch causes one complete
+normalized project synchronization. Canonical dirty comparison and Case preset
+customization therefore advance from the final committed value only. This is a
+scheduling boundary, not a second project store, content-identity algorithm,
+history transaction, schema value, or relaxation of the rule that semantic
+commands read the lifecycle-owned current project.
 
 ## 7. Command Definition And Dispatch Contract
 
@@ -447,6 +477,11 @@ create a parallel busy or dispatch framework.
 A nested Save selected from a replacement guard reuses the parent lifecycle
 operation token rather than attempting to acquire `lifecycle.transition` a
 second time. Arbitrary reentrant dispatch with the same scope is rejected.
+Before Save/Save As captures a snapshot, the replacement guard inspects or
+rechecks dirty state, Return Home retains a session, or PNG export captures its
+Disc/Case invocation adapter, the current implementation consumes the narrow
+Case continuous-edit finish port. A finish failure is a typed command failure;
+the owner must not continue with a stale intermediate snapshot.
 
 ## 8. Exact Minimum Command Catalog
 
@@ -636,6 +671,8 @@ The user-visible persistence invariant is:
   baseline until write/commit succeeds;
 - a failed encode/write changes neither current path, persistence format, nor
   clean baseline;
+- a pending Case continuous edit is synchronously finished before either Save
+  owner captures its immutable lifecycle snapshot;
 - the write consumes one immutable lifecycle-owned normalized snapshot, not
   live mutable state;
 - after native commit, baseline/path/format adoption reads only lifecycle state
@@ -697,6 +734,12 @@ blocked by their scopes. Correctness is preserved by immutable snapshots,
 session ID/revision checks, derived dirty comparison, and guard re-evaluation.
 An implementation may temporarily block editing instead, but it must do so
 centrally and accessibly rather than relying on individual buttons.
+
+Current New/Open replacement guarding finishes a pending Case continuous edit
+immediately before each current-state inspection or final authorization
+recheck. Open still stages and validates the candidate before that guard. A
+stale session or target cannot reuse the coordinator's retired projection to
+authorize or modify a successor session.
 
 ## 13. Global Feedback Ownership
 
@@ -812,18 +855,28 @@ invariants:
     ownership ahead of global commands.
 20. Case Front/Back/Spine navigation and other session-only state do not affect
     dirty comparison under this contract.
+21. One continuous Case target projects no more than once per animation frame;
+    a newer value replaces an unprojected older value.
+22. Intermediate continuous Case projections publish no lifecycle revision or
+    state generation; completion publishes one complete aggregate even when
+    the final visual value was already projected.
+23. Save, Save As, replacement guarding, Return Home, and PNG export finish a
+    pending Case edit before observing the authoritative snapshot, while stale
+    session/target work cannot mutate a successor.
+24. Browserless scheduler/count tests do not claim native Tauri smoothness;
+    native pointer, keyboard, focus, and frame behavior remains a manual gate.
 
 Future validation layers:
 
 | Layer | Required focus |
 | --- | --- |
-| Pure unit tests | Canonical comparison, dirty derivation, guard decisions, command capabilities, result mapping, scope conflicts, and revision authorization |
+| Pure unit tests | Canonical comparison, dirty derivation, guard decisions, command capabilities, result mapping, scope conflicts, revision authorization, and deterministic Case continuous-edit latest-wins/frame/finish/staleness behavior |
 | Session/reducer tests | Aggregate New/Open/Close commits, Home/Resume retention, Save baseline transitions, history-reset boundaries |
-| Command integration tests | Dialog/read/write ordering, cancellation/decline/failure preservation, repeated dispatch, global feedback, nested guard Save |
+| Command integration tests | Dialog/read/write ordering, cancellation/decline/failure preservation, repeated dispatch, global feedback, nested guard Save, and synchronous Case-edit finish before Save/guard/Home/export observation |
 | Project compatibility tests | Current/legacy JSON plus package hydration before schema parsing/migration; canonical Disc/Case comparison without path, format, manifest, binding, or archive metadata in project content |
 | Rust persistence tests | Bounded binary reads; same-directory exact-byte temporary writes; replacement failure recovery; cleanup; Windows replace-existing behavior; declared durability level |
-| UI accessibility tests | Capability presentation, modal focus lifecycle, global feedback on Home/editor, initiating-focus restoration |
-| Native/manual tests | Tauri file dialogs, native Close Window/Quit interception, no reentrant close loop, platform-specific persistence behavior |
+| UI accessibility tests | Capability presentation, modal focus lifecycle, global feedback on Home/editor, initiating-focus restoration, and retained native range/number input semantics |
+| Native/manual tests | Tauri file dialogs, native Close Window/Quit interception, no reentrant close loop, platform-specific persistence behavior, and Case continuous-edit responsiveness/completion under native pointer and keyboard input |
 
 Source tests cannot by themselves establish native dialog, filesystem, or
 window-event correctness. Runtime claims must distinguish automated source
@@ -901,12 +954,12 @@ current support for:
   [`APPLICATION_MENU_BAR_CONTRACT.md`](APPLICATION_MENU_BAR_CONTRACT.md);
 - detailed Export, Game, Disc Template/physical-geometry, Layout Preset, or
   Guided Workflow behavior;
-- viewport-specific Case preset workflow controls or definition-revision-2
-  consumption; the current source includes the accessible Case panel/shared-host
-  invocation, neutral initial selection, presentation-neutral reviewed
-  orchestration, existing-command store installation, and schema `0.4.0`
-  attachment/viewport persistence and recovery, while revision 1 emits no
-  viewport action;
+- broader viewport-authoring Case preset controls. Revision-2 one-shot Apply is
+  production-connected, while visible review/checklists/consent, Reapply,
+  Detach, customization policies, and attachment/recovery status remain absent
+  from ordinary UI. Their low-level operation ports plus schema `0.4.0`
+  attachment/configuration persistence and recovery remain compatibility/domain
+  infrastructure; revision 1 still emits no viewport action;
 - schema reconstruction or new persisted fields beyond the authority boundary
   stated here.
 

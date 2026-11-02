@@ -123,6 +123,7 @@ export function CaseInsertLogoSlotControls({
               {Number(layout[field.field]).toFixed(field.step < 1 ? 2 : 0)}
             </span>
           ),
+          onInput: (value) => onLayoutChange(field.field, value),
           onChange: (value) => onLayoutChange(field.field, value),
         }))}
         formatSize={formatLogoSize}

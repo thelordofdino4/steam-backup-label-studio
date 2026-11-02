@@ -33,30 +33,37 @@ export function formatEditorRangeFieldValue(
   return String(value)
 }
 
-function getFormattedRangeBoundary(value: number | string, step: number | string) {
+function getFormattedRangeBoundaryCandidates(
+  value: number | string,
+  step: number | string,
+) {
   const parsedValue = getFiniteNumber(value)
 
-  return parsedValue === null
-    ? null
-    : formatEditorRangeFieldValue(parsedValue, step)
+  if (parsedValue === null) {
+    return []
+  }
+
+  const precision = getEditorRangeFieldPrecision(step)
+
+  return [
+    formatEditorRangeFieldValue(parsedValue, step),
+    parsedValue.toFixed(precision),
+  ]
 }
 
 export function getEditorRangeFieldNumberInputCharacterCapacity({
   max,
   min,
   step,
-  value,
 }: {
   max: number | string
   min: number | string
   step: number | string
-  value: number
 }) {
   const formattedValues = [
-    formatEditorRangeFieldValue(value, step),
-    getFormattedRangeBoundary(min, step),
-    getFormattedRangeBoundary(max, step),
-  ].filter((formattedValue): formattedValue is string => formattedValue !== null)
+    ...getFormattedRangeBoundaryCandidates(min, step),
+    ...getFormattedRangeBoundaryCandidates(max, step),
+  ]
   const longestFormattedValue = formattedValues.reduce(
     (longestValue, formattedValue) =>
       Math.max(longestValue, formattedValue.length),
@@ -69,14 +76,21 @@ export function getEditorRangeFieldNumberInputCharacterCapacity({
 export function normalizeEditorRangeFieldValue({
   max,
   min,
+  outOfRangeBehavior = 'clamp',
   rawValue,
   step,
 }: {
   max: number | string
   min: number | string
+  outOfRangeBehavior?: 'clamp' | 'reject'
   rawValue: number | string
   step: number | string
 }): number | null {
+  if (outOfRangeBehavior === 'reject' &&
+      typeof rawValue === 'string' && rawValue.trim() === '') {
+    return null
+  }
+
   const parsedValue = getFiniteNumber(rawValue)
 
   if (parsedValue === null) {
@@ -86,6 +100,11 @@ export function normalizeEditorRangeFieldValue({
   const minValue = getFiniteNumber(min)
   const maxValue = getFiniteNumber(max)
   const stepValue = getFiniteNumber(step)
+  if (outOfRangeBehavior === 'reject' &&
+      ((minValue !== null && parsedValue < minValue) ||
+       (maxValue !== null && parsedValue > maxValue))) {
+    return null
+  }
   const clampedValue = Math.min(
     maxValue ?? parsedValue,
     Math.max(minValue ?? parsedValue, parsedValue),

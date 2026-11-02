@@ -88,8 +88,9 @@ function updateImageSlotById(
       return slot
     }
 
-    didUpdate = true
-    return updater(slot)
+    const nextSlot = updater(slot)
+    if (nextSlot !== slot) didUpdate = true
+    return nextSlot
   })
 
   return didUpdate ? nextSlots : slots
@@ -106,8 +107,9 @@ function updateTextBlockById(
       return textBlock
     }
 
-    didUpdate = true
-    return updater(textBlock)
+    const nextTextBlock = updater(textBlock)
+    if (nextTextBlock !== textBlock) didUpdate = true
+    return nextTextBlock
   })
 
   return didUpdate ? nextTextBlocks : textBlocks
@@ -124,8 +126,9 @@ function updateTextListById(
       return textList
     }
 
-    didUpdate = true
-    return updater(textList)
+    const nextTextList = updater(textList)
+    if (nextTextList !== textList) didUpdate = true
+    return nextTextList
   })
 
   return didUpdate ? nextTextLists : textLists
@@ -182,11 +185,15 @@ export function updateProjectCaseInsertTemplate(
     templateState: ProjectCaseInsertSurfaceState,
   ) => ProjectCaseInsertSurfaceState,
 ): ProjectJewelCaseState {
+  const currentTemplate = state.templates[paneId]
+  const nextTemplate = updater(currentTemplate)
+  if (nextTemplate === currentTemplate) return state
+
   return {
     ...state,
     templates: {
       ...state.templates,
-      [paneId]: updater(state.templates[paneId]),
+      [paneId]: nextTemplate,
     },
   }
 }
@@ -197,10 +204,13 @@ export function updateCaseInsertTemplateImageSlot(
   slotKey: CaseInsertPrimaryImageSlotKey,
   updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
 ): ProjectJewelCaseState {
-  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => ({
-    ...templateState,
-    [slotKey]: updater(templateState[slotKey]),
-  }))
+  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => {
+    const currentSlot = templateState[slotKey]
+    const nextSlot = updater(currentSlot)
+    return nextSlot === currentSlot
+      ? templateState
+      : { ...templateState, [slotKey]: nextSlot }
+  })
 }
 
 export function setCaseInsertTemplateAdditionalArtworkEnabled(
@@ -248,10 +258,13 @@ export function updateCaseInsertTemplateImageSlotInGroup(
   slotId: string,
   updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
 ): ProjectJewelCaseState {
-  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => ({
-    ...templateState,
-    [slotKey]: updateImageSlotById(templateState[slotKey], slotId, updater),
-  }))
+  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => {
+    const currentSlots = templateState[slotKey]
+    const nextSlots = updateImageSlotById(currentSlots, slotId, updater)
+    return nextSlots === currentSlots
+      ? templateState
+      : { ...templateState, [slotKey]: nextSlots }
+  })
 }
 
 export function removeCaseInsertTemplateImageSlot(
@@ -291,14 +304,16 @@ export function updateCaseInsertTemplateTextBlock(
   textBlockId: string,
   updater: (textBlock: ProjectCaseInsertTextBlock) => ProjectCaseInsertTextBlock,
 ): ProjectJewelCaseState {
-  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => ({
-    ...templateState,
-    textBlocks: updateTextBlockById(
+  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => {
+    const nextTextBlocks = updateTextBlockById(
       templateState.textBlocks,
       textBlockId,
       updater,
-    ),
-  }))
+    )
+    return nextTextBlocks === templateState.textBlocks
+      ? templateState
+      : { ...templateState, textBlocks: nextTextBlocks }
+  })
 }
 
 export function updateCaseInsertTemplateTextList(
@@ -307,8 +322,14 @@ export function updateCaseInsertTemplateTextList(
   textListId: string,
   updater: (textList: ProjectCaseInsertTextList) => ProjectCaseInsertTextList,
 ): ProjectJewelCaseState {
-  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => ({
-    ...templateState,
-    textLists: updateTextListById(templateState.textLists, textListId, updater),
-  }))
+  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => {
+    const nextTextLists = updateTextListById(
+      templateState.textLists,
+      textListId,
+      updater,
+    )
+    return nextTextLists === templateState.textLists
+      ? templateState
+      : { ...templateState, textLists: nextTextLists }
+  })
 }

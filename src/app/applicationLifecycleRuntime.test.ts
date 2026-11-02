@@ -60,6 +60,41 @@ test('one application runtime creates one root, dependency updates reuse it, and
   assert.equal(capturedOptions?.ports?.newCase?.availability, 'implemented')
   assert.equal(capturedOptions?.ports?.returnHome?.availability, 'implemented')
   assert.equal(capturedOptions?.ports?.resumeProject?.availability, 'implemented')
+  const casePresetEditorApply = capturedOptions?.caseInsertPresetEditorApply
+  assert.ok(casePresetEditorApply)
+  let commitCount = 0
+  const commitLifecycle = () => {
+    commitCount += 1
+    return {
+      status: 'no-op' as const,
+      snapshot: {
+        generation: 0,
+        state: { activeSession: null, visibleWorkspace: 'home' as const },
+      },
+    }
+  }
+  assert.throws(
+    () => casePresetEditorApply?.commitLifecycleAndApply(commitLifecycle),
+    /not configured/,
+  )
+  assert.equal(commitCount, 0)
+  let editorApplyCount = 0
+  runtime.updateCaseInsertPresetEditorApply({
+    commitLifecycleAndApply(commit) {
+      editorApplyCount += 1
+      return commit()
+    },
+  })
+  assert.equal(
+    casePresetEditorApply?.commitLifecycleAndApply(commitLifecycle).status,
+    'no-op',
+  )
+  assert.equal(editorApplyCount, 1)
+  assert.equal(commitCount, 1)
+  runtime.updateCaseInsertContinuousEditPort({
+    finish: () => Object.freeze({ status: 'success', value: undefined }),
+  })
+  assert.equal(runtime.root, root)
   runtime.dispose()
   runtime.dispose()
   assert.equal(disposeCount, 1)
@@ -70,6 +105,10 @@ test('one application runtime creates one root, dependency updates reuse it, and
         throw new Error('not reached')
       },
     }),
+    /disposed/,
+  )
+  assert.throws(
+    () => runtime.updateCaseInsertContinuousEditPort(null),
     /disposed/,
   )
 })

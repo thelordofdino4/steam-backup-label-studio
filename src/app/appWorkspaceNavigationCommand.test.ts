@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   createApplicationLifecycleCompositionRoot,
+  type ApplicationLifecycleCompositionRoot,
 } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
 import {
   createLoadedProjectSession,
@@ -72,6 +73,98 @@ test('Return Home and Resume retain one exact clean Case session and route', asy
     { workspace: 'caseInsert', surface: 'spine' },
   ])
   root.dispose()
+})
+
+test('Return Home finishes a continuous Case edit before capturing the retained session', async () => {
+  const calls: string[] = []
+  const owners = createApplicationWorkspaceNavigationCommandOwners(
+    () => ({
+      prepareWorkspaceApply(destination) {
+        calls.push(`prepare:${destination.workspace}`)
+        return {
+          commitLifecycleAndApply(commitLifecycle) {
+            return commitLifecycle()
+          },
+        }
+      },
+    }),
+    () => ({
+      finish() {
+        calls.push('finish')
+        const session = root.getLifecycleState().activeSession
+        assert.equal(session?.kind, 'caseInsert')
+        if (!session || session.kind !== 'caseInsert') {
+          throw new Error('Expected the active Case session.')
+        }
+        const finalProject = createBlankJewelCaseSavedProject('Exact final edit')
+        assert.equal(root.synchronizeCurrentProject({
+          sessionId: session.id,
+          kind: 'caseInsert',
+          project: finalProject,
+        }), 'synchronized')
+        return Object.freeze({ status: 'success', value: undefined })
+      },
+    }),
+  )
+  const root: ApplicationLifecycleCompositionRoot =
+    createApplicationLifecycleCompositionRoot({
+      initialState: createNewProjectSession({
+        sessionId: 'return-home-finish',
+        project: createBlankJewelCaseSavedProject('Before finish'),
+        lastEditorRoute: { workspace: 'caseInsert', surface: 'front' },
+      }),
+      ports: { returnHome: owners.returnHome },
+    })
+
+  const result = await root.dispatch('workspace.return-home')
+
+  assert.equal(result.disposition, 'executed')
+  assert.deepEqual(calls, ['finish', 'prepare:home'])
+  assert.equal(root.getLifecycleState().visibleWorkspace, 'home')
+  assert.equal(
+    root.getLifecycleState().activeSession?.project.title,
+    'Exact final edit',
+  )
+})
+
+test('Return Home aborts before workspace capture when continuous-edit finish fails', async () => {
+  let prepareCount = 0
+  const owners = createApplicationWorkspaceNavigationCommandOwners(
+    () => ({
+      prepareWorkspaceApply() {
+        prepareCount += 1
+        throw new Error('must not prepare after finish failure')
+      },
+    }),
+    () => ({
+      finish: () => Object.freeze({
+        status: 'failure',
+        error: Object.freeze({
+          code: 'case.continuous-edit-stale-session',
+          userMessage: 'The edit belongs to a replaced project.',
+          recoverable: true,
+        }),
+      }),
+    }),
+  )
+  const initial = createNewProjectSession({
+    sessionId: 'return-home-finish-failure',
+    project: createBlankJewelCaseSavedProject(),
+    lastEditorRoute: { workspace: 'caseInsert', surface: 'front' },
+  })
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: initial,
+    ports: { returnHome: owners.returnHome },
+  })
+
+  const result = await root.dispatch('workspace.return-home')
+
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed') {
+    assert.equal(result.result.status, 'failure')
+  }
+  assert.equal(prepareCount, 0)
+  assert.deepEqual(root.getLifecycleState(), initial)
 })
 
 test('navigation owners fail safely without React dependencies', async () => {

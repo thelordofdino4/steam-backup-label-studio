@@ -32,6 +32,9 @@ import {
   getTemplateGroupedImagePlacementFields,
   getTemplatePrimaryImagePlacementFields,
 } from './CaseInsertTemplateControlPlacement'
+import {
+  CaseInsertArtworkFramingControls,
+} from './CaseInsertArtworkFramingControls'
 
 const COVER_POSITION_PRESETS = [
   { label: 'Top left', x: 20, y: 18 },
@@ -373,6 +376,17 @@ function GroupedImageSlotControls({
       />
       {slotKey === 'artworkSlots' ? (
         <>
+          <CaseInsertArtworkFramingControls
+            idPrefix={uploadId}
+            owner={paneId}
+            slot={slot}
+            onChange={(change) =>
+              actions.handleGroupedArtworkFramingChange(
+                paneId,
+                slot.id,
+                change,
+              )}
+          />
           <CaseInsertImageSlotStatusCard
             slot={slot}
             emptyHint="No image is selected yet. Upload a local image or use an imported artwork source."

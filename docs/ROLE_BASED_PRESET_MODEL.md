@@ -2,8 +2,8 @@
 > Status: Current architecture and extension contract for GitHub issues #269, #270, #289, #292, #293, and #296.
 > Purpose: Define the implemented generic Disc preset/application model, its guided-workflow boundary, and future role-based extensions.
 > Read when: Working on role-based layout presets, Disc preset application, guided preset behavior, preset save/load design, or preset application behavior.
-> Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific target application-level Select/Plan/Review/Apply/Reapply/Detach and persistent-configuration semantics; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
-> Last reviewed against PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused Case reserved-artwork viewport adoption/schema/render and Jewel Case Essentials revision-2 checkpoints on 2026-08-22.
+> Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` and `CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md` for editor-specific application semantics, including the Case exact-selector/one-shot-Apply product surface and retained lower-level Plan/Reapply/Detach compatibility domains; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
+> Last reviewed against PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95` plus stacked dependency `44fbcd09258d279540b4573fca66fa37bec63792` and the focused Case artwork-assignment/editor-adoption checkpoint through 2026-08-23.
 
 This document began as the design output for #269 and now records both that
 contract and the implemented Disc-first foundation delivered through #270,
@@ -30,8 +30,9 @@ session adoption-commit adapter, store installation, schema `0.4.0` recovery,
 one production definition, presentation-neutral workflow orchestration, and an
 accessible panel/invocation path now exist. The reserved-artwork viewport path
 now includes a separate pure planner, pure ordinary repeated-artwork adoption,
-schema persistence, and shared preview/export/text/preflight render geometry.
-It remains unconnected to definition v1 and production workflow controls. The
+schema persistence, shared preview/export/text/preflight render geometry, and
+accessible controls for already-valid viewport-backed repeated artwork. It
+remains unconnected to definition v1. The
 Case workflow contract records those exact connected and unconnected
 boundaries.
 This document remains the neutral/Disc-first model and current implementation
@@ -67,8 +68,8 @@ This document does not define:
   facts delegated to the Case workflow contract and SDD;
 - broader saved role/preset identity beyond schema `0.4.0`'s focused Disc
   guided state and explicit Case applied-configuration envelope;
-- additional Case definitions, revision-2 viewport action consumption, or
-  interactive viewport/framing controls;
+- additional Case definitions, viewport creation/authoring, editable viewport
+  dimensions/basis, or direct canvas crop interaction;
 - UI control placement or visible panel migration.
 
 ## 2. Relationship To Packaging Role Model
@@ -482,8 +483,23 @@ ordinary `slot.fit`; schema `0.4.0` stores source-independent focal position and
 zoom with the viewport, while bytes, provenance, and stored content bounds
 remain unchanged. Exact target capability evidence is mandatory. One shared
 numeric artifact now drives preview/export, drag/slider bounds, text occupied
-regions, and preflight; definition-v1 consumption and UI framing controls remain
-later focused work.
+regions, and preflight. One shared strict owner-aware UI adapter exposes
+Contain, Cover, and Crop for already-valid repeated-artwork viewports; because
+the renderer consumes focal position and zoom only for Crop, those controls are
+hidden but preserved for Contain and Cover. Viewport creation and definition-v1
+consumption remain outside this bounded UI.
+
+The production Case preset command now commits the exact lifecycle successor
+and projects that complete committed Case aggregate into the React editor in
+one synchronous batch. Consequently, the Cover Game Logo owner and the exact
+`tray-artwork-1`/`2`/`3` screenshot owners consumed by the controls, preview,
+and export all observe the same successful Apply result. Stable-ID source
+selection, replacement, source-only clearing, and restoration update those
+existing slots without appending, reordering, or replacing their reserved
+viewport, fit, focal/zoom, outer layout, frame, label, slot enablement,
+parent-group enablement, or unrelated state. Repeated-artwork source selection
+does not implicitly enable either owner; rendering an
+empty eligible slot's Fit controls is non-mutating.
 
 Applying an artwork preset should not replace user-selected images. It may set
 layout, fit, and enablement fields for intended visible roles. Source changes
@@ -955,10 +971,19 @@ behavior when UI is added.
 
 ## 17. Case/Spine Pure Apply, Reapply, Detach, And Adoption Checkpoints
 
-Reviewed Case Apply, Reapply, and Detach now reach the lifecycle store through
-the separately governed Case workflow and accessible presentation; automatic
+The separately governed Case workflow can route reviewed low-level Apply,
+Reapply, and Detach evidence through the lifecycle store. Ordinary accessible
+presentation exposes only a neutral exact selector and one **Apply preset**
+action; it does not expose review/checklist/consent, Reapply, Detach,
+Preserve/Overwrite, attachment status, or relationship management. Automatic
 or import-driven application remains absent.
-Pure first-time Apply planning, its atomic detached transition, the authoritative
+The Apply button invokes an explicit `one-shot-content-preserving` transition
+mode only after the immutable complete plan passes the closed preservation
+allowlist. The click is authority for that exact plan, but the path does not
+require, construct, or synthesize legacy review approval, warning
+acknowledgement, or material-consent acceptance artifacts. Reviewed mode remains
+available only to lower-level compatibility callers.
+Pure Apply planning, its atomic detached transition, the authoritative
 detached applied-configuration domain, exact customization detection, and pure
 same-preset Reapply planning/transition plus pure complete-footprint Detach
 planning/transition, pure atomic application adoption, and pure lifecycle-owned
@@ -1007,22 +1032,27 @@ preview/export/text/preflight geometry. Jewel Case Essentials revision 1 remains
 exact and emits no viewport or creation action. Strict revision 2 under the same
 canonical ID is now the first production consumer: only the exact three Tray
 screenshot assignments declare reviewed empty-slot creation and
-`backPanelSafe` Cover viewports. UI fitting/focal/zoom controls remain separately
-absent.
+`backPanelSafe` Cover viewports. Shared Fit/Focal/Zoom controls now edit only
+already-valid adopted Cover/Tray/left/right Spine repeated-artwork state through
+stable owner/ID transitions; they do not modify either definition.
 
 Revision 1 remains canonical JSON SHA-256
 `895ec63485daea765bddcf00dadb13c397c1dd0b6c4ba0c29e8d542e9d36d3f1`;
 revision 2 is
 `b31f291e474f77c9c34ed3d71e1ab1d95807c7f8e05a9cfd64c17047d15347d0`.
 The catalog retains both exact revisions under one ID but publishes one latest
-revision-2 summary. Detached selection stays neutral until the user chooses
-that option; an attached revision-1 project reports stale, Reapplies revision 1,
-and never upgrades automatically.
+revision-2 summary. Selection stays neutral and non-dirty until the user
+chooses that exact option. A recovered revision-1 attachment remains exact and
+may be classified `stale` internally; low-level Reapply remains revision 1.
+Ordinary explicit selection of revision 2 followed by Apply may atomically
+replace that exact revision-1 attachment, but no catalog, status, Open, or Save
+path upgrades it automatically.
 
-Reapply planning consumes the
+Reapply planning is retained lower-level compatibility/domain infrastructure,
+not ordinary UI. It consumes the
 validated configuration and still-current report, one exact current normalized
-aggregate/snapshot/context, one directly supplied same-canonical-ID exact
-definition revision, and one explicit overwrite/preserve policy for every
+aggregate/snapshot/context, one directly supplied same-canonical-ID definition
+at the exact attached revision, and one explicit overwrite/preserve policy for every
 retained customized field. It reuses shared resolution/layout-proposal owners
 without invoking first-time Apply planning, rerunning detection, or consulting
 the production catalog. Overwrite is consent-gated; preserve performs no write,
@@ -1072,14 +1102,18 @@ neither. It runs no planner, detector, resolver, compatibility/catalog,
 Apply/Reapply, writer, geometry, renderer, persistence, schema, UI, store, or
 runtime owner. Back Panel and complete Tray remain distinct, left/right Spine
 remain independent, mirror mode cannot redirect execution, and repeated objects
-resolve by exact stable ID. The pure transition itself owns no store dispatch,
+resolve by exact stable ID. Both legacy and typed Reapply planners/transitions
+reject a selected definition revision unequal to the attached configuration
+revision; cross-revision Reapply has no authority. The pure transition itself owns no store dispatch,
 persistence/schema, UI, or runtime application. Separate later checkpoints now
 provide lifecycle installation, persistence/recovery, presentation-neutral
-workflow orchestration, and accessible Case invocation. Those adapters consume
-the pure transition without moving its decisions into UI. The production
+workflow orchestration, and accessible Case invocation. The ordinary adapter
+does not move Reapply/Detach decisions into UI. The production
 catalog contains one canonical Jewel Case Essentials identity, exact revisions
-1 and 2, and one latest revision-2 summary. Exact attached revision, never
-latest substitution, owns Reapply.
+1 and 2, and one latest revision-2 summary. The exact attached revision, never
+latest substitution, owns low-level Reapply. `caseInsertPresetTypedReapplyIdentity.ts`
+owns typed Reapply identity prefixes; the neutral encoder/digest remains in
+`caseInsertPresetDeterministicIdentity.ts`.
 
 The pure configuration-attachment/application-adoption model is now also
 implemented. It wraps the unchanged validated configuration in exactly one
@@ -1088,9 +1122,10 @@ canonical `unattached` state. `detached-uninstalled` remains configuration
 artifact provenance and is not overloaded as installed state or a Detach
 tombstone. One Case assignment snapshot and one attachment wrapper form the
 pure atomic application unit; raw plans, reviews, configurations, and release
-records are not adoption authority. The legal state edges are absence to exact
-Apply configuration, exact Reapply source to exact successor configuration, and
-exact Detach source to absence. A pure classifier rejects missing, different-
+records are not adoption authority. The legal state edges are absence or one
+exact attached source to an exact selected Apply configuration, exact Reapply
+source to an exact same-revision successor configuration, and exact Detach
+source to absence. A pure classifier rejects missing, different-
 source, replayed, or tombstone attachment edges, while operation-discriminated
 results and receipts prevent an operation from naming the wrong
 attachment action or successor-state shape.
@@ -1101,7 +1136,8 @@ deterministic identity for the complete normalized Case aggregate. That content
 identity covers every Cover, Tray, left/right Spine, mirror, export, owner,
 enablement, stable-ID, payload/provenance, text/style, layout, and semantic array
 fact; record key order is canonical while semantic array order is preserved.
-Apply binds canonical source absence to one exact successor configuration.
+Apply binds canonical source absence or the exact current attached source to
+one exact selected successor configuration.
 Reapply binds exact source/result aggregates and source/successor configurations.
 Detach proves its returned unchanged-semantic clone has the same complete
 identity as the checked source, binds the exact source configuration/release,
@@ -1120,7 +1156,8 @@ evidence plus one exact current immutable application snapshot. It safely
 revalidates the complete operation/version/whole-success chain and every
 project/session/revision/template, aggregate, attachment, configuration, and
 release compare-and-swap fact. Apply returns the exact result aggregate with
-the exact promoted configuration attached; Reapply returns the exact result
+the exact promoted selected configuration attached or replacing the exact
+source attachment; Reapply returns the exact result
 aggregate with its distinct successor configuration; Detach returns the exact
 unchanged-semantic aggregate with canonical authoritative absence and no
 tombstone. Every successful edge increments the application snapshot revision
@@ -1151,8 +1188,9 @@ snapshot context, and the deterministic application-state identity. Strict
 capture reconstructs the complete application snapshot from those authorities
 and rejects divergence rather than retaining a second mutable aggregate.
 
-New and Open Case sessions initialize canonical authoritative `unattached` at
-application revision zero. Committed Case editor synchronization preserves the
+New Case sessions initialize canonical authoritative `unattached` at
+application revision zero; Open reconstructs the explicit schema `0.4.0`
+attachment, configuration, application revision, and recovery status. Committed Case editor synchronization preserves the
 exact attachment, advances the existing project/content revision under its
 current canonical-content rule, and advances application revision exactly once
 only when the reconstructed Case application snapshot changes. Canonical
@@ -1190,9 +1228,10 @@ owns no store dispatch, persistence, schema, save/load recovery, UI, catalog,
 workflow/busy/feedback/history, or runtime behavior. Separate later checkpoints
 now provide lifecycle installation, persistence/recovery, a presentation-neutral
 workflow owner, the one-identity/two-revision Jewel Case Essentials production
-catalog, and
-accessible Case presentation/invocation. Issues #168, #149, #181, #281, and
-#305 remain open.
+catalog, and an accessible neutral exact selector plus one-shot Apply
+presentation. Issues #168, #149, #181, #281, and #305 remain open. Known #149
+Case screenshot/Tray visual-composition defects remain deferred; this preset
+action change does not alter preview or export rendering.
 
 Remaining areas:
 
@@ -1251,10 +1290,11 @@ Open decisions before or during #270:
 - Whether Steam Branding belongs in disc role presets later.
 - Whether broader Disc/generic role-preset identity and customization metadata
   should gain schema ownership beyond the focused schema `0.4.0` Case envelope.
-- How future definitions beyond Jewel Case Essentials expose interactive
-  fitting/focal/zoom behavior. Revision 2 now binds its exact three viewport
+- How future definitions beyond Jewel Case Essentials author or remove
+  viewports. The current shared Fit/Focal/Zoom controls consume only valid
+  already-adopted viewport state; revision 2 binds its exact three viewport
   actions and warning/consent evidence into Apply/Reapply configuration format
-  3; revision 1 remains exact and is never reinterpreted or upgraded.
+  3, while revision 1 remains exact and is never reinterpreted or upgraded.
 - How case back Screenshots and Additional Artwork should diverge in state and
   UI.
 - How spine mirroring should interact with preset application if spine presets

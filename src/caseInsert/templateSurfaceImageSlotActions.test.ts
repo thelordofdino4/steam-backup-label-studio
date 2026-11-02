@@ -13,6 +13,15 @@ import {
   CASE_INSERT_TRAY_MARK_LAYOUTS,
 } from './defaultBrandingLayouts.ts'
 import {
+  updateCaseInsertImageSlotLayout,
+  updateCaseInsertImageSlotLayoutField,
+  updateCaseInsertImageSlotLayoutPosition,
+} from './imageSlotTransitions.ts'
+import {
+  updateCaseInsertTemplateImageSlot,
+  updateCaseInsertTemplateImageSlotInGroup,
+} from './templateSurfaceTransitions.ts'
+import {
   setCaseInsertTitleArtworkSteamImage,
 } from './titleArtwork.ts'
 import {
@@ -24,6 +33,7 @@ import {
   preserveCaseInsertTemplateGroupedSlotSource,
   resetCaseInsertTemplatePrimaryImageSlotDefaultLayout,
   restoreCaseInsertTemplateTitleArtworkDefault,
+  setCaseInsertTemplateGroupedSlotImageSource,
   setCaseInsertTemplatePrimaryImageSlotEnabled,
   updateCaseInsertTemplatePrimaryImageSlotFit,
   updateCaseInsertTemplatePrimaryImageSlotLayoutValue,
@@ -139,6 +149,60 @@ test('case insert template grouped image source helpers preserve case-owned iden
   )
 })
 
+test('repeated artwork source replacement preserves stable viewport-backed slot state', () => {
+  const slot = createDefaultCaseInsertImageSlot(
+    'tray-artwork-2',
+    'Screenshot 2',
+    {
+      enabled: false,
+      fit: 'crop',
+      layout: { x: 50, y: 78, scale: 1, rotation: 9 },
+    },
+  )
+  slot.frame = {
+    ...slot.frame,
+    enabled: true,
+    color: '#123456',
+    width: 3,
+  }
+  slot.reservedArtworkViewport = {
+    kind: 'sbls/case-insert-artwork-viewport',
+    formatVersion: 1,
+    templateId: 'jewelCase',
+    templateRevision: null,
+    coordinateBasis: 'backPanelSafe',
+    widthPercent: 26,
+    heightPercent: 16,
+    focalPosition: { xPercent: 41, yPercent: 63 },
+    zoom: 2.25,
+  }
+  const next = setCaseInsertTemplateGroupedSlotImageSource(
+    'artworkSlots',
+    slot,
+    createImportedImageInput('Replacement screenshot'),
+  )
+
+  assert.deepEqual({
+    id: next.id,
+    label: next.label,
+    enabled: next.enabled,
+    fit: next.fit,
+    layout: next.layout,
+    frame: next.frame,
+    viewport: next.reservedArtworkViewport,
+  }, {
+    id: slot.id,
+    label: slot.label,
+    enabled: slot.enabled,
+    fit: slot.fit,
+    layout: slot.layout,
+    frame: slot.frame,
+    viewport: slot.reservedArtworkViewport,
+  })
+  assert.equal(next.imageSource?.sourceLabel, 'Replacement screenshot')
+  assert.deepEqual(next.imageSize, { width: 320, height: 180 })
+})
+
 test('template primary image slot helpers update only the targeted cover or tray slot', () => {
   const state = createDefaultProjectJewelCaseState('Portal 2')
   const trayBackground = state.templates.tray.background
@@ -167,6 +231,135 @@ test('template primary image slot helpers update only the targeted cover or tray
   assert.equal(moved.templates.cover.background.fit, 'contain')
   assert.equal(moved.templates.cover.background.layout.x, 42)
   assert.equal(moved.templates.tray.background, trayBackground)
+})
+
+test('image-slot layout no-ops preserve slot and template identities', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const slot = state.templates.cover.background
+  const sameLayout = { ...slot.layout }
+
+  assert.equal(updateCaseInsertImageSlotLayout(slot, sameLayout), slot)
+  assert.equal(
+    updateCaseInsertImageSlotLayoutField(slot, 'x', slot.layout.x),
+    slot,
+  )
+  assert.equal(
+    updateCaseInsertImageSlotLayoutField(slot, 'y', slot.layout.y),
+    slot,
+  )
+  assert.equal(
+    updateCaseInsertImageSlotLayoutField(slot, 'scale', slot.layout.scale),
+    slot,
+  )
+  assert.equal(
+    updateCaseInsertImageSlotLayoutField(
+      slot,
+      'rotation',
+      slot.layout.rotation,
+    ),
+    slot,
+  )
+  assert.equal(
+    updateCaseInsertImageSlotLayoutPosition(slot, {
+      x: slot.layout.x,
+      y: slot.layout.y,
+    }),
+    slot,
+  )
+
+  const unchanged = updateCaseInsertTemplateImageSlot(
+    state,
+    'cover',
+    'background',
+    (current) => updateCaseInsertImageSlotLayout(current, sameLayout),
+  )
+
+  assert.equal(unchanged, state)
+  assert.equal(unchanged.templates, state.templates)
+  assert.equal(unchanged.templates.cover, state.templates.cover)
+  assert.equal(unchanged.templates.cover.background, slot)
+})
+
+test('real image-slot layout changes replace only the owned identity chain', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const slot = state.templates.cover.background
+  const nextX = slot.layout.x + 1
+  const changedSlot = updateCaseInsertImageSlotLayoutField(slot, 'x', nextX)
+  const changedState = updateCaseInsertTemplateImageSlot(
+    state,
+    'cover',
+    'background',
+    (current) => updateCaseInsertImageSlotLayoutPosition(current, {
+      x: nextX,
+      y: current.layout.y,
+    }),
+  )
+
+  assert.notEqual(changedSlot, slot)
+  assert.equal(changedSlot.layout.x, nextX)
+  assert.equal(changedSlot.layout.y, slot.layout.y)
+  assert.notEqual(changedState, state)
+  assert.notEqual(changedState.templates, state.templates)
+  assert.notEqual(changedState.templates.cover, state.templates.cover)
+  assert.notEqual(changedState.templates.cover.background, slot)
+  assert.equal(changedState.templates.cover.background.layout.x, nextX)
+  assert.equal(
+    changedState.templates.cover.titleArtwork,
+    state.templates.cover.titleArtwork,
+  )
+  assert.equal(changedState.templates.tray, state.templates.tray)
+})
+
+test('grouped template image-slot no-ops preserve arrays and root identity', () => {
+  const slot = createDefaultCaseInsertImageSlot('cover-artwork-1', 'Artwork 1')
+  const base = createDefaultProjectJewelCaseState('Portal 2')
+  const state = {
+    ...base,
+    templates: {
+      ...base.templates,
+      cover: {
+        ...base.templates.cover,
+        artworkSlots: [slot],
+      },
+    },
+  }
+  const unchanged = updateCaseInsertTemplateImageSlotInGroup(
+    state,
+    'cover',
+    'artworkSlots',
+    slot.id,
+    (current) => updateCaseInsertImageSlotLayoutPosition(current, {
+      x: current.layout.x,
+      y: current.layout.y,
+    }),
+  )
+  const changed = updateCaseInsertTemplateImageSlotInGroup(
+    state,
+    'cover',
+    'artworkSlots',
+    slot.id,
+    (current) => updateCaseInsertImageSlotLayoutField(
+      current,
+      'scale',
+      current.layout.scale + 0.1,
+    ),
+  )
+
+  assert.equal(unchanged, state)
+  assert.equal(
+    unchanged.templates.cover.artworkSlots,
+    state.templates.cover.artworkSlots,
+  )
+  assert.notEqual(changed, state)
+  assert.notEqual(
+    changed.templates.cover.artworkSlots,
+    state.templates.cover.artworkSlots,
+  )
+  assert.equal(
+    changed.templates.cover.artworkSlots[0]?.layout.scale,
+    slot.layout.scale + 0.1,
+  )
+  assert.equal(changed.templates.tray, state.templates.tray)
 })
 
 test('template primary image slot reset restores the default layout without replacing slot identity', () => {
