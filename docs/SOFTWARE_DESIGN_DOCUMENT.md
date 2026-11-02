@@ -1051,15 +1051,16 @@ Ribbon placement and layout:
   its maximum useful width. These fields should not stretch beyond that target
   merely because the card has spare horizontal space unless the group has an
   explicit flexible-field contract.
-- Dense semantic boxes that own matched stacked fields are content-fitted: the
-  bordered box ends after the last contained control plus normal padding,
-  separator, and border. If a contained field expands because its matched-width
-  value set grows, the owning box and any stacked sibling in the same column
-  follow that content-derived width up to the group's maximum useful width.
-  Extra header/ribbon width must not stretch Text > Font or Text > Paragraph
-  once their contained controls have reached their target sizes. This prevents
-  dead card interiors and keeps extra header width available for groups that
-  can use it meaningfully.
+- #265 separates outer-card allocation from contained-control usefulness.
+  Peer columns share the largest required minimum and divide the available
+  card region equally after reserved actions and gaps. Stacked cards fill their
+  column; insufficient space uses whole-column overflow at the usable floor.
+  Dense Font and Paragraph control bodies retain content-derived capacities
+  and fixed internal gaps. After controls reach their useful caps, additional
+  outer-card width becomes balanced space around the cohesive body. This
+  supersedes the earlier rule that their outer borders stop at the last control.
+  Compact paint control geometry and body caps remain consistent across text
+  targets even when their outer peer-column allocations differ.
 - Compact select fields in dense text-ribbon groups use the same target-width
   rule even when they are unpaired; for example, Paragraph alignment is sized
   from the widest supported alignment label, not from leftover card width.
@@ -1124,9 +1125,9 @@ Ribbon placement and layout:
   card. HTML source remains in the dedicated `HTML` tab, and Utilities must
   not render empty placeholder cards for unavailable source or unsupported
   target-specific controls. A range-only
-  `Layout` card uses a compact content width so its right border remains near
-  the last visible control; the wider Layout profile is reserved for targets
-  with additional mode or arc option columns.
+  `Layout` control body retains a compact useful width; the wider body
+  profile is reserved for targets with additional mode or arc option columns.
+  The outer card follows the equal-column allocation described above.
 - The HTML tab is rendered as a dedicated two-row source panel rather than a
   titled semantic-card group. It owns source/status text, validation feedback,
   and a monospaced source textarea with native typing, selection, clipboard,

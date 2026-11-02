@@ -100,18 +100,16 @@ tested, and the remaining divergences are recorded.
   stacked fields must not expand just because the card has extra horizontal
   slack unless a group-specific contract says that field is intentionally
   flexible.
-- Dense semantic boxes that contain matched stacked fields are content-fitted.
-  The outer bordered box ends after the last contained control plus its normal
-  padding, separator, and border. If a contained field legitimately expands
-  because the matched-width contract requires a wider selectable or enterable
-  value, the owning box and any stacked sibling in the same column expand to
-  that new content-derived width up to the group's maximum useful width. Extra
-  ribbon/header space must not stretch dense boxes such as Text > Font or Text
-  > Paragraph after their contained controls have reached their target widths.
-  This keeps the border visually attached to the controls instead of creating
-  dead interior space. Extra app-shell width belongs to groups that can use it
-  meaningfully, or to whole-group overflow, not to stretching dense text boxes
-  after their fields and command clusters have reached usable dimensions.
+- In #265's equal-column flow, outer card columns share one usable minimum and
+  divide the available card region equally after action space and gaps. Stacked
+  cards fill their column. Outer borders may continue expanding after contained
+  fields reach their useful limits. This supersedes the earlier content-fitted
+  outer-border rule; it does not permit fields or command clusters to stretch
+  beyond their declared capacities.
+  Dense Font and Paragraph control bodies remain content-fitted and bounded.
+  Additional column width becomes balanced space around the cohesive body,
+  with fixed internal gaps. If all columns cannot fit at the shared minimum,
+  preserve usable card widths and use whole-column horizontal overflow.
 - Compact select fields in dense groups follow the same target-width rule even
   when they do not have a paired field. For example, Text > Paragraph alignment
   sizes from the widest supported alignment label plus the dropdown affordance,
@@ -161,13 +159,13 @@ tested, and the remaining divergences are recorded.
   hardcoded pixel offset. The right-side command column is the extensible owner
   of paragraph actions; future list, indent, or related paragraph commands
   should join that column instead of requiring new one-off spacing rules.
-- Artistic > Text Color and Artistic > Contrast are shared compact paint
-  cards. They must keep the same card dimensions and internal control geometry
-  across straight disc text, curved disc text, and case-insert text. Their
-  width is not allowed to change merely because a target omits unsupported
-  Artistic siblings such as Background or Border. Flexible Artistic cards, such
-  as Background and Border, may consume useful extra width; compact paint cards
-  must remain target-parity sized.
+- Artistic > Text Color and Artistic > Contrast retain the same compact
+  control geometry and useful body-width limits across straight Disc, curved
+  Disc and Case text. Omitting unsupported siblings must not resize those
+  controls. Under #265, their outer borders follow the equal peer-column
+  allocation, which can differ with the available region and column count.
+  Flexible Artistic controls may use extra width only up to their useful caps;
+  surplus column width surrounds the bounded control body.
 - The Utilities tab uses native semantic cards for the available utility
   responsibilities. `Position` is a two-row card with X/Y controls stacked as
   a matched field set. `Layout` is a two-row card with measurement controls
@@ -198,8 +196,8 @@ tested, and the remaining divergences are recorded.
   user-facing side control for the no-banner disc layout. When the Steam banner
   is visible, the saved arc-side value and renderer geometry remain intact, but
   the Utilities Layout card omits the option column and uses a curved
-  range-only width so the card edge stops near the former range/options
-  divider. Curved Layout uses its own content-fitted card width profiles instead
+  range-only control-body capacity without reserving absent option controls.
+  Curved Layout uses its own content-derived floor and useful body cap instead
   of the straight-text Layout width profile because preserving readable
   `Line spacing`, `Arc`, and, when available, `Arc side` controls is more
   important than forcing the whole curved Layout card into the straight-text
@@ -216,9 +214,9 @@ tested, and the remaining divergences are recorded.
   value` action. HTML source does not live in Utilities; it is owned by the
   dedicated `HTML` tab. Do not add unsupported or empty Utilities cards merely
   to satisfy a group name. A
-  range-only `Layout` card uses a compact content width so its right border
-  sits near the rightmost visible control; only layouts with additional
-  mode/arc option columns may use the wider Layout profile.
+  range-only `Layout` body retains a compact useful width; only layouts with
+  additional mode/arc option columns require the wider control profile. Its
+  outer card still follows #265's equal-column allocation.
 - The HTML tab is a dedicated source-editing panel, not a normal labeled
   semantic card and not a Utilities checkbox. It spans the two fixed control
   rows, shows source/status and validation messaging, and gives the monospaced

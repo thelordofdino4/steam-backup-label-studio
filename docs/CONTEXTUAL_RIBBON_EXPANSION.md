@@ -5,6 +5,12 @@
 
 ## Ownership And Implemented Slice
 
+The SDD and text-editor contract distinguish #265's equal outer-card expansion
+from useful control-body limits. This supersedes their earlier content-fitted
+outer-border wording; compact control geometry, fixed row heights, renderer
+ownership and native acceptance requirements remain binding. The implemented
+slice and remaining coverage below must be reviewed separately.
+
 [contextualTextRibbonModel.ts](../src/components/preview/contextualTextRibbonModel.ts) owns deterministic column-first packing, the shared minimum, equal peer allocation, and the overflow viewport. Stacked cards share their column width. Once every column fits, available width after gaps is divided equally without integer rounding or a column cap. Useful control limits no longer stop card expansion.
 
 [contextualTextRibbonDomLayout.ts](../src/components/preview/contextualTextRibbonDomLayout.ts) is the focused measurement/application adapter extracted from the host. It measures the remaining region after shell/action chrome, applies column positions, caps each card's control body using its existing declared useful maximum, and centers surplus space. Number fields, buttons, color wells and existing group-specific CSS retain their current dimensions. HTML retains its full-row source-editor exception.
