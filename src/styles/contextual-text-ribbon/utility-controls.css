@@ -160,7 +160,7 @@
   grid-template-columns:
     var(--contextual-text-ribbon-curved-layout-label-width)
     var(--contextual-text-ribbon-curved-layout-slider-width)
-    var(--contextual-text-ribbon-curved-layout-value-width);
+    minmax(var(--contextual-text-ribbon-curved-layout-value-width), max-content);
   justify-content: center;
   width: max-content;
 }

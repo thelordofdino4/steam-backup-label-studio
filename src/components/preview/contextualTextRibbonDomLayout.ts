@@ -1,3 +1,4 @@
+import { getContextualTextRibbonContrastMinWidth } from './contextualTextRibbonSelectSizing'
 import { getContextualRibbonInnerGroupWidths, ribbonInnerGroupProfile } from './contextualTextRibbonInnerGroups'
 import {
   getContextualTextRibbonColumnWidths,
@@ -190,7 +191,8 @@ function applyUtilityInnerGroups(element: HTMLElement, body: HTMLElement, availa
 function getRibbonDeclaredWidthProfile(
   element: HTMLElement,
 ): ContextualTextRibbonWidthProfile | null {
-  const requiredMin = getUtilityRequiredCardWidth(element)
+  const requiredMin = Math.max(getUtilityRequiredCardWidth(element),
+    getContextualTextRibbonContrastMinWidth(element))
   const min = Math.max(requiredMin, getFiniteDataNumber(element.dataset.ribbonGroupMinWidth))
   const preferred = Math.max(min,
     getFiniteDataNumber(element.dataset.ribbonGroupPreferredWidth))
@@ -417,6 +419,7 @@ function clearColumnPackedGroupWidths(element: Element | null) {
 function applyRibbonControlWidthCap(element: HTMLElement, cardWidth: number) {
   if (element.dataset.ribbonFillRow === 'true') return
   const max = Math.max(getUtilityRequiredCardWidth(element, 'max'),
+    getContextualTextRibbonContrastMinWidth(element),
     getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth))
   const body = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-body')
   const header = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-header')

@@ -149,7 +149,8 @@ async function bounds() {
     return {
       text: element.selectedOptions[0].textContent,
       color: style.color,
-      textWidth: ctx.measureText(element.selectedOptions[0].textContent).width,
+      textWidth: ctx.measureText(element.selectedOptions[0].textContent).width
+        + Math.max(0, element.selectedOptions[0].textContent.length - 1) * (parseFloat(style.letterSpacing) || 0),
       usableWidth: box.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth),
       fits: box.left >= header.right && box.right <= cardBox.right && box.top >= cardBox.top && box.bottom <= cardBox.bottom,
       cardWidth: cardBox.width, colorWidth: colorCard.getBoundingClientRect().width,
@@ -177,6 +178,30 @@ for (const width of [320, 519, 719, 1200]) {
     }
   })
 }
+
+test('contrast reserves the full option catalog under wider font metrics', async () => {
+  const style = await page.addStyleTag({ content: '[data-ribbon-group="contrast"] select { font-family: monospace; font-size: 18px; letter-spacing: 0.7px; }' })
+  try {
+    await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setWidth(1210) })
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const { options } = await page.evaluate(() => window.__contrast)
+    let first
+    for (const option of options) {
+      await select().selectOption(option.value)
+      const box = await bounds()
+      assert.ok(box.usableWidth >= box.textWidth, JSON.stringify(box))
+      assert.equal(box.fits, true, JSON.stringify(box))
+      assert.equal(box.cardWidth, box.colorWidth)
+      if (first) assert.deepEqual([box.cardWidth, box.previewY], [first.cardWidth, first.previewY])
+      first = box
+    }
+  } finally {
+    await style.evaluate(node => node.remove())
+    await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setWidth(720) })
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  }
+})
+
 test('mixed selection stays visible and choosing a mode dispatches the original selection', async () => {
   await page.evaluate(() => window.__contrast.setMixed(true))
   assert.equal((await bounds()).text, 'Mixed')
@@ -387,3 +412,23 @@ for (const [tab, selector, interaction] of [
     await page.waitForFunction(() => document.querySelector('.contextual-text-ribbon-host').getBoundingClientRect().width > 1598)
   })
 }
+
+
+test('curved range tracks reserve the numeric field in its own font metrics', async () => {
+  const style = await page.addStyleTag({ content: '.contextual-text-ribbon-control-stack--utility-curved-layout-ranges .contextual-text-ribbon-range-control { font-size: 8px; }' })
+  try {
+    await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setTargetKind('synthetic'); window.__contrast.setExpanded(true); window.__contrast.setTab('utilities'); window.__contrast.setCurved(true); window.__contrast.setMeasurementsOnly(true); window.__contrast.setWidth(1600) })
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const geometry = await page.evaluate(() => [...document.querySelectorAll('.contextual-text-ribbon-control-stack--utility-curved-layout-ranges .contextual-text-ribbon-range-control')].map(row => {
+      const slider = row.querySelector('input[type="range"]').getBoundingClientRect()
+      const number = row.querySelector('input[type="number"]').getBoundingClientRect()
+      const group = row.parentElement.getBoundingClientRect()
+      return { gap: number.left - slider.right, numberRight: number.right, groupRight: group.right }
+    }))
+    assert.equal(geometry.length, 2)
+    for (const row of geometry) {
+      assert.ok(row.gap >= 3.9, JSON.stringify(row))
+      assert.ok(row.numberRight <= row.groupRight + 0.1, JSON.stringify(row))
+    }
+  } finally { await style.evaluate(node => node.remove()) }
+})
