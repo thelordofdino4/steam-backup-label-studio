@@ -1,3 +1,4 @@
+import { getContextualRibbonInnerGroupWidths, ribbonInnerGroupProfile } from './contextualTextRibbonInnerGroups'
 import {
   getContextualTextRibbonColumnWidths,
   getContextualTextRibbonColumnViewportWidth,
@@ -112,13 +113,83 @@ function getRibbonGroupContentWidth(element: HTMLElement) {
   )
 }
 
+// Only horizontal utility subgroups use this allocation. Artistic rows and
+// intrinsic text/button groups retain their existing layout owners.
+function getUtilityInnerGroups(element: HTMLElement) {
+  const body = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-body')
+  if (!body || !['position', 'layout'].includes(element.dataset.ribbonGroup ?? '')) return []
+  return Array.from(body.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
+    .map(group => {
+      if (group.dataset.ribbonInnerAllocated) {
+        group.style.removeProperty('width')
+        group.style.removeProperty('max-width')
+        group.style.removeProperty('flex')
+      }
+      const options = group.classList.contains('contextual-text-ribbon-control-stack--utility-layout-options')
+      if (options) {
+        // Preserve the established option-stack floor; a modest useful cap
+        // lets select fields expand without separating them from their labels.
+        const min = group.classList.contains('contextual-text-ribbon-control-stack--utility-curved-layout-options') ? 160 : 154
+        return { group, profile: ribbonInnerGroupProfile(min, 220, min) }
+      }
+      const rows = Array.from(group.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
+      const profiles = rows.map(row => {
+        const children = Array.from(row.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
+        const slider = row.querySelector<HTMLInputElement>('input[type="range"]')
+        const fixed = children.filter(child => child !== slider).reduce((width, child) =>
+          width + child.getBoundingClientRect().width, 0)
+        const tracks = slider ? window.getComputedStyle(row).gridTemplateColumns.split(/\s+/).length : children.length
+        const chrome = getHorizontalChrome(row) + getHorizontalGap(row) * Math.max(0, tracks - 1)
+        const sliderStyle = slider ? window.getComputedStyle(slider) : null
+        const min = sliderStyle ? Number.parseFloat(sliderStyle.minWidth) : 0
+        const max = sliderStyle ? Number.parseFloat(sliderStyle.maxWidth) : 0
+        return ribbonInnerGroupProfile(fixed + chrome + min, fixed + chrome + max)
+      })
+      const chrome = getHorizontalChrome(group)
+      return { group, profile: ribbonInnerGroupProfile(
+        chrome + Math.max(0, ...profiles.map(profile => profile.min)),
+        chrome + Math.max(0, ...profiles.map(profile => profile.max)),
+      ) }
+    })
+}
+
+function getUtilityRequiredCardWidth(element: HTMLElement) {
+  const groups = getUtilityInnerGroups(element)
+  if (!groups.length) return 0
+  const body = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-body')
+  const header = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-header')
+  return getHorizontalChrome(element) + (header?.getBoundingClientRect().width ?? 0)
+    + getHorizontalGap(element) + getHorizontalChrome(body)
+    + groups.reduce((width, { profile }) => width + profile.min, 0)
+    + getHorizontalGap(body) * Math.max(0, groups.length - 1)
+}
+
+function applyUtilityInnerGroups(element: HTMLElement, body: HTMLElement, availableWidth: number) {
+  const groups = getUtilityInnerGroups(element)
+  if (!groups.length) return
+  const widths = getContextualRibbonInnerGroupWidths(groups.map(({ profile }) => profile),
+    availableWidth - getHorizontalChrome(body), getHorizontalGap(body))
+  groups.forEach(({ group, profile }, index) => {
+    group.style.width = `${widths[index]}px`
+    group.style.maxWidth = `${widths[index]}px`
+    group.style.flex = `0 0 ${widths[index]}px`
+    group.dataset.ribbonInnerAllocated = 'true'
+    group.dataset.ribbonInnerMin = String(profile.min)
+    group.dataset.ribbonInnerMax = String(profile.max)
+    group.dataset.ribbonInnerPreferred = String(profile.preferred)
+    group.dataset.ribbonInnerGrowthWeight = String(profile.growthWeight)
+    group.dataset.ribbonInnerGrowthPriority = String(profile.growthPriority)
+  })
+}
+
 function getRibbonDeclaredWidthProfile(
   element: HTMLElement,
 ): ContextualTextRibbonWidthProfile | null {
-  const min = getFiniteDataNumber(element.dataset.ribbonGroupMinWidth)
-  const preferred =
-    getFiniteDataNumber(element.dataset.ribbonGroupPreferredWidth)
-  const max = getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth)
+  const requiredMin = getUtilityRequiredCardWidth(element)
+  const min = Math.max(requiredMin, getFiniteDataNumber(element.dataset.ribbonGroupMinWidth))
+  const preferred = Math.max(min,
+    getFiniteDataNumber(element.dataset.ribbonGroupPreferredWidth))
+  const max = Math.max(preferred, getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth))
 
   if (min > 0 && preferred >= min && max >= preferred) {
     if (element.dataset.ribbonGroupFit === 'content') {
@@ -339,7 +410,8 @@ function clearColumnPackedGroupWidths(element: Element | null) {
 
 function applyRibbonControlWidthCap(element: HTMLElement, cardWidth: number) {
   if (element.dataset.ribbonFillRow === 'true') return
-  const max = getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth)
+  const max = Math.max(getUtilityRequiredCardWidth(element),
+    getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth))
   const body = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-body')
   const header = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-header')
   if (!body || max <= 0) return
@@ -353,6 +425,7 @@ function applyRibbonControlWidthCap(element: HTMLElement, cardWidth: number) {
   body.style.maxWidth = `${bodyWidth}px`
   body.style.marginInline = 'auto'
   if (!verticalHeader) body.style.justifyContent = 'center'
+  applyUtilityInnerGroups(element, body, bodyWidth)
   if (verticalHeader && header) {
     header.style.width = '100%'
     header.style.maxWidth = `${Math.max(0, max - getHorizontalChrome(element))}px`
@@ -411,6 +484,19 @@ export function applyColumnPackedGroupWidths(element: Element | null) {
 }
 
 export function getRibbonWidthProfile(host: HTMLElement) {
+  // React can reuse a card/header node across tabs. Drop only our measured
+  // overrides before reading the new semantic card's intrinsic dimensions.
+  host.querySelectorAll<HTMLElement>('.contextual-text-ribbon-group-header').forEach(header => {
+    header.style.removeProperty('width')
+    header.style.removeProperty('max-width')
+    header.style.removeProperty('justify-self')
+  })
+  host.querySelectorAll<HTMLElement>('[data-ribbon-inner-allocated]').forEach(group => {
+    group.style.removeProperty('width')
+    group.style.removeProperty('max-width')
+    group.style.removeProperty('flex')
+    for (const key of ['ribbonInnerAllocated', 'ribbonInnerMin', 'ribbonInnerMax', 'ribbonInnerPreferred', 'ribbonInnerGrowthWeight', 'ribbonInnerGrowthPriority']) delete group.dataset[key]
+  })
   const shell = host.querySelector<HTMLElement>('.contextual-text-ribbon-shell')
   const tabs = host.querySelector<HTMLElement>('.contextual-text-ribbon-tabs')
   const controls = host.querySelector<HTMLElement>(

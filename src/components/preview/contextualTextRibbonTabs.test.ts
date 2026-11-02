@@ -120,7 +120,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     helperSource,
-    /function getContextualTextRibbonRangeValueWidthCss\([\s\S]*control\.min[\s\S]*control\.max[\s\S]*control\.value[\s\S]*return `calc\(\$\{fieldCh\}ch \+ 12px\)`/,
+    /function getContextualTextRibbonRangeValueWidthCss\([\s\S]*getRibbonRangeValueCapacityCh\(controls\)[\s\S]*return `calc\(\$\{fieldCh\}ch \+ 12px\)`/,
   )
   assert.match(
     menuSource,

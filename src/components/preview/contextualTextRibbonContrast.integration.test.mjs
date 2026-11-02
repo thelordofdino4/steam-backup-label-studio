@@ -24,17 +24,38 @@ function Fixture() {
   const [width, setWidth] = useState(720)
   const [expanded, setExpanded] = useState(false)
   const [enabled, setEnabled] = useState(true)
-  const [opacity, setOpacity] = useState(75)
+  const [opacity, setOpacity] = useState(0.75)
+  const [tab, setTab] = useState('art')
+  const [curved, setCurved] = useState(false)
+  const [measurementsOnly, setMeasurementsOnly] = useState(false)
+  const [spacing, setSpacing] = useState(1.25)
+  const [sourceDraft, setSourceDraft] = useState('<p>Example text</p>')
   window.__contrast = {
-    setWidth, setMixed, setExpanded, setEnabled, setOpacity, options: DISC_TEXT_CONTRAST_OPTIONS,
+    setMeasurementsOnly, setSpacing, setWidth, setMixed, setExpanded, setEnabled, setOpacity, setTab, setCurved, options: DISC_TEXT_CONTRAST_OPTIONS,
     caseOptions: CASE_INSERT_TEXT_CONTRAST_OPTIONS, value: () => value,
     calls: window.__calls ??= [],
   }
-  const controls = { art: {
+  const selectControl = (label, values) => ({ label, value: values[0], options: values.map(value => ({ value, label: value })), onChange: noop })
+  const rangeControl = (label, min, max, value, step = 0.01) => ({ label, min, max, value, step, onChange: noop })
+  const toggleControl = label => ({ label, pressed: false, onChange: noop })
+  const controls = {
+    presets: { style: selectControl('Style preset', ['High contrast', 'Clean']), layout: selectControl('Layout preset', ['Centered', 'Bottom']), onReset: noop },
+    text: { fontFamily: selectControl('Font family', ['Times New Roman', 'Arial']),
+      size: { label: 'Font size', min: 6, max: 480, value: 32, step: 1, options: [12, 24, 32, 48], onChange: noop },
+      alignment: selectControl('Alignment', ['Center', 'Justified']), bold: toggleControl('Bold'), italic: toggleControl('Italic'), underline: toggleControl('Underline'), bulletedList: toggleControl('Bulleted list') },
+    utilities: { x: rangeControl('X', -1000, 1000, 0), y: rangeControl('Y', -1000, 1000, 0),
+      ...(curved ? { lineSpacing: rangeControl('Line spacing', -100, 100, spacing), arcDegrees: rangeControl('Arc', 0, 360, 180) }
+        : { width: rangeControl('Width', 0, 1000, 100) }),
+      ...(!measurementsOnly ? { respectVisualElements: { label: 'Respect visual elements', checked: true, onChange: noop } } : {}),
+      mode: selectControl('Layout mode', ['Automatic', 'Manual']), arcSide: selectControl('Arc side', ['Inside', 'Outside']),
+      metadataSource: { label: 'Text source', status: 'manual', statusLabel: 'Manual text', actionLabel: 'Use metadata', onAction: noop } },
+    html: { source: { label: 'Edit HTML source', checked: true, onChange: noop } },
+    art: {
     ...(expanded ? {
       backgroundEnabled: { label: 'Background', checked: enabled, onChange: setEnabled },
       backgroundColor: { label: 'Background color', value: '#ffffff', onChange: noop, disabled: !enabled },
-      backgroundOpacity: { label: 'Opacity', value: opacity, min: 0, max: 100, step: 1, unit: '%', onChange: setOpacity, disabled: !enabled },
+      backgroundPadding: { label: 'Padding', value: 4, min: 0, max: 100, step: 0.1, onChange: noop },
+      backgroundOpacity: { label: 'Opacity', value: opacity, min: 0, max: 1, step: 0.01, onChange: setOpacity, disabled: !enabled },
       borderEnabled: { label: 'Border', checked: enabled, onChange: setEnabled },
       borderColor: { label: 'Border color', value: '#ffffff', onChange: noop, disabled: !enabled },
       borderRadius: { label: 'Radius', value: 5, min: 0, max: 100, step: 1, unit: 'px', onChange: noop, disabled: !enabled },
@@ -48,11 +69,11 @@ function Fixture() {
     h('div', { className: 'preview-header', style: { gridTemplateColumns: '110px minmax(0, 1fr)' } },
       h('div', { className: 'preview-pane-label', style: { width: 110 } }, 'Live Preview'),
       h(ContextualTextRibbonHost, { active: true }, h(InlinePreviewTextEditorRibbon, {
-        activeTab: 'art', controls, selection, getCommandSelection: () => selection,
-        isCurvedText: false, sourceDraft: '', tabsRef: null, onDone: noop,
+        activeTab: tab, controls, selection, getCommandSelection: () => selection,
+        isCurvedText: curved, sourceDraft, tabsRef: null, onDone: noop,
         onRibbonControlInteraction: noop, onRibbonKeyboardInteraction: noop, onRibbonMenuRef: noop,
         onRibbonPointerDown: noop, onRetainTextareaSelectionForCommands: noop, onSelectionChange: noop,
-        onSourceDraftChange: noop, onTabChange: noop,
+        onSourceDraftChange: setSourceDraft, onTabChange: setTab,
       }))), h('div', { id: 'preview-sentinel' }, 'Preview'))
 }
 await act(() => createRoot(document.getElementById('root')).render(h(Fixture)))
@@ -157,7 +178,7 @@ test('peer columns fill available width while stacked cards and control caps rem
   assert.ok(wide.cards[0].width > first.cards[0].width)
   assert.deepEqual(wide.cards.map(card => card.bodyWidth), first.cards.map(card => card.bodyWidth))
   assert.equal(wide.previewY, first.previewY)
-  await page.evaluate(() => { window.__contrast.setEnabled(false); window.__contrast.setOpacity(100) })
+  await page.evaluate(() => { window.__contrast.setEnabled(false); window.__contrast.setOpacity(1) })
   assert.deepEqual(await cardGeometry(), wide)
 })
 test('active numeric editing freezes geometry and scroll until focus leaves the control', async () => {
@@ -169,7 +190,7 @@ test('active numeric editing freezes geometry and scroll until focus leaves the 
   await number.press('ArrowDown')
   await page.waitForFunction(() => document.querySelector('[data-ribbon-layout-frozen="true"]'))
   const frozen = await cardGeometry()
-  await page.evaluate(() => { window.__contrast.setWidth(1600); window.__contrast.setOpacity(42) })
+  await page.evaluate(() => { window.__contrast.setWidth(1600); window.__contrast.setOpacity(0.42) })
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
   const during = await cardGeometry()
   assert.deepEqual(during.cards.map(card => [card.width, card.bodyWidth, card.column]), frozen.cards.map(card => [card.width, card.bodyWidth, card.column]))
@@ -196,4 +217,72 @@ test('overflow exposes complete columns and numeric interaction retains the scro
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
   assert.equal((await cardGeometry()).scroll, locked.scroll)
   await page.getByRole('button', { name: 'Done', exact: true }).focus()
+})
+
+
+for (const width of [519, 719, 1200, 1600]) {
+for (const [tab, curved] of [['presets', false], ['text', false], ['art', false], ['utilities', false], ['utilities', true], ['html', false]]) {
+  test(`complete ${tab} controls (${curved ? 'curved' : 'straight'}) retain usable card bounds at ${width}`, async () => {
+    await page.evaluate(({ tab, curved, width }) => { document.activeElement.blur(); window.__contrast.setExpanded(true); window.__contrast.setTab(tab); window.__contrast.setCurved(curved); window.__contrast.setWidth(width) }, { tab, curved, width })
+    await page.waitForFunction(tab => document.querySelector(`.contextual-text-ribbon-control-row--${tab === 'art' ? 'artistic' : tab}`), tab)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const geometry = await page.evaluate(() => [...document.querySelectorAll('[data-ribbon-group]')].map(card => {
+      const box = card.getBoundingClientRect()
+      const body = card.querySelector('.contextual-text-ribbon-group-body')
+      const controls = [...card.querySelectorAll('input,select,button,textarea')].filter(node => getComputedStyle(node).display !== 'none' && !node.dataset.smokeId?.startsWith('inline-text-number-options-'))
+      const overlaps = controls.flatMap((first, index) => controls.slice(index + 1).filter(second => {
+        const a = first.getBoundingClientRect(), b = second.getBoundingClientRect()
+        return Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1
+      }).map(second => [first.dataset.smokeId, second.dataset.smokeId]))
+      return { id: card.dataset.ribbonGroup, overlaps, width: box.width, bodyWidth: body?.getBoundingClientRect().width,
+        groups: body ? [...body.children].map(node => ({ classes: node.className, width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height, top: node.getBoundingClientRect().top - box.top, scroll: node.scrollWidth })) : [],
+        outside: controls.filter(node => { const r = node.getBoundingClientRect(); return r.width > 0 && (r.left < box.left - 1 || r.right > box.right + 1 || r.top < box.top - 1 || r.bottom > box.bottom + 1) }).map(node => ({ name: node.getAttribute('aria-label') ?? node.dataset.smokeId, width: node.getBoundingClientRect().width, top: node.getBoundingClientRect().top - box.top, bottom: node.getBoundingClientRect().bottom - box.bottom, cardHeight: box.height, bodyHeight: body?.getBoundingClientRect().height })) }
+    }))
+    assert.deepEqual(geometry.flatMap(card => card.outside), [], JSON.stringify(geometry))
+    assert.deepEqual(geometry.flatMap(card => card.overlaps), [], JSON.stringify(geometry))
+    assert.deepEqual(errors, [])
+  })
+}
+
+}
+
+test('utility subgroups grow smaller-first, cap, and center; bound-based number capacity is stable', async () => {
+  await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setTab('utilities'); window.__contrast.setCurved(false); window.__contrast.setMeasurementsOnly(true) })
+  const snapshots = []
+  for (const width of [1360, 1390, 1430, 1600]) {
+    await page.evaluate(width => window.__contrast.setWidth(width), width)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    snapshots.push(await page.evaluate(() => {
+      const card = document.querySelector('[data-ribbon-group="layout"]')
+      const body = card.querySelector('.contextual-text-ribbon-group-body').getBoundingClientRect()
+      const groups = [...card.querySelectorAll('[data-ribbon-inner-allocated]')].map(group => {
+        const rect = group.getBoundingClientRect()
+        return { width: rect.width, min: Number(group.dataset.ribbonInnerMin), max: Number(group.dataset.ribbonInnerMax), x: rect.x, right: rect.right }
+      })
+      return { groups, leftSpace: groups[0].x - body.x, rightSpace: body.right - groups.at(-1).right }
+    }))
+  }
+  for (const snapshot of snapshots) {
+    const [ranges, options] = snapshot.groups
+    for (const group of snapshot.groups) assert.ok(group.width >= group.min - 0.1 && group.width <= group.max + 0.1, JSON.stringify(snapshot))
+    // An eligible larger group cannot grow while the smaller one trails it.
+    if (ranges.width > ranges.min + 0.1 && options.width < options.max - 0.1) assert.ok(options.width >= ranges.width - 0.1, JSON.stringify(snapshot))
+    assert.ok(Math.abs(snapshot.leftSpace - snapshot.rightSpace) < 1, JSON.stringify(snapshot))
+  }
+  assert.ok(snapshots[0].groups[1].width < snapshots.at(-1).groups[1].width)
+  for (const group of snapshots.at(-1).groups) assert.ok(Math.abs(group.width - group.max) < 0.1)
+  await page.evaluate(() => { window.__contrast.setCurved(true); window.__contrast.setMeasurementsOnly(false) })
+  await page.waitForFunction(() => document.querySelector('.contextual-text-ribbon-control-stack--utility-curved-layout-ranges'))
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  const field = page.locator('[data-smoke-id="inline-text-value-line-spacing"]')
+  const initialWidth = await field.evaluate(node => node.getBoundingClientRect().width)
+  for (const value of [-99.99, 0, 99.99, 100]) {
+    await page.evaluate(value => window.__contrast.setSpacing(value), value)
+    assert.equal(await field.evaluate(node => node.getBoundingClientRect().width), initialWidth)
+    assert.ok(await field.evaluate(node => {
+      const style = getComputedStyle(node), context = document.createElement('canvas').getContext('2d')
+      context.font = style.font
+      return context.measureText(node.value).width <= node.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    }))
+  }
 })
