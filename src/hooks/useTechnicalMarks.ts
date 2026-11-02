@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import {
   useEffect,
   useRef,
@@ -37,6 +39,7 @@ export function useTechnicalMarks({
   selectedDiscTemplate,
   announceStatus,
 }: UseTechnicalMarksOptions) {
+  const asyncWork = useProjectAsyncWork()
   const [projectTechnicalMarks, setProjectTechnicalMarksState] =
     useState<ProjectTechnicalMarks>(() => createDefaultProjectTechnicalMarks())
   const projectTechnicalMarksRef = useRef<ProjectTechnicalMarks>(
@@ -48,8 +51,8 @@ export function useTechnicalMarks({
     setProjectTechnicalMarksState((currentMarks) => {
       const nextMarks = typeof action === 'function'
         ? (action as (marks: ProjectTechnicalMarks) => ProjectTechnicalMarks)(
-            currentMarks,
-          )
+          currentMarks,
+        )
         : action
 
       projectTechnicalMarksRef.current = nextMarks
@@ -68,6 +71,7 @@ export function useTechnicalMarks({
   }
 
   function resetProjectTechnicalMarks() {
+    asyncWork.invalidateAll()
     setProjectTechnicalMarks(createDefaultProjectTechnicalMarks())
   }
 
@@ -89,6 +93,7 @@ export function useTechnicalMarks({
     value: TechnicalMarkValue,
     event: ChangeEvent<HTMLInputElement>,
     assetId?: string | null,
+    onImported?: (state: ProjectTechnicalMarks) => void,
   ) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -102,23 +107,28 @@ export function useTechnicalMarks({
       return
     }
 
+    const request = asyncWork.begin(`image:technical:${value}:${assetId ?? "primary"}`)
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        const nextMarks = applyImportedTechnicalMark(
+          projectTechnicalMarksRef.current,
+          value,
+          importedImage,
+          selectedDiscTemplate,
+          assetId,
+        )
 
-      const nextMarks = applyImportedTechnicalMark(
-        projectTechnicalMarksRef.current,
-        value,
-        importedImage,
-        selectedDiscTemplate,
-        assetId,
-      )
+        setProjectTechnicalMarks(nextMarks)
+        announceStatus(`Using ${file.name} as the technical mark.`)
 
-      setProjectTechnicalMarks(nextMarks)
-      announceStatus(`Using ${file.name} as the technical mark.`)
-
-      return nextMarks
+        onImported?.(nextMarks)
+        return nextMarks
+      })
     } catch (error) {
-      announceStatus(`Technical mark import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Technical mark import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -169,6 +179,7 @@ export function useTechnicalMarks({
     value: TechnicalMarkValue,
     assetId?: string | null,
   ) {
+    asyncWork.invalidateAll()
     setProjectTechnicalMarks((currentMarks) =>
       clampProjectTechnicalMarksToSafeZone(
         clearTechnicalMarkImage(currentMarks, value, assetId),
@@ -183,6 +194,7 @@ export function useTechnicalMarks({
     value: TechnicalMarkValue,
     assetId?: string | null,
   ) {
+    asyncWork.invalidateAll()
     setProjectTechnicalMarks((currentMarks) =>
       clampProjectTechnicalMarksToSafeZone(
         resetProjectTechnicalMarkLayout(
@@ -216,6 +228,7 @@ export function useTechnicalMarks({
     value: TechnicalMarkValue,
     assetId: string,
   ) {
+    asyncWork.invalidateAll()
     const nextMarks = removeTechnicalMarkAsset(
       projectTechnicalMarksRef.current,
       value,

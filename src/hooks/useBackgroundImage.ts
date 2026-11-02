@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import {
   BackgroundImageLoadError,
@@ -62,7 +64,9 @@ export function useBackgroundImage({
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseBackgroundImageOptions) {
   const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
-  const [isArtworkLoading, setIsArtworkLoading] = useState(false)
+  const asyncWork = useProjectAsyncWork()
+  const [pendingArtwork, setPendingArtwork] = useState<ProjectAsyncRequest | null>(null)
+  const isArtworkLoading = pendingArtwork !== null && asyncWork.isCurrent(pendingArtwork)
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
   const [backgroundImageSource, setBackgroundImageSource] =
     useState<ProjectImageAssetProvenance | null>(null)
@@ -134,10 +138,12 @@ export function useBackgroundImage({
 
   function clearSelectedArtwork() {
     setSelectedArtworkId(null)
-    setIsArtworkLoading(false)
+    asyncWork.invalidate('background-artwork')
+    setPendingArtwork(null)
   }
 
   function restoreBackgroundImageState(restoredState: RestorableBackgroundImageState) {
+    asyncWork.invalidateAll()
     setBackgroundScale(restoredState.backgroundScale)
     setBackgroundOffset(restoredState.backgroundOffset)
     setBackgroundImageUrl(restoredState.backgroundImageUrl)
@@ -164,34 +170,42 @@ export function useBackgroundImage({
       return
     }
 
+    const request = asyncWork.begin('background-artwork')
+    setPendingArtwork(request)
     try {
-      applyBackgroundImageImport(await createUploadedBackgroundImageImport(file))
+      const imported = await createUploadedBackgroundImageImport(file)
+      asyncWork.commit(request, () => { applyBackgroundImageImport(imported) })
     } catch (error) {
-      announceStatus(
-        error instanceof BackgroundImageLoadError
-          ? 'Background image could not be loaded.'
-          : 'Background image could not be read.',
-      )
+      asyncWork.publish(request, () => {
+        announceStatus(
+          error instanceof BackgroundImageLoadError
+            ? 'Background image could not be loaded.'
+            : 'Background image could not be read.',
+        )
+      })
     }
   }
 
   function handleResetBackground() {
+    asyncWork.invalidateAll()
     setBackgroundScale(DEFAULT_BACKGROUND_SCALE)
     setBackgroundOffset(createDefaultBackgroundOffset())
   }
 
   async function handleUseSteamArtwork(asset: SteamArtworkAsset) {
-    setIsArtworkLoading(true)
+    const request = asyncWork.begin('background-artwork')
+    setPendingArtwork(request)
     setSelectedArtworkId(asset.id)
     announceStatus(`Downloading ${asset.label}...`)
 
     try {
-      applyBackgroundImageImport(await createSteamArtworkBackgroundImport(asset))
+      const imported = await createSteamArtworkBackgroundImport(asset)
+      asyncWork.commit(request, () => { applyBackgroundImageImport(imported) })
     } catch (error) {
-      setSelectedArtworkId(null)
-      announceStatus(`Steam artwork download failed: ${String(error)}`)
-    } finally {
-      setIsArtworkLoading(false)
+      asyncWork.publish(request, () => {
+        setSelectedArtworkId(null)
+        announceStatus(`Steam artwork download failed: ${String(error)}`)
+      })
     }
   }
 

@@ -11,10 +11,16 @@ const fixtureHtml = `<!doctype html><div id="root"></div><script type="module">
 import { act, createElement, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useSteamImport } from '/src/hooks/useSteamImport.ts'
+import { createApplicationLifecycleRuntime } from '/src/app/applicationLifecycleRuntime.ts'
+import { ApplicationLifecycleRuntimeContext } from '/src/app/applicationLifecycleRuntimeContext.ts'
+import { createApplicationLifecycleCompositionRoot } from '/src/lifecycle/applicationLifecycleCompositionRoot.ts'
+import { createNewProjectSession } from '/src/lifecycle/projectSession.ts'
+import { createBlankDiscSavedProject } from '/src/project/blankDiscProject.ts'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 let api
 const requests = [], statuses = [], applied = [], commands = []
-let importFailure = false
+let importFailure = false, deferImports = false
+const imports = [], preparations = []
 window.__TAURI_INTERNALS__ = {
   invoke(command, args) {
     commands.push({ command, args })
@@ -22,6 +28,7 @@ window.__TAURI_INTERNALS__ = {
       return new Promise((resolve, reject) => requests.push({ resolve, reject, term: args.term }))
     }
     if (command === 'fetch_steam_app_details') {
+      if (deferImports) return new Promise((resolve, reject) => imports.push({ resolve, reject, appId: args.appid }))
       if (importFailure) return Promise.reject('details unavailable')
       return Promise.resolve(JSON.stringify({ 42: { success: true, data: {
         name: 'Imported game', developers: ['Developer'], publishers: ['Publisher'],
@@ -36,8 +43,9 @@ function Owner() {
   api = useSteamImport({ announceStatus: message => statuses.push(message) })
   return null
 }
+const runtime = createApplicationLifecycleRuntime({ createRoot: options => createApplicationLifecycleCompositionRoot({ ...options, initialState: createNewProjectSession({ sessionId: 'test-session', project: createBlankDiscSavedProject() }) }) })
 const root = createRoot(document.getElementById('root'))
-await act(async () => { root.render(createElement(StrictMode, null, createElement(Owner))) })
+await act(async () => { root.render(createElement(StrictMode, null, createElement(ApplicationLifecycleRuntimeContext.Provider, { value: runtime }, createElement(Owner)))) })
 window.searchHarness = {
   async start(query) {
     await act(async () => { api.setGameSearchQuery(query) })
@@ -60,10 +68,45 @@ window.searchHarness = {
     await act(async () => { api[action]() })
   },
   async edit(query) { await act(async () => { api.setGameSearchQuery(query) }) },
+  async startImport(appId, stage = false) {
+    deferImports = true
+    await act(async () => {
+      const completion = api.runSteamImport(appId, async result => {
+        if (stage) await new Promise((resolve, reject) => preparations.push({ resolve, reject }))
+        return () => {
+          applied.push(result)
+          api.setSelectedSteamGame(result.importedGame)
+          statuses.push('Imported ' + result.importedGame.title)
+        }
+      })
+      imports.at(-1).completion = completion
+    })
+  },
+  async settleImport(index, fail, staged = false) {
+    await act(async () => {
+      const request = imports[index]
+      if (fail) request.reject('old import failed')
+      else request.resolve(JSON.stringify({ [request.appId]: { success: true, data: { name: 'Game ' + request.appId, developers: ['D'], publishers: ['P'] } } }))
+      if (!staged) await request.completion
+    })
+  },
+  async settlePreparation(index, fail) {
+    await act(async () => {
+      if (fail) preparations[index].reject('artwork failed')
+      else preparations[index].resolve()
+    })
+  },
+  async changeProject() {
+    await act(async () => {
+      const session = runtime.root.getLifecycleState().activeSession
+      const project = { ...session.project, title: 'Edited while pending' }
+      runtime.root.synchronizeCurrentProject({ sessionId: session.id, kind: session.kind, project })
+    })
+  },
   async importGame(fail) {
     importFailure = fail
     await act(async () => {
-      await api.runSteamImport(42, result => {
+      await api.runSteamImport(42, result => () => {
         applied.push(result)
         api.setSelectedSteamGame(result.importedGame)
         api.clearSteamSearchResults()
@@ -226,4 +269,52 @@ test('Steam import failure still reports without applying state', async () => {
   assert.equal(state.selected, null)
   assert.equal(state.importLoading, false)
   assert.equal(state.statuses.at(-1), 'Steam import failed: details unavailable')
+})
+
+for (const fail of [false, true]) {
+  test(`older game import ${fail ? 'failure' : 'success'} cannot overwrite a newer import`, async () => {
+    await page.evaluate(() => window.searchHarness.startImport(1))
+    await page.evaluate(() => window.searchHarness.startImport(2))
+    await page.evaluate(() => window.searchHarness.settleImport(1, false))
+    const accepted = await snapshot()
+    assert.equal(accepted.selected.appId, 2)
+    assert.equal(accepted.importLoading, false)
+    await page.evaluate(fail => window.searchHarness.settleImport(0, fail), fail)
+    assert.deepEqual(await snapshot(), accepted)
+  })
+  for (const action of ['reset', 'edit']) {
+    test(`${action} revokes pending game import ${fail ? 'failure' : 'success'}`, async () => {
+      await page.evaluate(() => window.searchHarness.startImport(1))
+      await page.evaluate(async action => {
+        if (action === 'reset') await window.searchHarness.invalidate('resetSteamImportState')
+        else await window.searchHarness.changeProject()
+      }, action)
+      const current = await snapshot()
+      assert.equal(current.importLoading, false)
+      await page.evaluate(fail => window.searchHarness.settleImport(0, fail), fail)
+      assert.deepEqual(await snapshot(), current)
+      assert.deepEqual(current.applied, [])
+    })
+  }
+  test(`reset during artwork preparation suppresses ${fail ? 'failure' : 'application'}`, async () => {
+    await page.evaluate(() => window.searchHarness.startImport(1, true))
+    await page.evaluate(() => window.searchHarness.settleImport(0, false, true))
+    assert.deepEqual((await snapshot()).applied, [])
+    await page.evaluate(() => window.searchHarness.invalidate('resetSteamImportState'))
+    const current = await snapshot()
+    await page.evaluate(fail => window.searchHarness.settlePreparation(0, fail), fail)
+    assert.deepEqual(await snapshot(), current)
+  })
+}
+
+test('current prepared game import commits once after its final wait', async () => {
+  await page.evaluate(() => window.searchHarness.startImport(1, true))
+  await page.evaluate(() => window.searchHarness.settleImport(0, false, true))
+  assert.deepEqual((await snapshot()).applied, [])
+  assert.equal((await snapshot()).importLoading, true)
+  await page.evaluate(() => window.searchHarness.settlePreparation(0, false))
+  const accepted = await snapshot()
+  assert.equal(accepted.selected.appId, 1)
+  assert.equal(accepted.applied.length, 1)
+  assert.equal(accepted.importLoading, false)
 })

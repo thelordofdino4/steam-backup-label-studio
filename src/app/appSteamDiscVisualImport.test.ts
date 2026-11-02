@@ -14,7 +14,7 @@ import type {
 } from '../steam/steamTitleArtworkImport.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import {
-  runSteamDiscVisualDefaultImport,
+  prepareSteamDiscVisualDefaultImport,
   shouldApplySteamPlatformMarksEligibilityChange,
 } from './appSteamDiscVisualImport.ts'
 
@@ -35,7 +35,7 @@ function createImportedGame(
   }
 }
 
-test('Steam disc visual default import preserves the App import sequencing and result bundle', async () => {
+test('Steam disc visual default import stages artwork before applying any text or title owner', async () => {
   const importedGame = createImportedGame()
   const metadata = createDefaultProjectMetadata()
   const currentPlatformMarks = createDefaultProjectPlatformMarks()
@@ -48,7 +48,7 @@ test('Steam disc visual default import preserves the App import sequencing and r
   } as DiscTextMetadataResolution
   const callOrder: string[] = []
 
-  const result = await runSteamDiscVisualDefaultImport({
+  const apply = await prepareSteamDiscVisualDefaultImport({
     importedGame,
     nextProjectMetadata: metadata,
     shouldUpdateCopyrightDiscTextSource: true,
@@ -62,7 +62,7 @@ test('Steam disc visual default import preserves the App import sequencing and r
       assert.deepEqual(options, { useMetadataCopyright: true })
       return nextDiscTextResolution
     },
-    applySteamTitleArtworkImport: async (game): Promise<SteamTitleArtworkImportResult> => {
+    prepareSteamTitleArtworkImport: async (game): Promise<SteamTitleArtworkImportResult> => {
       callOrder.push('title-artwork')
       assert.equal(game, importedGame)
       return {
@@ -71,6 +71,7 @@ test('Steam disc visual default import preserves the App import sequencing and r
         statusMessage: 'Using Steam logo as the disc title artwork.',
       }
     },
+    applySteamTitleArtworkImport: (prepared) => { callOrder?.push('apply-title-artwork'); return prepared },
     applyPlatformMarksImport: (params): SteamPlatformMarkImportResult => {
       callOrder.push('platform-marks')
       assert.equal(params.importedGame, importedGame)
@@ -86,7 +87,9 @@ test('Steam disc visual default import preserves the App import sequencing and r
     },
   })
 
-  assert.deepEqual(callOrder, ['disc-text', 'title-artwork', 'platform-marks'])
+  assert.deepEqual(callOrder, ['title-artwork', 'platform-marks'])
+  const result = apply()
+  assert.deepEqual(callOrder, ['title-artwork', 'platform-marks', 'disc-text', 'apply-title-artwork'])
   assert.equal(result.nextDiscTextResolution, nextDiscTextResolution)
   assert.equal(result.platformMarks, nextPlatformMarks)
   assert.equal(result.platformMarkImportStatus, 'applied')
@@ -108,7 +111,7 @@ test('Steam disc visual default import passes through copyright metadata source 
     resolvedDiscTextTitle: 'Portal 2',
   } as DiscTextMetadataResolution
 
-  const result = await runSteamDiscVisualDefaultImport({
+  const apply = await prepareSteamDiscVisualDefaultImport({
     importedGame,
     nextProjectMetadata: metadata,
     shouldUpdateCopyrightDiscTextSource: false,
@@ -119,11 +122,12 @@ test('Steam disc visual default import passes through copyright metadata source 
       assert.deepEqual(options, { useMetadataCopyright: false })
       return nextDiscTextResolution
     },
-    applySteamTitleArtworkImport: async () => ({
+    prepareSteamTitleArtworkImport: async () => ({
       titleArtwork: {} as SteamTitleArtworkImportResult['titleArtwork'],
       status: 'unavailable',
       statusMessage: 'No Steam title/logo artwork was found.',
     }),
+    applySteamTitleArtworkImport: (prepared) => prepared,
     applyPlatformMarksImport: (params) => ({
       platformMarks: params.currentPlatformMarks,
       status: 'no-data',
@@ -132,6 +136,7 @@ test('Steam disc visual default import passes through copyright metadata source 
     }),
   })
 
+  const result = apply()
   assert.equal(result.platformMarkImportStatus, 'no-data')
   assert.equal(
     shouldApplySteamPlatformMarksEligibilityChange(
@@ -146,7 +151,7 @@ test('Steam disc visual default import preserves skipped-manual OS placement eli
   const metadata = createDefaultProjectMetadata()
   const platformMarks = createDefaultProjectPlatformMarks()
 
-  const result = await runSteamDiscVisualDefaultImport({
+  const apply = await prepareSteamDiscVisualDefaultImport({
     importedGame,
     nextProjectMetadata: metadata,
     shouldUpdateCopyrightDiscTextSource: false,
@@ -156,11 +161,12 @@ test('Steam disc visual default import preserves skipped-manual OS placement eli
     applySteamImportedDiscTextValues: () => ({
       resolvedDiscTextTitle: 'Portal 2',
     }) as DiscTextMetadataResolution,
-    applySteamTitleArtworkImport: async () => ({
+    prepareSteamTitleArtworkImport: async () => ({
       titleArtwork: {} as SteamTitleArtworkImportResult['titleArtwork'],
       status: 'unavailable',
       statusMessage: 'No Steam title/logo artwork was found.',
     }),
+    applySteamTitleArtworkImport: (prepared) => prepared,
     applyPlatformMarksImport: (params) => ({
       platformMarks: params.currentPlatformMarks,
       status: 'skipped-manual',
@@ -169,6 +175,7 @@ test('Steam disc visual default import preserves skipped-manual OS placement eli
     }),
   })
 
+  const result = apply()
   assert.equal(result.platformMarks, platformMarks)
   assert.equal(result.platformMarkImportStatus, 'skipped-manual')
   assert.equal(

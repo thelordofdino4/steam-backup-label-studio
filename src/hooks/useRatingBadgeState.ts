@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import {
@@ -51,6 +53,7 @@ export function useRatingBadgeState({
   applyActivePresetPlacement = (ratingBadge) => ratingBadge,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseRatingBadgeStateOptions) {
+  const asyncWork = useProjectAsyncWork()
   const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
     createDefaultProjectRatingBadge(selectedDiscTemplate),
   )
@@ -91,6 +94,7 @@ export function useRatingBadgeState({
   }
 
   function resetProjectRatingBadge(template: DiscTemplate = selectedDiscTemplate) {
+    asyncWork.invalidateAll()
     setProjectRatingBadge(createDefaultProjectRatingBadge(template))
   }
 
@@ -154,7 +158,10 @@ export function useRatingBadgeState({
     if (enabled) completeRatingBadgeIfSatisfied(finalBadge, candidateMetadata)
   }
 
-  async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
+  async function handleRatingBadgeUpload(
+    event: ChangeEvent<HTMLInputElement>,
+    onImported?: (state: ProjectRatingBadge) => void,
+  ) {
     const file = event.target.files?.[0]
     event.target.value = ''
 
@@ -167,21 +174,27 @@ export function useRatingBadgeState({
       return
     }
 
+    const request = asyncWork.begin('image:rating-badge')
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-      const nextBadge = applyImportedRatingBadge(
-        projectRatingBadgeRef.current,
-        importedImage,
-        selectedDiscTemplate,
-      )
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        const nextBadge = applyImportedRatingBadge(
+          projectRatingBadgeRef.current,
+          importedImage,
+          selectedDiscTemplate,
+        )
 
-      const finalBadge = applySemanticRatingBadgeChange(nextBadge)
-      completeRatingBadgeIfSatisfied(finalBadge)
+        const finalBadge = applySemanticRatingBadgeChange(nextBadge)
+        completeRatingBadgeIfSatisfied(finalBadge)
 
-      announceStatus(`Using ${file.name} as the rating badge.`)
-      return finalBadge
+        announceStatus(`Using ${file.name} as the rating badge.`)
+        onImported?.(finalBadge)
+        return finalBadge
+      })
     } catch (error) {
-      announceStatus(`Rating badge import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Rating badge import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -250,6 +263,7 @@ export function useRatingBadgeState({
   }
 
   function handleClearRatingBadgeImage() {
+    asyncWork.invalidateAll()
     applySemanticRatingBadgeChange(
       clampProjectRatingBadgeToSafeZone(
         clearRatingBadgeImage(projectRatingBadgeRef.current),
@@ -262,6 +276,7 @@ export function useRatingBadgeState({
   }
 
   function handleResetRatingBadgeLayout() {
+    asyncWork.invalidateAll()
     setProjectRatingBadge((currentBadge) => {
       const nextBadge = resetProjectRatingBadgeLayout(
         currentBadge,
@@ -279,6 +294,7 @@ export function useRatingBadgeState({
   }
 
   function handleResetSupplementalUskRatingBadgeLayout() {
+    asyncWork.invalidateAll()
     setProjectRatingBadge((currentBadge) =>
       clampProjectRatingBadgeToSafeZone(
         resetSupplementalUskRatingBadgeLayout(

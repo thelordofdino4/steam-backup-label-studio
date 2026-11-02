@@ -10,6 +10,8 @@
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
 
+Focused async ownership map: [Async Project Work Contract](ASYNC_PROJECT_WORK_CONTRACT.md) records the runtime request owner, existing image/discovery consumers, and session-bound Case reconciliation (#367).
+
 ## Basis
 
 - Branch: `main`
