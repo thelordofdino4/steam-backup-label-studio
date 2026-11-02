@@ -116,7 +116,7 @@ test('menu reports omit arbitrary diagnostic values and retain only exact stages
   diagnostics.recordMenuDiagnostic({ code: 'private-code', stage: 'private-stage', detail: 'private-detail', bytes: 'private-bytes' } as never)
   diagnostics.recordMenuDiagnostic({ code: 'application-menu.projection-failed', stage: 'projection-native-apply', detail: 'private-path' })
   const report = diagnostics.snapshot()
-  assert.equal(report.version, 2)
+  assert.equal(report.version, 3)
   assert.equal(report.records[0].status, 'failed')
   assert.equal(report.records[0].stage, 'unclassified')
   assert.equal(report.records[1].diagnosticCode, 'application-menu.unclassified')

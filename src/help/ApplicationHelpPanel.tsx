@@ -22,7 +22,7 @@ export function ApplicationHelpPanel({ report, status, headingRef, reportRef, on
         {APPLICATION_HELP_SECTIONS.map(section => <section key={section.heading}><h3>{section.heading}</h3><p>{section.text}</p></section>)}
         <section aria-labelledby="application-help-report-heading">
           <h3 id="application-help-report-heading">Local diagnostics</h3>
-          <p id="application-help-report-description">This report contains recent command outcomes, menu readiness and timings. It excludes project content, filenames and paths. Nothing is sent automatically. Select the report and copy it with your keyboard to include it in a bug report.</p>
+          <p id="application-help-report-description">This report contains recent operation outcomes, menu readiness and timings. It excludes project content, filenames and paths. Nothing is sent automatically. Select the report and copy it with your keyboard to include it in a bug report.</p>
           <label htmlFor="application-help-report">Diagnostic report</label>
           <textarea id="application-help-report" aria-describedby="application-help-report-description" ref={reportRef} value={report} readOnly rows={10} spellCheck={false} />
           <div className="application-help-actions">

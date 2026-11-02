@@ -43,3 +43,7 @@ Behavioral oracles remain the current import/source, preset fit, disabled-state 
 Focused coverage includes real lifecycle New/Open/content/navigation transitions, exact-once/replay/forged tickets, Save baseline preservation, cross-lane competing commits, stale failure suppression, real React Steam preparation races, real PNG decode through upload owners, all four Case surfaces, metadata auto-apply, accepted branding companion callbacks, and queued reconciliation revocation. Full build, lint, Node, Rust and cycle checks are required alongside focused ownership tests.
 
 Integration with #357/#358/#359/#360/#362 requires reconciliation and revalidation against the existing lifecycle and continuous-edit contracts. Native Steam/discovery, image control, preview/export, and lifecycle smoke remain required for acceptance. This document does not close #367 or claim that #363/#365/#366 document migration is implemented.
+
+## Diagnostic observation
+
+The reconciled source stack lets Steam search/import report bounded timing and typed outcomes to the existing application runtime collector. Observation is outside request authorization: it cannot acquire, renew, commit or publish a request. Import success still requires `commit` to return true; current failure copy still uses `publish`; retired completions record cancellation without changing current UI feedback. See [RELEASE_DIAGNOSTICS.md](RELEASE_DIAGNOSTICS.md) for the allowlisted fields and coarse stages. Diagnostic observation does not establish native acceptance or implement #366 transactions.
