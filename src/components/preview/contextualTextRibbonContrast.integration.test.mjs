@@ -15,10 +15,46 @@ import { ContextualTextRibbonHost } from '/src/components/preview/ContextualText
 import { InlinePreviewTextEditorRibbon } from '/src/components/preview/inlinePreviewTextEditorRibbon.tsx'
 import { DISC_TEXT_CONTRAST_OPTIONS } from '/src/discText/styles.ts'
 import { CASE_INSERT_TEXT_CONTRAST_OPTIONS } from '/src/caseInsert/textStyles.ts'
+import { createDefaultDiscTextLayout } from '/src/discText/index.ts'
+import { createDefaultDiscTextStyle } from '/src/discText/styles.ts'
+import { createDiscInlineTextEditorControls, createCurvedDiscTextEditorControls } from '/src/components/preview/discInlineTextEditorControls.ts'
+import { createDefaultCaseInsertTextStyle } from '/src/caseInsert/textStyles.ts'
+import { getCaseInsertTextBlockLayoutPresets, getCaseInsertTextListLayoutPresets } from '/src/caseInsert/textLayout.ts'
+import { createCaseInsertInlineTextEditorControls } from '/src/components/preview/caseInsertInlineTextEditorControls.ts'
 import '/src/styles/App.css'
 const selection = { start: 0, end: 4 }
 const noop = () => {}
+function targetControls(kind) {
+  const callbacks = Object.fromEntries(['onApplyDiscTextStylePreset', 'onDiscTextAlignmentChange', 'onDiscTextArcSideChange',
+    'onDiscTextContentModeChange', 'onDiscTextEnabledChange', 'onDiscTextLayoutChange', 'onDiscTextStyleChange',
+    'onDiscTextRichTextCommand', 'onDiscTextVisualAvoidanceChange', 'onResetDiscTextLayout', 'onResetDiscTextStyle',
+    'onSelectedDiscTextKeyChange'].map(name => [name, noop]))
+  const metadataSource = { label: 'Game metadata', status: 'manual', statusLabel: 'Manual override', actionLabel: 'Use Game metadata value', onAction: noop }
+  if (kind.startsWith('disc')) {
+    const curved = kind === 'disc-curved', key = curved ? 'copyright' : 'title'
+    return (curved ? createCurvedDiscTextEditorControls : createDiscInlineTextEditorControls)({
+      ...callbacks, key, layout: { ...createDefaultDiscTextLayout('top')[key], mode: curved ? 'curved' : 'straight' },
+      style: { ...createDefaultDiscTextStyle(key), backgroundEnabled: true, borderEnabled: true },
+      metadataSource, isHtmlSourceEnabled: true,
+    })
+  }
+  const spine = kind.includes('spine'), list = kind.endsWith('list'), paneId = kind.includes('tray') ? 'tray' : 'cover'
+  const target = spine ? { scope: 'spineTextBlock', side: kind.includes('left') ? 'left' : 'right', textBlockId: 'test-note' }
+    : list ? { scope: 'templateTextList', paneId, textListId: 'test-list' } : { scope: 'templateTextBlock', paneId, textBlockId: 'test-title' }
+  const layout = { scale: 1, fontSizePt: 28, width: 64, x: 35, y: 42, rotation: spine ? 90 : 0 }
+  const style = { ...createDefaultCaseInsertTextStyle(spine ? 'spine' : list ? 'features' : 'title'), backgroundEnabled: true, borderEnabled: true }
+  const handlers = Object.fromEntries(['onEnabledChange', 'onStyleChange', 'onApplyStylePreset', 'onApplyLayoutPreset',
+    'onResetStyle', 'onResetLayout', 'onLayoutChange', 'onAlignChange', 'onAvoidVisualElementsChange', 'onContentModeChange',
+    'onRichTextCommand'].map(name => [name, noop]))
+  const block = { id: 'test-title', label: 'Title', enabled: true, value: 'Title', source: 'manual', align: 'center', avoidVisualElements: true, layout, style }
+  return createCaseInsertInlineTextEditorControls({ target, layout, style, handlers, label: 'Title', align: 'center',
+    avoidVisualElements: true, contentMode: 'html', metadataSource, onDeleteComplete: noop, onResetLayout: noop,
+    layoutPresets: list ? getCaseInsertTextListLayoutPresets(paneId) : getCaseInsertTextBlockLayoutPresets(spine ? 'spine' : paneId, block),
+    ...(spine ? { xLabel: 'Cross', xMin: -18, xMax: 18, xStep: 0.1, yLabel: 'Length', yMin: -10, yMax: 110, yStep: 0.1 } : {}),
+  })
+}
 function Fixture() {
+  const [targetKind, setTargetKind] = useState('synthetic')
   const [value, setValue] = useState('strokeShadow')
   const [mixed, setMixed] = useState(false)
   const [width, setWidth] = useState(720)
@@ -31,7 +67,7 @@ function Fixture() {
   const [spacing, setSpacing] = useState(1.25)
   const [sourceDraft, setSourceDraft] = useState('<p>Example text</p>')
   window.__contrast = {
-    setMeasurementsOnly, setSpacing, setWidth, setMixed, setExpanded, setEnabled, setOpacity, setTab, setCurved, options: DISC_TEXT_CONTRAST_OPTIONS,
+    setTargetKind, setMeasurementsOnly, setSpacing, setWidth, setMixed, setExpanded, setEnabled, setOpacity, setTab, setCurved, options: DISC_TEXT_CONTRAST_OPTIONS,
     caseOptions: CASE_INSERT_TEXT_CONTRAST_OPTIONS, value: () => value,
     calls: window.__calls ??= [],
   }
@@ -69,7 +105,7 @@ function Fixture() {
     h('div', { className: 'preview-header', style: { gridTemplateColumns: '110px minmax(0, 1fr)' } },
       h('div', { className: 'preview-pane-label', style: { width: 110 } }, 'Live Preview'),
       h(ContextualTextRibbonHost, { active: true }, h(InlinePreviewTextEditorRibbon, {
-        activeTab: tab, controls, selection, getCommandSelection: () => selection,
+        activeTab: tab, controls: targetKind === 'synthetic' ? controls : targetControls(targetKind), selection, getCommandSelection: () => selection,
         isCurvedText: curved, sourceDraft, tabsRef: null, onDone: noop,
         onRibbonControlInteraction: noop, onRibbonKeyboardInteraction: noop, onRibbonMenuRef: noop,
         onRibbonPointerDown: noop, onRetainTextareaSelectionForCommands: noop, onSelectionChange: noop,
@@ -286,3 +322,68 @@ test('utility subgroups grow smaller-first, cap, and center; bound-based number 
     }))
   }
 })
+
+
+for (const target of ['disc-straight', 'disc-curved', 'case-cover', 'case-tray', 'case-cover-list', 'case-tray-list', 'case-left-spine', 'case-right-spine']) {
+  test(`production ${target} control factory keeps all tabs within cards`, async () => {
+    for (const width of [519, 1200, 1600]) {
+      for (const tab of ['presets', 'text', 'art', 'utilities', 'html']) {
+        await page.evaluate(({ target, tab, width }) => { document.activeElement.blur(); window.__contrast.setTargetKind(target); window.__contrast.setTab(tab); window.__contrast.setCurved(target === 'disc-curved'); window.__contrast.setWidth(width) }, { target, tab, width })
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+        const errors = await page.evaluate(() => [...document.querySelectorAll('[data-ribbon-group]')].flatMap(card => {
+          const box = card.getBoundingClientRect()
+          return [...card.querySelectorAll('input,select,button,textarea')].filter(node => {
+            const r = node.getBoundingClientRect()
+            return r.width > 0 && (r.left < box.left - 1 || r.right > box.right + 1 || r.top < box.top - 1 || r.bottom > box.bottom + 1)
+          }).map(node => ({ card: card.dataset.ribbonGroup, control: node.dataset.smokeId ?? node.getAttribute('aria-label') }))
+        }))
+        assert.deepEqual(errors, [], JSON.stringify({ target, tab, width, errors }))
+      }
+    }
+    assert.deepEqual(errors, [])
+  })
+}
+
+
+test('production curved Layout reaches subgroup caps while preserving intrinsic Reset space', async () => {
+  await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setTargetKind('disc-curved'); window.__contrast.setTab('utilities'); window.__contrast.setWidth(2400) })
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  const groups = await page.evaluate(() => [...document.querySelectorAll('[data-ribbon-group="layout"] [data-ribbon-inner-allocated]')].map(group => ({ width: group.getBoundingClientRect().width, max: Number(group.dataset.ribbonInnerMax) })))
+  assert.equal(groups.length, 3)
+  for (const group of groups) assert.ok(Math.abs(group.width - group.max) < 0.1, JSON.stringify(groups))
+})
+
+async function frozenLayout() {
+  return page.evaluate(() => ({
+    width: document.querySelector('.contextual-text-ribbon-host').getBoundingClientRect().width,
+    columns: [...document.querySelectorAll('[data-ribbon-column-index]')].map(card => [card.getBoundingClientRect().width, card.dataset.ribbonColumnIndex]),
+    groups: [...document.querySelectorAll('[data-ribbon-inner-allocated]')].map(group => group.getBoundingClientRect().width),
+    scroll: document.querySelector('.contextual-text-ribbon-control-row').scrollLeft,
+    previewY: document.getElementById('preview-sentinel').getBoundingClientRect().top,
+  }))
+}
+for (const [tab, selector, interaction] of [
+  ['html', '[data-smoke-id="inline-text-html-source"]', 'keyboard'],
+  ['text', '[data-smoke-id="inline-text-number-font-size"]', 'keyboard'],
+  ['art', '[data-smoke-id="inline-text-range-opacity"]', 'pointer'],
+  ['art', 'input[type="checkbox"]', 'pointer'],
+  ['text', 'button[aria-label="Increase Font size"]', 'pointer'],
+]) {
+  test(`${selector} retains layout through its active ${interaction} interaction`, async () => {
+    await page.evaluate(tab => { document.activeElement.blur(); window.__contrast.setTargetKind('synthetic'); window.__contrast.setExpanded(true); window.__contrast.setEnabled(true); window.__contrast.setTab(tab); window.__contrast.setWidth(1200) }, tab)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const control = page.locator(selector).first()
+    await control.scrollIntoViewIfNeeded()
+    if (interaction === 'keyboard') { await control.focus(); await control.press('ArrowLeft') }
+    else { const box = await control.boundingBox(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down() }
+    await page.waitForFunction(() => document.querySelector('[data-ribbon-layout-frozen="true"]'))
+    const before = await frozenLayout()
+    await page.evaluate(() => window.__contrast.setWidth(1600))
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    assert.deepEqual(await frozenLayout(), before)
+    if (interaction === 'pointer') await page.mouse.up()
+    await page.getByRole('button', { name: 'Done', exact: true }).focus()
+    await page.waitForFunction(() => !document.querySelector('[data-ribbon-layout-frozen="true"]'))
+    await page.waitForFunction(() => document.querySelector('.contextual-text-ribbon-host').getBoundingClientRect().width > 1598)
+  })
+}

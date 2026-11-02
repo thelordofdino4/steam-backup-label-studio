@@ -125,12 +125,17 @@ function getUtilityInnerGroups(element: HTMLElement) {
         group.style.removeProperty('max-width')
         group.style.removeProperty('flex')
       }
+      const style = window.getComputedStyle(group)
+      const margin = (Number.parseFloat(style.marginLeft) || 0) + (Number.parseFloat(style.marginRight) || 0)
+      if (!group.classList.contains('contextual-text-ribbon-control-stack')) {
+        return { group, margin, profile: ribbonInnerGroupProfile(Math.max(group.scrollWidth, group.getBoundingClientRect().width)) }
+      }
       const options = group.classList.contains('contextual-text-ribbon-control-stack--utility-layout-options')
       if (options) {
         // Preserve the established option-stack floor; a modest useful cap
         // lets select fields expand without separating them from their labels.
         const min = group.classList.contains('contextual-text-ribbon-control-stack--utility-curved-layout-options') ? 160 : 154
-        return { group, profile: ribbonInnerGroupProfile(min, 220, min) }
+        return { group, margin, profile: ribbonInnerGroupProfile(min, 220, min) }
       }
       const rows = Array.from(group.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
       const profiles = rows.map(row => {
@@ -146,21 +151,21 @@ function getUtilityInnerGroups(element: HTMLElement) {
         return ribbonInnerGroupProfile(fixed + chrome + min, fixed + chrome + max)
       })
       const chrome = getHorizontalChrome(group)
-      return { group, profile: ribbonInnerGroupProfile(
+      return { group, margin, profile: ribbonInnerGroupProfile(
         chrome + Math.max(0, ...profiles.map(profile => profile.min)),
         chrome + Math.max(0, ...profiles.map(profile => profile.max)),
       ) }
     })
 }
 
-function getUtilityRequiredCardWidth(element: HTMLElement) {
+function getUtilityRequiredCardWidth(element: HTMLElement, bound: 'min' | 'max' = 'min') {
   const groups = getUtilityInnerGroups(element)
   if (!groups.length) return 0
   const body = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-body')
   const header = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-header')
   return getHorizontalChrome(element) + (header?.getBoundingClientRect().width ?? 0)
     + getHorizontalGap(element) + getHorizontalChrome(body)
-    + groups.reduce((width, { profile }) => width + profile.min, 0)
+    + groups.reduce((width, { profile, margin }) => width + profile[bound] + margin, 0)
     + getHorizontalGap(body) * Math.max(0, groups.length - 1)
 }
 
@@ -168,7 +173,7 @@ function applyUtilityInnerGroups(element: HTMLElement, body: HTMLElement, availa
   const groups = getUtilityInnerGroups(element)
   if (!groups.length) return
   const widths = getContextualRibbonInnerGroupWidths(groups.map(({ profile }) => profile),
-    availableWidth - getHorizontalChrome(body), getHorizontalGap(body))
+    availableWidth - getHorizontalChrome(body) - groups.reduce((sum, { margin }) => sum + margin, 0), getHorizontalGap(body))
   groups.forEach(({ group, profile }, index) => {
     group.style.width = `${widths[index]}px`
     group.style.maxWidth = `${widths[index]}px`
@@ -189,7 +194,8 @@ function getRibbonDeclaredWidthProfile(
   const min = Math.max(requiredMin, getFiniteDataNumber(element.dataset.ribbonGroupMinWidth))
   const preferred = Math.max(min,
     getFiniteDataNumber(element.dataset.ribbonGroupPreferredWidth))
-  const max = Math.max(preferred, getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth))
+  const max = Math.max(preferred, getUtilityRequiredCardWidth(element, 'max'),
+    getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth))
 
   if (min > 0 && preferred >= min && max >= preferred) {
     if (element.dataset.ribbonGroupFit === 'content') {
@@ -410,7 +416,7 @@ function clearColumnPackedGroupWidths(element: Element | null) {
 
 function applyRibbonControlWidthCap(element: HTMLElement, cardWidth: number) {
   if (element.dataset.ribbonFillRow === 'true') return
-  const max = Math.max(getUtilityRequiredCardWidth(element),
+  const max = Math.max(getUtilityRequiredCardWidth(element, 'max'),
     getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth))
   const body = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-body')
   const header = element.querySelector<HTMLElement>(':scope > .contextual-text-ribbon-group-header')
