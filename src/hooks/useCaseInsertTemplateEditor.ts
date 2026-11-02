@@ -291,12 +291,12 @@ export function useCaseInsertTemplateEditor({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
+    if (!image) {
+      asyncWork.publish(request, () => {})
+      return
+    }
+
     asyncWork.commit(request, () => {
-
-      if (!image) {
-        return
-      }
-
       updatePrimaryImageSlot(paneId, slotKey, (slot) =>
         slotKey === 'titleArtwork'
           ? setCustomCaseInsertTitleArtworkImage(slot, image)
@@ -538,12 +538,12 @@ export function useCaseInsertTemplateEditor({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
+    if (!image) {
+      asyncWork.publish(request, () => {})
+      return
+    }
+
     asyncWork.commit(request, () => {
-
-      if (!image) {
-        return
-      }
-
       updateGroupedImageSlot(
         paneId,
         slotKey,

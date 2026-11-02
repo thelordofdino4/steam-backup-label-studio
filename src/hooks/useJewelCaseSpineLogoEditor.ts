@@ -94,12 +94,12 @@ export function useJewelCaseSpineLogoEditor({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
+    if (!image) {
+      asyncWork.publish(request, () => {})
+      return
+    }
+
     asyncWork.commit(request, () => {
-
-      if (!image) {
-        return
-      }
-
       setProjectJewelCase((currentCaseInsert) =>
         setJewelCaseSpinePrimaryLogoSlotImage(
           currentCaseInsert,
