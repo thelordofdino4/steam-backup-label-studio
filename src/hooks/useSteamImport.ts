@@ -1,3 +1,6 @@
+import { useApplicationDiagnostics } from './useApplicationDiagnostics.ts'
+import { commandFailed, commandSucceeded, type ApplicationCommandResult } from '../lifecycle/applicationCommandTypes.ts'
+import { observeSteamWorkflowSafely, steamWorkflowError, type SteamWorkflowStage } from '../steam/steamWorkflowDiagnostics.ts'
 import { useRef, useState } from 'react'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
@@ -28,6 +31,7 @@ export function useSteamImport({
     useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
   const asyncWork = useProjectAsyncWork()
+  const diagnostics = useApplicationDiagnostics()
   const [pendingImport, setPendingImport] = useState<ProjectAsyncRequest | null>(null)
   const isSteamImportLoading = pendingImport !== null && asyncWork.isCurrent(pendingImport)
 
@@ -57,6 +61,9 @@ export function useSteamImport({
   ) {
     const request = asyncWork.begin('steam-game')
     if (!asyncWork.isCurrent(request)) return
+    const observation = observeSteamWorkflowSafely(diagnostics.observeSteamWorkflow, { workflowId: 'steam.import', requestId: request.requestId })
+    let stage: SteamWorkflowStage = 'fetch-and-normalize'
+    let outcome: ApplicationCommandResult<unknown> = { status: 'cancelled', reason: 'operation-cancelled' }
     setPendingImport(request)
     announceStatus(`Importing Steam App ID ${appId}...`)
 
@@ -64,12 +71,20 @@ export function useSteamImport({
       const importedState = await createSteamGameImport(appId)
       if (!asyncWork.isCurrent(request)) return
       // Preparation may download/decode, but cannot mutate project owners.
+      stage = 'prepare'
+      observation.stage(stage)
       const applyPreparedImport = await prepareImportedState(importedState)
-      asyncWork.commit(request, applyPreparedImport)
-    } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(`Steam import failed: ${String(error)}`)
-      })
+      stage = 'apply'
+      observation.stage(stage)
+      if (asyncWork.commit(request, applyPreparedImport)) outcome = commandSucceeded(undefined)
+    } catch (cause) {
+      const error = steamWorkflowError('steam.import', stage, cause)
+      outcome = commandFailed(error)
+      if (!asyncWork.publish(request, () => { announceStatus(error.userMessage) })) {
+        outcome = { status: 'cancelled', reason: 'operation-cancelled' }
+      }
+    } finally {
+      observation.complete(outcome)
     }
   }
 
@@ -83,6 +98,8 @@ export function useSteamImport({
       return
     }
 
+    const observation = observeSteamWorkflowSafely(diagnostics.observeSteamWorkflow, { workflowId: 'steam.search', requestId: generation })
+    let outcome: ApplicationCommandResult<unknown> = { status: 'cancelled', reason: 'operation-cancelled' }
     setIsSteamSearchLoading(true)
     announceStatus(`Searching Steam for "${trimmedQuery}"...`)
 
@@ -95,10 +112,14 @@ export function useSteamImport({
           ? `Found ${results.length} Steam result${results.length === 1 ? '' : 's'}.`
           : 'Steam returned no results. Manual title entry is still available.',
       )
-    } catch (error) {
+      outcome = commandSucceeded(undefined)
+    } catch (cause) {
       if (generation !== searchGeneration.current) return
-      announceStatus(`Steam search failed: ${String(error)}`)
+      const error = steamWorkflowError('steam.search', 'fetch-and-normalize', cause)
+      outcome = commandFailed(error)
+      announceStatus(error.userMessage)
     } finally {
+      observation.complete(outcome)
       if (generation === searchGeneration.current) {
         setIsSteamSearchLoading(false)
       }

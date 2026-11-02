@@ -1,4 +1,8 @@
 import {
+  STEAM_WORKFLOW_IDS, STEAM_WORKFLOW_STAGES, STEAM_WORKFLOW_FAILURES,
+  type SteamWorkflowId, type SteamWorkflowObserver,
+} from '../steam/steamWorkflowDiagnostics.ts'
+import {
   APPLICATION_MENU_STARTUP_STAGES,
   projectApplicationMenuDiagnostic,
   type ApplicationMenuStartupObserver,
@@ -16,6 +20,7 @@ import { PROJECT_PACKAGE_FAILURE_REGISTRY, PROJECT_PACKAGE_FAILURE_STAGES, isPro
 // Exact known codes only. A string that merely resembles a code can still
 // contain private data. Unknown owner codes remain unclassified in reports.
 const KNOWN_FAILURE_CODES = new Set<string>([
+  ...Object.keys(STEAM_WORKFLOW_FAILURES),
   ...Object.keys(PROJECT_FILE_FAILURE_MESSAGES),
   ...Object.keys(PROJECT_PACKAGE_FAILURE_REGISTRY),
   'application.command-owner-not-executable',
@@ -82,6 +87,8 @@ type Outcome = Readonly<{
 type Identity = Readonly<{
   commandId?: ApplicationCommandId | 'unknown'
   operationId?: string
+  workflowId?: SteamWorkflowId | 'unknown'
+  requestId?: number
   component?: 'application-menu'
   event?: 'startup' | 'diagnostic'
 }>
@@ -101,6 +108,7 @@ function projectOutcome(result: ApplicationCommandResult<unknown>): Outcome {
   const nativeStage = typeof cause === 'object' && cause !== null && 'stage' in cause ? cause.stage : undefined
   const exportStage = /^export\.(preflight|confirmation|destination|render|write|snapshot)-failed$/.exec(failureCode)?.[1]
   const knownStage = ({ 'project.read-failed': 'read', 'project.write-failed': 'write', 'project.parse-failed': 'parse', 'project.validation-failed': 'validate', 'project.migration-failed': 'migrate', 'project.package.asset-capture-failed': 'asset-capture', 'project.format.unsupported': 'content-recognition', 'project.package.destination-extension-invalid': 'destination-validation', 'project.legacy-conversion.destination-conflicts-source': 'destination-identity' } as Record<string, string>)[failureCode]
+    ?? (STEAM_WORKFLOW_FAILURES as Readonly<Record<string, { stage: string }>>)[failureCode]?.stage
     ?? (failureCode.startsWith('project.atomic-write.') ? failureCode.slice('project.atomic-write.'.length) : exportStage)
   const stage = typeof nativeStage === 'string' && KNOWN_STAGES.has(nativeStage) ? nativeStage : knownStage
   // Never retain userMessage, diagnosticMessage, cause, feedback or success value.
@@ -166,6 +174,29 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
       update(outcome)
     }
   }
+  const steamWorkflows = new Set<string>(STEAM_WORKFLOW_IDS)
+  const steamStages = new Set<string>(STEAM_WORKFLOW_STAGES)
+  const observeSteamWorkflow: SteamWorkflowObserver = operation => {
+    const update = begin(Object.freeze({
+      workflowId: steamWorkflows.has(operation.workflowId) ? operation.workflowId : 'unknown',
+      ...(Number.isSafeInteger(operation.requestId) && operation.requestId > 0 ? { requestId: operation.requestId } : {}),
+    }))
+    if (!update) return
+    let stage: string = 'fetch-and-normalize'
+    update({ status: 'running', stage }, false)
+    return Object.freeze({
+      stage(value) {
+        stage = steamStages.has(value) ? value : 'unclassified'
+        update({ status: 'running', stage }, false)
+      },
+      complete(result) {
+        let outcome: Outcome
+        try { outcome = projectOutcome(result) }
+        catch { outcome = { status: 'failure', failureCode: 'unclassified' } }
+        update({ stage, ...outcome })
+      },
+    })
+  }
   const startupStages = new Set<string>(APPLICATION_MENU_STARTUP_STAGES)
   const startupResults = new Set(['started', 'unavailable', 'failed', 'disposed'])
   const observeMenuStartup: ApplicationMenuStartupObserver = () => {
@@ -189,7 +220,7 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
   }
   function snapshot() {
     const currentTime = now()
-    return Object.freeze({ format: 'sbls-command-diagnostics', version: 2, capacity, evicted,
+    return Object.freeze({ format: 'sbls-command-diagnostics', version: 3, capacity, evicted,
       records: Object.freeze(entries.map(entry => {
         const elapsed = Math.max(0, (entry.finished ?? currentTime) - entry.started)
         return Object.freeze({ sequence: entry.sequence, ...entry.identity,
@@ -199,7 +230,7 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
       })),
     })
   }
-  return Object.freeze({ observeExecution, observeMenuStartup, recordMenuDiagnostic, snapshot,
+  return Object.freeze({ observeExecution, observeMenuStartup, recordMenuDiagnostic, observeSteamWorkflow, snapshot,
     toJson: () => JSON.stringify(snapshot(), null, 2),
     clear() { entries = []; evicted = 0 },
     dispose() { disposed = true; entries = []; evicted = 0 },
