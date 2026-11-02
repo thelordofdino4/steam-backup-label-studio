@@ -264,20 +264,33 @@ test('active numeric editing freezes geometry and scroll until focus leaves the 
 })
 
 test('overflow exposes complete columns and numeric interaction retains the scroll offset', async () => {
-  await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setWidth(650) })
-  await page.waitForFunction(() => document.querySelector('.contextual-text-ribbon-control-row').clientWidth === 444)
-  const row = await cardGeometry()
-  assert.deepEqual(row.cards.map(card => card.width), [220, 220, 220, 220])
-  await page.evaluate(() => {
-    const input = document.querySelector('[data-smoke-id="inline-text-value-opacity"]')
-    input.focus()
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
-  })
-  const locked = await cardGeometry()
-  await page.evaluate(() => { document.querySelector('.contextual-text-ribbon-control-row').scrollLeft += 80 })
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-  assert.equal((await cardGeometry()).scroll, locked.scroll)
-  await page.getByRole('button', { name: 'Done', exact: true }).focus()
+  const style = await page.addStyleTag({ content: '[data-ribbon-group="contrast"] select { font-family: monospace; font-size: 18px; letter-spacing: 0.7px; }' })
+  try {
+    await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setExpanded(true); window.__contrast.setWidth(650) })
+    await page.waitForFunction(() => Math.abs(document.querySelector('.contextual-text-ribbon-host').getBoundingClientRect().width - 650) < 2)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const row = await cardGeometry()
+    assert.equal(row.cards.length, 4)
+    assert.equal(new Set(row.cards.map(card => card.width)).size, 1)
+    const columnWidth = row.cards[0].width
+    assert.ok(columnWidth >= 220)
+    const visibleColumns = (row.available + 4) / (columnWidth + 4)
+    assert.ok(visibleColumns >= 1 && visibleColumns < 3)
+    assert.ok(Math.abs(visibleColumns - Math.round(visibleColumns)) < 0.01, JSON.stringify(row))
+    await select().selectOption('strokeShadow')
+    const contrast = await bounds()
+    assert.ok(contrast.usableWidth >= contrast.textWidth, JSON.stringify(contrast))
+    await page.evaluate(() => {
+      const input = document.querySelector('[data-smoke-id="inline-text-value-opacity"]')
+      input.focus()
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+    })
+    const locked = await cardGeometry()
+    await page.evaluate(() => { document.querySelector('.contextual-text-ribbon-control-row').scrollLeft += 80 })
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    assert.equal((await cardGeometry()).scroll, locked.scroll)
+    await page.getByRole('button', { name: 'Done', exact: true }).focus()
+  } finally { await style.evaluate(node => node.remove()) }
 })
 
 
