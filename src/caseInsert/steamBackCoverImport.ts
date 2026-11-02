@@ -4,6 +4,7 @@ import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
+import { getEditorNavigationRoleSurface } from '../editor/editorNavigationShell.ts'
 import {
   CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
   CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
@@ -29,6 +30,39 @@ const TRAY_COPYRIGHT_TEXT_IDS = new Set([
   'tray-legal-text',
 ])
 const TRAY_FEATURE_BULLETS_ID = 'tray-feature-bullets'
+
+/** Describes the accepted after-state; never enables text or changes copy. */
+export function getSteamBackCoverImportStatus(caseInsert: ProjectJewelCaseState) {
+  const tray = caseInsert.templates.tray
+  const surface = getEditorNavigationRoleSurface('back')
+  const groups = [
+    { role: 'game-description-text', targets: tray.textBlocks.filter(({ id }) => id === TRAY_DESCRIPTION_ID) },
+    { role: 'feature-bullets-callouts', targets: tray.textLists.filter(({ id }) => id === TRAY_FEATURE_BULLETS_ID) },
+    { role: 'system-requirements', targets: tray.textBlocks.filter(({ id }) =>
+      id === TRAY_MINIMUM_REQUIREMENTS_ID || id === TRAY_RECOMMENDED_REQUIREMENTS_ID) },
+    { role: 'legal-info', targets: tray.textBlocks.filter(({ id }) => TRAY_COPYRIGHT_TEXT_IDS.has(id)) },
+  ]
+  let enabled = 0
+  let hidden = 0
+  const hiddenSections: string[] = []
+  for (const group of groups) {
+    const available = group.targets.filter((target) => target.source === 'steam' && hasCaseInsertTextValue(target))
+    enabled += available.filter((target) => target.enabled).length
+    const hiddenCount = available.filter((target) => !target.enabled).length
+    hidden += hiddenCount
+    if (hiddenCount > 0) {
+      const section = surface.roleSections.find(({ id }) => id === group.role)
+      if (section) hiddenSections.push(section.label)
+    }
+  }
+  if (enabled + hidden === 0) {
+    return 'No non-empty Steam back-cover text is available. Text visibility settings were preserved.'
+  }
+  const summary = `Steam back-cover text: ${enabled} enabled, ${hidden} hidden.`
+  return hidden > 0
+    ? `${summary} To show hidden text, open ${surface.label} and enable it under ${hiddenSections.join(', ')}.`
+    : `${summary} Existing visibility settings were preserved.`
+}
 
 type SteamTextTarget = { source?: string; value?: string; items?: string[] }
 

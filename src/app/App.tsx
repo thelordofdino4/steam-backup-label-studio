@@ -177,7 +177,7 @@ import {
   createSteamCaseInsertTitleArtworkSeed,
 } from '../caseInsert/titleArtwork'
 import {
-  applySteamImportDefaultsToCaseInsert,
+  prepareCaseInsertSteamImport,
 } from '../caseInsert/steamImportDefaults'
 import {
   updateRatingBadgeEnabledState,
@@ -1587,6 +1587,24 @@ function App() {
           legalText: nextProjectMetadata.copyrightText,
         })
         : null
+      const preparedCaseImport = options.applyCaseInsertBackCoverDefaults
+        ? prepareCaseInsertSteamImport({
+          caseInsert: projectJewelCase,
+          importedGame: importedState.importedGame,
+          legalText: nextProjectMetadata.copyrightText,
+          replaceExisting: isDifferentSelectedSteamGame,
+          titleArtworkSeed: caseInsertTitleArtworkSeed,
+          ratingCandidate: autoRatingCandidate,
+          brandingSources: {
+            projectMetadata: nextProjectMetadata,
+            projectLogoAssets,
+            projectRatingBadge: caseInsertRatingBadgeForImport,
+            projectMediaMark,
+            projectPlatformMarks,
+            projectTechnicalMarks,
+          },
+        })
+        : null
 
       return () => {
         loadImportedSteamMetadataCandidates(importedState.importedGame)
@@ -1601,30 +1619,12 @@ function App() {
 
         announceStatus(importedState.statusMessage)
 
-        if (options.applyCaseInsertBackCoverDefaults) {
-          setProjectJewelCase((currentCaseInsert) => {
-            return applySteamImportDefaultsToCaseInsert({
-              caseInsert: currentCaseInsert,
-              importedGame: importedState.importedGame,
-              legalText: nextProjectMetadata.copyrightText,
-              replaceExisting: isDifferentSelectedSteamGame,
-              titleArtworkSeed: caseInsertTitleArtworkSeed,
-              ratingCandidate: autoRatingCandidate,
-              brandingSources: {
-                projectMetadata: nextProjectMetadata,
-                projectLogoAssets,
-                projectRatingBadge: caseInsertRatingBadgeForImport,
-                projectMediaMark,
-                projectPlatformMarks,
-                projectTechnicalMarks,
-              },
-            })
-          })
+        if (preparedCaseImport) {
+          setProjectJewelCase(preparedCaseImport.caseInsert)
           caseInsertBrandingMarkSync.syncCaseInsertBrandingMarkSlots({
             projectMetadata: nextProjectMetadata,
             projectRatingBadge: caseInsertRatingBadgeForImport,
           })
-          announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
           caseInsertBackCoverCopyFit?.warnings.forEach((warning) => {
             announceStatus(warning)
           })
@@ -1671,6 +1671,9 @@ function App() {
         announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, {
           applyDiscVisualDefaults,
         })
+        if (preparedCaseImport) {
+          announceStatus(preparedCaseImport.statusMessage)
+        }
       }
     })
   }
