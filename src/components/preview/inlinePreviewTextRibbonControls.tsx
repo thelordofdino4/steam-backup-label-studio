@@ -1,3 +1,4 @@
+import { getRibbonRangeValueCapacityCh } from './contextualTextRibbonInnerGroups'
 import {
   Children,
   Fragment,
@@ -157,11 +158,13 @@ export function renderContextualTextRibbonGroup({
         className,
       ].filter(Boolean).join(' ')}
       data-ribbon-group-grows={size?.grows || undefined}
+      data-ribbon-group-growth-weight={size?.grows ? 1 : 0}
+      data-ribbon-group-growth-priority={0}
       data-ribbon-group-fit={size?.fit}
       data-ribbon-group-max-width={size?.max}
       data-ribbon-group-min-width={size?.min}
       data-ribbon-group-preferred-width={size?.preferred}
-      data-ribbon-group-row-span={size?.rowSpan}
+      data-ribbon-group-row-span={size?.rowSpan ?? 1}
       data-ribbon-group={id}
       style={sizeStyle}
     >
@@ -299,19 +302,7 @@ export function getContextualTextRibbonMatchedFieldWidthCh(
 export function getContextualTextRibbonRangeValueWidthCss(
   controls: Array<InlinePreviewTextEditorRangeControl | undefined>,
 ) {
-  const valueLength = (value: number) =>
-    Number(value.toFixed(2)).toString().length
-  const widestValueLength = controls.reduce((maxLength, control) => {
-    if (!control) return maxLength
-
-    return Math.max(
-      maxLength,
-      valueLength(control.min),
-      valueLength(control.max),
-      valueLength(control.value),
-    )
-  }, 0)
-  const fieldCh = Math.min(7, Math.max(4, widestValueLength + 1))
+  const fieldCh = getRibbonRangeValueCapacityCh(controls)
 
   return `calc(${fieldCh}ch + 12px)`
 }
@@ -615,6 +606,8 @@ export function renderInlinePreviewHtmlSourcePanel({
       className="contextual-text-ribbon-html-panel"
       data-ribbon-group="source"
       data-ribbon-group-grows={size.grows || undefined}
+      data-ribbon-group-growth-weight={size.grows ? 1 : 0}
+      data-ribbon-group-growth-priority={0}
       data-ribbon-group-max-width={size.max}
       data-ribbon-group-min-width={size.min}
       data-ribbon-group-preferred-width={size.preferred}

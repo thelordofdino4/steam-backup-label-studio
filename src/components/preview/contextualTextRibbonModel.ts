@@ -200,50 +200,26 @@ export function getContextualTextRibbonColumnWidths({
     (Number.isFinite(availableWidth) ? availableWidth : 0)
       - finiteGap * Math.max(0, columns.length - 1),
   )
-  const minTotal = columns.reduce((sum, column) => sum + column.min, 0)
-  const preferredTotal = columns.reduce(
-    (sum, column) => sum + column.preferred,
-    0,
-  )
-  const maxTotal = columns.reduce((sum, column) => sum + column.max, 0)
+  // Card columns fill the region equally. Control usefulness caps belong to
+  // the controls inside the card, never to the peer column allocation.
+  const sharedMinimum = Math.max(0, ...columns.map(column => column.min))
+  const width = Math.max(sharedMinimum, availableForColumns / columns.length)
+  return columns.map(() => width)
+}
 
-  if (availableForColumns <= minTotal || preferredTotal <= minTotal) {
-    return columns.map((column) => column.min)
-  }
-
-  if (availableForColumns <= preferredTotal || maxTotal <= preferredTotal) {
-    const ratio = (availableForColumns - minTotal) /
-      (preferredTotal - minTotal)
-
-    return columns.map((column) =>
-      column.min + (column.preferred - column.min) * ratio)
-  }
-
-  const growingColumns = columns.filter((column) => column.grows)
-  const growableTotal = growingColumns.reduce(
-    (sum, column) => sum + Math.max(0, column.max - column.preferred),
-    0,
-  )
-
-  if (growingColumns.length === 0 || growableTotal <= 0) {
-    return columns.map((column) => column.preferred)
-  }
-
-  const growableMaxTotal = preferredTotal + growableTotal
-  if (availableForColumns >= growableMaxTotal) {
-    return columns.map((column) =>
-      column.grows ? column.max : column.preferred)
-  }
-
-  const ratio = Math.min(
-    1,
-    (availableForColumns - preferredTotal) / growableTotal,
-  )
-
-  return columns.map((column) =>
-    column.grows
-      ? column.preferred + (column.max - column.preferred) * ratio
-      : column.preferred)
+// When all columns cannot fit, expose complete minimum-width columns. At an
+// externally constrained width smaller than one card, retain its usable floor
+// and allow scrolling; that viewport cannot establish supported-size acceptance.
+export function getContextualTextRibbonColumnViewportWidth({
+  availableWidth, columns, gap = 0,
+}: ContextualTextRibbonColumnWidthInput) {
+  const available = Number.isFinite(availableWidth) ? Math.max(0, availableWidth) : 0
+  const columnGap = Number.isFinite(gap) ? Math.max(0, gap) : 0
+  const minimum = Math.max(0, ...columns.map(column => column.min))
+  if (!columns.length || minimum <= 0 || available < minimum) return available
+  if (columns.length * minimum + columnGap * (columns.length - 1) <= available) return available
+  const visible = Math.max(1, Math.floor((available + columnGap) / (minimum + columnGap)))
+  return visible * minimum + columnGap * (visible - 1)
 }
 
 function maxRibbonWidthProfile(

@@ -42,6 +42,8 @@ Desktop scaling evidence: [`DESKTOP_SCALING_ACCEPTANCE.md`](DESKTOP_SCALING_ACCE
 | [`TEXT_EDITOR_CONTRACT.md`](TEXT_EDITOR_CONTRACT.md) | Authoritative subsystem contract | Required text editor behavior, renderer ownership, parity, and regression gates. | Text-editor behavior, formatting, selection, source editing, contextual controls, or text smoke checks. | Text-editor behavior conflicts defer to this contract unless the SDD is stricter. |
 | [`ARTWORK_FRAME_MATERIAL_CONTRACT.md`](ARTWORK_FRAME_MATERIAL_CONTRACT.md) | Authoritative subsystem contract | Failed artwork-frame material branch postmortem, restart guardrails, and future material-rendering merge gates. | Artwork-frame material rendering, steel/metal frame rendering, material texture generation, preview/export material parity, or issue #165 restart work. | Material-rendering conflicts defer to this contract unless the SDD or `AGENTS.md` is stricter. |
 
+Contextual ribbon expansion: [`CONTEXTUAL_RIBBON_EXPANSION.md`](CONTEXTUAL_RIBBON_EXPANSION.md) records the implemented #265 column/control-cap/interaction slice and the still-open inner-group and native acceptance work.
+
 ## Conditional Reference Documents
 
 | Document | Status | Purpose | Read when | Conflict rule |

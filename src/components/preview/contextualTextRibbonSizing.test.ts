@@ -12,6 +12,7 @@ import {
   CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT,
   getContextualTextRibbonActiveWidth,
   getContextualTextRibbonColumnWidths,
+  getContextualTextRibbonColumnViewportWidth,
   getContextualTextRibbonLayoutModel,
   getContextualTextRibbonReservedHeight,
   getContextualTextRibbonToastOffset,
@@ -161,9 +162,7 @@ test('contextual text ribbon equalizes stacked semantic boxes by column', () => 
   })
 
   assert.equal(columnWidths.length, 3)
-  assert.equal(columnWidths[0], CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min)
-  assert.ok(columnWidths[1] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.preferred)
-  assert.ok(columnWidths[2] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.preferred)
+  assert.deepEqual(columnWidths, [992 / 3, 992 / 3, 992 / 3])
 })
 
 test('contextual text ribbon reserves readable contrast width in shared paint columns', () => {
@@ -180,9 +179,7 @@ test('contextual text ribbon reserves readable contrast width in shared paint co
     ],
   })
 
-  assert.deepEqual(compactOnlyWidths, [
-    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min,
-  ])
+  assert.deepEqual(compactOnlyWidths, [900])
   assert.deepEqual([
     CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].min,
     CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].preferred,
@@ -341,4 +338,28 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
     ribbonCss,
     /\.contextual-text-ribbon-card-reset-slot\s*\{[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)[\s\S]*\.contextual-text-ribbon-card-reset-button\s*\{[\s\S]*min-width:\s*52px/,
   )
+})
+
+
+test('equal ribbon columns fill fractional space beyond control caps and preserve a shared floor', () => {
+  const columns = [
+    { min: 120, preferred: 140, max: 160 },
+    { min: 200, preferred: 240, max: 280, grows: true },
+  ]
+  assert.deepEqual(getContextualTextRibbonColumnWidths({ availableWidth: 300, gap: 4, columns }), [200, 200])
+  const widths = getContextualTextRibbonColumnWidths({ availableWidth: 1000.5, gap: 4, columns })
+  assert.deepEqual(widths, [498.25, 498.25])
+  assert.equal(widths.reduce((a, b) => a + b, 4), 1000.5)
+  assert.deepEqual(getContextualTextRibbonColumnWidths({ availableWidth: Number.NaN, columns }), [200, 200])
+  assert.deepEqual(getContextualTextRibbonColumnWidths({ availableWidth: 0, columns: [] }), [])
+})
+
+
+test('overflow viewport exposes whole minimum columns and retains constrained-card scrolling', () => {
+  const columns = Array.from({ length: 3 }, () => ({ min: 220, preferred: 280, max: 360 }))
+  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 650, columns, gap: 4 }), 444)
+  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 667, columns, gap: 4 }), 444)
+  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 668, columns, gap: 4 }), 668)
+  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 1000, columns, gap: 4 }), 1000)
+  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 200, columns, gap: 4 }), 200)
 })
