@@ -82,7 +82,8 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
   'font': { min: 342, preferred: 360, max: 408, fit: 'content' },
   'paragraph': { min: 176, preferred: 214, max: 280, fit: 'content' },
   'text-color': { min: 108, preferred: 108, max: 108 },
-  'contrast': { min: 108, preferred: 108, max: 108 },
+  // Reserve the title/divider, longest option (Stroke + shadow), and select chrome.
+  'contrast': { min: 220, preferred: 220, max: 220 },
   'background': {
     min: 180,
     preferred: 292,
