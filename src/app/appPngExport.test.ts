@@ -507,7 +507,7 @@ test('preflight failure is terminal and prevents every dialog and side effect', 
   }))
 
   assert.deepEqual(calls, ['preflight'])
-  assert.deepEqual(statuses, ['Export failed: Error: preflight unavailable'])
+  assert.deepEqual(statuses, ['Export checks could not be completed. Try again.'])
 })
 
 test('warning confirmation failure is terminal and prevents destination selection', async () => {
@@ -538,7 +538,7 @@ test('warning confirmation failure is terminal and prevents destination selectio
   }))
 
   assert.deepEqual(calls, ['preflight', 'confirm'])
-  assert.deepEqual(statuses, ['Export failed: Error: confirmation unavailable'])
+  assert.deepEqual(statuses, ['The export confirmation could not be shown. Try again.'])
 })
 
 test('destination failure is terminal and prevents rendering and writing', async () => {
@@ -565,7 +565,7 @@ test('destination failure is terminal and prevents rendering and writing', async
   }))
 
   assert.deepEqual(calls, ['preflight', 'save'])
-  assert.deepEqual(statuses, ['Export failed: Error: destination unavailable'])
+  assert.deepEqual(statuses, ['The export destination chooser could not be opened. Try again.'])
 })
 
 test('render failure is terminal and prevents writing', async () => {
@@ -596,7 +596,7 @@ test('render failure is terminal and prevents writing', async () => {
   }))
 
   assert.deepEqual(calls, ['preflight', 'save', 'preview-size', 'export'])
-  assert.deepEqual(statuses, ['Export failed: Error: render unavailable'])
+  assert.deepEqual(statuses, ['The PNG could not be rendered. Check the artwork and try again.'])
 })
 
 test('write failure emits one failure status and no success status', async () => {
@@ -634,7 +634,7 @@ test('write failure emits one failure status and no success status', async () =>
     'export',
     'write',
   ])
-  assert.deepEqual(statuses, ['Export failed: Error: write unavailable'])
+  assert.deepEqual(statuses, ['The PNG could not be saved. Check the destination and try again.'])
 })
 
 test('workflow adapters return typed cancellation and stage-specific failure results', async () => {
@@ -661,7 +661,24 @@ test('workflow adapters return typed cancellation and stage-specific failure res
     assert.equal(failure.error.code, 'export.preflight-failed')
     assert.equal(
       failure.feedback?.message,
-      'Export failed: Error: preflight unavailable',
+      'Export checks could not be completed. Try again.',
     )
+  }
+})
+
+test('export user feedback excludes raw exceptions while the typed failure retains provenance', async () => {
+  const cause = new Error('private-path-and-credential-marker')
+  for (const run of [
+    () => runDiscPngExportAdapter(createDiscInput({ writeBinaryFileCommand: async () => { throw cause } })),
+    () => runCaseInsertPngExportAdapter(createCaseInput({ writeBinaryFileCommand: async () => { throw cause } })),
+  ]) {
+    const result = await run()
+    assert.equal(result.status, 'failure')
+    if (result.status !== 'failure') throw new Error('Expected export failure')
+    assert.equal(result.error.code, 'export.write-failed')
+    assert.equal(result.error.cause, cause)
+    assert.equal(result.feedback?.message, result.error.userMessage)
+    assert.doesNotMatch(result.error.userMessage, /private-path-and-credential-marker/)
+    assert.equal(result.error.diagnosticMessage, cause.message)
   }
 })

@@ -1,3 +1,4 @@
+import { createApplicationCommandDiagnostics, type ApplicationCommandDiagnostics } from '../diagnostics/applicationCommandDiagnostics.ts'
 import {
   createApplicationLifecycleCompositionRoot,
   type ApplicationLifecycleCompositionRoot,
@@ -32,6 +33,7 @@ import { createProjectAsyncWork, type ProjectAsyncWork } from '../lifecycle/proj
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
   projectAsyncWork: ProjectAsyncWork
+  diagnostics: ApplicationCommandDiagnostics
   updateProjectOpenDependencies(
     dependencies: ApplicationProjectOpenRuntimeDependencies,
   ): void
@@ -97,7 +99,9 @@ export function createApplicationLifecycleRuntime(
   const pngExportOwner = createApplicationPngExportCommandOwner(
     () => pngExportDependencies,
   )
+  const diagnostics = createApplicationCommandDiagnostics()
   const root = createRoot({
+    observeExecution: diagnostics.observeExecution,
     ports: {
       newDisc: newOwners.newDisc,
       newCase: newOwners.newCase,
@@ -119,6 +123,7 @@ export function createApplicationLifecycleRuntime(
   return Object.freeze({
     root,
     projectAsyncWork,
+    diagnostics,
     updateProjectOpenDependencies(dependencies) {
       if (disposed) {
         throw new Error('The application lifecycle runtime is disposed.')
@@ -176,6 +181,7 @@ export function createApplicationLifecycleRuntime(
       pngExportDependencies = null
       unsubscribeAsyncWork()
       projectAsyncWork.dispose()
+      diagnostics.dispose()
       root.dispose()
     },
   })
