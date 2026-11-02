@@ -127,7 +127,13 @@ function exportFailure(
   stage: 'preflight' | 'confirmation' | 'destination' | 'render' | 'write',
   error: unknown,
 ): ApplicationCommandResult<never> {
-  const message = `Export failed: ${String(error)}`
+  const message = {
+    preflight: 'Export checks could not be completed. Try again.',
+    confirmation: 'The export confirmation could not be shown. Try again.',
+    destination: 'The export destination chooser could not be opened. Try again.',
+    render: 'The PNG could not be rendered. Check the artwork and try again.',
+    write: 'The PNG could not be saved. Check the destination and try again.',
+  }[stage]
   return commandFailed({
     code: `export.${stage}-failed`,
     userMessage: message,

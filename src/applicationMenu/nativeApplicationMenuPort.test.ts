@@ -1,3 +1,4 @@
+import type { ApplicationMenuStartupStage } from './applicationMenuDiagnostics.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -172,4 +173,59 @@ test('a failed install removes the listener and requests bridge-scoped cleanup',
     APPLICATION_MENU_NATIVE_COMMANDS.install,
     APPLICATION_MENU_NATIVE_COMMANDS.dispose,
   ])
+})
+
+
+for (const failedStage of ['native-window-identity', 'native-platform', 'native-event-subscription', 'native-install'] as const) {
+  test(`native startup identifies ${failedStage} without replacing the original failure`, async () => {
+    const failure = new Error('private-native-path')
+    const stages: ApplicationMenuStartupStage[] = []
+    const calls: string[] = []
+    let unlistened = 0
+    const fail = () => { throw failure }
+    await assert.rejects(createNativeApplicationMenuPort(() => {}, {
+      getWindowLabel: () => failedStage === 'native-window-identity' ? fail() : 'main',
+      createBridgeInstanceId: () => 'bridge-1',
+      onStartupStage: stage => { stages.push(stage) },
+      listenEvent: async () => {
+        if (failedStage === 'native-event-subscription') fail()
+        return () => { unlistened += 1 }
+      },
+      invokeCommand: async <Result>(command: string): Promise<Result> => {
+        calls.push(command)
+        if (command === APPLICATION_MENU_NATIVE_COMMANDS.platform) return (failedStage === 'native-platform' ? fail() : 'windows') as Result
+        if (command === APPLICATION_MENU_NATIVE_COMMANDS.install) fail()
+        return { status: 'disposed', windowLabel: 'main' } as Result
+      },
+    }), error => error === failure)
+    assert.equal(stages.at(-1), failedStage)
+    assert.equal(unlistened, failedStage === 'native-install' ? 1 : 0)
+    assert.equal(calls.includes(APPLICATION_MENU_NATIVE_COMMANDS.dispose), failedStage === 'native-install')
+  })
+}
+
+test('throwing native diagnostic and stage callbacks cannot block events, startup or replace disposal failure', async () => {
+  let handler: ((payload: unknown) => void) | undefined
+  let invocations = 0
+  let unlistened = 0
+  const failure = new Error('original-dispose-failure')
+  const port = await createNativeApplicationMenuPort(() => { invocations += 1 }, {
+    getWindowLabel: () => 'main',
+    createBridgeInstanceId: () => 'bridge-1',
+    onStartupStage: () => { throw new Error('stage-observer') },
+    onDiagnostic: () => { throw new Error('diagnostic-observer') },
+    listenEvent: async (_, listener) => { handler = listener; return () => { unlistened += 1 } },
+    invokeCommand: async <Result>(command: string, args?: Record<string, unknown>): Promise<Result> => {
+      if (command === APPLICATION_MENU_NATIVE_COMMANDS.platform) return 'windows' as Result
+      if (command === APPLICATION_MENU_NATIVE_COMMANDS.install) {
+        const request = args?.request as { descriptor: { itemIds: unknown[] } }
+        return { status: 'installed', platform: 'windows', windowLabel: 'main', bridgeInstanceId: 'bridge-1', itemCount: request.descriptor.itemIds.length } as Result
+      }
+      throw failure
+    },
+  })
+  assert.doesNotThrow(() => handler!({ invalid: 'private-payload' }))
+  assert.equal(invocations, 0)
+  await assert.rejects(port.dispose(), error => error === failure)
+  assert.equal(unlistened, 1)
 })

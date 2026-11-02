@@ -1,5 +1,6 @@
 import {
   type ApplicationCommandCapability,
+  type ApplicationCommandExecutionObserver,
   type ApplicationCommandDispatchResult,
   type ApplicationCommandId,
   type ApplicationLifecycleCommandId,
@@ -79,6 +80,7 @@ export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   exportPng?: ApplicationPngExportCommandOwner
   termination?: ApplicationTerminationCapabilities
   createOperationId?: () => string
+  observeExecution?: ApplicationCommandExecutionObserver
   createSessionId?: () => string
   onSubscriberError?: (error: unknown) => void
 }>
@@ -161,6 +163,7 @@ export function createApplicationLifecycleCompositionRoot(
   >()
   const dispatcher = new ApplicationCommandDispatcher(registry, {
     busyScopes: busyCoordinator,
+    observeExecution: options.observeExecution,
     createOperationId: options.createOperationId ??
       createDefaultIdGenerator('application-command'),
   })

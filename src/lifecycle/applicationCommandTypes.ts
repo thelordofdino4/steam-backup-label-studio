@@ -77,6 +77,13 @@ export type ApplicationCommandResult<Value = void> =
       feedback?: ApplicationCommandFeedbackIntent
     }>
 
+// Observes an actual execution; it never owns authorization, results or feedback.
+// Joined dispatches share one execution and therefore one observation.
+export type ApplicationCommandExecutionObserver = (operation: Readonly<{
+  commandId: ApplicationCommandId
+  operationId: string
+}>) => ((result: ApplicationCommandResult<unknown>) => void) | void
+
 export type ApplicationCommandDispatchResult<Value = void> =
   | Readonly<{
       disposition: 'not-executed'

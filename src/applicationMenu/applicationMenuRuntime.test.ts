@@ -1,3 +1,4 @@
+import { createApplicationCommandDiagnostics } from '../diagnostics/applicationCommandDiagnostics.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -273,6 +274,7 @@ test('start failure cleans up native registration and owned subscriptions', asyn
   assert.equal(disposed, 1)
   assert.deepEqual(diagnostics.at(-1), {
     code: 'application-menu.start-failed',
+    stage: 'window-subscription',
     detail: 'window subscription failed',
   })
   unsubscribeProbe()
@@ -756,4 +758,223 @@ test('Windows WebView accelerators use the applied projection, shared ingress, c
   await runtime.dispose()
   assert.equal(uninstallCalls, 1)
   assert.equal(activate?.('menu.file.open'), false)
+})
+
+for (const failedStage of ['native-availability', 'native-port', 'windows-accelerators', 'lifecycle-subscription', 'window-subscription'] as const) {
+  test(`startup diagnostics retain the failed ${failedStage} prerequisite without private exception text`, async () => {
+    let time = 0
+    const diagnostics = createApplicationCommandDiagnostics({ now: () => time })
+    const root = createApplicationLifecycleCompositionRoot()
+    const fail = () => { time = 40; throw new Error('private-user-path-and-token') }
+    const lifecycle = failedStage === 'lifecycle-subscription' ? { ...root, subscribe: fail } : root
+    let nativeDisposals = 0
+    let acceleratorDisposals = 0
+    const runtime = createApplicationMenuRuntime(lifecycle, {
+      nativeAvailable: () => failedStage === 'native-availability' ? fail() : true,
+      createNativePort: async () => failedStage === 'native-port' ? fail() : fakePort([], () => { nativeDisposals += 1 }),
+      installWindowsWebviewAccelerators: () => {
+        if (failedStage === 'windows-accelerators') fail()
+        return () => { acceleratorDisposals += 1 }
+      },
+      subscribeWindowState: async () => {
+        if (failedStage === 'window-subscription') fail()
+        return () => {}
+      },
+      observeStartup: diagnostics.observeMenuStartup,
+      onDiagnostic: diagnostics.recordMenuDiagnostic,
+    })
+    assert.equal(await runtime.start(), 'failed')
+    assert.equal(await runtime.start(), 'failed')
+    const records = diagnostics.snapshot().records
+    assert.equal(records.length, 2)
+    assert.equal(records[0].event, 'startup')
+    assert.equal(records[0].status, 'failed')
+    assert.equal(records[0].stage, failedStage)
+    assert.equal(records[0].elapsedMs, 40)
+    assert.equal(records[1].diagnosticCode, 'application-menu.start-failed')
+    assert.equal(records[1].stage, failedStage)
+    assert.doesNotMatch(diagnostics.toJson(), /private|token|detail|message/)
+    assert.equal(nativeDisposals, ['native-availability', 'native-port'].includes(failedStage) ? 0 : 1)
+    assert.equal(acceleratorDisposals, ['lifecycle-subscription', 'window-subscription'].includes(failedStage) ? 1 : 0)
+    await runtime.dispose()
+    root.dispose()
+  })
+}
+
+test('a pending prerequisite shows elapsed time and disposal does not become a false startup failure', async () => {
+  let time = 5
+  const diagnostics = createApplicationCommandDiagnostics({ now: () => time })
+  const root = createApplicationLifecycleCompositionRoot()
+  let releaseWindow: ((unsubscribe: () => void) => void) | undefined
+  let unsubscribed = 0
+  const runtime = createApplicationMenuRuntime(root, {
+    nativeAvailable: () => true,
+    createNativePort: async () => fakePort([], () => {}),
+    installWindowsWebviewAccelerators: () => () => {},
+    subscribeWindowState: () => new Promise(resolve => { releaseWindow = resolve }),
+    observeStartup: diagnostics.observeMenuStartup,
+    onDiagnostic: diagnostics.recordMenuDiagnostic,
+  })
+  const pending = runtime.start()
+  await flush()
+  time = 105
+  assert.equal(diagnostics.snapshot().records[0].status, 'running')
+  assert.equal(diagnostics.snapshot().records[0].stage, 'window-subscription')
+  assert.equal(diagnostics.snapshot().records[0].elapsedMs, 100)
+  await runtime.dispose()
+  releaseWindow!(() => { unsubscribed += 1 })
+  assert.equal(await pending, 'disposed')
+  assert.equal(unsubscribed, 1)
+  assert.equal(diagnostics.snapshot().records.length, 1)
+  assert.equal(diagnostics.snapshot().records[0].status, 'disposed')
+  root.dispose()
+})
+
+test('unavailable native runtime is observed once without a false failure', async () => {
+  const diagnostics = createApplicationCommandDiagnostics()
+  const root = createApplicationLifecycleCompositionRoot()
+  const runtime = createApplicationMenuRuntime(root, {
+    nativeAvailable: () => false,
+    observeStartup: diagnostics.observeMenuStartup,
+    onDiagnostic: diagnostics.recordMenuDiagnostic,
+  })
+  assert.equal(await runtime.start(), 'unavailable')
+  assert.equal(await runtime.start(), 'unavailable')
+  assert.equal(diagnostics.snapshot().records.length, 1)
+  assert.equal(diagnostics.snapshot().records[0].status, 'unavailable')
+  assert.equal(diagnostics.snapshot().records[0].stage, 'native-availability')
+  await runtime.dispose()
+  root.dispose()
+})
+
+for (const phase of ['begin', 'stage', 'complete', 'diagnostic'] as const) {
+  test(`a throwing ${phase} observer cannot replace the menu startup outcome`, async () => {
+    const root = createApplicationLifecycleCompositionRoot()
+    const fail = () => { throw new Error('observer-failed') }
+    const runtime = createApplicationMenuRuntime(root, {
+      nativeAvailable: () => { throw new Error('original-native-probe') },
+      observeStartup: () => {
+        if (phase === 'begin') fail()
+        return { stage: phase === 'stage' ? fail : () => {}, complete: phase === 'complete' ? fail : () => {} }
+      },
+      onDiagnostic: phase === 'diagnostic' ? fail : () => {},
+    })
+    assert.equal(await runtime.start(), 'failed')
+    await runtime.dispose()
+    root.dispose()
+  })
+}
+
+for (const failedStage of ['projection-window-state', 'projection-capabilities', 'projection-native-apply'] as const) {
+  test(`projection failure identifies ${failedStage} after runtime start without publishing raw detail`, async () => {
+    const diagnostics = createApplicationCommandDiagnostics()
+    const root = createApplicationLifecycleCompositionRoot()
+    const fail = () => { throw new Error('private-projection-path') }
+    const port = fakePort([], () => {})
+    const runtime = createApplicationMenuRuntime(root, {
+      nativeAvailable: () => true,
+      createNativePort: async () => ({ ...port, applyProjection: async projection => failedStage === 'projection-native-apply' ? fail() : port.applyProjection(projection) }),
+      captureWindowState: async () => failedStage === 'projection-window-state' ? fail() : { windowLabel: 'main', live: true, maximized: false, fullscreen: false },
+      subscribeWindowState: async () => () => {},
+      installWindowsWebviewAccelerators: () => () => {},
+      observeStartup: diagnostics.observeMenuStartup,
+      onDiagnostic: diagnostics.recordMenuDiagnostic,
+    })
+    if (failedStage === 'projection-capabilities') {
+      runtime.connectCommandIngress({
+        publishFeedback: () => {},
+        workflowNavigation: { ...fakeWorkflowNavigation(), getCapabilities: fail },
+      })
+    }
+    assert.equal(await runtime.start(), 'started')
+    await flush()
+    const records = diagnostics.snapshot().records
+    assert.equal(records[0].status, 'started')
+    assert.equal(records[0].stage, 'initial-projection')
+    assert.equal(records[1].diagnosticCode, 'application-menu.projection-failed')
+    assert.equal(records[1].stage, failedStage)
+    assert.doesNotMatch(diagnostics.toJson(), /private|wrong-window|detail|message/)
+    await runtime.dispose()
+    root.dispose()
+  })
+}
+
+
+test('Help routes only to its informational owner and rechecks stale capability without dispatching project commands', async () => {
+  const root = createApplicationLifecycleCompositionRoot()
+  const before = root.getLifecycleState()
+  const projections: ApplicationMenuProjection[] = []
+  let receive: ((invocation: ApplicationMenuInvocation) => void) | undefined
+  let opened = 0
+  let blocked = false
+  let feedback = 0
+  const runtime = createApplicationMenuRuntime(root, {
+    nativeAvailable: () => true,
+    createNativePort: async ingress => { receive = ingress; return fakePort(projections, () => {}) },
+    captureWindowState: async () => ({ windowLabel: 'main', live: true, maximized: false, fullscreen: false }),
+    subscribeWindowState: async () => () => {},
+    installWindowsWebviewAccelerators: () => () => {},
+    onDiagnostic: () => {},
+  })
+  runtime.connectCommandIngress({
+    publishFeedback: () => { feedback += 1 },
+    workflowNavigation: fakeWorkflowNavigation(),
+    informational: {
+      getCapabilities: () => ({
+        'help.open-documentation': blocked ? { canExecute: false, reasonCode: 'application-help.modal-active' } : { canExecute: true },
+        'help.show-about': { canExecute: false, reasonCode: 'application-menu.owner-unavailable' },
+      }),
+      invoke: operation => { assert.equal(operation, 'help.open-documentation'); opened += 1; return true },
+    },
+  })
+  await runtime.start()
+  await flush()
+  const projection = projections.at(-1)!
+  assert.equal(projection.items.find(item => item.itemId === 'menu.help.documentation')?.enabled, true)
+  assert.equal(projection.items.find(item => item.itemId === 'menu.help.about')?.enabled, false)
+  assert.equal(projection.items.some(item => item.itemId === 'menu.help.report-issue'), false)
+  const invocation = { invocationId: 'help-1', bridgeInstanceId: 'bridge-1', windowLabel: 'main', itemId: 'menu.help.documentation', projectionGeneration: projection.generation } as const
+  receive!(invocation)
+  receive!(invocation)
+  assert.equal(opened, 1)
+  blocked = true
+  receive!({ ...invocation, invocationId: 'help-2' })
+  receive!({ ...invocation, invocationId: 'help-3', itemId: 'menu.help.about' })
+  assert.equal(opened, 1)
+  assert.equal(feedback, 0)
+  assert.equal(root.getLifecycleState(), before)
+  assert.deepEqual(root.getBusyState().occupiedScopes, [])
+  await runtime.dispose()
+  root.dispose()
+})
+
+
+test('Tools dismiss informational presentation before delegating to the existing navigation owner', async () => {
+  const order: string[] = []
+  const root = fakeDiscLifecycle(async () => { throw new Error('unexpected lifecycle dispatch') })
+  const projections: ApplicationMenuProjection[] = []
+  let receive: ((invocation: ApplicationMenuInvocation) => void) | undefined
+  const runtime = createApplicationMenuRuntime(root, {
+    nativeAvailable: () => true,
+    createNativePort: async ingress => { receive = ingress; return fakePort(projections, () => {}) },
+    captureWindowState: async () => ({ windowLabel: 'main', live: true, maximized: false, fullscreen: false }),
+    subscribeWindowState: async () => () => {},
+    installWindowsWebviewAccelerators: () => () => {},
+    onDiagnostic: () => {},
+  })
+  runtime.connectCommandIngress({
+    publishFeedback: () => { throw new Error('unexpected command feedback') },
+    workflowNavigation: fakeWorkflowNavigation(() => { order.push('navigate') }),
+    informational: {
+      getCapabilities: () => ({ 'help.open-documentation': { canExecute: true }, 'help.show-about': { canExecute: false, reasonCode: 'unavailable' } }),
+      invoke: () => true,
+      dismissForNavigation: () => { order.push('dismiss-help') },
+    },
+  })
+  await runtime.start()
+  await flush()
+  receive!({ invocationId: 'tools-after-help', bridgeInstanceId: 'bridge-1', windowLabel: 'main', itemId: 'menu.tools.game', projectionGeneration: projections.at(-1)!.generation })
+  await flush()
+  assert.deepEqual(order, ['dismiss-help', 'navigate'])
+  await runtime.dispose()
 })

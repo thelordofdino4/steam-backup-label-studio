@@ -189,3 +189,20 @@ test('repeated Open activation cannot enter two dialogs and releases scopes afte
   assert.deepEqual(runtime.root.getBusyState().occupiedScopes, [])
   runtime.dispose()
 })
+
+
+test('production runtime observes the existing Open owner without capturing its project or result payload', async () => {
+  const runtime = createApplicationLifecycleRuntime()
+  runtime.updateProjectOpenDependencies({
+    stageCandidate: async () => ({ status: 'cancelled', reason: 'file-dialog-dismissed' }),
+    prepareEditorAggregateApply: () => { throw new Error('not reached') },
+  })
+  const result = await runtime.root.dispatch('project.open')
+  assert.equal(result.disposition, 'executed')
+  const records = runtime.diagnostics.snapshot().records
+  assert.equal(records.length, 1)
+  assert.equal(records[0].commandId, 'project.open')
+  assert.equal(records[0].status, 'cancelled')
+  runtime.dispose()
+  assert.deepEqual(runtime.diagnostics.snapshot().records, [])
+})

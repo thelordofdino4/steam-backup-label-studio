@@ -128,6 +128,8 @@ let server, browser, page, url
 
 test.before(async () => {
   server = await createServer({
+    // Parallel fixture servers must not mutate one shared Vite dependency cache.
+    cacheDir: 'node_modules/.vite-test-steam-import',
     logLevel: 'silent',
     server: { host: '127.0.0.1', port: 0 },
     plugins: [{

@@ -681,6 +681,8 @@ the product does not add inert fillers.
 
 ## 10. Help menu
 
+**CURRENT SOURCE CHECKPOINT (#379) -** The documentation item is connected to an offline, application-owned nonmodal Help surface with local diagnostic text selection and refresh. Home exposes the same owner if the native menu is unavailable. Application/native modal phases block activation; focus and safe informational failure feedback use the existing presentation owners. About remains unavailable pending its runtime metadata owner, and Report an Issue remains omitted. Headless component checks do not establish native or packaged acceptance.
+
 **TARGET REQUIREMENT —** Help contains a documentation/help target and About;
 About includes version information. Report an Issue is an explicitly reserved
 future item that is omitted until a trusted configured target exists.
