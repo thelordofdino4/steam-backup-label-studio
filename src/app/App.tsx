@@ -1,4 +1,5 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
+import { buildSteamMetadataCandidatesFromImportedGame } from '../steam/steamMetadataCandidates'
 import {
   useCallback,
   useLayoutEffect,
@@ -230,7 +231,7 @@ import {
   getAutoAppliedMetadataCandidateStatusMessage,
 } from './appSteamImportPlan'
 import {
-  runSteamDiscVisualDefaultImport,
+  prepareSteamDiscVisualDefaultImport,
   shouldApplySteamPlatformMarksEligibilityChange,
 } from './appSteamDiscVisualImport'
 import {
@@ -766,6 +767,7 @@ function App() {
     handleResetTitleArtworkLayout,
     handleRestoreTitleArtworkDefault,
     handleTitleArtworkUpload,
+    prepareSteamTitleArtworkImport,
     applySteamTitleArtworkImport,
   } = useTitleArtwork({
     selectedDiscTemplate,
@@ -1359,11 +1361,12 @@ function App() {
   async function handleFindAndApplySteamMetadataCandidates(
     options: { applyDiscVisualDefaults?: boolean } = {},
   ) {
-    const result = await findSteamMetadataCandidates()
-
-    if (result) {
+    await findSteamMetadataCandidates((result) => {
       autoApplySteamMetadataCandidates(result, options)
-    }
+      if (options.applyDiscVisualDefaults === false) {
+        caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
+      }
+    })
   }
 
   function handleApplyRatingCandidate(
@@ -1538,7 +1541,7 @@ function App() {
     clearLocalSteamScreenshotResults()
 
     await runSteamImport(appId, async (importedState) => {
-      const metadataCandidateResult = loadImportedSteamMetadataCandidates(
+      const metadataCandidateResult = buildSteamMetadataCandidatesFromImportedGame(
         importedState.importedGame,
       )
       const {
@@ -1555,17 +1558,18 @@ function App() {
         projectMetadata,
         metadataCandidateResult,
       })
-      const discVisualImport = applyDiscVisualDefaults
-        ? await runSteamDiscVisualDefaultImport({
-            importedGame: importedState.importedGame,
-            nextProjectMetadata,
-            shouldUpdateCopyrightDiscTextSource,
-            projectPlatformMarks,
-            selectedDiscTemplate,
-            selectedSteamGame,
-            applySteamImportedDiscTextValues,
-            applySteamTitleArtworkImport,
-          })
+      const applyDiscVisualImport = applyDiscVisualDefaults
+        ? await prepareSteamDiscVisualDefaultImport({
+          importedGame: importedState.importedGame,
+          nextProjectMetadata,
+          shouldUpdateCopyrightDiscTextSource,
+          projectPlatformMarks,
+          selectedDiscTemplate,
+          selectedSteamGame,
+          applySteamImportedDiscTextValues,
+          prepareSteamTitleArtworkImport,
+          applySteamTitleArtworkImport,
+        })
         : null
       const caseInsertTitleArtworkSeed = options.applyCaseInsertBackCoverDefaults
         ? await createSteamCaseInsertTitleArtworkSeed(importedState.importedGame)
@@ -1573,93 +1577,101 @@ function App() {
       const caseInsertRatingBadgeForImport =
         options.applyCaseInsertBackCoverDefaults
           ? getCaseInsertRatingBadgeForSteamImport({
-              projectMetadata: nextProjectMetadata,
-              projectRatingBadge,
-              ratingCandidate: autoRatingCandidate,
-            })
+            projectMetadata: nextProjectMetadata,
+            projectRatingBadge,
+            ratingCandidate: autoRatingCandidate,
+          })
           : projectRatingBadge
       const caseInsertBackCoverCopyFit = options.applyCaseInsertBackCoverDefaults
         ? createFittedSteamBackCoverCopy(importedState.importedGame, {
-            legalText: nextProjectMetadata.copyrightText,
-          })
+          legalText: nextProjectMetadata.copyrightText,
+        })
         : null
 
-      setSelectedSteamGame(importedState.importedGame)
-      clearSteamSearchResults()
-      setManualGameTitle(importedState.manualGameTitle)
-      setProjectMetadata(nextProjectMetadata)
-      if (options.applyCaseInsertBackCoverDefaults) {
-        setProjectRatingBadge(caseInsertRatingBadgeForImport)
-      }
+      return () => {
+        loadImportedSteamMetadataCandidates(importedState.importedGame)
+        const discVisualImport = applyDiscVisualImport?.() ?? null
+        setSelectedSteamGame(importedState.importedGame)
+        clearSteamSearchResults()
+        setManualGameTitle(importedState.manualGameTitle)
+        setProjectMetadata(nextProjectMetadata)
+        if (options.applyCaseInsertBackCoverDefaults) {
+          setProjectRatingBadge(caseInsertRatingBadgeForImport)
+        }
 
-      announceStatus(importedState.statusMessage)
+        announceStatus(importedState.statusMessage)
 
-      if (options.applyCaseInsertBackCoverDefaults) {
-        setProjectJewelCase((currentCaseInsert) => {
-          return applySteamImportDefaultsToCaseInsert({
-            caseInsert: currentCaseInsert,
-            importedGame: importedState.importedGame,
-            legalText: nextProjectMetadata.copyrightText,
-            replaceExisting: isDifferentSelectedSteamGame,
-            titleArtworkSeed: caseInsertTitleArtworkSeed,
-            ratingCandidate: autoRatingCandidate,
-            brandingSources: {
-              projectMetadata: nextProjectMetadata,
-              projectLogoAssets,
-              projectRatingBadge: caseInsertRatingBadgeForImport,
-              projectMediaMark,
-              projectPlatformMarks,
-              projectTechnicalMarks,
-            },
+        if (options.applyCaseInsertBackCoverDefaults) {
+          setProjectJewelCase((currentCaseInsert) => {
+            return applySteamImportDefaultsToCaseInsert({
+              caseInsert: currentCaseInsert,
+              importedGame: importedState.importedGame,
+              legalText: nextProjectMetadata.copyrightText,
+              replaceExisting: isDifferentSelectedSteamGame,
+              titleArtworkSeed: caseInsertTitleArtworkSeed,
+              ratingCandidate: autoRatingCandidate,
+              brandingSources: {
+                projectMetadata: nextProjectMetadata,
+                projectLogoAssets,
+                projectRatingBadge: caseInsertRatingBadgeForImport,
+                projectMediaMark,
+                projectPlatformMarks,
+                projectTechnicalMarks,
+              },
+            })
           })
-        })
-        announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
-        caseInsertBackCoverCopyFit?.warnings.forEach((warning) => {
-          announceStatus(warning)
-        })
-        if (caseInsertTitleArtworkSeed) {
-          announceStatus(caseInsertTitleArtworkSeed.statusMessage)
+          caseInsertBrandingMarkSync.syncCaseInsertBrandingMarkSlots({
+            projectMetadata: nextProjectMetadata,
+            projectRatingBadge: caseInsertRatingBadgeForImport,
+          })
+          announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
+          caseInsertBackCoverCopyFit?.warnings.forEach((warning) => {
+            announceStatus(warning)
+          })
+          if (caseInsertTitleArtworkSeed) {
+            announceStatus(caseInsertTitleArtworkSeed.statusMessage)
+          }
         }
-      }
 
-      if (discVisualImport) {
-        if (
-          shouldApplySteamPlatformMarksEligibilityChange(
-            discVisualImport.platformMarkImportStatus,
+        if (discVisualImport) {
+          if (
+            shouldApplySteamPlatformMarksEligibilityChange(
+              discVisualImport.platformMarkImportStatus,
+            )
+          ) {
+            applyProjectPlatformMarksEligibilityChange(
+              discVisualImport.platformMarks,
+            )
+          }
+          if (autoLegalCandidate) {
+            enableCurvedCopyrightDiscText(autoLegalCandidate.text)
+          } else if (shouldResetGameScopedLegal) {
+            setCopyrightDiscTextEnabled(false)
+          }
+          if (autoRatingCandidate) {
+            setRatingBadgeEnabledForAppliedCandidate(autoRatingCandidate)
+          } else if (shouldResetGameScopedRating) {
+            setRatingBadgeEnabled(false)
+          }
+          clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
+            [
+              'title',
+              'steamAppId',
+              'developer',
+              'publisher',
+              'copyrightText',
+            ],
+            nextProjectMetadata,
+            discVisualImport.nextDiscTextResolution,
           )
-        ) {
-          applyProjectPlatformMarksEligibilityChange(
-            discVisualImport.platformMarks,
-          )
+          announceStatus(discVisualImport.titleArtworkStatusMessage)
+          announceStatus(discVisualImport.platformMarkStatusMessage)
         }
-        if (autoLegalCandidate) {
-          enableCurvedCopyrightDiscText(autoLegalCandidate.text)
-        } else if (shouldResetGameScopedLegal) {
-          setCopyrightDiscTextEnabled(false)
-        }
-        if (autoRatingCandidate) {
-          setRatingBadgeEnabledForAppliedCandidate(autoRatingCandidate)
-        } else if (shouldResetGameScopedRating) {
-          setRatingBadgeEnabled(false)
-        }
-        clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
-          [
-            'title',
-            'steamAppId',
-            'developer',
-            'publisher',
-            'copyrightText',
-          ],
-          nextProjectMetadata,
-          discVisualImport.nextDiscTextResolution,
-        )
-        announceStatus(discVisualImport.titleArtworkStatusMessage)
-        announceStatus(discVisualImport.platformMarkStatusMessage)
-      }
 
-      announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, {
-        applyDiscVisualDefaults,
-      })
+        announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, {
+          applyDiscVisualDefaults,
+        })
+      }
     })
   }
 
@@ -2100,13 +2112,11 @@ function App() {
         applyDiscVisualDefaults: false,
         applyCaseInsertBackCoverDefaults: true,
       })
-      caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
     },
     handleFindMetadataCandidates: async () => {
       await handleFindAndApplySteamMetadataCandidates({
         applyDiscVisualDefaults: false,
       })
-      caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
     },
     handleApplyRatingCandidate: handleApplyCaseInsertRatingCandidate,
     handleApplyLegalCandidate: handleApplyCaseInsertLegalCandidate,

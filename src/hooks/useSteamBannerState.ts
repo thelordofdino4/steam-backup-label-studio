@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useState, type ChangeEvent } from 'react'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type {
@@ -37,6 +39,7 @@ function createDefaultSteamBannerLockupImageSource() {
 export function useSteamBannerState({
   announceStatus,
 }: UseSteamBannerStateOptions) {
+  const asyncWork = useProjectAsyncWork()
   const [steamBannerColors, setSteamBannerColors] = useState<SteamBannerColors>(
     DEFAULT_STEAM_BANNER_COLORS,
   )
@@ -58,6 +61,7 @@ export function useSteamBannerState({
   )
 
   function resetSteamBannerState() {
+    asyncWork.invalidateAll()
     const defaultLockupImage = createDefaultSteamBannerLockupImageState()
 
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
@@ -82,27 +86,33 @@ export function useSteamBannerState({
       return
     }
 
+    const request = asyncWork.begin('image:steam-banner')
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-      const lockupImage = createCustomSteamBannerLockupImageState(
-        importedImage.imageDataUrl,
-        importedImage.imageSize,
-      )
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        const lockupImage = createCustomSteamBannerLockupImageState(
+          importedImage.imageDataUrl,
+          importedImage.imageSize,
+        )
 
-      setSteamBannerLockupImageUrl(lockupImage.imageUrl)
-      setSteamBannerLockupImageSource(createProjectImageAssetProvenance({
-        source: 'uploaded',
-        sourceLabel: file.name,
-      }))
-      setSteamBannerLockupImageSize(lockupImage.imageSize)
-      setSteamBannerUseTextFallback(false)
-      announceStatus(`Using ${file.name} as the Steam banner lockup.`)
+        setSteamBannerLockupImageUrl(lockupImage.imageUrl)
+        setSteamBannerLockupImageSource(createProjectImageAssetProvenance({
+          source: 'uploaded',
+          sourceLabel: file.name,
+        }))
+        setSteamBannerLockupImageSize(lockupImage.imageSize)
+        setSteamBannerUseTextFallback(false)
+        announceStatus(`Using ${file.name} as the Steam banner lockup.`)
+      })
     } catch (error) {
-      announceStatus(`Banner lockup import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Banner lockup import failed: ${String(error)}`)
+      })
     }
   }
 
   function handleClearSteamBannerLockup() {
+    asyncWork.invalidateAll()
     const lockupImage = createDefaultSteamBannerLockupImageState()
 
     setSteamBannerLockupImageUrl(lockupImage.imageUrl)
@@ -134,6 +144,7 @@ export function useSteamBannerState({
   }
 
   function handleResetSteamBannerLockupLayout() {
+    asyncWork.invalidateAll()
     setSteamBannerLockupLayout(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
     announceStatus('Reset Steam banner lockup layout to the default position.')
   }
@@ -148,6 +159,7 @@ export function useSteamBannerState({
   }
 
   function handleResetSteamBannerColors() {
+    asyncWork.invalidateAll()
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
     announceStatus('Reset Steam banner colors to the default palette.')
   }

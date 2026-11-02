@@ -1,4 +1,6 @@
 import { ImportedImagePolicyError } from '../image/importedImagePolicy'
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import type {
   ChangeEvent,
   Dispatch,
@@ -37,6 +39,7 @@ export function useJewelCaseSpineSteamBannerEditor({
   setProjectJewelCase,
   announceStatus,
 }: UseJewelCaseSpineSteamBannerEditorOptions) {
+  const asyncWork = useProjectAsyncWork()
   function handleSpineSteamBannerEnabledChange(
     side: JewelCaseSpineSide,
     enabled: boolean,
@@ -62,24 +65,29 @@ export function useJewelCaseSpineSteamBannerEditor({
       return
     }
 
+    const request = asyncWork.begin(`image:spine:${side}:steam-banner`)
     try {
       const image = await createUploadedCaseInsertImageSlotImage(
         file,
         'Steam spine banner icon',
       )
-
-      setProjectJewelCase((state) =>
-        setCustomJewelCaseSpineSteamBannerLockupImage(state, side, image),
-      )
-      announceStatus(`Using ${file.name} as the ${side} spine Steam banner icon.`)
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        setProjectJewelCase((state) =>
+          setCustomJewelCaseSpineSteamBannerLockupImage(state, side, image),
+        )
+        announceStatus(`Using ${file.name} as the ${side} spine Steam banner icon.`)
+      })
     } catch (error) {
-      announceStatus(error instanceof ImportedImagePolicyError
-        ? error.message
-        : 'The Steam spine banner icon could not be read.')
+      asyncWork.publish(request, () => {
+        announceStatus(error instanceof ImportedImagePolicyError
+          ? error.message
+          : 'The Steam spine banner icon could not be read.')
+      })
     }
   }
 
   function handleClearSpineSteamBannerLockup(side: JewelCaseSpineSide) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((state) =>
       resetJewelCaseSpineSteamBannerLockupImage(state, side),
     )
@@ -102,6 +110,7 @@ export function useJewelCaseSpineSteamBannerEditor({
   }
 
   function handleResetSpineSteamBannerLockupLayout(side: JewelCaseSpineSide) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((state) =>
       resetJewelCaseSpineSteamBannerLockupDefaultLayout(state, side),
     )
@@ -146,6 +155,7 @@ export function useJewelCaseSpineSteamBannerEditor({
   }
 
   function handleResetSpineSteamBannerColors(side: JewelCaseSpineSide) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((state) =>
       resetJewelCaseSpineSteamBannerColors(state, side),
     )

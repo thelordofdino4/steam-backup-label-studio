@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import {
   searchSteamStore,
   type SteamImportedGame,
@@ -13,9 +15,9 @@ type UseSteamImportOptions = {
   announceStatus: (message: string) => void
 }
 
-type ApplySteamGameImport = (
+type PrepareSteamGameImport = (
   importedState: SteamGameImportResult,
-) => Promise<void> | void
+) => Promise<() => undefined> | (() => undefined)
 
 export function useSteamImport({
   announceStatus,
@@ -25,7 +27,9 @@ export function useSteamImport({
   const [selectedSteamGame, setSelectedSteamGame] =
     useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
-  const [isSteamImportLoading, setIsSteamImportLoading] = useState(false)
+  const asyncWork = useProjectAsyncWork()
+  const [pendingImport, setPendingImport] = useState<ProjectAsyncRequest | null>(null)
+  const isSteamImportLoading = pendingImport !== null && asyncWork.isCurrent(pendingImport)
 
   // Every submission (including empty input), reset and clear supersedes
   // pending searches. Transport completion alone cannot publish stale state.
@@ -37,7 +41,8 @@ export function useSteamImport({
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
-    setIsSteamImportLoading(false)
+    asyncWork.invalidate('steam-game')
+    setPendingImport(null)
   }
 
   function clearSteamSearchResults() {
@@ -48,19 +53,23 @@ export function useSteamImport({
 
   async function runSteamImport(
     appId: number,
-    applyImportedState: ApplySteamGameImport,
+    prepareImportedState: PrepareSteamGameImport,
   ) {
-    setIsSteamImportLoading(true)
+    const request = asyncWork.begin('steam-game')
+    if (!asyncWork.isCurrent(request)) return
+    setPendingImport(request)
     announceStatus(`Importing Steam App ID ${appId}...`)
 
     try {
       const importedState = await createSteamGameImport(appId)
-
-      await applyImportedState(importedState)
+      if (!asyncWork.isCurrent(request)) return
+      // Preparation may download/decode, but cannot mutate project owners.
+      const applyPreparedImport = await prepareImportedState(importedState)
+      asyncWork.commit(request, applyPreparedImport)
     } catch (error) {
-      announceStatus(`Steam import failed: ${String(error)}`)
-    } finally {
-      setIsSteamImportLoading(false)
+      asyncWork.publish(request, () => {
+        announceStatus(`Steam import failed: ${String(error)}`)
+      })
     }
   }
 
