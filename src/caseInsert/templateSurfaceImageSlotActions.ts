@@ -12,6 +12,8 @@ import {
   clearCaseInsertImageSlotImage,
   fitCaseInsertImageSlotToRegionHeight,
   setCaseInsertImageSlotEnabled,
+  setCaseInsertImageSlotImage,
+  setCaseInsertImageSlotSource,
   updateCaseInsertImageSlotFit,
   updateCaseInsertImageSlotLayoutField,
 } from './imageSlotTransitions.ts'
@@ -239,4 +241,24 @@ export function preserveCaseInsertTemplateGroupedSlotSource(
   }
 
   return preserveCaseInsertTemplateMarkSource(slotKey, slot, image)
+}
+
+/**
+ * Applies a grouped-slot source through the established group semantics.
+ * Repeated artwork already has explicit visibility ownership, so selecting or
+ * replacing its source must not implicitly enable the slot or parent group.
+ */
+export function setCaseInsertTemplateGroupedSlotImageSource(
+  slotKey: CaseInsertImageSlotGroupKey,
+  slot: ProjectCaseInsertImageSlot,
+  image: CaseInsertImageSlotImageInput,
+): ProjectCaseInsertImageSlot {
+  const source = preserveCaseInsertTemplateGroupedSlotSource(
+    slotKey,
+    slot,
+    image,
+  )
+  return slotKey === 'artworkSlots'
+    ? setCaseInsertImageSlotSource(slot, source)
+    : setCaseInsertImageSlotImage(slot, source)
 }

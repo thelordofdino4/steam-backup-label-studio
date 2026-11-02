@@ -9,6 +9,11 @@ import {
   createDefaultProjectJewelCaseState,
 } from './defaults.ts'
 import {
+  updateCaseInsertTemplateTextBlock,
+  updateCaseInsertTemplateTextList,
+  updateProjectCaseInsertTemplate,
+} from './templateSurfaceTransitions.ts'
+import {
   addCaseInsertTemplateTextListItem,
   getDefaultCaseInsertTemplateTextBlockLayout,
   getDefaultCaseInsertTemplateTextListLayout,
@@ -23,6 +28,13 @@ import {
   updateCaseInsertTemplateTextListLayoutField,
   updateCaseInsertTemplateTextListLayoutValue,
 } from './templateSurfaceTextActions.ts'
+import {
+  updateCaseInsertTextBlockLayout,
+  updateCaseInsertTextBlockLayoutField,
+  updateCaseInsertTextBlockLayoutPosition,
+  updateCaseInsertTextListLayout,
+  updateCaseInsertTextListLayoutPosition,
+} from './textTransitions.ts'
 
 const baseLayout: ProjectCaseInsertLayout = {
   scale: 1,
@@ -101,6 +113,89 @@ test('template text list layout field update preserves other layout fields', () 
     x: 62,
   })
   assert.equal(updated.items, textList.items)
+})
+
+test('text layout no-ops preserve block and list reference identity', () => {
+  assert.equal(
+    updateCaseInsertTextBlockLayout(textBlock, { ...textBlock.layout }),
+    textBlock,
+  )
+  assert.equal(
+    updateCaseInsertTextBlockLayoutField(textBlock, 'x', textBlock.layout.x),
+    textBlock,
+  )
+  assert.equal(
+    updateCaseInsertTextBlockLayoutField(textBlock, 'y', textBlock.layout.y),
+    textBlock,
+  )
+  assert.equal(
+    updateCaseInsertTextBlockLayoutField(
+      textBlock,
+      'scale',
+      textBlock.layout.scale,
+    ),
+    textBlock,
+  )
+  assert.equal(
+    updateCaseInsertTextBlockLayoutField(
+      textBlock,
+      'rotation',
+      textBlock.layout.rotation,
+    ),
+    textBlock,
+  )
+  assert.equal(
+    updateCaseInsertTextBlockLayoutPosition(textBlock, {
+      x: textBlock.layout.x,
+      y: textBlock.layout.y,
+    }),
+    textBlock,
+  )
+  assert.equal(
+    updateCaseInsertTextListLayout(textList, { ...textList.layout }),
+    textList,
+  )
+  assert.equal(
+    updateCaseInsertTextListLayoutPosition(textList, {
+      x: textList.layout.x,
+      y: textList.layout.y,
+    }),
+    textList,
+  )
+})
+
+test('real text layout width and point-size changes preserve existing behavior', () => {
+  const widthChanged = updateCaseInsertTextBlockLayoutField(
+    textBlock,
+    'width',
+    82,
+  )
+  const pointSizeChanged = updateCaseInsertTextBlockLayoutField(
+    textBlock,
+    'fontSizePt',
+    24,
+  )
+  const listWidthChanged = updateCaseInsertTextListLayout(textList, {
+    ...textList.layout,
+    width: 84,
+  })
+  const listPointSizeChanged = updateCaseInsertTextListLayout(textList, {
+    ...textList.layout,
+    fontSizePt: 18,
+  })
+
+  assert.notEqual(widthChanged, textBlock)
+  assert.equal(widthChanged.layout.width, 82)
+  assert.equal(widthChanged.value, textBlock.value)
+  assert.notEqual(pointSizeChanged, textBlock)
+  assert.equal(pointSizeChanged.layout.fontSizePt, 24)
+  assert.equal(pointSizeChanged.style, textBlock.style)
+  assert.notEqual(listWidthChanged, textList)
+  assert.equal(listWidthChanged.layout.width, 84)
+  assert.equal(listWidthChanged.items, textList.items)
+  assert.notEqual(listPointSizeChanged, textList)
+  assert.equal(listPointSizeChanged.layout.fontSizePt, 18)
+  assert.equal(listPointSizeChanged.style, textList.style)
 })
 
 test('template text list layout reset replaces only the layout object', () => {
@@ -199,4 +294,59 @@ test('template text list layout helpers preserve list identity and unrelated sur
     trayList.items.slice(1),
   )
   assert.equal(removed.templates.cover, state.templates.cover)
+})
+
+test('template text transition no-ops preserve complete root identity', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const coverBlock = state.templates.cover.textBlocks[0]
+  const trayList = state.templates.tray.textLists[0]
+
+  assert.ok(coverBlock)
+  assert.ok(trayList)
+
+  const directNoop = updateProjectCaseInsertTemplate(
+    state,
+    'cover',
+    (surface) => surface,
+  )
+  const blockNoop = updateCaseInsertTemplateTextBlock(
+    state,
+    'cover',
+    coverBlock.id,
+    (block) => updateCaseInsertTextBlockLayoutPosition(block, {
+      x: block.layout.x,
+      y: block.layout.y,
+    }),
+  )
+  const listNoop = updateCaseInsertTemplateTextList(
+    state,
+    'tray',
+    trayList.id,
+    (list) => updateCaseInsertTextListLayout(list, { ...list.layout }),
+  )
+  const changed = updateCaseInsertTemplateTextBlock(
+    state,
+    'cover',
+    coverBlock.id,
+    (block) => updateCaseInsertTextBlockLayoutField(
+      block,
+      'rotation',
+      block.layout.rotation + 1,
+    ),
+  )
+
+  assert.equal(directNoop, state)
+  assert.equal(blockNoop, state)
+  assert.equal(listNoop, state)
+  assert.notEqual(changed, state)
+  assert.notEqual(changed.templates.cover, state.templates.cover)
+  assert.equal(
+    changed.templates.cover.textBlocks[0]?.layout.rotation,
+    coverBlock.layout.rotation + 1,
+  )
+  assert.equal(
+    changed.templates.cover.textBlocks[1],
+    state.templates.cover.textBlocks[1],
+  )
+  assert.equal(changed.templates.tray, state.templates.tray)
 })

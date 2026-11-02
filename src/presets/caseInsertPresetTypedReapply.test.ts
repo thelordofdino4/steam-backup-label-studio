@@ -5,6 +5,9 @@ import {
   createCaseInsertPresetAssignmentSnapshot,
   type CaseInsertPresetAssignmentSnapshot,
 } from '../caseInsert/presetAssignmentSnapshot.ts'
+import {
+  transitionCaseInsertArtworkFraming,
+} from '../caseInsert/artworkViewportFraming.ts'
 import { captureNormalizedProjectSnapshot } from '../lifecycle/canonicalProject.ts'
 import { createBlankJewelCaseSavedProject } from '../project/caseInsertProjectAdapters.ts'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus.ts'
@@ -486,20 +489,32 @@ test('typed Reapply reviews populated unowned artwork evidence without writing o
 
 test('typed Reapply binds current x/y/scale/fit/viewport evidence and exact consent identities', () => {
   const applied = applyRevision2()
-  const aggregate = clone(applied.aggregate)
-  const slot = aggregate.templates.tray.artworkSlots.find(({ id }) =>
+  let aggregate = clone(applied.aggregate)
+  const layoutSlot = aggregate.templates.tray.artworkSlots.find(({ id }) =>
     id === 'tray-artwork-1')
-  assert.ok(slot)
-  assert.ok(slot.reservedArtworkViewport)
-  slot.layout.x = 21
-  slot.layout.y = 73
-  slot.layout.scale = 1.25
-  slot.fit = 'contain'
-  slot.reservedArtworkViewport = {
-    ...slot.reservedArtworkViewport,
-    focalPosition: { xPercent: 42, yPercent: 61 },
-    zoom: 1.4,
+  assert.ok(layoutSlot)
+  assert.ok(layoutSlot.reservedArtworkViewport)
+  layoutSlot.layout.x = 21
+  layoutSlot.layout.y = 73
+  layoutSlot.layout.scale = 1.25
+  for (const change of [
+    { field: 'fit', value: 'contain' },
+    { field: 'focal-x', value: 42 },
+    { field: 'focal-y', value: 61 },
+    { field: 'zoom', value: 1.4 },
+  ] as const) {
+    const result = transitionCaseInsertArtworkFraming(
+      aggregate,
+      'tray',
+      'tray-artwork-1',
+      change,
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    aggregate = result.project
   }
+  const slot = aggregate.templates.tray.artworkSlots.find(({ id }) =>
+    id === 'tray-artwork-1')!
   const report = reportFor(aggregate, applied.configuration, 421)
   const customized = report.fields.filter(({ address, fieldStatus }) =>
     address.runtimeObjectId === 'tray-artwork-1' &&

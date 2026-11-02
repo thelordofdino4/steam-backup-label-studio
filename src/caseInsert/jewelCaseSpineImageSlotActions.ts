@@ -138,14 +138,17 @@ export function updateJewelCaseSpineImageSlotLayoutValue(
   return updateProjectJewelCaseSpineSides(
     state,
     side,
-    (spineSide) => ({
-      ...spineSide,
-      [slotKey]: updateCaseInsertImageSlotLayoutField(
+    (spineSide) => {
+      const currentSlot = spineSide[slotKey]
+      const nextSlot = updateCaseInsertImageSlotLayoutField(
         spineSide[slotKey],
         field,
         value,
-      ),
-    }),
+      )
+      return nextSlot === currentSlot
+        ? spineSide
+        : { ...spineSide, [slotKey]: nextSlot }
+    },
   )
 }
 

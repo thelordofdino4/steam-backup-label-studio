@@ -78,6 +78,15 @@ function catalog(): CaseInsertPresetCatalog {
   return result.catalog
 }
 
+function withoutPresetControlledLayout<T>(value: T): unknown {
+  if (Array.isArray(value)) return value.map(withoutPresetControlledLayout)
+  if (!value || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value).flatMap(([key, nested]) =>
+    key === 'layout' || key === 'fit' || key === 'reservedArtworkViewport'
+      ? []
+      : [[key, withoutPresetControlledLayout(nested)]]))
+}
+
 function requireCaseSession(
   state: ApplicationLifecycleState,
 ): CaseInsertProjectSession {
@@ -241,6 +250,156 @@ test('Apply requires an explicit exact selection and plans deterministically wit
     review.materialConsentRequirementIds,
     review.plan.materialConsentRequirements.map(({ id }) => id),
   )
+})
+
+test('one-shot Apply authorizes only the closed content-preserving plan and dispatches Apply for detached or attached state', async () => {
+  for (const sourceKind of ['apply', 'reapply'] as const) {
+    const { owner, root, source, commandIds } = setup(sourceKind)
+    const beforeProject = structuredClone(source.project)
+    const result = await owner.applySelected({
+      selectedPreset: PRESET,
+      requestedScope: { kind: 'complete' },
+    })
+
+    assert.equal(result.ok, true, JSON.stringify(result))
+    assert.deepEqual(commandIds, ['case.layoutPreset.apply'])
+    const installed = requireCaseSession(root.getLifecycleState())
+    assert.equal(installed.id, source.id)
+    assert.equal(
+      installed.caseInsertPresetApplication.applicationRevision,
+      source.caseInsertPresetApplication.applicationRevision + 1,
+    )
+    assert.equal(
+      installed.caseInsertPresetApplication.attachment.status,
+      'attached',
+    )
+    assert.deepEqual(
+      withoutPresetControlledLayout(installed.project),
+      withoutPresetControlledLayout(beforeProject),
+    )
+  }
+})
+
+test('the same one-shot Apply action replaces a different compatible preset identity', async () => {
+  const alternate = createCoordinatedCaseInsertPresetDefinition()
+  alternate.id = 'builtin:case-preset:alternate-five-region'
+  alternate.revision = 1
+  alternate.name = 'Alternate Five Region'
+  const createdCatalog = createCaseInsertPresetCatalog({
+    builtins: [createCoordinatedCaseInsertPresetDefinition(), alternate],
+  })
+  assert.equal(createdCatalog.ok, true)
+  if (!createdCatalog.ok) return
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({
+      sessionId: 'workflow-different-preset-one-shot',
+      project: createBlankJewelCaseSavedProject('Different preset'),
+    }),
+  })
+  const commandIds: string[] = []
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: {
+      getLifecycleState: () => root.getLifecycleState(),
+      dispatch: async <Value = void>(commandId: string, input?: unknown) => {
+        commandIds.push(commandId)
+        return root.dispatch<Value>(commandId, input)
+      },
+    },
+    catalog: createdCatalog.catalog,
+  })
+  assert.equal((await owner.applySelected({
+    selectedPreset: PRESET,
+    requestedScope: { kind: 'complete' },
+  })).ok, true)
+  assert.equal((await owner.applySelected({
+    selectedPreset: {
+      id: 'builtin:case-preset:alternate-five-region',
+      revision: 1,
+    },
+    requestedScope: { kind: 'complete' },
+  })).ok, true)
+
+  assert.deepEqual(commandIds, [
+    'case.layoutPreset.apply',
+    'case.layoutPreset.apply',
+  ])
+  const installed = requireCaseSession(root.getLifecycleState())
+  assert.equal(installed.caseInsertPresetApplication.attachment.status,
+    'attached')
+  if (installed.caseInsertPresetApplication.attachment.status === 'attached') {
+    assert.equal(
+      installed.caseInsertPresetApplication.attachment.configuration.preset.id,
+      'builtin:case-preset:alternate-five-region',
+    )
+    assert.equal(
+      installed.caseInsertPresetApplication.attachment.configuration.preset
+        .revision,
+      1,
+    )
+  }
+})
+
+test('one-shot Apply fails closed when complete content-preservation evidence is missing', async () => {
+  const fixture = buildCaseInsertPresetApplicationAdoptionFixture(
+    'workflow-one-shot-preservation-gate',
+  )
+  const source = sessionForApplication(fixture.sourceApplication)
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: captureApplicationLifecycleState({
+      activeSession: source,
+      visibleWorkspace: 'caseInsert',
+    }),
+  })
+  let transitionCount = 0
+  let dispatchCount = 0
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: {
+      getLifecycleState: () => root.getLifecycleState(),
+      dispatch: async (commandId: string) => {
+        dispatchCount += 1
+        return {
+          disposition: 'not-executed' as const,
+          reason: 'unknown-command' as const,
+          commandId,
+        }
+      },
+    },
+    catalog: catalog(),
+    owners: {
+      planApply: (input) => {
+        const planned = planCaseInsertPresetFirstApply(input)
+        if (!planned.ok) return planned
+        return Object.freeze({
+          ...planned,
+          plan: Object.freeze({
+            ...planned.plan,
+            preservationDecisions: Object.freeze([]),
+          }),
+        }) as typeof planned
+      },
+      applyTransition: (input) => {
+        transitionCount += 1
+        return applyCaseInsertPresetFirstTime(input)
+      },
+    },
+  })
+
+  const before = root.getLifecycleState()
+  const result = await owner.applySelected({
+    selectedPreset: PRESET,
+    requestedScope: { kind: 'complete' },
+  })
+  assert.equal(result.ok, false)
+  if (!result.ok) {
+    assert.equal(result.status, 'planning-failed')
+    assert.equal(
+      result.code,
+      'case.layoutPreset.apply.content-preservation-unverified',
+    )
+  }
+  assert.equal(transitionCount, 0)
+  assert.equal(dispatchCount, 0)
+  assert.strictEqual(root.getLifecycleState(), before)
 })
 
 for (const operation of ['apply', 'reapply', 'detach'] as const) {
@@ -412,6 +571,117 @@ test('a content edit after review makes authorization stale and replay cannot in
   assert.strictEqual(replaySetup.root.getLifecycleState(), installedState)
 })
 
+test('one-shot Apply rechecks the authoritative session after planning and cannot overwrite a newer edit', async () => {
+  const fixture = buildCaseInsertPresetApplicationAdoptionFixture(
+    'workflow-one-shot-stale-after-planning',
+  )
+  const source = sessionForApplication(fixture.sourceApplication)
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: captureApplicationLifecycleState({
+      activeSession: source,
+      visibleWorkspace: 'caseInsert',
+    }),
+  })
+  const commandIds: string[] = []
+  let injectedEdit = false
+  const owner = createAppCaseInsertPresetWorkflowOwner({
+    lifecycle: {
+      getLifecycleState: () => root.getLifecycleState(),
+      dispatch: async <Value = void>(commandId: string, input?: unknown) => {
+        commandIds.push(commandId)
+        return root.dispatch<Value>(commandId, input)
+      },
+    },
+    catalog: catalog(),
+    owners: {
+      planApply: (input) => {
+        const planned = planCaseInsertPresetFirstApply(input)
+        if (!injectedEdit) {
+          injectedEdit = true
+          const current = requireCaseSession(root.getLifecycleState())
+          const edited = structuredClone(current.project)
+          edited.title = 'Newer edit retained'
+          assert.equal(root.synchronizeCurrentProject({
+            sessionId: current.id,
+            kind: 'caseInsert',
+            project: edited,
+          }), 'synchronized')
+        }
+        return planned
+      },
+    },
+  })
+
+  const result = await owner.applySelected({
+    selectedPreset: PRESET,
+    requestedScope: { kind: 'complete' },
+  })
+  assert.equal(result.ok, false)
+  if (!result.ok) assert.equal(result.status, 'stale-review')
+  assert.deepEqual(commandIds, [])
+  assert.equal(
+    requireCaseSession(root.getLifecycleState()).project.title,
+    'Newer edit retained',
+  )
+  root.dispose()
+})
+
+test('one-shot Apply blocks incompatible templates and removed exact revisions without mutation', async () => {
+  const incompatibleDefinition = createCoordinatedCaseInsertPresetDefinition()
+  ;(incompatibleDefinition.compatibility as Record<string, unknown>)
+    .templateId = 'future-case-template'
+  const incompatibleCatalog = createCaseInsertPresetCatalog({
+    builtins: [incompatibleDefinition],
+  })
+  assert.equal(incompatibleCatalog.ok, true)
+  if (!incompatibleCatalog.ok) return
+
+  for (const scenario of [
+    {
+      catalog: incompatibleCatalog.catalog,
+      selection: PRESET,
+      expectedStatus: 'planning-failed',
+    },
+    {
+      catalog: catalog(),
+      selection: { id: PRESET.id, revision: PRESET.revision + 1 },
+      expectedStatus: 'preset-unavailable',
+    },
+  ] as const) {
+    const root = createApplicationLifecycleCompositionRoot({
+      initialState: createNewProjectSession({
+        sessionId: `workflow-one-shot-${scenario.expectedStatus}`,
+        project: createBlankJewelCaseSavedProject('Blocked one-shot'),
+      }),
+    })
+    let dispatchCount = 0
+    const owner = createAppCaseInsertPresetWorkflowOwner({
+      lifecycle: {
+        getLifecycleState: () => root.getLifecycleState(),
+        dispatch: async (commandId: string) => {
+          dispatchCount += 1
+          return {
+            disposition: 'not-executed' as const,
+            reason: 'unknown-command' as const,
+            commandId,
+          }
+        },
+      },
+      catalog: scenario.catalog,
+    })
+    const before = root.getLifecycleState()
+    const result = await owner.applySelected({
+      selectedPreset: scenario.selection,
+      requestedScope: { kind: 'complete' },
+    })
+    assert.equal(result.ok, false)
+    if (!result.ok) assert.equal(result.status, scenario.expectedStatus)
+    assert.equal(dispatchCount, 0)
+    assert.strictEqual(root.getLifecycleState(), before)
+    root.dispose()
+  }
+})
+
 test('busy and lifecycle installation failures preserve exact typed dispatch outcomes', async () => {
   for (const mode of ['busy', 'failure'] as const) {
     const fixture = buildCaseInsertPresetApplicationAdoptionFixture(
@@ -452,8 +722,10 @@ test('busy and lifecycle installation failures preserve exact typed dispatch out
       catalog: catalog(),
     })
     const before = state.activeSession
-    const review = requireReview(begin('apply', owner))
-    const result = await owner.complete(review, confirm(review))
+    const result = await owner.applySelected({
+      selectedPreset: PRESET,
+      requestedScope: { kind: 'complete' },
+    })
     assert.equal(result.ok, false)
     if (!result.ok) {
       assert.equal(result.status, 'dispatch-failed')

@@ -45,6 +45,7 @@ import {
   type CaseInsertPresetRoleId,
 } from './caseInsertPresetDefinition.ts'
 import {
+  CASE_INSERT_PRESET_ONE_SHOT_EXECUTION_IDENTITY_PREFIX,
   applyCaseInsertPresetFirstTime,
   createCaseInsertPresetApplyReviewApproval,
   createCaseInsertPresetMaterialConsentAcceptance,
@@ -291,6 +292,19 @@ function approvedInput(
     materialConsentAcceptances:
       acceptances as CaseInsertPresetMaterialConsentAcceptance[],
     ...overrides,
+  }
+}
+
+function oneShotInput(
+  fixture: Fixture,
+  attachment = createCaseInsertPresetUnattachedEndpoint(),
+): ApplyCaseInsertPresetFirstTimeInput {
+  const reviewed = approvedInput(fixture)
+  return {
+    planningResult: reviewed.planningResult,
+    source: reviewed.source,
+    attachment,
+    executionMode: 'one-shot-content-preserving',
   }
 }
 
@@ -686,7 +700,56 @@ test('material consent must exactly cover this reviewed plan', () => {
   }), 'consent-mismatch')
 })
 
-test('stale identities, source context, invalid aggregates, and attachment fail typed', () => {
+test('one-shot content-preserving Apply needs no review or consent artifacts', () => {
+  const fixture = createFixture(ALL_REGIONS, { kind: 'complete' })
+  assert.ok(fixture.plan.warnings.length > 0)
+  assert.ok(fixture.plan.materialConsentRequirements.length > 0)
+  const input = oneShotInput(fixture)
+  assert.equal('reviewApproval' in input, false)
+  assert.equal('materialConsentAcceptances' in input, false)
+
+  const result = applied(applyCaseInsertPresetFirstTime(input))
+  assert.deepEqual(
+    result.configurationCandidate.acceptedMaterialConsentRequirementIds,
+    [],
+  )
+  assert.deepEqual(result.configurationCandidate.reviewedWarningIds, [])
+  assert.deepEqual(result.successorConfiguration.reviewedWarningIds, [])
+  assert.deepEqual(
+    result.successorConfiguration.acceptedMaterialConsentRequirementIds,
+    [],
+  )
+  assert.deepEqual(
+    result.successEvidence.lineage.materialConsentAcceptanceIdentities,
+    [],
+  )
+  assert.match(
+    result.successEvidence.lineage.reviewAcceptanceIdentity,
+    new RegExp(`^${CASE_INSERT_PRESET_ONE_SHOT_EXECUTION_IDENTITY_PREFIX}`),
+  )
+  assert.equal(
+    validateCaseInsertPresetApplyTransitionSuccess(result).ok,
+    true,
+  )
+
+  const partial = createFixture([FRONT_TEXT], {
+    kind: 'region', region: 'front-cover',
+  })
+  failed(
+    applyCaseInsertPresetFirstTime(oneShotInput(partial)),
+    'unsupported-action',
+  )
+
+  const destructive = mutablePlanningResult(fixture.planningResult)
+  destructive.plan.fieldActions[0]!.kind = 'delete-object'
+  failed(applyCaseInsertPresetFirstTime({
+    ...input,
+    planningResult: deepFreeze(destructive) as unknown as
+      CaseInsertPresetApplyPlanningResult,
+  }), 'unsupported-action')
+})
+
+test('stale identities, source context, and invalid aggregates fail typed', () => {
   const fixture = createFixture([FRONT_TEXT], {
     kind: 'region', region: 'front-cover',
   })
@@ -740,10 +803,6 @@ test('stale identities, source context, invalid aggregates, and attachment fail 
   }), 'precondition-failed')
   failed(applyCaseInsertPresetFirstTime({
     ...input,
-    attachment: createCaseInsertPresetAttachedEndpoint('existing'),
-  }), 'already-attached')
-  failed(applyCaseInsertPresetFirstTime({
-    ...input,
     source: {
       ...input.source,
       projectKind: 'disc',
@@ -757,6 +816,46 @@ test('stale identities, source context, invalid aggregates, and attachment fail 
     ...input,
     source: { ...input.source, aggregate: nonNormalized },
   }), 'invalid-source-aggregate')
+})
+
+test('Apply binds an exact attached source edge and permits same-identity replacement', () => {
+  const fixture = createFixture([FRONT_TEXT], {
+    kind: 'region', region: 'front-cover',
+  })
+  const first = applied(applyCaseInsertPresetFirstTime(approvedInput(fixture)))
+  const currentAttachment = createCaseInsertPresetAttachedEndpoint(
+    first.successorConfiguration.configurationIdentity,
+  )
+  const replacement = applied(applyCaseInsertPresetFirstTime(
+    approvedInput(fixture, { attachment: currentAttachment }),
+  ))
+
+  assert.equal(replacement.status, first.status)
+  assert.deepEqual(replacement.aggregate, first.aggregate)
+  assert.deepEqual(
+    replacement.successEvidence.sourceAttachment,
+    currentAttachment,
+  )
+  assert.equal(
+    replacement.successEvidence.sourceConfigurationIdentity,
+    currentAttachment.configurationIdentity,
+  )
+  assert.equal(
+    replacement.successEvidence.successorConfigurationIdentity,
+    currentAttachment.configurationIdentity,
+  )
+  assert.equal(
+    replacement.successEvidence.successorAttachment.status,
+    'attached',
+  )
+  assert.notEqual(
+    replacement.successEvidence.transitionIdentity,
+    first.successEvidence.transitionIdentity,
+  )
+  assert.equal(
+    validateCaseInsertPresetApplyTransitionSuccess(replacement).ok,
+    true,
+  )
 })
 
 test('unsupported plan versions, operations, actions, and divergent writes fail closed', () => {
@@ -874,7 +973,7 @@ test('configuration candidates are deterministic and retain coalesced provenance
   }
 })
 
-test('strict Apply success validation binds aggregates, absence, configuration, lineage, and whole identity', () => {
+test('strict Apply success validation binds aggregates, source edge, configuration, lineage, and whole identity', () => {
   const fixture = createFixture([FRONT_TEXT], {
     kind: 'region', region: 'front-cover',
   })

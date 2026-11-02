@@ -15,7 +15,7 @@ const controllerSource = await readFile(
   'utf8',
 )
 
-test('one independent EditorPanel registers the exact Case workflow destination', () => {
+test('one independent EditorPanel retains the exact Case workflow destination', () => {
   assert.equal((panelSource.match(/<EditorPanel/g) ?? []).length, 1)
   assert.match(panelSource, /title="Case Layout Presets"/)
   assert.match(panelSource, /workflowId: 'workflow\.case-layout-presets'/)
@@ -32,59 +32,66 @@ test('one independent EditorPanel registers the exact Case workflow destination'
   )
 })
 
-test('native controls expose neutral selection, complete review, decisions, and focus refs', () => {
+test('native presentation has one neutral selector and one primary Apply action', () => {
   assert.match(panelSource, /<option value="">Choose a preset<\/option>/)
-  assert.match(panelSource, />\s*Review complete preset\s*</)
-  assert.match(panelSource, />\s*Review Reapply\s*</)
-  assert.match(panelSource, />\s*Review Detach\s*</)
-  assert.match(panelSource, /<fieldset/)
-  assert.match(panelSource, /Warnings to acknowledge/)
-  assert.match(panelSource, /Required material-change consent/)
-  assert.match(panelSource, /role="alert"/)
+  assert.match(
+    panelSource,
+    /Applies the preset’s layout without replacing your content\./,
+  )
+  assert.equal((panelSource.match(/<button/g) ?? []).length, 1)
+  assert.match(panelSource, /'Apply preset'/)
+  assert.match(panelSource, /'Applying…'/)
+  assert.match(
+    panelSource,
+    /disabled=\{snapshot\.selectedOptionValue === '' \|\| snapshot\.pending\}/,
+  )
+  assert.match(panelSource, /controller\.applySelectedPreset\(\)/)
+  assert.doesNotMatch(panelSource, /secondary-button/)
+})
+
+test('presentation exposes compact pending, result, and exact focus targets', () => {
   assert.match(panelSource, /role="status"/)
-  assert.match(panelSource, /reviewHeadingRef/)
+  assert.match(panelSource, /role="alert"/)
+  assert.match(panelSource, /aria-describedby=\{describedBy\}/)
+  assert.match(panelSource, /aria-invalid=/)
+  assert.match(panelSource, /aria-busy=/)
+  assert.match(panelSource, /selectorRef/)
   assert.match(panelSource, /errorRef/)
   assert.match(panelSource, /statusRef/)
+  assert.match(panelSource, /target === 'selector'/)
+  assert.match(panelSource, /target === 'error-summary'/)
+  assert.doesNotMatch(panelSource, /reviewHeadingRef/)
+  assert.doesNotMatch(panelSource, /snapshot\.inspection\.code|<code>/)
   assert.doesNotMatch(
     panelSource,
     /querySelector|setTimeout|setInterval|MutationObserver|\.click\(/,
   )
 })
 
-test('presentation delegates all planning, transitions, and dispatch to one controller and workflow owner', () => {
+test('one-shot presentation contains no review checklist or attachment management', () => {
   assert.doesNotMatch(
     panelSource,
-    /planCaseInsertPreset|applyCaseInsertPreset|transitionCaseInsertPreset|resolveCaseInsertPresetAssignments|\.dispatch\(/,
+    /Review complete preset|Review Reapply|Review Detach|Cancel review|Confirm Apply/,
   )
-  assert.match(controllerSource, /workflow\.beginApply/)
-  assert.match(controllerSource, /workflow\.beginReapply/)
-  assert.match(controllerSource, /workflow\.beginDetach/)
-  assert.match(controllerSource, /workflow\.complete/)
-  assert.match(controllerSource, /requestedScope: Object\.freeze\(\{ kind: 'complete' \}\)/)
-  assert.doesNotMatch(controllerSource, /catalog\.getLatest/)
-  assert.doesNotMatch(controllerSource, /localStorage|sessionStorage|project\.caseInsert\s*=/)
-})
-
-test('Apply and typed Reapply review render immutable creation, physical viewport, fitting, clipping, and preservation evidence', () => {
-  assert.match(panelSource, /review\.plan\.objectCreationActions/)
-  assert.match(panelSource, /action\.review\.actionLabel/)
-  assert.match(panelSource, /action\.review\.initialStateLabel/)
-  assert.match(panelSource, /action\.review\.insertionLabel/)
-  assert.match(panelSource, /action\.review\.preservationLabel/)
-  assert.match(panelSource, /review\.plan\.artworkViewportActions/)
-  assert.match(panelSource, /action\.evidence\.plan\.viewport/)
-  assert.match(panelSource, /physicalWidthMm/)
-  assert.match(panelSource, /physicalHeightMm/)
-  assert.match(panelSource, /physicalAspectRatio/)
-  assert.match(panelSource, /action\.review\.fittingLabel/)
-  assert.match(panelSource, /action\.review\.sourceStateLabel/)
-  assert.match(panelSource, /clippedSourceFractions/)
-  assert.match(panelSource, /material-visible-clipping/)
-  assert.match(panelSource, /artwork-cover-fitting-deferred/)
-  assert.match(panelSource, /review\.plan\.formatVersion === 3/)
-  assert.match(panelSource, /Reviewed empty slot recreation/)
   assert.doesNotMatch(
     panelSource,
-    /createCaseInsertPresetEmptyArtworkSlot|adoptCaseInsertArtworkViewport|planCaseInsertPresetArtworkViewport|getTemplateRect/,
+    /Warnings to acknowledge|Required material-change consent|<fieldset/,
+  )
+  assert.doesNotMatch(
+    panelSource,
+    /Preserve current customization|Overwrite with saved preset revision/,
+  )
+  assert.doesNotMatch(
+    panelSource,
+    /AttachmentStatus|No Case layout preset is attached|<strong>Attached<\/strong>|<strong>Detached<\/strong>/,
+  )
+  assert.doesNotMatch(
+    controllerSource,
+    /beginApplyReview|beginReapplyReview|beginDetachReview|confirmReview|cancelReview|setWarningAcknowledged|setMaterialConsentAccepted|setReapplyPolicy/,
+  )
+  assert.match(controllerSource, /workflow\.applySelected/)
+  assert.doesNotMatch(
+    `${panelSource}\n${controllerSource}`,
+    /planCaseInsertPreset|applyCaseInsertPreset|transitionCaseInsertPreset|resolveCaseInsertPresetAssignments|\.dispatch\(/,
   )
 })

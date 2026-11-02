@@ -288,6 +288,8 @@ function CaseInsertSpineBackground({
           side,
           'background',
         )}
+      onLostPointerCapture={pointerHandlers.handleSpineLostPointerCapture}
+      onPointerCancel={pointerHandlers.handleSpinePointerCancel}
       onPointerMove={pointerHandlers.handleSpinePointerMove}
       onPointerUp={pointerHandlers.handleSpinePointerUp}
       style={getRectStyle(backgroundFit.region, layout)}
@@ -556,6 +558,7 @@ function CaseInsertSpineTextBlock({
                   dragKind.textBlockId,
                 )}
           onMoveHandlePointerMove={pointerHandlers.handleSpinePointerMove}
+          onMoveHandlePointerCancel={pointerHandlers.handleSpinePointerCancel}
           onMoveHandlePointerUp={pointerHandlers.handleSpinePointerUp}
           onRichTextKeyboardCommand={(command, selection) =>
             previewTextControlHandlers.onRichTextKeyboardCommand?.(
@@ -598,6 +601,7 @@ function CaseInsertSpineOverlaySlot({
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
 }) {
   const pointerProps = {
+    onLostPointerCapture: pointerHandlers.handleSpineLostPointerCapture,
     onPointerDown: (event: PointerEvent<Element>) =>
       dragTarget.kind === 'primary'
         ? pointerHandlers.handleSpinePrimaryImageSlotPointerDown(
@@ -611,6 +615,7 @@ function CaseInsertSpineOverlaySlot({
             dragTarget.slotKey,
             dragTarget.slotId,
           ),
+    onPointerCancel: pointerHandlers.handleSpinePointerCancel,
     onPointerMove: pointerHandlers.handleSpinePointerMove,
     onPointerUp: pointerHandlers.handleSpinePointerUp,
   }

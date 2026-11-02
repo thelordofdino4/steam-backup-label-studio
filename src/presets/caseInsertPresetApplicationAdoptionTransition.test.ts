@@ -6,6 +6,26 @@ import {
   CASE_INSERT_PRESET_CATALOG,
 } from './caseInsertPresetCatalog.ts'
 import {
+  createCaseInsertPresetAttachedEndpoint,
+  createCaseInsertPresetUnattachedEndpoint,
+} from './caseInsertPresetAttachmentEndpoint.ts'
+import {
+  createCaseInsertPresetApplicationSnapshot,
+  createCaseInsertPresetAttachedState,
+} from './caseInsertPresetConfigurationAdoptionModel.ts'
+import {
+  resolveCaseInsertPresetAssignments,
+} from './caseInsertPresetAssignmentResolution.ts'
+import {
+  planCaseInsertPresetFirstApply,
+} from './caseInsertPresetApplyPlanning.ts'
+import {
+  applyCaseInsertPresetFirstTime,
+} from './caseInsertPresetApplyTransition.ts'
+import type {
+  CaseInsertPresetApplicationScope,
+} from './caseInsertPresetDefinition.ts'
+import {
   CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_KIND,
   CASE_INSERT_PRESET_APPLICATION_ADOPTION_TRANSITION_VERSION,
   CASE_INSERT_PRESET_VALIDATED_ADOPTION_SUCCESS_BUNDLE_KIND,
@@ -62,6 +82,72 @@ function rawRequest(
     current,
     evidence,
   }
+}
+
+function attachedApplication(configuration: typeof fixture.firstConfiguration) {
+  const attachment = createCaseInsertPresetAttachedState(configuration)
+  assert.equal(attachment.ok, true)
+  if (!attachment.ok) throw new Error(attachment.code)
+  const application = createCaseInsertPresetApplicationSnapshot({
+    snapshot: fixture.firstSnapshot,
+    attachment: attachment.state,
+  })
+  assert.equal(application.ok, true)
+  if (!application.ok) throw new Error(application.code)
+  return application.value
+}
+
+function executeApply(
+  snapshot: typeof fixture.sourceSnapshot,
+  requestedScope: CaseInsertPresetApplicationScope,
+  attachment: ReturnType<typeof createCaseInsertPresetUnattachedEndpoint> |
+    ReturnType<typeof createCaseInsertPresetAttachedEndpoint>,
+) {
+  const summary = CASE_INSERT_PRESET_CATALOG.list()[0]!
+  const definition = CASE_INSERT_PRESET_CATALOG.getExact(
+    summary.id,
+    summary.revision,
+  )!
+  const resolution = resolveCaseInsertPresetAssignments({
+    catalog: CASE_INSERT_PRESET_CATALOG,
+    reference: { id: definition.id, revision: definition.revision },
+    requestedScope,
+    snapshot,
+    expectedSnapshotIdentity: snapshot.identity,
+  })
+  assert.equal(resolution.ok, true)
+  if (!resolution.ok) throw new Error(resolution.status)
+  const planning = planCaseInsertPresetFirstApply({
+    operation: 'apply',
+    resolution,
+    expected: {
+      projectKind: 'caseInsert',
+      preset: { id: definition.id, revision: definition.revision },
+      requestedScope,
+      snapshotIdentity: snapshot.identity,
+    },
+  })
+  assert.equal(planning.ok, true)
+  if (!planning.ok) throw new Error(planning.status)
+  assert.equal(definition.revision, 2)
+  assert.ok(planning.plan.warnings.length > 0)
+  const result = applyCaseInsertPresetFirstTime({
+    planningResult: planning,
+    source: {
+      projectKind: 'caseInsert',
+      aggregate: snapshot.caseInsert,
+      snapshotIdentity: snapshot.identity,
+      preset: { id: definition.id, revision: definition.revision },
+      requestedScope,
+    },
+    attachment,
+    executionMode: 'one-shot-content-preserving',
+  })
+  assert.equal(result.ok, true)
+  if (!result.ok) throw new Error(`${result.status}:${result.code}`)
+  assert.deepEqual(result.configurationCandidate.reviewedWarningIds, [])
+  assert.deepEqual(result.successorConfiguration.reviewedWarningIds, [])
+  return result
 }
 
 test('validated adoption success bundles bind one exact versioned success', () => {
@@ -167,6 +253,51 @@ test('Apply atomically adopts the exact aggregate and promoted configuration', (
   assert.deepEqual(fixture.sourceApplication, sourceBefore)
   assert.deepEqual(fixture.applyEvidence, evidenceBefore)
   assert.equal(fixture.applyEvidence.applicationAdoptionStatus, 'not-adopted')
+})
+
+test('Apply atomically replaces an exact attached endpoint', () => {
+  const current = fixture.firstApplication
+  const apply = executeApply(
+    fixture.firstSnapshot,
+    { kind: 'complete' },
+    createCaseInsertPresetAttachedEndpoint(
+      fixture.firstConfiguration.configurationIdentity,
+    ),
+  )
+  const evidence = { ...fixture.applyEvidence, transitionResult: apply }
+  const result = transitionCaseInsertPresetApplicationAdoption(
+    rawRequest('apply', current, evidence),
+  )
+
+  assert.equal(result.ok, true)
+  if (!result.ok || result.operation !== 'apply') return
+  assert.equal(result.receipt.attachmentAction, 'replaced')
+  assert.equal(result.receipt.previousAttachment.status, 'attached')
+  assert.equal(result.receipt.successorAttachment.status, 'attached')
+  assert.equal(
+    result.receipt.sourceConfigurationIdentity,
+    fixture.firstConfiguration.configurationIdentity,
+  )
+  assert.equal(
+    result.receipt.successorConfigurationIdentity,
+    apply.successorConfiguration.configurationIdentity,
+  )
+  assert.deepEqual(result.state.snapshot.caseInsert, apply.aggregate)
+  assert.equal(
+    result.state.snapshot.identity.projectRevision,
+    fixture.firstSnapshot.identity.projectRevision + 1,
+  )
+  assert.equal(result.receipt.atomicityProof.partialSuccess, false)
+
+  const alternative = executeApply(
+    fixture.sourceSnapshot,
+    { kind: 'complete' },
+    createCaseInsertPresetUnattachedEndpoint(),
+  )
+  const wrongCurrent = attachedApplication(alternative.successorConfiguration)
+  expectFailure(transitionCaseInsertPresetApplicationAdoption(
+    rawRequest('apply', wrongCurrent, evidence),
+  ), 'attachment-conflict')
 })
 
 test('Reapply atomically replaces the exact attached configuration', () => {

@@ -259,6 +259,7 @@ export type InlinePreviewTextEditorProps = {
   ) => void
   onMoveHandlePointerDown: (event: ReactPointerEvent<Element>) => void
   onMoveHandlePointerMove: (event: ReactPointerEvent<Element>) => void
+  onMoveHandlePointerCancel?: (event: ReactPointerEvent<Element>) => void
   onMoveHandlePointerUp: (event: ReactPointerEvent<Element>) => void
   onRichTextKeyboardCommand?: (
     command: 'enter' | 'shiftEnter' | 'backspace',

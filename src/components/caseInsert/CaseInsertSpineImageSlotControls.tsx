@@ -41,6 +41,9 @@ import {
   getSpineImageSlotPlacementFields,
   getSpinePrimaryImageSlotRole,
 } from './CaseInsertSpineControlPlacement'
+import {
+  CaseInsertArtworkFramingControls,
+} from './CaseInsertArtworkFramingControls'
 
 function getImageStatus(slot: ProjectCaseInsertImageSlot) {
   return getProjectImageAssetStatus({
@@ -315,6 +318,17 @@ export function SpineGroupedImageSlotControls({
       />
       {slotKey === 'artworkSlots' ? (
         <>
+          <CaseInsertArtworkFramingControls
+            idPrefix={uploadId}
+            owner={side === 'left' ? 'leftSpine' : 'rightSpine'}
+            slot={slot}
+            onChange={(change) =>
+              actions.handleSpineGroupedArtworkFramingChange(
+                side,
+                slot.id,
+                change,
+              )}
+          />
           <CaseInsertImageSlotStatusCard
             slot={slot}
             emptyHint="No image is selected yet. Upload a local image or use an imported artwork source."

@@ -5,7 +5,7 @@
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
 > Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 > Lifecycle/package authority cross-references reviewed against PR #326 merge commit `4db227266695ee0b35d33e1f88e82cd88ad85034` plus the focused `agent/project-session-dirty-replacement-guard` implementation checkpoint on 2026-07-29. The broader as-built inventory below still records its separately identified refactor baseline where stated.
-> Case preset ownership refresh: PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused reserved-artwork viewport adoption/schema/render and Jewel Case Essentials revision-2 checkpoints through 2026-08-22.
+> Case preset ownership refresh: PR #353 merge commit `dde67fac36de8f473c4ca7082e123ef801810a95`, stacked dependency `44fbcd09258d279540b4573fca66fa37bec63792`, and the focused artwork-assignment/editor-adoption plus Case continuous-edit scheduling checkpoints through 2026-08-24.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -280,7 +280,7 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
-The frontend contains runtime-connected lifecycle and native application-menu foundations. `src/main.tsx` constructs one application lifecycle runtime and one menu runtime outside React Strict Mode; their focused boundaries own idempotent disposal, while committed React adapters connect lifecycle, feedback, and workflow-navigation dependencies without recreating either root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, native transport validation, frontend ingress, and runtime lifecycle. Rust constructs the native hierarchy from that descriptor, applies bridge/window/item-set/generation-validated state, and forwards typed activation envelopes. The seven supported File presentation IDs plus `export.png` dispatch through the existing application root. Five Tools presentation IDs resolve through those same descriptors into one typed editor-navigation router and shared nonmodal workflow host; they reveal/focus single existing owner presentations without executing a domain operation. The fifth is the Case-only `menu.tools.case-layout-presets` destination. The user reported the earlier focused Windows native-Tauri menu checklist passing on 2026-07-31; Linux and macOS remain separately unverified. Close/termination, Edit, Window, and Help remain disabled. No custom React menubar exists.
+The frontend contains runtime-connected lifecycle and native application-menu foundations. `src/main.tsx` constructs one application lifecycle runtime and one menu runtime outside React Strict Mode; their focused boundaries own idempotent disposal, while committed React adapters connect lifecycle, feedback, and workflow-navigation dependencies without recreating either root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is synchronized with complete normalized committed Disc or Case editor aggregates and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. A focused Case-only continuous-edit adapter is the bounded exception to per-React-commit synchronization: it coalesces intermediate scalar/point projections to at most one per animation frame, pauses lifecycle project publication while active, and synchronously finishes one complete aggregate before Save, Save As, replacement guarding, Return Home, or PNG export captures state. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, native transport validation, frontend ingress, and runtime lifecycle. Rust constructs the native hierarchy from that descriptor, applies bridge/window/item-set/generation-validated state, and forwards typed activation envelopes. The seven supported File presentation IDs plus `export.png` dispatch through the existing application root. Five Tools presentation IDs resolve through those same descriptors into one typed editor-navigation router and shared nonmodal workflow host; they reveal/focus single existing owner presentations without executing a domain operation. The fifth is the Case-only `menu.tools.case-layout-presets` destination. The user reported the earlier focused Windows native-Tauri menu checklist passing on 2026-07-31; Linux and macOS remain separately unverified. Close/termination, Edit, Window, and Help remain disabled. No custom React menubar exists.
 
 ### 5.2 Key Files
 
@@ -291,6 +291,7 @@ The frontend contains runtime-connected lifecycle and native application-menu fo
 - `src/app/ApplicationMenuBoundary.tsx`
 - `src/app/applicationLifecycleRuntime.ts`
 - `src/app/applicationLifecycleRuntimeContext.ts`
+- `src/app/applicationCaseInsertContinuousEditPort.ts`
 - `src/app/applicationMenuRuntimeContext.ts`
 - `src/app/useApplicationLifecycleRoot.ts`
 - `src/app/useApplicationMenuLifecycleIngress.ts`
@@ -340,6 +341,10 @@ The frontend contains runtime-connected lifecycle and native application-menu fo
 - `src/components/editor/applicationWorkflowNavigation.ts`
 - `src/components/editor/ApplicationWorkflowHost.tsx`
 - `src/editor/editorTypes.ts`
+- `src/interaction/caseInsertContinuousEditCoordinator.ts`
+- `src/interaction/caseInsertContinuousEditPresentationPort.ts`
+- `src/interaction/caseInsertContinuousEditContext.tsx`
+- `src/interaction/useCaseInsertPreviewPointerDrag.ts`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/src/main.rs`
 - `src-tauri/src/lib.rs`
@@ -354,7 +359,7 @@ The frontend contains runtime-connected lifecycle and native application-menu fo
 
 ### 5.3 Source-Of-Truth State
 
-`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production command registry, dispatcher, busy coordinator, and lifecycle root. After committed React updates, focused adapters supply the complete normalized Disc or Case aggregate and exact Disc or Case Front/Back/Spine route to the root; canonical content equality and route equality are lifecycle no-ops. Route changes are session-only and do not change project revision or dirty state. New Disc, New Case, and Open prepare one complete immutable candidate, use the shared dirty-aware replacement guard when required, and apply lifecycle plus editor/route state atomically after a final session/revision check. Save and Save As capture immutable snapshot `R` from the lifecycle-owned current project, delegate package planning/writing to focused modules, and adopt `R` as baseline after commit without a second editor capture; a newer current `R+1` remains current and dirty. Return Home and Resume use focused semantic owners and one lifecycle/React batch; they do not capture, restore, reload, guard, or mutate project content. The non-lifecycle `export.png` command uses that same registry, dispatcher, busy coordinator, typed-result model, and shared feedback adapter; its Disc/Case owner captures one invocation adapter and does not mutate lifecycle state. One application-command feedback adapter projects typed terminal results once to the shared editor status owner and Home live status surface. Other focused app-owned helpers own Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
+`src/app/App.tsx` owns workspace routing and cross-feature orchestration. The application-boundary runtime owns the sole production command registry, dispatcher, busy coordinator, and lifecycle root. After committed React updates, focused adapters supply the complete normalized Disc or Case aggregate and exact Disc or Case Front/Back/Spine route to the root; canonical content equality and route equality are lifecycle no-ops. Route changes are session-only and do not change project revision or dirty state. For one active Case range/number/direct-drag target, `caseInsertContinuousEditCoordinator.ts` retains only session ID, stable target ID, latest validated scalar-or-point projection, and one scheduled frame. It owns no project aggregate. Latest input wins, React projects at most once per animation frame, and the ordinary project-sync effect skips intermediate values. Synchronous finish retires the edit, projects any still-unpainted latest value, and advances a completion epoch so the complete React aggregate reaches the lifecycle root once even when the final value was already painted. The keyed Case boundary and session check retire stale work rather than carrying it into a replacement session. New Disc, New Case, and Open prepare one complete immutable candidate, use the shared dirty-aware replacement guard when required, and apply lifecycle plus editor/route state atomically after a final session/revision check. Save and Save As capture immutable snapshot `R` from the lifecycle-owned current project, delegate package planning/writing to focused modules, and adopt `R` as baseline after commit without a second editor capture; a newer current `R+1` remains current and dirty. Return Home and Resume use focused semantic owners and one lifecycle/React batch; they do not capture, restore, reload, guard, or mutate project content. Save/Save As, each replacement-guard inspection/recheck, Return Home, and PNG export finish a pending Case edit before capturing authoritative state. The non-lifecycle `export.png` command uses that same registry, dispatcher, busy coordinator, typed-result model, and shared feedback adapter; its Disc/Case owner captures one invocation adapter and does not mutate lifecycle state. One application-command feedback adapter projects typed terminal results once to the shared editor status owner and Home live status surface. Other focused app-owned helpers own Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
 
 The shared image-candidate picker owns only its accessible dialog mechanics:
 selected-or-first usable initial focus, dynamic Tab/Shift+Tab containment, idle
@@ -366,6 +371,22 @@ callers; the picker helper is not a general application-modal framework.
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
 Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. The application ingress performs a second bridge/window/projection-generation check. File lifecycle and `menu.file.export-png` targets dispatch through the application root; Tools targets resolve through `applicationMenuWorkflowRouting.ts` into the typed navigation store. That store rechecks session, editor/surface, host, registered owner, modal, and transition readiness, then reveals one shared host and focuses the registered control after commit. Stable portal containers preserve one live owner presentation and prevent duplicate IDs while keeping the sidebar slot available. Navigation completion publishes no false domain-success feedback and changes no project/session state. Close/termination and all Edit, Window, and Help semantic boundaries remain unavailable.
+
+A deterministic pre-correction Case harness established the scheduling cause:
+20 real input updates produced 20 complete lifecycle synchronizations,
+publications, persisted-content revisions, Case application revisions, and
+native-menu projection opportunities. A supplemental 4 MiB embedded-asset
+fixture measured approximately 24.3 ms for complete lifecycle synchronization,
+20.7 ms for Case preset application projection, 21.5 ms for full aggregate
+validation/hash, and 0.008 ms for the viewport artifact. The shared range field
+also exposed both native-input and React-change live paths, which could dispatch
+one range tick twice under React 19. The correction removes that duplicate
+handler, coalesces only Case intermediate presentation updates, splits project
+and route synchronization, and synchronizes the preset presentation only on
+lifecycle `stateGeneration`. It does not alter the native-menu projection
+algorithm; fewer menu projections are a consequence of fewer lifecycle
+publications. These are browserless deterministic measurements and source
+checks, not evidence of native Tauri smoothness.
 
 ### 5.4 Render, Edit, And Export Paths
 
@@ -384,7 +405,8 @@ Application-menu presentation IDs are separate from semantic command and owner I
   guard and atomically establish one pathless, baseline-less, dirty session.
 - Save: `project.save` and `project.save-as` write the lifecycle-owned immutable
   snapshot and adopt only that snapshot as baseline after native commit. They
-  never perform a fallible post-commit editor recapture.
+  synchronously finish a pending Case continuous edit before capture and never
+  perform a fallible post-commit editor recapture.
 - Return/Resume: `workspace.return-home` retains the exact active session and
   opens no replacement guard; Home exposes Resume only for that retained
   session, and `project.resume` restores its exact editor route without read or
@@ -392,7 +414,10 @@ Application-menu presentation IDs are separate from semantic command and owner I
 - Command feedback: current lifecycle controls consume one typed terminal
   result adapter. Accepted messages are deduplicated by the shared status owner
   and remain available across Home/editor workspace changes.
-- Export: `App.tsx` opens the native destination chooser, calls preflight helpers, always requests confirmation (information for clean summaries and warning for summaries with warnings), calls canvas export helpers, then writes PNG bytes through Tauri.
+- Export: the shared command synchronously finishes a pending Case continuous
+  edit, resolves fresh Disc/Case dependencies, builds preflight, opens the
+  native destination chooser when permitted, calls canvas export helpers, then
+  writes PNG bytes through Tauri.
 
 ### 5.5 Invariants And Future-Change Rules
 
@@ -599,6 +624,12 @@ original format-choice rationale remains in
 ### 7.4 Render/Edit/Export Paths
 
 - Runtime edits update React state first.
+- Successful Case preset installation is the narrow inverse exception: one
+  focused port wraps the existing full-session lifecycle compare-and-swap and
+  replaces the React `projectJewelCase` aggregate from the exact committed Case
+  snapshot in the same synchronous batch. Stale, rejected, and no-op commits do
+  not update React; the subsequent ordinary React-to-lifecycle synchronization
+  is a canonical no-op.
 - Save captures one immutable normalized snapshot, builds one owner-aware plan,
   writes a complete package atomically, then adopts only the committed snapshot
   as baseline; a newer current snapshot remains dirty.
@@ -611,6 +642,15 @@ original format-choice rationale remains in
   numeric artifact for preview, PNG export, drag/slider bounds, text occupied
   regions, and preflight. A missing property or explicit `null` input normalizes
   to property omission, and the omitted state takes the existing legacy path.
+- `src/caseInsert/artworkViewportFraming.ts` owns strict framing eligibility,
+  canonical Fit/Focal/Zoom view state, and typed immutable stable-ID updates for
+  explicit Cover, Tray, left-Spine, and right-Spine repeated-artwork owners.
+  `CaseInsertArtworkFramingControls.tsx` is the sole shared presentation adapter;
+  template and Spine hooks commit its successful results through the existing
+  Case aggregate setter and lifecycle synchronization. Contain and centered
+  Cover hide the focal/zoom inputs because the renderer ignores those values;
+  Crop exposes both while dormant values remain persisted. The UI never owns
+  viewport basis/dimensions, crop math, preset commands, or catalog lookup.
 
 ### 7.5 Serialization Contract
 
@@ -1474,11 +1514,14 @@ It is not current implementation. The generic preset definition, resolution,
 fitting, and targeted-application modules below remain focused inputs to that
 workflow rather than a second session, schema, geometry, or renderer owner.
 
-The proposed Case-specific sibling workflow is documented in
+The Case-specific sibling workflow is documented in
 [`CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](CASE_INSERT_LAYOUT_PRESET_WORKFLOW_CONTRACT.md).
-It preserves the same Select/Plan/Review/Apply/Reapply/Detach protocol while
-binding every assignment to an explicit Front Cover, complete Tray Card, Back
-Panel, left-spine, or right-spine region and owner-derived coordinate basis.
+Its ordinary production surface is exact Select followed by one
+content-preserving Apply; immutable planning/authorization is internal. The
+lower-level reviewed Apply/Reapply/Detach protocol remains compatibility/domain
+infrastructure. Every assignment binds to an explicit Front Cover, complete
+Tray Card, Back Panel, left-spine, or right-spine region and owner-derived
+coordinate basis.
 Its pure foundation under `src/presets/` now strictly parses and freezes
 definition formats 1 and 2, preserves historical format-1 semantics, resolves
 canonical exact revisions and boundary-only aliases through one immutable
@@ -1494,7 +1537,8 @@ returns deterministic immutable current binding facts with typed disabled,
 missing, capability-gated create-empty, ambiguous, stale, incompatible,
 invalid, and unsupported outcomes. Resolution never creates an object.
 `src/presets/caseInsertPresetApplyPlanning.ts` consumes only that frozen exact
-resolution and produces a deeply immutable first-time Apply plan: direct typed
+resolution and produces the historically named deeply immutable first-time
+Apply plan (now also consumed by exact attached-source one-shot replacement): direct typed
 layout-field proposals, reviewed exact object-creation and reserved-viewport
 actions, preservation decisions, optional skips, required/duplicate/unsupported
 blockers, deferred/clipping warnings, material-consent requirements, semantic
@@ -1555,10 +1599,13 @@ executor for an already reviewed subset of repeated-artwork creation and
 reserved-artwork viewport writes. It validates the closed creation capability,
 action linkage, exact source/current-value preconditions, and optional per-field
 write masks before returning one successor aggregate or one typed failure.
-`src/presets/caseInsertPresetApplyTransition.ts` consumes only one deeply frozen
-planned/no-op result, its exact review and consent records, a normalized current
-Case aggregate, current snapshot/preset/scope identity, and an explicit
-unattached assertion. It defensively validates and preflights all exact stable
+`src/presets/caseInsertPresetApplyTransition.ts` consumes one deeply frozen
+planned/no-op result, a normalized current Case aggregate, current snapshot/
+preset/scope identity, and either an explicit reviewed-mode approval/consent set
+or the closed `one-shot-content-preserving` mode. The one-shot mode accepts no
+review/consent artifacts and independently revalidates the preservation gate.
+Its source endpoint may be canonical absence or the exact current attachment.
+It defensively validates and preflights all exact stable
 addresses/current values before applying the exhaustive supported actions to a
 detached draft. The historical path writes numeric layout fields only; the
 strict revision-2 path creates every reviewed missing exact slot and adopts
@@ -1604,9 +1651,13 @@ one latest revision-2 summary, but Reapply consumes the attached explicit exact
 definition and never substitutes the catalog's latest revision implicitly.
 `src/presets/caseInsertPresetDeterministicIdentity.ts` supplies shared generic
 deterministic encoding and digest semantics.
-`src/presets/caseInsertPresetReapplyIdentity.ts` retains the Reapply-specific
+`src/presets/caseInsertPresetReapplyIdentity.ts` retains the legacy Reapply-specific
 canonicalization, prefix, acceptance, and transition-identity helpers while
-re-exporting those generic utilities for compatibility. Together with
+re-exporting those generic utilities for compatibility.
+`src/presets/caseInsertPresetTypedReapplyIdentity.ts` owns the typed Reapply
+prefix and identity helpers. Both planner/transition families require the
+selected definition revision to equal the attached configuration revision;
+cross-revision Reapply fails closed. Together with
 `src/presets/caseInsertPresetReapplyTransition.ts`, which retains the public
 discriminated/legacy entry, and
 `src/presets/caseInsertPresetTypedReapplyTransition.ts`, which executes
@@ -1721,7 +1772,8 @@ transition, or whole-success identity.
 
 Apply, Reapply, and Detach successes now retain complete detached source/result
 aggregates and their content identities. Shared pure endpoint/evidence owners
-bind canonical source absence to Apply's exact successor configuration, bind
+bind canonical source absence or the exact current attached source to Apply's
+exact selected successor configuration, bind
 Reapply's exact source and distinct successor configurations, and bind Detach's
 exact source configuration/release to canonical successor absence. Detach's
 returned clone must recompute to the checked source aggregate identity. Each
@@ -1747,8 +1799,9 @@ audited evidence value. The transition safely detaches untrusted input,
 revalidates the owning whole-success bundle, and checks exact project kind,
 session, revision, template, source/result aggregate, source/successor
 attachment, source/successor configuration, release, and non-adoption facts.
-Apply attaches exactly the promoted configuration; Reapply replaces the exact
-source configuration with its distinct successor; Detach preserves complete
+Apply attaches exactly the promoted selected configuration from absence or
+replaces the exact current attachment; Reapply replaces the exact source
+configuration with its distinct same-revision successor; Detach preserves complete
 aggregate semantics and produces canonical authoritative absence with no
 tombstone. Success returns one deeply immutable detached successor snapshot and
 one deterministic operation-discriminated receipt, increments application
@@ -1775,7 +1828,9 @@ complete normalized Case aggregate remains solely at
 `ProjectSession.project.caseInsert`; the required companion stores only its
 session-scoped preset attachment, exact assignment-snapshot identity, a
 distinct `applicationRevision`, and one canonical `applicationStateIdentity`.
-New and Open create an unattached companion at application revision zero.
+New creates an unattached companion at application revision zero; Open
+reconstructs the explicit schema `0.4.0` attachment/configuration, application
+revision, and recovery status.
 Committed full-aggregate editor synchronization preserves the attachment,
 returns the exact prior state for identical canonical application content, and
 advances the Case application revision once only when `project.caseInsert`, and
@@ -1823,41 +1878,48 @@ transitions remain observable without changing persisted-content revision or
 dirty comparison. Typed stale, replay, operation, validation, busy, and store
 failures leave state unchanged, and the dispatcher releases busy ownership
 after success or failure. The bridge returns the existing adoption receipt and
-shared typed feedback; it does not rerun a planner or transition and adds no
-catalog, UI, App/editor invocation, schema, persistence, preview, or export
-connection.
+shared typed feedback; it does not rerun a planner or transition. Production
+injects one focused editor-apply adapter that wraps the final lifecycle CAS and
+projects the exact committed immutable Case aggregate into React in the same
+synchronous batch, with no projection for stale or no-op results. This adds no
+catalog, workflow-UI, schema, persistence, preview, or export ownership.
 
 `src/app/appCaseInsertPresetWorkflow.ts` is the presentation-neutral
 application workflow owner above those command and pure-domain boundaries. It
-reads the authoritative active Case session, requires explicit exact preset
-selection for Apply/Reapply, projects recovered attachment and typed recovery
-status without catalog mutation, invokes the established detector/resolver and
-planners, and returns immutable review artifacts carrying exact source-session,
-content/application-revision, snapshot, plan, selected-preset, warning, and
-material-consent proof. Confirmation rechecks that proof against the latest
-session, then coordinates the existing pure transition, adoption, lifecycle
-authorization, and exact registered command dispatch once. It neither
+reads the authoritative active Case session and exposes `applySelected` for the
+ordinary exact-selection path. That path builds the complete immutable plan,
+fails closed unless the plan satisfies the closed content-preservation
+allowlist, and invokes the transition's `one-shot-content-preserving` mode. The
+button activation authorizes that exact plan but constructs no legacy review
+approval, warning acknowledgement, or material-consent acceptance artifacts.
+The owner binds canonical absence or the exact current attachment, rechecks the
+latest session, and coordinates the existing pure transition, adoption,
+lifecycle authorization, and exact `case.layoutPreset.apply` dispatch once. It neither
 constructs nor installs successor sessions and never writes aggregate and
-attachment separately. Detach does not require catalog resolution. The owner
-has no retained mutable workflow state; the injected production Case catalog
-contains one canonical Jewel Case Essentials identity with exact revisions 1
-and 2. Detached selection uses its single latest revision-2 summary. Attached
-revision-1 inspection reports `stale`, and Reapply remains bound to exact
-revision 1 rather than consulting `getLatest()`.
+attachment separately. The retained lower-level begin/complete, inspection,
+reviewed Apply, same-exact-revision Reapply, and catalog-independent Detach ports
+remain compatibility/domain infrastructure. The owner has no retained mutable
+workflow state; the injected production Case catalog contains one canonical
+Jewel Case Essentials identity with exact revisions 1 and 2. Its single list
+option is exact revision 2. Explicit revision-2 Apply can replace an exact
+revision-1 attachment; no status, catalog latest, Open, or Save path substitutes
+that revision implicitly.
 
 `src/app/caseInsertPresetPresentationController.ts` is the only transient
-application presentation adapter above that owner. It keeps explicit selection,
-immutable review decisions, customized-field Reapply policies, pending state,
-local typed notice, and focus request outside project/lifecycle persistence. It
-clears session-scoped state on replacement and invalidates review on relevant
-revision/application change. `CaseInsertLayoutPresetsPanel.tsx` renders the same
+application presentation adapter above that owner. It keeps exact selection,
+pending state, local typed notice, and focus request outside project/lifecycle
+persistence. `CaseInsertLayoutPresetsPanel.tsx` renders the same
 live accessible panel after Template in the Case sidebar or, through one
 `WorkflowPresentationOutlet`, inside the shared nonmodal host. The exact
 destination is `workflow.case-layout-presets` /
 `area.layout-presets.case` / `owner.case-layout-presets` /
 `control.case-layout-presets.selector`; `menu.tools.case-layout-presets` only
-reveals/focuses it. Confirmed mutation still travels solely through
-`appCaseInsertPresetWorkflow.ts` and the existing lifecycle commands. No schema,
+reveals/focuses it. The panel contains neutral **Choose a preset**, one exact
+revision-2 option, and one **Apply preset** button. It renders no review,
+checklist, acknowledgement/consent, Reapply, Detach, Preserve/Overwrite,
+attachment/recovery status, customization summary, or relationship-management
+control. Apply mutation still travels solely through
+`appCaseInsertPresetWorkflow.ts` and the existing lifecycle command. No schema,
 catalog-definition, preview, export, Rust, package, or Tauri owner changed.
 
 `src/presets/builtins/jewelCaseEssentialsCasePreset.ts` owns immutable
@@ -1882,15 +1944,32 @@ but lists one latest revision-2 summary. Neither definition performs selection
 or mutation.
 
 Focused production tests prove safe Back-Panel/spine separation and foreground
-non-overlap, explicit Apply through the existing application workflow and
-lifecycle command, content/payload/enablement preservation, atomic slot
-creation/viewport adoption, exact Save/Open recovery, exact-revision Reapply,
-and catalog-independent zero-write Detach. No React, `App.tsx`, navigation,
-menu, Game/import/Open auto-application, renderer, schema, package, Rust, or
-dependency path applies or upgrades a definition implicitly. The accessible
-presentation exposes one neutral latest option and exact attached
-revision/status, but mutation still requires explicit review and the existing
-operation/lifecycle chain.
+non-overlap, explicit one-shot Apply through the existing application workflow and
+lifecycle command, exact lifecycle-to-editor aggregate adoption,
+content/payload/enablement preservation, atomic slot creation/viewport adoption,
+exact source/viewport Save/Open recovery, low-level exact-revision Reapply, and
+catalog-independent zero-write Detach. No navigation, menu, Game/import/Open
+auto-application, renderer, schema, package, Rust, or dependency path applies
+or upgrades a definition implicitly. The accessible
+presentation exposes one neutral exact-latest option and one Apply action. It
+does not expose attachment status or reviewed relationship controls; an
+explicit revision-2 Apply over revision 1 is an exact selected replacement, not
+implicit latest substitution. The source-level Game Logo/screenshot assignment
+and Crop-eligibility divergence is corrected without changing renderer/export
+policy. The Case sidebar now reserves its vertical-scrollbar gutter and one
+Case-scoped border-box/min-width contract contains nested feature panels,
+repeated artwork cards, source controls, framing, borders, status, logo, and
+mark content inside that gutter. The shared `EditorRangeField` uses a stable
+48px label column, a shrinkable range track, and a fixed character-capacity
+number field derived only from min/max/step, so committed X/Y/Scale/focal/Zoom
+values cannot resize the row. Browserless tests establish that structural
+contract; native pixel-level acceptance remains manual. The focused Case
+continuous-edit boundary now schedules X/Y/Scale/focal/Zoom and direct Case
+drag projections at most once per animation frame, then synchronously commits
+the complete final aggregate to lifecycle state. Source tests establish event
+coalescing, final-value and stale-session/target behavior, snapshot flushing,
+and retained native-control ownership; native smoothness acceptance remains
+manual.
 
 The proposed target application workflow for Disc template choice, raw custom
 dimension validation, immutable multi-owner geometry planning, atomic apply, and
@@ -2214,6 +2293,7 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/presets/caseInsertPresetArtworkActionTransition.ts`
 - `src/presets/caseInsertPresetApplyTransition.ts`
 - `src/presets/caseInsertPresetTypedReapplyPlanning.ts`
+- `src/presets/caseInsertPresetTypedReapplyIdentity.ts`
 - `src/presets/caseInsertPresetReapplyTransition.ts`
 - `src/presets/caseInsertPresetTypedReapplyTransition.ts`
 - `src/presets/caseInsertPresetDetachTransition.ts`
@@ -2242,6 +2322,13 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/components/preview/CaseInsertArtworkViewportPreview.tsx`
 - `src/components/preview/caseInsertArtworkViewportPreviewGeometry.ts`
 - `src/interaction/caseInsertArtworkViewportDrag.ts`
+- `src/interaction/caseInsertContinuousEditCoordinator.ts`
+- `src/interaction/caseInsertContinuousEditCoordinator.test.ts`
+- `src/interaction/caseInsertContinuousEditPresentationPort.ts`
+- `src/interaction/caseInsertContinuousEditContext.tsx`
+- `src/interaction/caseInsertContinuousEditIntegration.test.ts`
+- `src/components/editor/EditorRangeField.tsx`
+- `src/components/editor/EditorRangeField.test.ts`
 - `src/templates/caseInsertTemplates.ts`
 - `src/export/exportCaseInsertPng.ts`
 - `src/export/caseInsertTemplateExportLayers.ts`
@@ -2274,6 +2361,23 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 ### 13.4 Render/Edit/Export Paths
 
 - `CaseInsertEditorShell` wires case project controls, game controls, export controls, surface controls, spine controls, preview, and actions.
+- `src/styles/app-case-insert.css` owns the Case-scoped nested-control
+  containment chain and stable vertical-scrollbar gutter;
+  `src/styles/app-sidebar-features.css` owns contained three-column surface
+  tabs and shared framing fieldset/error wrapping. Repeated screenshot slots
+  remain stable-ID collapsible cards, not a second tab system.
+- `EditorRangeField` and `src/styles/app-editor-controls.css` own the neutral
+  range-row grid: stable label space, a shrinkable flexible track, and a fixed
+  min/max/step-derived character-capacity number field. The live value does not
+  participate in width calculation.
+- The keyed `CaseInsertContinuousEditBoundary` supplies a Case-only
+  presentation port to shared range/number fields and direct preview drag.
+  `caseInsertContinuousEditCoordinator.ts` retains no project state: it keeps
+  the active session/target plus the latest validated scalar or point and
+  schedules at most one React projection per animation frame. The shared
+  `EditorRangeField` uses one live native-input route when that port is active,
+  avoiding the former simultaneous React-change dispatch; its immediate
+  non-Case behavior is unchanged.
 - `CaseInsertTemplatePreviewLayers` renders cover/tray template layers.
 - `CaseInsertSpinePreviewLayer` renders left/right spine content.
 - Adopted repeated artwork in all four owner families resolves through the
@@ -2292,6 +2396,11 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   to focused spine-owned helpers while left/right target identity and mirror
   fanout stay explicit.
 - `useCaseInsertPreviewPointerDrag` handles case preview dragging.
+- Pointer-up projects the exact release point before finish. Pointer cancel,
+  lost pointer capture, Case inline-text document lost-capture, range blur,
+  Enter, Escape under its existing semantics, and surface changes complete or
+  retire the active edit without remounting native controls or losing their
+  labels, focus order, and native keyboard behavior.
 - Export uses `exportCaseInsertPngBytes`, with template layer drawing,
   image-slot drawing, and text drawing delegated to case-insert export helpers.
 - Preflight/design check use case insert export helpers, including focused
@@ -2311,6 +2420,15 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Keep cover, tray, left spine, and right spine behavior explicit.
 - Keep rectangular bounds, cover/tray/spine coordinate interpretation, and movement policy case-owned; shared layout helpers may own only neutral numeric range math.
 - Shared controls may render neutral UI, but target-specific geometry and source-slot mapping remain case-owned.
+- Continuous-edit scheduling may defer lifecycle publication only while one
+  exact Case session/target is active. React feature owners remain the live
+  visual state, the coordinator may retain no project aggregate, and finish
+  must synchronously expose the complete final aggregate before Save, Save As,
+  replacement guarding, Return Home, or PNG export captures state.
+- Intermediate Case edits do not independently advance dirty or preset-
+  customization identity. Completion does, once, through the existing
+  canonical aggregate/lifecycle owner. Stale session/target work must retire
+  without reaching a successor session.
 - Parity work must cover all applicable target surfaces, not only one panel shape.
 - A preset assignment region, a physical reserved artwork viewport, stored
   source content bounds, a fitting intent, and a derived visible source
@@ -2320,9 +2438,11 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   preview/export continue to consume only ordinary committed Case owner state.
 - Definition format 1 and Jewel Case Essentials revision 1 remain unchanged and
   emit no viewport or creation action. Strict format-2 revision 2 is a separate
-  reviewed immutable definition and is the only production consumer that may
+  immutable definition and is the only production consumer that may
   create the three exact Tray screenshot slots and emit their Cover viewports.
-  No catalog, Open, Reapply, or presentation path upgrades revision 1.
+  No catalog, Open, Save, or Reapply path upgrades revision 1. Only explicit
+  selection of exact revision 2 followed by ordinary one-shot Apply may replace
+  an exact revision-1 attachment; this is not implicit latest substitution.
 
 ### 13.6 Validation Expectations
 
@@ -2330,6 +2450,19 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Focused tests cover split cover/tray and spine action modules, branding mark
   source projection, image-slot source import/application, project persistence,
   and case insert text layout/wrapping helpers.
+- `src/components/caseInsert/CaseInsertNestedControlLayout.test.ts` verifies
+  the CSS/component containment and stable range-row structure across surface
+  tabs, screenshot/repeated-artwork cards, framing, borders, logos, and marks.
+  It cannot establish computed native pixel geometry; native Tauri checks at
+  supported window sizes remain required.
+- `src/interaction/caseInsertContinuousEditCoordinator.test.ts`,
+  `src/interaction/caseInsertContinuousEditIntegration.test.ts`, and
+  `src/components/editor/EditorRangeField.test.ts` provide deterministic
+  evidence for latest-wins one-frame projection, exact final completion,
+  stale-session/target retirement, pointer/range completion routes, lifecycle
+  publication gating, command flush seams, duplicate range-dispatch removal,
+  and retained native range/number semantics. They cannot prove native frame
+  pacing or perceived smoothness.
 - Case preset evidence tests cover full-aggregate identity completeness,
   operation-specific whole-success validation, aggregate/configuration/endpoint
   substitution, mixed authentic fragments, hostile input, immutable inert
@@ -2354,17 +2487,19 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
   cover both exact hashes, one identity/two exact revisions/one latest summary,
   strict deep immutability, supported owner/basis mappings, safe physical
   containment/non-overlap and physical aspect, exact repeated screenshot ID
-  binding, revision-1 optional skips, revision-2 reviewed create-empty and
-  viewport actions, atomic Apply, content/unowned-field preservation,
-  field-accurate customization, exact-revision Reapply including reviewed
+  binding, revision-1 optional skips, revision-2 closed create-empty and
+  viewport actions, atomic one-shot Apply, content/unowned-field preservation,
+  field-accurate customization, low-level exact-revision Reapply including reviewed
   missing-object overwrite/preserve, Save/Open recovery, no automatic upgrade,
   and catalog-independent zero-write Detach.
-- Focused Case preset presentation tests cover neutral explicit selection,
-  complete-scope Apply review, current/stale/incompatible/unavailable status,
-  explicit customized-field Reapply policy, catalog-independent Detach,
-  cancellation/stale-state no mutation, single-flight confirmation, one command
-  and feedback result, typed destination registration, shared-host movement,
-  responsive keyboard reachability, and Disc/Case launcher isolation.
+- Focused Case preset presentation tests cover neutral exact selection, one
+  complete-scope Apply action, closed content-preservation enforcement in both
+  application and transition owners, detached attach and exact attached-source
+  replacement (including revision 2 over revision 1), no legacy review/consent
+  synthesis, absence of visible review/Reapply/Detach/policy/status controls,
+  failure/stale-state no mutation, single-flight activation, one command and
+  feedback result, typed destination registration, shared-host movement,
+  keyboard reachability, and Disc/Case launcher isolation.
 - Focused reserved-artwork viewport tests cover strict normalized geometry,
   physical-basis dimensions/aspect, three equal Jewel screenshot test frames,
   Back Panel/spine isolation, distinct left/right basis identity, deferred
@@ -2408,6 +2543,9 @@ Preview interactions use shared pointer-drag primitives plus editor-specific ada
 - `src/interaction/usePointerDragAdapters.ts`
 - `src/interaction/useDiscPreviewPointerDrag.ts`
 - `src/interaction/useCaseInsertPreviewPointerDrag.ts`
+- `src/interaction/caseInsertContinuousEditCoordinator.ts`
+- `src/interaction/caseInsertContinuousEditPresentationPort.ts`
+- `src/interaction/caseInsertContinuousEditContext.tsx`
 - `src/components/preview/PreviewViewport.tsx`
 - `src/components/preview/previewViewportModel.ts`
 - `src/components/preview/previewViewportInteractionOwnership.ts`
@@ -2433,11 +2571,22 @@ attribute names, stable target keys, and inline text target keys are owned by
 `src/editor/previewEditableRegistry.ts`. `src/editor/previewElementOverlay.ts`
 remains the overlay lookup and rectangle-measurement facade.
 
+One focused Case presentation coordinator now schedules continuous placement,
+framing, and direct-drag callbacks. It binds work to the active lifecycle
+session and stable semantic target, retains only the latest scalar/point
+projection, and permits at most one visual React update per animation frame.
+It is not used by Disc controls, owns no Case project aggregate, and does not
+change any owner transition, clamp, viewport, renderer, export, persistence, or
+preset operation.
+
 ### 14.4 Render/Edit/Export Paths
 
 - Preview elements expose registry-defined data attributes for overlay lookup.
 - `PreviewElementOverlay` measures matching DOM nodes.
 - Drag adapters translate pointer movement into percent or pixel layout changes.
+- Case pointer adapters stage the latest clamped point through the continuous-
+  edit port. Pointer-up projects its exact release coordinate before finishing;
+  pointer cancel and lost capture finish the last valid visible projection.
 - `PreviewViewport` transforms the preview surface as an app-shell viewport.
   Design Check and Guide Legend controls remain outside the transformed stage.
   Percentage-based drag math uses transformed DOM bounds; pixel-based drag math
@@ -2480,6 +2629,10 @@ remains the overlay lookup and rectangle-measurement facade.
   closed buttons reserve fixed bottom workspace rail space. Expanding either
   panel must not resize, refit, or move the preview surface.
 - Drag behavior, slider/manual controls, upload/custom image, reset/clear, save/load, preview, and export must stay aligned for movable visual elements.
+- Case interaction completion must force one complete lifecycle synchronization
+  before Save, Save As, replacement guarding, Return Home, or PNG export can
+  capture state. Animation-frame coalescing
+  must not become a second editor store or permit stale target/session callbacks.
 - Normal text pointer behavior should allow text selection; movement uses a handle or intentional long-hold behavior.
 - Snapping, keyboard nudging, context menus, and inspector workflows should extend the existing interaction owners, not create a separate hidden state path.
 
@@ -2490,10 +2643,15 @@ remains the overlay lookup and rectangle-measurement facade.
 - Source-level component tests cover Space ownership and picker focus mechanics;
   real native Tauri and assistive-technology checks remain the acceptance
   boundary for native focus/keyboard behavior.
+- Deterministic continuous-edit tests establish frame counts, latest-value
+  selection, finish/cancel/lost-capture behavior, and lifecycle snapshot
+  ordering. They do not establish native Tauri input latency or frame pacing.
 
 ### 14.7 Known Risks
 
 - DOM measurement and ResizeObserver behavior are runtime-dependent.
+- Native Windows/WebView pointer and range event cadence remains a manual
+  acceptance concern even when source scheduling/count tests pass.
 - Open issue `#172` tracks selection, snapping, and keyboard nudging.
 - Preview inspector/context menu work remains open under `#174`, `#175`, and `#176`.
 
@@ -2532,6 +2690,7 @@ native Tauri workflow acceptance remains unperformed.
 ### 15.2 Key Files
 
 - `src/app/App.tsx`
+- `src/app/applicationCaseInsertContinuousEditPort.ts`
 - `src/app/appProjectLoad.ts`
 - `src/app/appProjectRestore.ts`
 - `src/app/appProjectNewCommand.ts`
@@ -2578,6 +2737,12 @@ identity, recognized persistence format, selected path, clean baseline, and
 route while incrementing revision once. Save captures immutable `R` from this
 lifecycle-owned current project. After commit, it adopts `R` as baseline without
 recapturing editor state, so an in-flight `R+1` remains current and dirty.
+The one bounded exception is an active continuous Case edit: intermediate React
+projections skip the project synchronization effect, and synchronous finish
+advances its completion epoch so one complete final aggregate is published.
+Save/Save As, replacement-guard inspection/recheck, Return Home, and PNG export
+consume the application continuous-edit finish port before reading lifecycle or
+editor snapshot state. A typed finish failure aborts the semantic command.
 The same committed-render boundary synchronizes exact Disc or Case
 Front/Back/Spine navigation into session-only `lastEditorRoute`; identical,
 stale-session, and wrong-kind requests are no-ops, and route changes never
@@ -2677,6 +2842,8 @@ Export renders PNG bytes through canvas helpers. Disc export is circular and 300
 
 ### 16.2 Key Files
 
+- `src/app/appPngExportCommand.ts`
+- `src/app/applicationCaseInsertContinuousEditPort.ts`
 - `src/export/exportPng.ts`
 - `src/export/exportCaseInsertPng.ts`
 - `src/export/caseInsertTemplateExportLayers.ts`
@@ -2697,7 +2864,12 @@ Export renders PNG bytes through canvas helpers. Disc export is circular and 300
 
 ### 16.3 Source-Of-Truth State
 
-Export reads current runtime project state and template geometry. Layer order policy comes from `src/editor/layerOrder.ts`.
+Export reads current runtime project state and template geometry. Layer order
+policy comes from `src/editor/layerOrder.ts`. Before resolving the final
+Disc/Case invocation adapter, the application command synchronously finishes a
+pending Case continuous edit and reacquires current dependencies. It therefore
+cannot export an older intermediate Case value while a newer staged value is
+visible.
 
 ### 16.4 Render/Edit/Export Paths
 

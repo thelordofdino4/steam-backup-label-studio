@@ -324,6 +324,46 @@ test('keeps one physical Back Panel viewport for 16:9 and 4:3 replacement source
   )
 })
 
+test('Contain Cover Crop focal and Zoom retain one exact physical outer frame', () => {
+  const contain = resolve(createSlot({
+    fit: 'contain',
+    width: 1920,
+    height: 1080,
+  })).artifact
+  const cover = resolve(createSlot({
+    fit: 'cover',
+    width: 1200,
+    height: 900,
+  })).artifact
+  const cropSlot = createSlot({ fit: 'crop', width: 1200, height: 900 })
+  cropSlot.reservedArtworkViewport = {
+    ...cropSlot.reservedArtworkViewport!,
+    focalPosition: { xPercent: 77, yPercent: 21 },
+    zoom: 3.4,
+  }
+  const crop = resolve(cropSlot).artifact
+
+  for (const artifact of [cover, crop]) {
+    assert.deepEqual(artifact.outerRect, contain.outerRect)
+    assert.deepEqual(artifact.box, contain.box)
+    assert.deepEqual(artifact.localFrameRect, contain.localFrameRect)
+    assert.deepEqual(artifact.boundingRect, contain.boundingRect)
+    assert.deepEqual(artifact.basisRect, contain.basisRect)
+  }
+  approximately(contain.outerRect.width * 25.4 / 300, 33.76845, 0.00001)
+  approximately(contain.outerRect.height * 25.4 / 300, 17.52939, 0.00001)
+  approximately(
+    contain.outerRect.width / contain.outerRect.height,
+    1.926391,
+    0.000001,
+  )
+  assert.ok(contain.outerRect.x >= contain.basisRect.x)
+  assert.ok(
+    contain.outerRect.x + contain.outerRect.width <=
+      contain.basisRect.x + contain.basisRect.width,
+  )
+})
+
 test('contain preserves complete semantic content and reports letterboxing', () => {
   const artifact = resolve(createSlot({ fit: 'contain', width: 1200, height: 900 }))
     .artifact

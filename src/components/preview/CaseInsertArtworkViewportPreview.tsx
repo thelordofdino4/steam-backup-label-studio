@@ -17,6 +17,7 @@ type CaseInsertArtworkViewportPreviewProps = {
   artifact: CaseInsertArtworkViewportRenderArtifact
   editableAttributes: Record<string, string>
   layout: CaseInsertPreviewLayout
+  onLostPointerCapture?: PointerEventHandler<Element>
   onPointerCancel?: PointerEventHandler<Element>
   onPointerDown?: PointerEventHandler<Element>
   onPointerMove?: PointerEventHandler<Element>
@@ -29,6 +30,7 @@ export function CaseInsertArtworkViewportPreview({
   artifact,
   editableAttributes,
   layout,
+  onLostPointerCapture,
   onPointerCancel,
   onPointerDown,
   onPointerMove,
@@ -46,6 +48,7 @@ export function CaseInsertArtworkViewportPreview({
       <div
         className={classNames.viewport}
         {...editableAttributes}
+        onLostPointerCapture={onLostPointerCapture}
         onPointerCancel={onPointerCancel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
