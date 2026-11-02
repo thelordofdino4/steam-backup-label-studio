@@ -1,3 +1,4 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import {
   useCallback,
   type ChangeEvent,
@@ -108,6 +109,7 @@ export function useJewelCaseSpineEditor({
   setProjectJewelCase,
   announceStatus,
 }: UseJewelCaseSpineEditorOptions) {
+  const asyncWork = useProjectAsyncWork()
   const updateSpineSides = useCallback((
     side: JewelCaseSpineSide,
     updater: (
@@ -206,11 +208,15 @@ export function useJewelCaseSpineEditor({
   async function applySpineImageSlotSource(
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotKey,
-    importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>,
+    loadSource: (announce: (message: string) => void) => Promise<LoadedCaseInsertImageSlotSource | null>,
   ) {
+    const request = asyncWork.begin(`image:spine:${side}:${slotKey}:primary`)
     await applyLoadedCaseInsertImageSlotSource({
+      commitPrepared: (apply) => asyncWork.commit(request, apply),
       announceStatus,
-      importedImagePromise,
+      importedImagePromise: loadSource((message) => {
+        if (asyncWork.isCurrent(request)) announceStatus(message)
+      }),
       applyImage: (image) =>
         updateSpineImageSlot(side, slotKey, (slot) =>
           setCaseInsertImageSlotImage(slot, image),
@@ -222,11 +228,15 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotGroupKey,
     slotId: string,
-    importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>,
+    loadSource: (announce: (message: string) => void) => Promise<LoadedCaseInsertImageSlotSource | null>,
   ) {
+    const request = asyncWork.begin(`image:spine:${side}:${slotKey}:${slotId}`)
     await applyLoadedCaseInsertImageSlotSource({
+      commitPrepared: (apply) => asyncWork.commit(request, apply),
       announceStatus,
-      importedImagePromise,
+      importedImagePromise: loadSource((message) => {
+        if (asyncWork.isCurrent(request)) announceStatus(message)
+      }),
       applyImage: (image) =>
         updateSpineGroupedImageSlot(
           side,
@@ -303,6 +313,7 @@ export function useJewelCaseSpineEditor({
   }
 
   function handleResetSpineTitleLayout(side: JewelCaseSpineSide) {
+    asyncWork.invalidateAll()
     applySpineTextAction(resetJewelCaseSpineTitleDefaultLayout, side)
   }
 
@@ -368,6 +379,7 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     textBlockId: string,
   ) {
+    asyncWork.invalidateAll()
     applySpineTextAction(resetJewelCaseSpineTextBlockDefaultLayout, side, textBlockId)
   }
 
@@ -387,6 +399,7 @@ export function useJewelCaseSpineEditor({
   }
 
   function handleResetSpineTitleStyle(side: JewelCaseSpineSide) {
+    asyncWork.invalidateAll()
     applySpineTextAction(resetJewelCaseSpineTitleDefaultStyle, side)
   }
 
@@ -411,6 +424,7 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     textBlockId: string,
   ) {
+    asyncWork.invalidateAll()
     applySpineTextAction(resetJewelCaseSpineTextBlockDefaultStyle, side, textBlockId)
   }
 
@@ -430,21 +444,25 @@ export function useJewelCaseSpineEditor({
       return
     }
 
+    const request = asyncWork.begin(`image:spine:${side}:${slotKey}:primary`)
     const image = await loadUploadedCaseInsertImageSlotImage({
-      announceStatus,
+      announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
-
     if (!image) {
+      asyncWork.publish(request, () => {})
       return
     }
 
-    updateSpineImageSlot(side, slotKey, (slot) =>
-      slotKey === 'titleArtwork'
-        ? setCustomCaseInsertTitleArtworkImage(slot, image)
-        : setCaseInsertImageSlotImage(slot, image),
-    )
-    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+    asyncWork.commit(request, () => {
+      updateSpineImageSlot(side, slotKey, (slot) =>
+        slotKey === 'titleArtwork'
+          ? setCustomCaseInsertTitleArtworkImage(slot, image)
+          : setCaseInsertImageSlotImage(slot, image),
+      )
+      announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+
+    })
   }
 
   async function handleUseSpineImageSlotSteamArtwork(
@@ -456,7 +474,7 @@ export function useJewelCaseSpineEditor({
     await applySpineImageSlotSource(
       side,
       slotKey,
-      loadSteamArtworkCaseInsertImageSlotImage({ announceStatus, asset, label }),
+      (announce) => loadSteamArtworkCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -469,7 +487,7 @@ export function useJewelCaseSpineEditor({
     await applySpineImageSlotSource(
       side,
       slotKey,
-      loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus, asset, label }),
+      (announce) => loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -482,7 +500,7 @@ export function useJewelCaseSpineEditor({
     await applySpineImageSlotSource(
       side,
       slotKey,
-      loadWebArtworkCaseInsertImageSlotImage({ announceStatus, candidate, label }),
+      (announce) => loadWebArtworkCaseInsertImageSlotImage({ announceStatus: announce, candidate, label }),
     )
   }
 
@@ -531,6 +549,7 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotKey,
   ) {
+    asyncWork.invalidateAll()
     applySpineImageSlotAction(
       resetJewelCaseSpineImageSlotDefaultLayout,
       side,
@@ -568,6 +587,7 @@ export function useJewelCaseSpineEditor({
     slotKey: JewelCaseSpineImageSlotKey,
     label: string,
   ) {
+    asyncWork.invalidateAll()
     applySpineImageSlotAction(
       clearJewelCaseSpineImageSlotImage,
       side,
@@ -631,6 +651,7 @@ export function useJewelCaseSpineEditor({
     slotKey: JewelCaseSpineImageSlotGroupKey,
     slotId: string,
   ) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((currentCaseInsert) =>
       updateProjectJewelCaseSpineSides(
         currentCaseInsert,
@@ -712,28 +733,32 @@ export function useJewelCaseSpineEditor({
       return
     }
 
+    const request = asyncWork.begin(`image:spine:${side}:${slotKey}:${slotId}`)
     const image = await loadUploadedCaseInsertImageSlotImage({
-      announceStatus,
+      announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
-
     if (!image) {
+      asyncWork.publish(request, () => {})
       return
     }
 
-    updateSpineGroupedImageSlot(
-      side,
-      slotKey,
-      slotId,
-      (slot) => setCaseInsertImageSlotImage(
-        slot,
-        preserveSpineGroupedSlotSource(slotKey, slot, image),
-      ),
-      {
-        enableAdditionalArtwork: slotKey === 'artworkSlots',
-      },
-    )
-    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+    asyncWork.commit(request, () => {
+      updateSpineGroupedImageSlot(
+        side,
+        slotKey,
+        slotId,
+        (slot) => setCaseInsertImageSlotImage(
+          slot,
+          preserveSpineGroupedSlotSource(slotKey, slot, image),
+        ),
+        {
+          enableAdditionalArtwork: slotKey === 'artworkSlots',
+        },
+      )
+      announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+
+    })
   }
 
   async function handleUseSpineGroupedImageSlotSteamArtwork(
@@ -747,7 +772,7 @@ export function useJewelCaseSpineEditor({
       side,
       slotKey,
       slotId,
-      loadSteamArtworkCaseInsertImageSlotImage({ announceStatus, asset, label }),
+      (announce) => loadSteamArtworkCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -762,7 +787,7 @@ export function useJewelCaseSpineEditor({
       side,
       slotKey,
       slotId,
-      loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus, asset, label }),
+      (announce) => loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -777,7 +802,7 @@ export function useJewelCaseSpineEditor({
       side,
       slotKey,
       slotId,
-      loadWebArtworkCaseInsertImageSlotImage({ announceStatus, candidate, label }),
+      (announce) => loadWebArtworkCaseInsertImageSlotImage({ announceStatus: announce, candidate, label }),
     )
   }
 
@@ -821,6 +846,7 @@ export function useJewelCaseSpineEditor({
     slotKey: JewelCaseSpineImageSlotGroupKey,
     slotId: string,
   ) {
+    asyncWork.invalidateAll()
     updateSpineSides(side, (spineSide, targetSide) => {
       const targetSlotId = getJewelCaseSpineSideScopedId(targetSide, slotId)
 
@@ -829,13 +855,13 @@ export function useJewelCaseSpineEditor({
         [slotKey]: spineSide[slotKey].map((slot) =>
           slot.id === targetSlotId
             ? {
-                ...slot,
-                layout: getSpineGroupedImageSlotResetLayout(
-                  targetSide,
-                  slotKey,
-                  slot,
-                ),
-              }
+              ...slot,
+              layout: getSpineGroupedImageSlotResetLayout(
+                targetSide,
+                slotKey,
+                slot,
+              ),
+            }
             : slot),
       }
     })
@@ -846,6 +872,7 @@ export function useJewelCaseSpineEditor({
     slotKey: JewelCaseSpineImageSlotGroupKey,
     slotId: string,
   ) {
+    asyncWork.invalidateAll()
     updateSpineGroupedImageSlot(
       side,
       slotKey,
@@ -860,6 +887,7 @@ export function useJewelCaseSpineEditor({
     slotId: string,
     label: string,
   ) {
+    asyncWork.invalidateAll()
     updateSpineGroupedImageSlot(
       side,
       slotKey,
@@ -867,11 +895,11 @@ export function useJewelCaseSpineEditor({
       (slot) => slotKey === 'logoSlots'
         ? clearCaseInsertAdditionalLogoSlotImage(slot)
         : {
-            ...slot,
-            imageDataUrl: null,
-            imageSize: null,
-            imageSource: null,
-          },
+          ...slot,
+          imageDataUrl: null,
+          imageSize: null,
+          imageSource: null,
+        },
     )
     announceStatus(`Cleared ${normalizeCaseInsertLabel(label)} image.`)
   }

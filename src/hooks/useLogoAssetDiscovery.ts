@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
 import {
   DISC_GUIDED_COMPLETION_SLOT_IDS,
@@ -30,6 +32,9 @@ export type LogoCandidateDiscoverySlot = {
   error: string | null
   lastSearchedLabel: string | null
   inputKey: string | null
+  sessionId?: string | null
+  pendingSearch?: ProjectAsyncRequest
+  pendingApply?: ProjectAsyncRequest
 }
 
 export type LogoCandidateDiscoveryState = Record<LogoAssetKey, LogoCandidateDiscoverySlot>
@@ -96,6 +101,7 @@ export function useLogoAssetDiscovery({
   announceStatus,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseLogoAssetDiscoveryParams) {
+  const asyncWork = useProjectAsyncWork()
   const [logoCandidateDiscovery, setLogoCandidateDiscovery] =
     useState<LogoCandidateDiscoveryState>(() => createInitialDiscoveryState())
   const discoveryInputKey = [
@@ -115,11 +121,16 @@ export function useLogoAssetDiscovery({
   }, [])
 
   const findLogoCandidates = useCallback(async (logoKey: LogoAssetKey) => {
+    const request = asyncWork.begin(`logo-discovery:${logoKey}`)
     const lastSearchedLabel = getLogoEntityLabel(logoKey, selectedSteamGame, projectMetadata)
 
     updateSlot(logoKey, (slot) => ({
-      ...slot,
+      ...(slot.inputKey === discoveryInputKey && slot.sessionId === request.sessionId
+        ? slot
+        : EMPTY_DISCOVERY_SLOT),
       isLoading: true,
+      pendingSearch: request,
+      sessionId: request.sessionId,
       error: null,
       lastSearchedLabel,
       inputKey: discoveryInputKey,
@@ -131,96 +142,110 @@ export function useLogoAssetDiscovery({
         selectedSteamGame,
         projectMetadata,
       })
-      const { candidates, artworkCandidates, sourceStatuses } = discoveryResult
+      asyncWork.publish(request, () => {
+        const { candidates, artworkCandidates, sourceStatuses } = discoveryResult
 
-      updateSlot(logoKey, (slot) => ({
-        ...slot,
-        candidates,
-        artworkCandidates,
-        sourceStatuses,
-        isLoading: false,
-        error: null,
-        inputKey: discoveryInputKey,
-      }))
+        updateSlot(logoKey, (slot) => ({
+          ...slot,
+          candidates,
+          artworkCandidates,
+          sourceStatuses,
+          isLoading: false,
+          error: null,
+          inputKey: discoveryInputKey,
+        }))
 
-      announceStatus(
-        candidates.length > 0
-          ? `Found ${candidates.length} logo candidate${candidates.length === 1 ? '' : 's'} for ${lastSearchedLabel}.`
-          : `No logo candidates found for ${lastSearchedLabel}. Manual upload is still available.`,
-      )
+        announceStatus(
+          candidates.length > 0
+            ? `Found ${candidates.length} logo candidate${candidates.length === 1 ? '' : 's'} for ${lastSearchedLabel}.`
+            : `No logo candidates found for ${lastSearchedLabel}. Manual upload is still available.`,
+        )
+
+      })
     } catch (error) {
-      const message = getErrorMessage(error)
-      updateSlot(logoKey, (slot) => ({
-        ...slot,
-        isLoading: false,
-        error: message,
-        inputKey: discoveryInputKey,
-      }))
-      announceStatus(`Logo candidate search failed: ${message}`)
+      asyncWork.publish(request, () => {
+        const message = getErrorMessage(error)
+        updateSlot(logoKey, (slot) => ({
+          ...slot,
+          isLoading: false,
+          error: message,
+          inputKey: discoveryInputKey,
+        }))
+        announceStatus(`Logo candidate search failed: ${message}`)
+
+      })
     }
-  }, [announceStatus, discoveryInputKey, projectMetadata, selectedSteamGame, updateSlot])
+  }, [asyncWork, announceStatus, discoveryInputKey, projectMetadata, selectedSteamGame, updateSlot])
 
   const applyLogoCandidate = useCallback(async (
     logoKey: LogoAssetKey,
     candidate: RemoteLogoCandidate,
     additionalLogoId?: string,
   ) => {
+    const request = asyncWork.begin(`image:logo:${logoKey}:${additionalLogoId ?? "primary"}`)
     updateSlot(logoKey, (slot) => ({
       ...slot,
       isApplying: true,
+      pendingApply: request,
       error: null,
     }))
 
     try {
       const { importedImage, imageSource } =
         await importRemoteLogoCandidateAsset(candidate)
+      asyncWork.commit(request, () => {
 
-      if (applyLogoAssetImport) {
-        applyLogoAssetImport(
-          logoKey,
-          importedImage,
-          imageSource,
-          additionalLogoId,
-        )
-      } else {
-        setProjectLogoAssets((currentLogoAssets) =>
-          applyImportedLogoAsset(
-            currentLogoAssets,
+        if (applyLogoAssetImport) {
+          applyLogoAssetImport(
             logoKey,
             importedImage,
-            selectedDiscTemplate,
             imageSource,
             additionalLogoId,
-          ),
-        )
-      }
+          )
+        } else {
+          setProjectLogoAssets((currentLogoAssets) =>
+            applyImportedLogoAsset(
+              currentLogoAssets,
+              logoKey,
+              importedImage,
+              selectedDiscTemplate,
+              imageSource,
+              additionalLogoId,
+            ),
+          )
+        }
 
-      if (!additionalLogoId) {
-        onDiscGuidedSlotCompleted(
-          logoKey === 'developer'
-            ? DISC_GUIDED_COMPLETION_SLOT_IDS.developerLogo
-            : DISC_GUIDED_COMPLETION_SLOT_IDS.publisherLogo,
-        )
-      }
+        if (!additionalLogoId) {
+          onDiscGuidedSlotCompleted(
+            logoKey === 'developer'
+              ? DISC_GUIDED_COMPLETION_SLOT_IDS.developerLogo
+              : DISC_GUIDED_COMPLETION_SLOT_IDS.publisherLogo,
+          )
+        }
 
-      updateSlot(logoKey, (slot) => ({
-        ...slot,
-        isApplying: false,
-        error: null,
-      }))
-      announceStatus(
-        `Using ${candidate.label} as the ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo.`,
-      )
+        updateSlot(logoKey, (slot) => ({
+          ...slot,
+          isApplying: false,
+          error: null,
+        }))
+        announceStatus(
+          `Using ${candidate.label} as the ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo.`,
+        )
+
+      })
     } catch (error) {
-      const message = getErrorMessage(error)
-      updateSlot(logoKey, (slot) => ({
-        ...slot,
-        isApplying: false,
-        error: message,
-      }))
-      announceStatus(`Logo candidate import failed: ${message}`)
+      asyncWork.publish(request, () => {
+        const message = getErrorMessage(error)
+        updateSlot(logoKey, (slot) => ({
+          ...slot,
+          isApplying: false,
+          error: message,
+        }))
+        announceStatus(`Logo candidate import failed: ${message}`)
+
+      })
     }
-  }, [
+  }, [asyncWork,
     announceStatus,
     applyLogoAssetImport,
     onDiscGuidedSlotCompleted,
@@ -229,14 +254,21 @@ export function useLogoAssetDiscovery({
     updateSlot,
   ])
 
+  function visibleSlot(slot: LogoCandidateDiscoverySlot) {
+    if (slot.inputKey !== discoveryInputKey || slot.sessionId !== asyncWork.getCurrentSessionId()) {
+      return { ...EMPTY_DISCOVERY_SLOT }
+    }
+    return {
+      ...slot,
+      isLoading: slot.isLoading && Boolean(slot.pendingSearch && asyncWork.isCurrent(slot.pendingSearch)),
+      isApplying: slot.isApplying && Boolean(slot.pendingApply && asyncWork.isCurrent(slot.pendingApply)),
+    }
+  }
+
   return {
     logoCandidateDiscovery: {
-      developer: logoCandidateDiscovery.developer.inputKey === discoveryInputKey
-        ? logoCandidateDiscovery.developer
-        : { ...EMPTY_DISCOVERY_SLOT },
-      publisher: logoCandidateDiscovery.publisher.inputKey === discoveryInputKey
-        ? logoCandidateDiscovery.publisher
-        : { ...EMPTY_DISCOVERY_SLOT },
+      developer: visibleSlot(logoCandidateDiscovery.developer),
+      publisher: visibleSlot(logoCandidateDiscovery.publisher),
     },
     findLogoCandidates,
     applyLogoCandidate,

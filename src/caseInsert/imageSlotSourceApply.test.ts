@@ -18,6 +18,7 @@ test('loaded case insert image slot source applies image and announces success',
   const statuses: string[] = []
 
   const applied = await applyLoadedCaseInsertImageSlotSource({
+    commitPrepared: (apply) => { apply(); return true },
     announceStatus: (message) => statuses.push(message),
     applyImage: (nextImage) => appliedImages.push(nextImage),
     importedImagePromise: Promise.resolve({
@@ -36,6 +37,7 @@ test('loaded case insert image slot source ignores null imports', async () => {
   const statuses: string[] = []
 
   const applied = await applyLoadedCaseInsertImageSlotSource({
+    commitPrepared: (apply) => { apply(); return true },
     announceStatus: (message) => statuses.push(message),
     applyImage: (nextImage) => appliedImages.push(nextImage),
     importedImagePromise: Promise.resolve(null),

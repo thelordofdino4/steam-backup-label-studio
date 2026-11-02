@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useCallback, useState } from 'react'
 import {
   buildSteamMetadataCandidatesFromImportedGame,
@@ -17,6 +19,7 @@ export type SteamMetadataAssistanceState = {
   error: string | null
   lastSearchedLabel: string | null
   inputKey: string | null
+  sessionId?: string | null
 }
 
 type UseSteamMetadataAssistanceParams = {
@@ -98,12 +101,15 @@ export function useSteamMetadataAssistance({
   projectMetadata,
   announceStatus,
 }: UseSteamMetadataAssistanceParams) {
+  const asyncWork = useProjectAsyncWork()
+  const [pendingSearch, setPendingSearch] = useState<ProjectAsyncRequest | null>(null)
   const [metadataAssistance, setMetadataAssistance] =
     useState<SteamMetadataAssistanceState>(EMPTY_METADATA_ASSISTANCE)
   const discoveryInputKey = getDiscoveryInputKey(selectedSteamGame, projectMetadata)
   const canFindMetadataCandidates = Boolean(discoveryInputKey)
 
   const loadImportedSteamMetadataCandidates = useCallback((game: SteamImportedGame) => {
+    asyncWork.invalidate('steam-metadata')
     const result = buildSteamMetadataCandidatesFromImportedGame(game)
     const ratingCount = result.ratingCandidates.length
     const legalCount = result.legalCandidates.length
@@ -114,6 +120,7 @@ export function useSteamMetadataAssistance({
       error: null,
       lastSearchedLabel: game.title,
       inputKey: getDiscoveryInputKeyForGame(game),
+      sessionId: asyncWork.getCurrentSessionId(),
     })
 
     if (ratingCount + legalCount > 0) {
@@ -121,9 +128,13 @@ export function useSteamMetadataAssistance({
     }
 
     return result
-  }, [announceStatus])
+  }, [announceStatus, asyncWork])
 
-  const findSteamMetadataCandidates = useCallback(async () => {
+  const findSteamMetadataCandidates = useCallback(async (
+    applyCandidates?: (result: Awaited<ReturnType<typeof discoverSteamMetadataCandidates>>) => undefined,
+  ) => {
+    const request = asyncWork.begin('steam-metadata')
+    setPendingSearch(request)
     const lastSearchedLabel = getSearchLabel(selectedSteamGame, projectMetadata)
 
     if (!canFindMetadataCandidates) {
@@ -134,11 +145,14 @@ export function useSteamMetadataAssistance({
     }
 
     setMetadataAssistance((currentState) => ({
-      ...currentState,
+      ...(currentState.inputKey === discoveryInputKey && currentState.sessionId === request.sessionId
+        ? currentState
+        : EMPTY_METADATA_ASSISTANCE),
       isLoading: true,
       error: null,
       lastSearchedLabel,
       inputKey: discoveryInputKey,
+      sessionId: request.sessionId,
     }))
     announceStatus(`Finding rating/legal candidates for ${lastSearchedLabel}...`)
 
@@ -147,32 +161,40 @@ export function useSteamMetadataAssistance({
         selectedSteamGame,
         projectMetadata,
       })
-      const ratingCount = result.ratingCandidates.length
-      const legalCount = result.legalCandidates.length
+      const publish = (): undefined => {
+        const ratingCount = result.ratingCandidates.length
+        const legalCount = result.legalCandidates.length
 
-      setMetadataAssistance({
-        ...result,
-        isLoading: false,
-        error: null,
-        lastSearchedLabel,
-        inputKey: discoveryInputKey,
-      })
-      announceStatus(getCandidateCountMessage(ratingCount, legalCount, lastSearchedLabel))
-      return result
+        setMetadataAssistance({
+          ...result,
+          isLoading: false,
+          error: null,
+          lastSearchedLabel,
+          inputKey: discoveryInputKey,
+          sessionId: request.sessionId,
+        })
+        announceStatus(getCandidateCountMessage(ratingCount, legalCount, lastSearchedLabel))
+        applyCandidates?.(result)
+      }
+      if (applyCandidates) asyncWork.commit(request, publish)
+      else asyncWork.publish(request, publish)
     } catch (error) {
-      const message = getErrorMessage(error)
+      asyncWork.publish(request, () => {
+        const message = getErrorMessage(error)
 
-      setMetadataAssistance((currentState) => ({
-        ...currentState,
-        isLoading: false,
-        error: message,
-        lastSearchedLabel,
-        inputKey: discoveryInputKey,
-      }))
-      announceStatus(`Rating/legal candidate search failed: ${message}`)
-      return null
+        setMetadataAssistance((currentState) => ({
+          ...currentState,
+          isLoading: false,
+          error: message,
+          lastSearchedLabel,
+          inputKey: discoveryInputKey,
+          sessionId: request.sessionId,
+        }))
+        announceStatus(`Rating/legal candidate search failed: ${message}`)
+      })
     }
   }, [
+    asyncWork,
     announceStatus,
     canFindMetadataCandidates,
     discoveryInputKey,
@@ -182,8 +204,9 @@ export function useSteamMetadataAssistance({
 
   return {
     steamMetadataAssistance:
-      metadataAssistance.inputKey === discoveryInputKey
-        ? metadataAssistance
+      metadataAssistance.inputKey === discoveryInputKey &&
+        metadataAssistance.sessionId === asyncWork.getCurrentSessionId()
+        ? { ...metadataAssistance, isLoading: metadataAssistance.isLoading && pendingSearch !== null && asyncWork.isCurrent(pendingSearch) }
         : EMPTY_METADATA_ASSISTANCE,
     canFindMetadataCandidates,
     findSteamMetadataCandidates,

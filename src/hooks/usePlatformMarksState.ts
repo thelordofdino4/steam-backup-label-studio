@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampProjectPlatformMarksToSafeZone } from '../layout/discElementSafeZone'
 import {
@@ -50,6 +52,7 @@ export function usePlatformMarksState({
   applyActivePresetPlacement = (platformMarks) => platformMarks,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UsePlatformMarksStateOptions) {
+  const asyncWork = useProjectAsyncWork()
   const [projectPlatformMarks, setProjectPlatformMarks] =
     useState<ProjectPlatformMarks>(() => createDefaultProjectPlatformMarks())
   const projectPlatformMarksRef = useRef(projectPlatformMarks)
@@ -88,6 +91,7 @@ export function usePlatformMarksState({
   }
 
   function resetProjectPlatformMarks() {
+    asyncWork.invalidateAll()
     setProjectPlatformMarks(createDefaultProjectPlatformMarks())
   }
 
@@ -112,6 +116,7 @@ export function usePlatformMarksState({
   async function handlePlatformMarkUpload(
     value: PlatformMarkValue,
     event: ChangeEvent<HTMLInputElement>,
+    onImported?: (state: ProjectPlatformMarks) => void,
   ) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -125,27 +130,33 @@ export function usePlatformMarksState({
       return
     }
 
+    const request = asyncWork.begin(`image:platform:${value}`)
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-      const nextMarks = finalizeEligibilityChange(
-        markCurrentProjectPlatformMarksManual(
-          applyImportedPlatformMark(
-            projectPlatformMarksRef.current,
-            value,
-            importedImage,
-            selectedDiscTemplate,
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        const nextMarks = finalizeEligibilityChange(
+          markCurrentProjectPlatformMarksManual(
+            applyImportedPlatformMark(
+              projectPlatformMarksRef.current,
+              value,
+              importedImage,
+              selectedDiscTemplate,
+            ),
           ),
-        ),
-      )
+        )
 
-      projectPlatformMarksRef.current = nextMarks
-      setProjectPlatformMarks(nextMarks)
-      completePlatformMarksIfSatisfied(nextMarks)
+        projectPlatformMarksRef.current = nextMarks
+        setProjectPlatformMarks(nextMarks)
+        completePlatformMarksIfSatisfied(nextMarks)
 
-      announceStatus(`Using ${file.name} as the platform mark.`)
-      return nextMarks
+        announceStatus(`Using ${file.name} as the platform mark.`)
+        onImported?.(nextMarks)
+        return nextMarks
+      })
     } catch (error) {
-      announceStatus(`Platform mark import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Platform mark import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -208,6 +219,7 @@ export function usePlatformMarksState({
   }
 
   function handleClearPlatformMarkImage(value: PlatformMarkValue) {
+    asyncWork.invalidateAll()
     setProjectPlatformMarks((currentMarks) => {
       const nextMarks = clampProjectPlatformMarksToSafeZone(
         clearPlatformMarkImage(currentMarks, value),
@@ -223,6 +235,7 @@ export function usePlatformMarksState({
   }
 
   function handleResetPlatformMarkLayout(value: PlatformMarkValue) {
+    asyncWork.invalidateAll()
     setProjectPlatformMarks((currentMarks) => {
       const nextMarks = clampProjectPlatformMarksToSafeZone(
         resetProjectPlatformMarkLayout(currentMarks, value, selectedDiscTemplate),

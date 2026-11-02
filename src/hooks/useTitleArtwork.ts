@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../discText/index'
 import {
@@ -21,7 +23,7 @@ import {
   type TitleArtworkLayoutField,
 } from '../project/projectTitleArtwork'
 import type { ProjectTitleArtwork } from '../project/projectTypes'
-import { createSteamTitleArtworkImport } from '../steam/steamTitleArtworkImport'
+import { createSteamTitleArtworkImport, type SteamTitleArtworkImportResult } from '../steam/steamTitleArtworkImport'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 import {
@@ -47,6 +49,7 @@ export function useTitleArtwork({
   applyActivePresetPlacement = (titleArtwork) => titleArtwork,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseTitleArtworkOptions) {
+  const asyncWork = useProjectAsyncWork()
   const [projectTitleArtwork, setProjectTitleArtwork] = useState<ProjectTitleArtwork>(() =>
     createDefaultProjectTitleArtwork(selectedDiscTemplate, steamLogoPlacement),
   )
@@ -85,12 +88,14 @@ export function useTitleArtwork({
     template: DiscTemplate = selectedDiscTemplate,
     placement: SteamLogoPlacement = steamLogoPlacement,
   ) {
+    asyncWork.invalidateAll()
     setProjectTitleArtwork(
       createDefaultProjectTitleArtwork(template, placement),
     )
   }
 
   function resetTitleArtworkLayoutForPlacement(placement: SteamLogoPlacement) {
+    asyncWork.invalidateAll()
     setProjectTitleArtwork((currentTitleArtwork) =>
       clampProjectTitleArtworkToSafeZone(
         resetProjectTitleArtworkLayout(
@@ -138,6 +143,7 @@ export function useTitleArtwork({
   }
 
   function handleResetTitleArtworkLayout() {
+    asyncWork.invalidateAll()
     resetTitleArtworkLayoutForPlacement(steamLogoPlacement)
     announceStatus('Reset title artwork layout.')
   }
@@ -170,38 +176,45 @@ export function useTitleArtwork({
       return
     }
 
+    const request = asyncWork.begin('title-artwork')
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-
-      const nextTitleArtwork = applySemanticTitleArtworkChange(
-        clampProjectTitleArtworkToSafeZone(
-          setCustomTitleArtworkImage(
-            projectTitleArtworkRef.current,
-            importedImage,
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        const nextTitleArtwork = applySemanticTitleArtworkChange(
+          clampProjectTitleArtworkToSafeZone(
+            setCustomTitleArtworkImage(
+              projectTitleArtworkRef.current,
+              importedImage,
+              selectedDiscTemplate,
+              steamLogoPlacement,
+            ),
             selectedDiscTemplate,
-            steamLogoPlacement,
           ),
-          selectedDiscTemplate,
-        ),
-      )
-      completeDiscGuidedSlotWhenSatisfied(
-        onDiscGuidedSlotCompleted,
-        DISC_GUIDED_COMPLETION_SLOT_IDS.gameTitle,
-        isDiscGuidedTitleArtworkOwnerSatisfied(nextTitleArtwork),
-      )
-      announceStatus('Custom game logo artwork selected.')
+        )
+        completeDiscGuidedSlotWhenSatisfied(
+          onDiscGuidedSlotCompleted,
+          DISC_GUIDED_COMPLETION_SLOT_IDS.gameTitle,
+          isDiscGuidedTitleArtworkOwnerSatisfied(nextTitleArtwork),
+        )
+        announceStatus('Custom game logo artwork selected.')
+      })
     } catch {
-      announceStatus('Game logo image could not be read.')
+      asyncWork.publish(request, () => {
+        announceStatus('Game logo image could not be read.')
+      })
     }
   }
 
-  async function applySteamTitleArtworkImport(importedGame: SteamImportedGame) {
-    const titleArtworkImport = await createSteamTitleArtworkImport(
+  function prepareSteamTitleArtworkImport(importedGame: SteamImportedGame) {
+    return createSteamTitleArtworkImport(
       importedGame,
       projectTitleArtworkRef.current,
       selectedDiscTemplate,
       steamLogoPlacement,
     )
+  }
+
+  function applySteamTitleArtworkImport(titleArtworkImport: SteamTitleArtworkImportResult) {
     const fittedTitleArtwork = titleArtworkImport.placementRefitRequired
       ? applySemanticTitleArtworkChange(titleArtworkImport.titleArtwork)
       : titleArtworkImport.titleArtwork
@@ -231,6 +244,7 @@ export function useTitleArtwork({
     handleResetTitleArtworkLayout,
     handleRestoreTitleArtworkDefault,
     handleTitleArtworkUpload,
+    prepareSteamTitleArtworkImport,
     applySteamTitleArtworkImport,
   }
 }

@@ -27,9 +27,11 @@ import {
   createApplicationPngExportCommandOwner,
   type ApplicationPngExportRuntimeDependencies,
 } from './appPngExportCommand.ts'
+import { createProjectAsyncWork, type ProjectAsyncWork } from '../lifecycle/projectAsyncWork.ts'
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
+  projectAsyncWork: ProjectAsyncWork
   updateProjectOpenDependencies(
     dependencies: ApplicationProjectOpenRuntimeDependencies,
   ): void
@@ -111,8 +113,12 @@ export function createApplicationLifecycleRuntime(
     exportPng: pngExportOwner,
   })
 
+  const projectAsyncWork = createProjectAsyncWork(root.getStateSnapshot)
+  const unsubscribeAsyncWork = root.subscribe(() => projectAsyncWork.observeLifecycle())
+
   return Object.freeze({
     root,
+    projectAsyncWork,
     updateProjectOpenDependencies(dependencies) {
       if (disposed) {
         throw new Error('The application lifecycle runtime is disposed.')
@@ -168,6 +174,8 @@ export function createApplicationLifecycleRuntime(
       projectNewDependencies = null
       workspaceNavigationDependencies = null
       pngExportDependencies = null
+      unsubscribeAsyncWork()
+      projectAsyncWork.dispose()
       root.dispose()
     },
   })

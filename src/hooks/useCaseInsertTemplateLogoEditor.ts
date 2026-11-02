@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import type {
   ChangeEvent,
   Dispatch,
@@ -45,6 +47,7 @@ export function useCaseInsertTemplateLogoEditor({
   setProjectJewelCase,
   announceStatus,
 }: UseCaseInsertTemplateLogoEditorOptions) {
+  const asyncWork = useProjectAsyncWork()
   function handlePrimaryLogoSlotEnabledChange(
     paneId: CaseInsertTemplatePaneId,
     logoKey: LogoAssetKey,
@@ -76,24 +79,28 @@ export function useCaseInsertTemplateLogoEditor({
       return
     }
 
+    const request = asyncWork.begin(`image:case:${paneId}:logo:${logoKey}`)
     const image = await loadUploadedCaseInsertImageSlotImage({
-      announceStatus,
+      announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
-
     if (!image) {
+      asyncWork.publish(request, () => {})
       return
     }
 
-    setProjectJewelCase((currentCaseInsert) =>
-      setCaseInsertTemplatePrimaryLogoSlotImage(
-        currentCaseInsert,
-        paneId,
-        logoKey,
-        image,
-      ),
-    )
-    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+    asyncWork.commit(request, () => {
+      setProjectJewelCase((currentCaseInsert) =>
+        setCaseInsertTemplatePrimaryLogoSlotImage(
+          currentCaseInsert,
+          paneId,
+          logoKey,
+          image,
+        ),
+      )
+      announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+
+    })
   }
 
   function handlePrimaryLogoSlotLayoutChange(
@@ -117,6 +124,7 @@ export function useCaseInsertTemplateLogoEditor({
     paneId: CaseInsertTemplatePaneId,
     logoKey: LogoAssetKey,
   ) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((currentCaseInsert) =>
       resetCaseInsertTemplatePrimaryLogoSlotDefaultLayout(
         currentCaseInsert,
@@ -131,6 +139,7 @@ export function useCaseInsertTemplateLogoEditor({
     paneId: CaseInsertTemplatePaneId,
     logoKey: LogoAssetKey,
   ) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((currentCaseInsert) =>
       clearCaseInsertTemplatePrimaryLogoSlotImage(
         currentCaseInsert,
@@ -159,20 +168,24 @@ export function useCaseInsertTemplateLogoEditor({
     const label = getCaseInsertPrimaryLogoLabel(logoKey)
     announceStatus(`Adding ${candidate.label} to ${normalizeCaseInsertLabel(label)}...`)
 
+    const request = asyncWork.begin(`image:case:${paneId}:logo:${logoKey}`)
     try {
       const image = await createLogoCandidateCaseInsertImageSlotImage(candidate)
-
-      setProjectJewelCase((currentCaseInsert) =>
-        setCaseInsertTemplatePrimaryLogoSlotImage(
-          currentCaseInsert,
-          paneId,
-          logoKey,
-          image,
-        ),
-      )
-      announceStatus(`Added ${candidate.label} as the ${normalizeCaseInsertLabel(label)}.`)
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        setProjectJewelCase((currentCaseInsert) =>
+          setCaseInsertTemplatePrimaryLogoSlotImage(
+            currentCaseInsert,
+            paneId,
+            logoKey,
+            image,
+          ),
+        )
+        announceStatus(`Added ${candidate.label} as the ${normalizeCaseInsertLabel(label)}.`)
+      })
     } catch (error) {
-      announceStatus(`Logo candidate import failed for ${normalizeCaseInsertLabel(label)}: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Logo candidate import failed for ${normalizeCaseInsertLabel(label)}: ${String(error)}`)
+      })
     }
   }
 

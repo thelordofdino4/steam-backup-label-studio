@@ -1,3 +1,4 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import {
   useCallback,
   type ChangeEvent,
@@ -118,6 +119,7 @@ export function useCaseInsertTemplateEditor({
   setProjectJewelCase,
   announceStatus,
 }: UseCaseInsertTemplateEditorOptions) {
+  const asyncWork = useProjectAsyncWork()
   const updatePrimaryImageSlot = useCallback((
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertPrimaryImageSlotKey,
@@ -153,10 +155,10 @@ export function useCaseInsertTemplateEditor({
 
       return slotKey === 'artworkSlots' && options.enableAdditionalArtwork
         ? setCaseInsertTemplateAdditionalArtworkEnabled(
-            nextCaseInsert,
-            paneId,
-            true,
-          )
+          nextCaseInsert,
+          paneId,
+          true,
+        )
         : nextCaseInsert
     })
   }, [setProjectJewelCase])
@@ -226,11 +228,15 @@ export function useCaseInsertTemplateEditor({
   async function applyPrimaryImageSlotSource(
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertPrimaryImageSlotKey,
-    importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>,
+    loadSource: (announce: (message: string) => void) => Promise<LoadedCaseInsertImageSlotSource | null>,
   ) {
+    const request = asyncWork.begin(`image:case:${paneId}:${slotKey}:primary`)
     await applyLoadedCaseInsertImageSlotSource({
+      commitPrepared: (apply) => asyncWork.commit(request, apply),
       announceStatus,
-      importedImagePromise,
+      importedImagePromise: loadSource((message) => {
+        if (asyncWork.isCurrent(request)) announceStatus(message)
+      }),
       applyImage: (image) =>
         updatePrimaryImageSlot(paneId, slotKey, (slot) =>
           setCaseInsertImageSlotImage(slot, image),
@@ -242,11 +248,15 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertImageSlotGroupKey,
     slotId: string,
-    importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>,
+    loadSource: (announce: (message: string) => void) => Promise<LoadedCaseInsertImageSlotSource | null>,
   ) {
+    const request = asyncWork.begin(`image:case:${paneId}:${slotKey}:${slotId}`)
     await applyLoadedCaseInsertImageSlotSource({
+      commitPrepared: (apply) => asyncWork.commit(request, apply),
       announceStatus,
-      importedImagePromise,
+      importedImagePromise: loadSource((message) => {
+        if (asyncWork.isCurrent(request)) announceStatus(message)
+      }),
       applyImage: (image) =>
         updateGroupedImageSlot(
           paneId,
@@ -276,21 +286,25 @@ export function useCaseInsertTemplateEditor({
       return
     }
 
+    const request = asyncWork.begin(`image:case:${paneId}:${slotKey}:primary`)
     const image = await loadUploadedCaseInsertImageSlotImage({
-      announceStatus,
+      announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
-
     if (!image) {
+      asyncWork.publish(request, () => {})
       return
     }
 
-    updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-      slotKey === 'titleArtwork'
-        ? setCustomCaseInsertTitleArtworkImage(slot, image)
-        : setCaseInsertImageSlotImage(slot, image),
-    )
-    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+    asyncWork.commit(request, () => {
+      updatePrimaryImageSlot(paneId, slotKey, (slot) =>
+        slotKey === 'titleArtwork'
+          ? setCustomCaseInsertTitleArtworkImage(slot, image)
+          : setCaseInsertImageSlotImage(slot, image),
+      )
+      announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+
+    })
   }
 
   async function handleUseImageSlotSteamArtwork(
@@ -302,7 +316,7 @@ export function useCaseInsertTemplateEditor({
     await applyPrimaryImageSlotSource(
       paneId,
       slotKey,
-      loadSteamArtworkCaseInsertImageSlotImage({ announceStatus, asset, label }),
+      (announce) => loadSteamArtworkCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -315,7 +329,7 @@ export function useCaseInsertTemplateEditor({
     await applyPrimaryImageSlotSource(
       paneId,
       slotKey,
-      loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus, asset, label }),
+      (announce) => loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -328,7 +342,7 @@ export function useCaseInsertTemplateEditor({
     await applyPrimaryImageSlotSource(
       paneId,
       slotKey,
-      loadWebArtworkCaseInsertImageSlotImage({ announceStatus, candidate, label }),
+      (announce) => loadWebArtworkCaseInsertImageSlotImage({ announceStatus: announce, candidate, label }),
     )
   }
 
@@ -377,6 +391,7 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertPrimaryImageSlotKey,
   ) {
+    asyncWork.invalidateAll()
     applyPrimaryImageSlotAction(
       resetCaseInsertTemplatePrimaryImageSlotDefaultLayout,
       paneId,
@@ -414,6 +429,7 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertPrimaryImageSlotKey,
     label: string,
   ) {
+    asyncWork.invalidateAll()
     applyPrimaryImageSlotAction(
       clearCaseInsertTemplatePrimaryImageSlot,
       paneId,
@@ -454,6 +470,7 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertImageSlotGroupKey,
     slotId: string,
   ) {
+    asyncWork.invalidateAll()
     const label = normalizeCaseInsertLabel(
       getCaseInsertImageSlotGroupConfig(paneId, slotKey).labelPrefix,
     )
@@ -516,28 +533,32 @@ export function useCaseInsertTemplateEditor({
       return
     }
 
+    const request = asyncWork.begin(`image:case:${paneId}:${slotKey}:${slotId}`)
     const image = await loadUploadedCaseInsertImageSlotImage({
-      announceStatus,
+      announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
-
     if (!image) {
+      asyncWork.publish(request, () => {})
       return
     }
 
-    updateGroupedImageSlot(
-      paneId,
-      slotKey,
-      slotId,
-      (slot) => setCaseInsertImageSlotImage(
-        slot,
-        preserveCaseInsertTemplateGroupedSlotSource(slotKey, slot, image),
-      ),
-      {
-        enableAdditionalArtwork: slotKey === 'artworkSlots',
-      },
-    )
-    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+    asyncWork.commit(request, () => {
+      updateGroupedImageSlot(
+        paneId,
+        slotKey,
+        slotId,
+        (slot) => setCaseInsertImageSlotImage(
+          slot,
+          preserveCaseInsertTemplateGroupedSlotSource(slotKey, slot, image),
+        ),
+        {
+          enableAdditionalArtwork: slotKey === 'artworkSlots',
+        },
+      )
+      announceStatus(`Selected ${uploadFile.statusLabel} image.`)
+
+    })
   }
 
   async function handleUseGroupedImageSlotSteamArtwork(
@@ -551,7 +572,7 @@ export function useCaseInsertTemplateEditor({
       paneId,
       slotKey,
       slotId,
-      loadSteamArtworkCaseInsertImageSlotImage({ announceStatus, asset, label }),
+      (announce) => loadSteamArtworkCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -566,7 +587,7 @@ export function useCaseInsertTemplateEditor({
       paneId,
       slotKey,
       slotId,
-      loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus, asset, label }),
+      (announce) => loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -581,7 +602,7 @@ export function useCaseInsertTemplateEditor({
       paneId,
       slotKey,
       slotId,
-      loadWebArtworkCaseInsertImageSlotImage({ announceStatus, candidate, label }),
+      (announce) => loadWebArtworkCaseInsertImageSlotImage({ announceStatus: announce, candidate, label }),
     )
   }
 
@@ -625,6 +646,7 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertImageSlotGroupKey,
     slotId: string,
   ) {
+    asyncWork.invalidateAll()
     updateGroupedImageSlot(paneId, slotKey, slotId, (slot) => ({
       ...slot,
       layout: getCaseInsertTemplateGroupedImageSlotResetLayout(
@@ -640,6 +662,7 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertImageSlotGroupKey,
     slotId: string,
   ) {
+    asyncWork.invalidateAll()
     updateGroupedImageSlot(paneId, slotKey, slotId, resetCaseInsertImageSlotFrame)
   }
 
@@ -649,6 +672,7 @@ export function useCaseInsertTemplateEditor({
     slotId: string,
     label: string,
   ) {
+    asyncWork.invalidateAll()
     updateGroupedImageSlot(
       paneId,
       slotKey,
@@ -656,11 +680,11 @@ export function useCaseInsertTemplateEditor({
       (slot) => slotKey === 'logoSlots'
         ? clearCaseInsertAdditionalLogoSlotImage(slot)
         : {
-            ...slot,
-            imageDataUrl: null,
-            imageSize: null,
-            imageSource: null,
-          },
+          ...slot,
+          imageDataUrl: null,
+          imageSize: null,
+          imageSource: null,
+        },
     )
     announceStatus(`Cleared ${normalizeCaseInsertLabel(label)} image.`)
   }
@@ -752,6 +776,7 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textBlockId: string,
   ) {
+    asyncWork.invalidateAll()
     const layout = getDefaultCaseInsertTemplateTextBlockLayout(textBlockId)
 
     if (!layout) {
@@ -795,6 +820,7 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textBlockId: string,
   ) {
+    asyncWork.invalidateAll()
     updateTextBlock(paneId, textBlockId, resetCaseInsertTextBlockStyle)
   }
 
@@ -855,6 +881,7 @@ export function useCaseInsertTemplateEditor({
     textListId: string,
     index: number,
   ) {
+    asyncWork.invalidateAll()
     applyTemplateTextListAction(
       removeCaseInsertTemplateTextListItem,
       paneId,
@@ -895,6 +922,7 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textListId: string,
   ) {
+    asyncWork.invalidateAll()
     applyTemplateTextListAction(
       resetCaseInsertTemplateTextListDefaultLayout,
       paneId,
@@ -934,6 +962,7 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textListId: string,
   ) {
+    asyncWork.invalidateAll()
     applyTemplateTextListAction(
       resetCaseInsertTemplateTextListDefaultStyle,
       paneId,
