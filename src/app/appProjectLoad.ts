@@ -1,3 +1,4 @@
+import { legacyImageFormatWarning } from '../package/legacyImageFormatWarning.ts'
 import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
 } from '../guidedPresets/discGuidedWorkflow.ts'
@@ -338,9 +339,10 @@ async function stageDiscProject(
       editorRoute: Object.freeze({ workspace: 'disc' }),
       restoredProject,
       activeDiscPresetState,
-      successMessage: restoredProject.backgroundImageUrl
+      successMessage: (restoredProject.backgroundImageUrl
         ? 'Loaded project layout, game metadata, embedded background image, and template geometry.'
-        : 'Loaded project layout, game metadata, and template geometry. No embedded background image was found.',
+        : 'Loaded project layout, game metadata, and template geometry. No embedded background image was found.') +
+        (params.persistenceFormat === 'legacy-json' ? legacyImageFormatWarning(project) : ''),
     }))
   } catch (error) {
     return failure(
@@ -398,7 +400,8 @@ function stageCaseInsertProject(
       activeDiscPresetState: null,
       caseInsertPresetRecovery: recovery.recovery,
       successMessage:
-        'Loaded case insert project template, metadata, and preview geometry.',
+        'Loaded case insert project template, metadata, and preview geometry.' +
+        (params.persistenceFormat === 'legacy-json' ? legacyImageFormatWarning(normalizedProject) : ''),
     }))
   } catch (error) {
     return failure(

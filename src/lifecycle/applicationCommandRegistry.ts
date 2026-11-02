@@ -2,6 +2,8 @@ import {
   commandFailed,
   type ApplicationCommandDefinition,
   type ApplicationCommandExecutionObserver,
+  type ApplicationCommandAdmissionObserver,
+  type ApplicationCommandAdmissionStage,
   type ApplicationCommandDispatchResult,
   type ApplicationCommandId,
   type ApplicationCommandResult,
@@ -68,12 +70,14 @@ function unexpectedCommandFailure(
 export type ApplicationCommandDispatcherOptions = Readonly<{
   busyScopes?: CommandBusyScopeCoordinator
   createOperationId?: () => string
+  observeAdmission?: ApplicationCommandAdmissionObserver
   observeExecution?: ApplicationCommandExecutionObserver
 }>
 
 export class ApplicationCommandDispatcher<Context> {
   private readonly registry: ApplicationCommandRegistry<Context>
   private readonly busyScopes: CommandBusyScopeCoordinator
+  private readonly observeAdmission?: ApplicationCommandAdmissionObserver
   private readonly observeExecution?: ApplicationCommandExecutionObserver
   private readonly createOperationId: () => string
   private readonly inFlight = new Set<InFlightCommand>()
@@ -84,6 +88,7 @@ export class ApplicationCommandDispatcher<Context> {
     options: ApplicationCommandDispatcherOptions = {},
   ) {
     this.registry = registry
+    this.observeAdmission = options.observeAdmission
     this.observeExecution = options.observeExecution
     this.busyScopes = options.busyScopes ?? new CommandBusyScopeCoordinator()
     this.createOperationId = options.createOperationId ?? (() => {
@@ -98,41 +103,48 @@ export class ApplicationCommandDispatcher<Context> {
     context: Context,
     input: unknown,
   ): Promise<ApplicationCommandDispatchResult<Value>> {
+    let admissionStage: ApplicationCommandAdmissionStage = 'command-resolution'
+    const admissionResult = (result: ApplicationCommandDispatchResult<Value>) => {
+      try { this.observeAdmission?.({ stage: admissionStage, result }) } catch { /* Observation only. */ }
+      return result
+    }
     const definition = this.registry.resolve(commandId)
     if (!definition) {
-      return Object.freeze({
+      return admissionResult(Object.freeze({
         disposition: 'not-executed',
         reason: 'unknown-command',
         commandId,
-      })
+      }))
     }
 
+    admissionStage = 'capability'
     let capability
     try {
       capability = definition.canExecute(context, input)
     } catch (error) {
-      return unexpectedCommandFailure(
+      return admissionResult(unexpectedCommandFailure(
         definition.id,
         error,
-      ) as ApplicationCommandDispatchResult<Value>
+      ) as ApplicationCommandDispatchResult<Value>)
     }
     if (!capability.canExecute) {
-      return Object.freeze({
+      return admissionResult(Object.freeze({
         disposition: 'not-executed',
         reason: 'disabled',
         commandId,
         userMessage: capability.userMessage,
-      })
+      }))
     }
 
+    admissionStage = 'repeat-key'
     let repeatKey: string
     try {
       repeatKey = definition.getRepeatKey?.(context, input) ?? commandId
     } catch (error) {
-      return unexpectedCommandFailure(
+      return admissionResult(unexpectedCommandFailure(
         definition.id,
         error,
-      ) as ApplicationCommandDispatchResult<Value>
+      ) as ApplicationCommandDispatchResult<Value>)
     }
     const identical = [...this.inFlight].find((candidate) =>
       candidate.commandId === definition.id &&
@@ -146,13 +158,14 @@ export class ApplicationCommandDispatcher<Context> {
       [...this.inFlight].some((candidate) => candidate.commandId === definition.id) &&
       definition.repeatPolicy === 'reject-while-busy'
     ) {
-      return Object.freeze({
+      return admissionResult(Object.freeze({
         disposition: 'not-executed',
         reason: 'busy',
         commandId,
-      })
+      }))
     }
 
+    admissionStage = 'busy-acquire'
     let acquisition
     try {
       acquisition = this.busyScopes.beginOperation({
@@ -161,18 +174,18 @@ export class ApplicationCommandDispatcher<Context> {
         scopes: definition.acquireScopes(context, input),
       })
     } catch (error) {
-      return unexpectedCommandFailure(
+      return admissionResult(unexpectedCommandFailure(
         definition.id,
         error,
-      ) as ApplicationCommandDispatchResult<Value>
+      ) as ApplicationCommandDispatchResult<Value>)
     }
 
     if (!acquisition.acquired) {
-      return Object.freeze({
+      return admissionResult(Object.freeze({
         disposition: 'not-executed',
         reason: 'busy',
         commandId,
-      })
+      }))
     }
 
     let completeObservation: ReturnType<ApplicationCommandExecutionObserver> = undefined

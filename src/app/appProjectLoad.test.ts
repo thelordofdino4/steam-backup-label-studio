@@ -409,6 +409,11 @@ test('checked-in current and migrated Disc fixtures remain stageable', async () 
     assert.equal(result.status, 'success', fixturePath)
     if (result.status === 'success') {
       assert.equal(result.value.projectType, 'disc')
+      if (fixturePath.includes('full-branding')) {
+        assert.match(result.value.successMessage, /contains SVG.*cannot be saved as \.sbls/)
+        assert.match(result.value.successMessage, /Replace those images/)
+        assert.ok(JSON.stringify(result.value.normalizedProject).includes('data:image/svg+xml'))
+      }
       assert.equal(
         result.value.normalizedProject.schemaVersion,
         CURRENT_PROJECT_SCHEMA_VERSION,

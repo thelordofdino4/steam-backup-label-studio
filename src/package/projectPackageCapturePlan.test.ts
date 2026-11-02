@@ -1,3 +1,4 @@
+import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -12,11 +13,25 @@ import type {
   SavedDiscProject,
 } from '../project/projectTypes.ts'
 import {
-  createProjectPackageCapturePlan,
+  createProjectPackageCapturePlan as createPlan,
+  locateProjectPackageCaptures,
   type ProjectPackageAssetCapture,
 } from './projectPackageCapturePlan.ts'
 
 const DATA_URL = 'data:image/png;base64,iVBORw0KGgo='
+
+// Every populated source fixture also checks the transport location against
+// the independently resolved closed path, including repeated array owners.
+function createProjectPackageCapturePlan(project: SavedDiscProject | SavedCaseInsertProject) {
+  for (const { container, key, path } of locateProjectPackageCaptures(project)) {
+    const resolved = path.slice(1).split('/').reduce(
+      (value, segment) => value?.[segment], project,
+    )
+    assert.equal(resolved, container?.[key], path)
+  }
+  return createPlan(project)
+}
+
 
 function byOwner(
   captures: readonly ProjectPackageAssetCapture[],
@@ -362,4 +377,16 @@ test('built-in qualification is exact and rejects cross-platform theme aliases',
   assert.deepEqual(byOwner(plan.captures, 'disc.media.custom')?.decision, {
     kind: 'no-accepted-asset',
   })
+})
+
+test('real blank Disc no-rating state does not invent an unsupported accepted image', () => {
+  const project = createBlankDiscSavedProject()
+  assert.deepEqual(byOwner(createProjectPackageCapturePlan(project).captures, 'disc.rating.custom')?.decision,
+    { kind: 'no-accepted-asset' })
+  project.ratingBadge!.customImageSize = { width: 10, height: 10 }
+  assert.deepEqual(byOwner(createProjectPackageCapturePlan(project).captures, 'disc.rating.custom')?.decision,
+    { kind: 'unsupported-nonportable-asset' })
+  project.ratingBadge!.customImageDataUrl = DATA_URL
+  assert.deepEqual(byOwner(createProjectPackageCapturePlan(project).captures, 'disc.rating.custom')?.decision,
+    { kind: 'project-owned-data-url' })
 })

@@ -1,3 +1,5 @@
+import { imageImportFailure } from '../image/imageImportFailure.ts'
+import { discoveryFailure } from '../steam/discoveryFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useState } from 'react'
@@ -25,7 +27,6 @@ type UseLocalSteamScreenshotsOptions = {
 export function useLocalSteamScreenshots({
   selectedSteamGame,
   applyBackgroundImageImport,
-  setSelectedArtworkId,
   announceStatus,
 }: UseLocalSteamScreenshotsOptions) {
   const asyncWork = useProjectAsyncWork()
@@ -103,26 +104,24 @@ export function useLocalSteamScreenshots({
         announceStatus(discovery.statusMessage)
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
+      asyncWork.fail(request, discoveryFailure(error), (failure) => {
         setLocalSteamScreenshots([])
         setLocalSteamScreenshotThumbnails({})
-        announceStatus(`Local Steam screenshot check failed: ${String(error)}`)
+        announceStatus(`Local Steam screenshot check failed: ${failure.userMessage}`)
       })
     }
   }
 
   async function handleUseLocalSteamScreenshot(asset: LocalSteamScreenshotAsset) {
     const request = asyncWork.begin('background-artwork')
-    setSelectedArtworkId(asset.id)
-    announceStatus(`Loading ${asset.label}...`)
+        announceStatus(`Loading ${asset.label}...`)
 
     try {
       const imported = await createLocalSteamScreenshotBackgroundImport(asset)
       asyncWork.commit(request, () => { applyBackgroundImageImport(imported) })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        setSelectedArtworkId(null)
-        announceStatus(`Local screenshot could not be applied: ${String(error)}`)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(`Local screenshot could not be applied: ${failure.userMessage}`)
       })
     }
   }
@@ -139,7 +138,7 @@ export function useLocalSteamScreenshots({
       await openLocalFolder(folderPath)
       announceStatus('Opened local Steam screenshot folder.')
     } catch (error) {
-      announceStatus(`Could not open screenshot folder: ${String(error)}`)
+      announceStatus(discoveryFailure(error, 'local.folder-open-failed').userMessage)
     }
   }
 

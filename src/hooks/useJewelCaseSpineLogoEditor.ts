@@ -1,3 +1,4 @@
+import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import type {
@@ -92,6 +93,7 @@ export function useJewelCaseSpineLogoEditor({
     const request = asyncWork.begin(`image:spine:${side}:logo:${logoKey}`)
     const image = await loadUploadedCaseInsertImageSlotImage({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
+      onFailure: (failure) => { asyncWork.fail(request, failure, () => { announceStatus(failure.userMessage) }) },
       uploadFile,
     })
     if (!image) {
@@ -184,8 +186,8 @@ export function useJewelCaseSpineLogoEditor({
         announceStatus(`Added ${candidate.label} as the ${side} spine ${normalizeCaseInsertLabel(label)}.`)
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(`Logo candidate import failed for ${side} spine ${normalizeCaseInsertLabel(label)}: ${String(error)}`)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(`Logo candidate import failed for ${side} spine ${normalizeCaseInsertLabel(label)}: ${failure.userMessage}`)
       })
     }
   }

@@ -195,6 +195,7 @@ Key files:
 - `src/app/appProjectSave.ts`
 - `src/app/appProjectSaveCommand.ts`
 - `src/package/projectPackageCapturePlan.ts`
+- `src/package/projectPackageWriteProjection.ts`
 - `src/tauri/projectPackageWrite.ts`
 - `src/app/appProjectRestore.ts`
 - `src/app/appPngExport.ts`
@@ -386,6 +387,7 @@ Key files:
 - `src/app/appProjectOpenCommand.ts`
 - `src/app/appProjectSaveCommand.ts`
 - `src/package/projectPackageCapturePlan.ts`
+- `src/package/projectPackageWriteProjection.ts`
 - `src/diagnostics/projectParityHarness.ts`
 - `src/tauri/binaryProjectFile.ts`
 - `src/tauri/binaryProjectFile.test.ts`
@@ -1712,6 +1714,15 @@ Risks:
 
 ## Image and Artwork Systems
 
+Issue #358 ordinary-import acceptance is owned by `utils/importedImageAsset.ts`,
+`image/importedImagePolicy.ts`, `tauri/importedImageValidation.ts`, the read-only
+native `commands/image_import.rs`, and the codec's `asset_validation.rs` using its
+existing raster decoders. `package/legacyImageFormatWarning.ts` reuses the closed
+capture traversal for compatibility notices. See
+[image asset policy](IMAGE_ASSET_ACCEPTANCE_POLICY.md) for the complete ingress and
+format matrices. No renderer or presentation component owns validation decisions.
+
+
 Purpose: import, normalize, place, frame, render, save, and export background artwork, title artwork, additional artwork, screenshots, and image slots.
 
 Key files:
@@ -2264,3 +2275,7 @@ workspace-aware Rust checks:
 - `cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets --locked`
 - `cargo test --manifest-path src-tauri/Cargo.toml --workspace --locked --jobs 1`
 - `cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --locked -- -D warnings`
+
+### Release diagnostics composition (#379)
+
+`main.tsx` owns a bounded diagnostics collector before dynamic application loading; `app/bootstrapApplication.tsx` preserves lifecycle/menu construction and the existing React boundary tree. `applicationStartup.ts`, `ApplicationRendered.tsx` and `applicationStartupFallback.ts` observe named prerequisites and provide safe report access after startup/render failure. An injected collector remains entry-owned through lifecycle cleanup. `startup_diagnostics.rs` handles returned native startup failures before WebView availability. Diagnostics never own project data or authorize commands. Shared image failures implement the existing application error shape; ProjectAsyncWork alone still authorizes image/discovery completion. See `RELEASE_DIAGNOSTICS.md` for scope, privacy and remaining native gates.

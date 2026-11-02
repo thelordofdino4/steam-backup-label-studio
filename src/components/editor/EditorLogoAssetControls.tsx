@@ -1,3 +1,4 @@
+import { IMPORTED_IMAGE_ACCEPT } from '../../image/importedImagePolicy'
 import type { ChangeEvent, ReactNode, Ref } from 'react'
 import type {
   LogoAlignmentPreset,
@@ -103,7 +104,7 @@ export function EditorLogoAssetControls({
         id={uploadId}
         className="logo-file-input"
         type="file"
-        accept="image/*"
+        accept={IMPORTED_IMAGE_ACCEPT}
         onChange={(event) => void onUpload(event)}
       />
 

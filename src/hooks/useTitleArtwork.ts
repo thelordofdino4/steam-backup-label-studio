@@ -1,3 +1,4 @@
+import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
@@ -198,9 +199,9 @@ export function useTitleArtwork({
         )
         announceStatus('Custom game logo artwork selected.')
       })
-    } catch {
-      asyncWork.publish(request, () => {
-        announceStatus('Game logo image could not be read.')
+    } catch (error) {
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(failure.userMessage)
       })
     }
   }

@@ -1,42 +1,41 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import {
-  ApplicationLifecycleBoundary,
-} from './app/ApplicationLifecycleBoundary.tsx'
-import { ApplicationMenuBoundary } from './app/ApplicationMenuBoundary.tsx'
-import {
-  createApplicationLifecycleRuntime,
-} from './app/applicationLifecycleRuntime.ts'
-import {
-  createApplicationMenuRuntime,
-} from './applicationMenu/applicationMenuRuntime.ts'
 import './styles/index.css'
 import './styles/layoutFix.css'
-import App from './app/App.tsx'
+import { createApplicationCommandDiagnostics } from './diagnostics/applicationCommandDiagnostics.ts'
+import { createApplicationStartupAttempt, type ApplicationStartupStage } from './app/applicationStartup.ts'
+import { showApplicationStartupFailure } from './app/applicationStartupFallback.ts'
 
-function mountApplication() {
-  const lifecycleRuntime = createApplicationLifecycleRuntime()
-  const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root, {
-    observeStartup: lifecycleRuntime.diagnostics.observeMenuStartup,
-    onDiagnostic: lifecycleRuntime.diagnostics.recordMenuDiagnostic,
+const diagnostics = createApplicationCommandDiagnostics()
+const startup = createApplicationStartupAttempt(diagnostics.observeApplicationStartup)
+let cleanup: (() => void) | undefined
+let failed = false
+let disposed = false
+function fail(stage: ApplicationStartupStage, cause: unknown) {
+  if (failed || disposed) return
+  failed = true
+  startup.fail(stage, cause)
+  // Capture the safe report before disposal clears the in-memory collector.
+  const report = diagnostics.toJson()
+  queueMicrotask(() => {
+    if (disposed) return
+    try { cleanup?.() } catch { /* Keep the captured safe fallback accessible. */ }
+    showApplicationStartupFailure(document, stage, report)
   })
-
-  if (import.meta.hot) {
-    import.meta.hot.dispose(() => {
-      void menuRuntime.dispose()
-      lifecycleRuntime.dispose()
-    })
-  }
-
-  createRoot(document.getElementById('root')!).render(
-    <ApplicationLifecycleBoundary runtime={lifecycleRuntime}>
-      <ApplicationMenuBoundary runtime={menuRuntime}>
-        <StrictMode>
-          <App />
-        </StrictMode>
-      </ApplicationMenuBoundary>
-    </ApplicationLifecycleBoundary>,
-  )
 }
-
-mountApplication()
+async function start() {
+  try {
+    const element = document.getElementById('root')
+    if (!element) throw new Error('Application mount point unavailable')
+    startup.stage('module-load')
+    const { mountApplication } = await import('./app/bootstrapApplication.tsx')
+    if (disposed) return
+    cleanup = mountApplication({ element, diagnostics, startup, onFailure: fail })
+  } catch (cause) { fail(startup.getStage(), cause) }
+}
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    disposed = true
+    cleanup?.()
+    diagnostics.dispose()
+  })
+}
+void start()

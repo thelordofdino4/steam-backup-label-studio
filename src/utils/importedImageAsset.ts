@@ -1,7 +1,9 @@
+import { ImageImportError } from '../image/imageImportFailure.ts'
 import type { BackgroundImageSize } from '../project/projectTypes.ts'
 import { loadImage } from '../export/canvasImage.ts'
 import { createImageSizeWithDetectedContentBounds } from '../image/imageContentBounds.ts'
 import { readImageFileAsDataUrl } from './imageFile.ts'
+import { validateImportedImageDataUrl } from '../tauri/importedImageValidation.ts'
 
 export type ImportedImageAsset = {
   imageDataUrl: string
@@ -16,12 +18,19 @@ export function isImageFile(file: File) {
 export async function createImportedImageAssetFromDataUrl(
   imageDataUrl: string,
   fileName?: string,
+  dependencies = { validate: validateImportedImageDataUrl, load: loadImage, inspect: createImageSizeWithDetectedContentBounds },
 ): Promise<ImportedImageAsset> {
-  const image = await loadImage(imageDataUrl, fileName ?? 'imported image')
+  const acceptedDataUrl = await dependencies.validate(imageDataUrl)
+  let image: HTMLImageElement
+  try { image = await dependencies.load(acceptedDataUrl, fileName ?? 'imported image') }
+  catch (cause) { throw new ImageImportError('image.decode-failed', cause) }
+  let imageSize: BackgroundImageSize
+  try { imageSize = dependencies.inspect(image) }
+  catch (cause) { throw new ImageImportError('image.inspect-failed', cause) }
 
   return {
-    imageDataUrl,
-    imageSize: createImageSizeWithDetectedContentBounds(image),
+    imageDataUrl: acceptedDataUrl,
+    imageSize,
     fileName,
   }
 }

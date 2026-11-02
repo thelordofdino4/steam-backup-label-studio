@@ -3,9 +3,10 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 test('production mounts one lifecycle runtime and current lifecycle surfaces share semantic dispatch and feedback', async () => {
-  const [mainSource, appSource, homeSource, discSource, caseSource] =
+  const [mainSource, bootstrapSource, appSource, homeSource, discSource, caseSource] =
     await Promise.all([
       readFile('src/main.tsx', 'utf8'),
+      readFile('src/app/bootstrapApplication.tsx', 'utf8'),
       readFile('src/app/App.tsx', 'utf8'),
       readFile('src/components/home/HomeScreen.tsx', 'utf8'),
       readFile('src/components/sidebar/ProjectPanel.tsx', 'utf8'),
@@ -13,11 +14,13 @@ test('production mounts one lifecycle runtime and current lifecycle surfaces sha
     ])
 
   assert.equal(
-    (mainSource.match(/createApplicationLifecycleRuntime\(\)/g) ?? []).length,
+    (bootstrapSource.match(/createApplicationLifecycleRuntime\(\{ diagnostics \}\)/g) ?? []).length,
     1,
   )
-  assert.match(mainSource, /ApplicationLifecycleBoundary runtime=/)
-  assert.equal(mainSource.includes('createApplicationLifecycleCompositionRoot'), false)
+  assert.match(bootstrapSource, /ApplicationLifecycleBoundary runtime=/)
+  assert.match(mainSource, /import\('\.\/app\/bootstrapApplication\.tsx'\)/)
+  assert.equal(mainSource.includes('createApplicationLifecycleRuntime('), false)
+  assert.equal((mainSource + bootstrapSource).includes('createApplicationLifecycleCompositionRoot'), false)
   assert.equal(
     (appSource.match(/applicationLifecycleRoot\.dispatch\(commandId\)/g) ?? [])
       .length,

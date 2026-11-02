@@ -1,3 +1,4 @@
+import { ImportedImagePolicyError } from '../image/importedImagePolicy.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { discTemplates } from '../templates/discTemplates.ts'
@@ -274,4 +275,22 @@ test('failed Steam logo download preserves dormant scale or retained custom plac
   assert.equal(retained.placementRefitRequired, false)
   assert.equal(retained.titleArtwork.imageDataUrl, custom.imageDataUrl)
   assert.deepEqual(retained.titleArtwork.layout, customPlacement.layout)
+})
+
+test('unsupported Steam image preserves the current image, remembered default, and placement', async () => {
+  const logo: SteamArtworkAsset = { id: 'old', label: 'Old logo', url: 'https://example.test/logo.png', kind: 'logo' }
+  const current = setTitleArtworkImage(
+    createDefaultProjectTitleArtwork(standardDiscTemplate, 'top'),
+    createImportedImage(), logo, standardDiscTemplate, 'top', { rememberAsDefault: true },
+  )
+  const before = structuredClone(current)
+  const result = await createSteamTitleArtworkImport(createSteamGame([logo]), current, standardDiscTemplate, 'top', {
+    downloadArtworkAsDataUrl: async () => 'data:image/svg+xml;base64,PHN2Zy8+',
+    createImportedImageAsset: async () => { throw new ImportedImagePolicyError('Convert SVG to PNG before importing.') },
+  })
+  assert.equal(result.status, 'failed')
+  assert.equal(result.titleArtwork, current)
+  assert.deepEqual(current, before)
+  assert.equal(result.placementRefitRequired, false)
+  assert.match(result.statusMessage, /Convert SVG to PNG/)
 })

@@ -1,3 +1,5 @@
+import { imageImportFailure } from '../image/imageImportFailure.ts'
+import { discoveryFailure, discoveryOutcome } from '../steam/discoveryFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
@@ -88,10 +90,6 @@ function getLogoEntityLabel(
   return names[0] ?? logoKey
 }
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
-}
-
 export function useLogoAssetDiscovery({
   selectedSteamGame,
   projectMetadata,
@@ -161,10 +159,10 @@ export function useLogoAssetDiscovery({
             : `No logo candidates found for ${lastSearchedLabel}. Manual upload is still available.`,
         )
 
-      })
+      }, discoveryOutcome(discoveryResult.sourceStatuses))
     } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      asyncWork.fail(request, discoveryFailure(error), (failure) => {
+        const message = failure.userMessage
         updateSlot(logoKey, (slot) => ({
           ...slot,
           isLoading: false,
@@ -234,8 +232,8 @@ export function useLogoAssetDiscovery({
 
       })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        const message = failure.userMessage
         updateSlot(logoKey, (slot) => ({
           ...slot,
           isApplying: false,

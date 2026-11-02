@@ -56,6 +56,7 @@ export type ApplicationLifecycleRuntime = Readonly<{
 }>
 
 export type ApplicationLifecycleRuntimeOptions = Readonly<{
+  diagnostics?: ApplicationCommandDiagnostics
   createRoot?: (
     options: ApplicationLifecycleCompositionRootOptions,
   ) => ApplicationLifecycleCompositionRoot
@@ -99,9 +100,10 @@ export function createApplicationLifecycleRuntime(
   const pngExportOwner = createApplicationPngExportCommandOwner(
     () => pngExportDependencies,
   )
-  const diagnostics = createApplicationCommandDiagnostics()
+  const diagnostics = options.diagnostics ?? createApplicationCommandDiagnostics()
   const root = createRoot({
     observeExecution: diagnostics.observeExecution,
+    observeAdmission: diagnostics.observeAdmission,
     ports: {
       newDisc: newOwners.newDisc,
       newCase: newOwners.newCase,
@@ -117,7 +119,7 @@ export function createApplicationLifecycleRuntime(
     exportPng: pngExportOwner,
   })
 
-  const projectAsyncWork = createProjectAsyncWork(root.getStateSnapshot)
+  const projectAsyncWork = createProjectAsyncWork(root.getStateSnapshot, diagnostics.observeProjectAsync)
   const unsubscribeAsyncWork = root.subscribe(() => projectAsyncWork.observeLifecycle())
 
   return Object.freeze({
@@ -181,7 +183,7 @@ export function createApplicationLifecycleRuntime(
       pngExportDependencies = null
       unsubscribeAsyncWork()
       projectAsyncWork.dispose()
-      diagnostics.dispose()
+      if (!options.diagnostics) diagnostics.dispose()
       root.dispose()
     },
   })

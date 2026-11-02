@@ -97,6 +97,12 @@ export type ApplicationCommandDispatchResult<Value = void> =
       result: ApplicationCommandResult<Value>
     }>
 
+export type ApplicationCommandAdmissionStage = 'command-resolution' | 'capability' | 'repeat-key' | 'busy-acquire'
+export type ApplicationCommandAdmissionObserver = (event: Readonly<{
+  stage: ApplicationCommandAdmissionStage
+  result: ApplicationCommandDispatchResult<unknown>
+}>) => void
+
 export type ApplicationCommandCapability =
   | Readonly<{ canExecute: true }>
   | Readonly<{

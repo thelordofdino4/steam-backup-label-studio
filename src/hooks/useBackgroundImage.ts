@@ -1,8 +1,8 @@
+import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import {
-  BackgroundImageLoadError,
   createSteamArtworkBackgroundImport,
   createUploadedBackgroundImageImport,
   type BackgroundImageImportResult,
@@ -176,12 +176,8 @@ export function useBackgroundImage({
       const imported = await createUploadedBackgroundImageImport(file)
       asyncWork.commit(request, () => { applyBackgroundImageImport(imported) })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        announceStatus(
-          error instanceof BackgroundImageLoadError
-            ? 'Background image could not be loaded.'
-            : 'Background image could not be read.',
-        )
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(failure.userMessage)
       })
     }
   }
@@ -195,16 +191,14 @@ export function useBackgroundImage({
   async function handleUseSteamArtwork(asset: SteamArtworkAsset) {
     const request = asyncWork.begin('background-artwork')
     setPendingArtwork(request)
-    setSelectedArtworkId(asset.id)
     announceStatus(`Downloading ${asset.label}...`)
 
     try {
       const imported = await createSteamArtworkBackgroundImport(asset)
       asyncWork.commit(request, () => { applyBackgroundImageImport(imported) })
     } catch (error) {
-      asyncWork.publish(request, () => {
-        setSelectedArtworkId(null)
-        announceStatus(`Steam artwork download failed: ${String(error)}`)
+      asyncWork.fail(request, imageImportFailure(error), (failure) => {
+        announceStatus(`Steam artwork download failed: ${failure.userMessage}`)
       })
     }
   }

@@ -1,3 +1,4 @@
+import { imageImportFailureMessage } from '../image/importedImagePolicy.ts'
 import {
   commandFailed,
   commandSucceeded,
@@ -102,7 +103,16 @@ function writeFailure(error: unknown): ApplicationCommandResult<never> {
     isProjectPackageDestinationFailure(error)) {
     return failure(
       error.code,
-      error.message,
+      error.code === 'project.file-too-large' ||
+        error.code === 'project.package.resource-limit-exceeded' ||
+        error.code === 'project.package.archive-too-large'
+        ? `${error.message} Reduce image dimensions or remove unneeded artwork and metadata, then save again.`
+        : error.code === 'project.package.asset-type-invalid' ||
+          error.code === 'project.package.asset-type-unsupported' ||
+          error.code === 'project.package.asset-jpeg-profile-unsupported' ||
+          error.code === 'project.package.asset-bmp-profile-unsupported'
+          ? imageImportFailureMessage(error)
+          : error.message,
       `The package write boundary returned ${error.code}.`,
       error,
     )
