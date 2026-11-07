@@ -2413,7 +2413,6 @@ function App() {
             selectedDiscTemplateId={selectedDiscTemplateId}
             selectedDiscTemplate={selectedDiscTemplate}
             isCustomDiscTemplate={isCustomDiscTemplate}
-
             discTemplateOptions={discTemplateOptions}
             customDimensionFields={customDimensionFields}
             handleTemplateChange={handleTemplateChange}

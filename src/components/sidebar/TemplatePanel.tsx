@@ -58,17 +58,18 @@ export function TemplatePanel({
           <div className="custom-dimension-grid">
             {customDimensionFields.map(field => (
               <div className="custom-dimension-row" key={field.key}>
-                <label htmlFor={field.inputId}>{field.label}</label>
+                <label id={field.inputId + '-label'} htmlFor={field.inputId}>{field.label}</label>
                 <input
                   id={field.inputId}
                   type="text"
                   inputMode="decimal"
+                  aria-labelledby={field.inputId + '-label ' + field.inputId + '-unit'}
                   value={field.value}
                   aria-invalid={field.messages.length > 0 || undefined}
                   aria-describedby={field.messages.length ? field.errorId : undefined}
                   onChange={event => handleCustomDimensionChange(field.key, event.target.value)}
                 />
-                <span className="custom-dimension-unit">mm</span>
+                <span id={field.inputId + '-unit'} className="custom-dimension-unit">mm</span>
                 <span id={field.errorId} className="hint custom-dimension-error" aria-live="polite">
                   {field.messages.join(' ')}
                 </span>

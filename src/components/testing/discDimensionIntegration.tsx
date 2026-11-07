@@ -13,7 +13,7 @@ import { discTemplates } from '../../templates/discTemplates'
 import { buildCustomDiscTemplate } from '../../disc/geometry'
 import '../../styles/app-base.css'
 
-function Harness() {
+export function Harness() {
   const [clamps, setClamps] = useState(0)
   const [status, setStatus] = useState('')
   const [badgeEnabled, setBadgeEnabled] = useState(false)

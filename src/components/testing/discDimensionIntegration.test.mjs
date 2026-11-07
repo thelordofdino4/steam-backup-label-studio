@@ -139,3 +139,14 @@ test('inline errors wrap within the mounted narrow panel without displacing keyb
     assert.equal(await input.evaluate(element => element === document.activeElement), true)
   } finally { await page.setViewportSize({ width: 1000, height: 720 }) }
 })
+test('dimension accessible names retain their millimeter unit through validation and correction', async () => {
+  await open()
+  for (const label of ['Outer diameter', 'Physical center hole', 'Inner print boundary', 'Outer print boundary', 'Safe zone']) {
+    assert.equal(await page.getByRole('textbox', { name: label + ' mm', exact: true }).count(), 1)
+  }
+  const input = field('Safe zone')
+  await input.fill('119')
+  assert.equal(await page.getByRole('textbox', { name: 'Safe zone mm', exact: true }).count(), 1)
+  await input.fill('110')
+  assert.equal(await page.getByRole('textbox', { name: 'Safe zone mm', exact: true }).count(), 1)
+})
