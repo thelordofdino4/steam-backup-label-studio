@@ -50,6 +50,31 @@ serialized representations into a geometry workflow module.
 a final menu or panel design, redefine Case behavior, make presets implicit, or
 authorize export to repair invalid geometry.
 
+### Approved focused #307 scope (2026-11-07)
+
+**CURRENT FACT -** Jp explicitly approved separating inline dimension validation
+from the broader geometry workflow retained for #311. For this focused fix,
+complete valid drafts commit on edit through the existing template normalization,
+content guardrail and foreground-clamp callback. There is no new Apply button,
+immutable multi-owner transaction, history entry or recovery token. The target
+requirements below remain requirements for #311, not prerequisites for this
+separately approved #307 correction.
+
+**CURRENT FACT -** The five production controls retain raw strings. Incomplete,
+nonnumeric, nonfinite, out-of-range, inconsistent or content-blocked drafts show
+associated inline errors and leave committed geometry unchanged. Once the entire
+draft is valid and the existing guardrail accepts it, its dimensions commit
+together through the existing template owner, followed by the existing clamp
+callback. Preview, save and export continue consuming committed geometry.
+Correcting either side of a cross-field conflict revalidates all fields.
+
+**CURRENT FACT -** Changing template selection, resetting the project or restoring
+a project discards transient draft text/errors and uses committed/restored values.
+The existing edit policy rejects newly entered zero dimensions; loaded zero values
+retain their existing compatibility. Units, built-in templates, source/schema
+normalization, and existing valid-edit clamp behavior are unchanged. Native
+typing, focus, correction and narrow-layout acceptance must still be reported
+separately from mounted/control tests.
 ## 2. Claim Classes And Terminology
 
 **TARGET REQUIREMENT —** Every substantive statement in this document is one of
@@ -78,7 +103,7 @@ these classes.
 | **Placement** | Geometry-dependent layout fields such as coordinates, scale, size intent, wrap/arc geometry, or group bounds. |
 | **Recovery token** | Session-only inverse transaction data for the immediately applied geometry change, valid only at its recorded revision. |
 
-## 3. Evidence-Backed Current-State Baseline
+## 3. Historical Baseline Before The Focused #307 Correction
 
 **CURRENT FACT —** The reviewed implementation is safe enough to serve as the
 source baseline, but it does not yet satisfy this target contract.
@@ -118,15 +143,12 @@ exponent input stays incomplete. Units, hexadecimal/binary forms and nonfinite
 numbers are rejected without coercion. The shared geometry owner supplies the
 outer scalar limits. Candidate metadata is detached from the source template.
 
-**CURRENT FACT -** This is implementation-order step 1 only. No production
-control calls this prerequisite yet. There is no session draft/last-valid owner,
-field error association, Apply/Discard UI, owner feasibility plan, atomic
-transaction or recovery token added here. Existing normalization, load/save and
-committed geometry remain unchanged. A valid result proves intrinsic geometry,
-not project-content feasibility or permission to commit. Steps 2-8 and native
-typing/focus/narrow-layout acceptance remain required before #307/#311 closure.
-No fallback through the old setter sequence is authorized by this prerequisite.
-
+**CURRENT FACT -** The pure validator establishes intrinsic geometry only. The
+focused #307 production controller now consumes it under the approved scope
+above, then checks the existing content guardrail before committing. It does
+not supply the complete owner feasibility, immutable planning, atomic transaction
+or recovery requirements retained for #311. No claim of #311 completion follows
+from this inline-validation fix.
 ## 4. Physical Geometry Vocabulary And Intrinsic Invariants
 
 **TARGET REQUIREMENT —** The exact template data vocabulary remains owned by

@@ -57,7 +57,7 @@ export function createDiscGeometryRawDraft(template: DiscTemplate): DiscGeometry
   return Object.fromEntries(DISC_GEOMETRY_FIELDS.map(field => [field, String(template[field])])) as DiscGeometryRawDraft
 }
 
-/** Intrinsic evidence only: a valid candidate still needs a complete owner plan and atomic apply. */
+/** Intrinsic evidence only; callers must apply their scoped content/commit policy. */
 export function validateDiscGeometryDraft(
   input: DiscGeometryRawDraft,
   source: DiscTemplate = discTemplates.standardPrintableDisc,

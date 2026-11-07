@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { createDiscDimensionEditingState, getDiscDimensionFieldViews, updateDiscDimensionDraft } from '../templates/discDimensionEditing'
 import type { DiscTemplate } from '../types/template'
 import type { DiscTemplateGeometryGuardrailState } from '../layout/discTemplateGeometryGuardrail'
 import {
@@ -12,7 +13,6 @@ import {
   getIsCustomDiscTemplate,
   getSelectedDiscTemplate,
   restoreDiscTemplateRuntimeState,
-  updateCustomDiscTemplateDimension,
   type CustomDiscDimensionKey,
   type RestorableDiscTemplateState,
 } from '../templates/discTemplateStateModel'
@@ -28,9 +28,9 @@ export function useDiscTemplate({
   clampForegroundElementLayoutsToTemplate,
   getGeometryGuardrailState,
 }: UseDiscTemplateOptions) {
-  const [discTemplateState, setDiscTemplateState] = useState(
-    createDefaultDiscTemplateState,
-  )
+  const [dimensionEditing, setDimensionEditing] = useState(() =>
+    createDiscDimensionEditingState(createDefaultDiscTemplateState()))
+  const discTemplateState = dimensionEditing.templateState
   const selectedDiscTemplate = useMemo(
     () => getSelectedDiscTemplate(discTemplateState),
     [discTemplateState],
@@ -46,12 +46,12 @@ export function useDiscTemplate({
   )
 
   function resetDiscTemplateState() {
-    setDiscTemplateState(createDefaultDiscTemplateState())
+    setDimensionEditing(createDiscDimensionEditingState(createDefaultDiscTemplateState()))
   }
 
   function restoreDiscTemplateState(templateState: RestorableDiscTemplateState) {
-    setDiscTemplateState((currentState) =>
-      restoreDiscTemplateRuntimeState(currentState, templateState))
+    setDimensionEditing(current => createDiscDimensionEditingState(
+      restoreDiscTemplateRuntimeState(current.templateState, templateState)))
   }
 
   function handleTemplateChange(templateId: RestorableDiscTemplateState['selectedDiscTemplateId']) {
@@ -60,7 +60,7 @@ export function useDiscTemplate({
       templateId,
     )
 
-    setDiscTemplateState(templateChange.state)
+    setDimensionEditing(createDiscDimensionEditingState(templateChange.state))
     clampForegroundElementLayoutsToTemplate(templateChange.selectedTemplate)
     announceStatus(templateChange.statusMessage)
   }
@@ -69,12 +69,9 @@ export function useDiscTemplate({
     field: CustomDiscDimensionKey,
     value: string,
   ) {
-    const dimensionChange = updateCustomDiscTemplateDimension({
-      state: discTemplateState,
-      field,
-      value,
-      geometryGuardrailState: getGeometryGuardrailState(),
-    })
+    const dimensionChange = updateDiscDimensionDraft(
+      dimensionEditing, field, value, getGeometryGuardrailState())
+    setDimensionEditing(dimensionChange.state)
 
     if (dimensionChange.statusMessage) {
       announceStatus(dimensionChange.statusMessage)
@@ -83,8 +80,6 @@ export function useDiscTemplate({
     if (!dimensionChange.changed) {
       return
     }
-
-    setDiscTemplateState(dimensionChange.state)
 
     if (dimensionChange.selectedTemplateToClamp) {
       clampForegroundElementLayoutsToTemplate(
@@ -96,6 +91,7 @@ export function useDiscTemplate({
   return {
     selectedDiscTemplateId: discTemplateState.selectedDiscTemplateId,
     customDiscTemplate: discTemplateState.customDiscTemplate,
+    customDimensionFields: getDiscDimensionFieldViews(dimensionEditing),
     selectedDiscTemplate,
     defaultDiscTemplate: discTemplates.standardPrintableDisc,
     discTemplateOptions,

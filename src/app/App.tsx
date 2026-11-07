@@ -313,7 +313,7 @@ function App() {
     selectedDiscTemplate,
     defaultDiscTemplate,
     discTemplateOptions,
-    customOuterDiameterMaxMm,
+    customDimensionFields,
     isCustomDiscTemplate,
     guideOverlay,
     discExportPreviewFallbackSize,
@@ -2413,9 +2413,9 @@ function App() {
             selectedDiscTemplateId={selectedDiscTemplateId}
             selectedDiscTemplate={selectedDiscTemplate}
             isCustomDiscTemplate={isCustomDiscTemplate}
-            customDiscTemplate={customDiscTemplate}
+
             discTemplateOptions={discTemplateOptions}
-            customOuterDiameterMaxMm={customOuterDiameterMaxMm}
+            customDimensionFields={customDimensionFields}
             handleTemplateChange={handleTemplateChange}
             handleCustomDimensionChange={handleCustomDimensionChange}
           />
