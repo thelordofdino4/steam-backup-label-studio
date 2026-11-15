@@ -1,3 +1,5 @@
+import { createApplicationNativeTerminationCommandOwners } from './appNativeTerminationCommand.ts'
+import { createApplicationTerminationRuntime, type ApplicationTerminationRuntimeDependencies, type NativeTerminationFeedback } from './applicationTerminationRuntime.ts'
 import {
   createApplicationLifecycleCompositionRoot,
   type ApplicationLifecycleCompositionRoot,
@@ -30,6 +32,7 @@ import {
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
+  connectNativeTerminationIngress(feedback: NativeTerminationFeedback): () => void
   updateProjectOpenDependencies(
     dependencies: ApplicationProjectOpenRuntimeDependencies,
   ): void
@@ -52,6 +55,7 @@ export type ApplicationLifecycleRuntime = Readonly<{
 }>
 
 export type ApplicationLifecycleRuntimeOptions = Readonly<{
+  nativeTermination?: ApplicationTerminationRuntimeDependencies
   createRoot?: (
     options: ApplicationLifecycleCompositionRootOptions,
   ) => ApplicationLifecycleCompositionRoot
@@ -95,8 +99,13 @@ export function createApplicationLifecycleRuntime(
   const pngExportOwner = createApplicationPngExportCommandOwner(
     () => pngExportDependencies,
   )
+  const terminationRuntime = createApplicationTerminationRuntime(() => root, options.nativeTermination)
+  const terminationOwners = createApplicationNativeTerminationCommandOwners(terminationRuntime.handoff, replacementGuard)
   const root = createRoot({
+    getTerminationCapabilities: terminationRuntime.capabilities,
     ports: {
+      closeWindow: terminationOwners.closeWindow,
+      quitApplication: terminationOwners.quitApplication,
       newDisc: newOwners.newDisc,
       newCase: newOwners.newCase,
       openProject: createApplicationProjectOpenCommandOwner(
@@ -113,6 +122,7 @@ export function createApplicationLifecycleRuntime(
 
   return Object.freeze({
     root,
+    connectNativeTerminationIngress: terminationRuntime.connect,
     updateProjectOpenDependencies(dependencies) {
       if (disposed) {
         throw new Error('The application lifecycle runtime is disposed.')
@@ -168,6 +178,7 @@ export function createApplicationLifecycleRuntime(
       projectNewDependencies = null
       workspaceNavigationDependencies = null
       pngExportDependencies = null
+      void terminationRuntime.dispose()
       root.dispose()
     },
   })

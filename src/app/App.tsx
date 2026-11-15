@@ -1,3 +1,4 @@
+import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import {
   useCallback,
@@ -2010,6 +2011,7 @@ function App() {
     onCapabilitiesChanged:
       applicationLifecycleRoot.refreshCommandCapabilities,
   })
+  useApplicationTerminationIngress({ announceStatus, setHomeStatusMessage, applicationModalActive })
   useApplicationMenuCommandIngress({
     announceStatus,
     setHomeStatusMessage,
