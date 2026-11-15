@@ -147,6 +147,32 @@ test('missing runtime defaults do not invent banner provenance', async () => {
   }
 })
 
+test('explicit null and empty-string banner absence can still restore the default', async () => {
+  for (const lockupImageDataUrl of [null, undefined, '', '   ']) {
+    const restored = await restoreProjectStateFromContents(JSON.stringify({
+      ...baseProject,
+      steamBackupLogo: { placement: 'top', lockupImageDataUrl },
+    }), { defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL })
+    assert.equal(restored.steamBannerLockupImageSource?.source, 'built-in')
+    assert.deepEqual(bannerDecision(snapshot(restored)), {
+      kind: 'qualified-built-in', compatibilityId: 'steam-banner:banner-lockup',
+    })
+  }
+})
+
+test('malformed non-null banner image evidence never becomes a qualified default', async () => {
+  for (const lockupImageDataUrl of [
+    { dataUrl: 'data:image/png;base64,Y3VzdG9t' }, 17, [], false,
+  ]) {
+    const restored = await restoreProjectStateFromContents(JSON.stringify({
+      ...baseProject,
+      steamBackupLogo: { placement: 'none', lockupImageDataUrl },
+    }), { defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL })
+    assert.notEqual(restored.steamBannerLockupImageSource?.source, 'built-in')
+    assert.deepEqual(bannerDecision(snapshot(restored)), { kind: 'unsupported-nonportable-asset' })
+  }
+})
+
 test('retained custom banner bytes and provenance survive visible and disabled restore', async () => {
   const image = 'data:image/png;base64,custom-remembered-banner'
   const size = { width: 480, height: 128 }

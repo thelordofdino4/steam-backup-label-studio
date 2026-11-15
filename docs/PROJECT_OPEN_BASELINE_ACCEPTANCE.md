@@ -71,7 +71,12 @@ codec/native tests and a fresh native conversion remain separate gates.
 
 The historical `c46467ed` proposal was inspected, not replayed. This focused
 change additionally refuses to infer built-in identity from partial explicit
-provenance or malformed saved dimensions. The original baseline correction
+provenance, malformed saved dimensions, or non-string non-null image evidence.
+Review of the first candidate caught that malformed image objects/arrays/numbers
+were normalized to null before the new inference. A follow-up raw-image type
+gate preserves their prior unsupported classification, with parser-through-
+capture regressions. Only null/undefined and existing normalized-empty string
+absence may qualify, not malformed non-string image data. The original baseline correction
 remains intact. Native acceptance
 must use the corrected primary source after review and validation; successful
 minimal conversion is not yet claimed.

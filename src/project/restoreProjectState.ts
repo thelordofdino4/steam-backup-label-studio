@@ -228,12 +228,12 @@ function restoreSteamBannerLockupImageSource(
   project: SavedDiscProject,
   restoredImageUrl: string | null,
 ): ProjectImageAssetProvenance | null {
-  const lockupImageDataUrl = normalizeNullableString(
-    project.steamBackupLogo.lockupImageDataUrl,
-  )
+  const savedImage = project.steamBackupLogo.lockupImageDataUrl
+  const lockupImageDataUrl = normalizeNullableString(savedImage)
   // Sparse legacy banners restore the app default. Keep that identity so the
   // normal snapshot omits its runtime URL; never reclassify saved custom evidence.
   const restoredDefault = !lockupImageDataUrl &&
+    (savedImage == null || typeof savedImage === 'string') &&
     project.steamBackupLogo.lockupImageSize == null &&
     project.steamBackupLogo.lockupImageSource == null &&
     Boolean(restoredImageUrl)
