@@ -17,6 +17,13 @@ the target immutable normalized request, typed diagnostics/blockers/results,
 central command/busy/feedback ownership, safe destination replacement, or File
 menu connection defined by the remainder of this contract.
 
+Focused physical-output checkpoint, 2026-11-01 (#359): the shared canvas
+serializer now establishes explicit PNG `pHYs` density from the exporter's DPI
+and verifies IHDR dimensions/chunk checksums before returning bytes. Disc and
+both Case outputs use this adapter; no pixel geometry or destination semantics
+change. The exact contract, rounding, outline margins and pending native/print
+acceptance are recorded in [`PNG_PHYSICAL_OUTPUT_CONTRACT.md`](PNG_PHYSICAL_OUTPUT_CONTRACT.md).
+
 ## 1. Status, purpose, authority, and related documents
 
 This is a **draft target-state normative contract**. Requirements labeled as
@@ -105,7 +112,7 @@ menu ingress, the Tauri dialog plugin, and `write_binary_file`.
 | Export returns the shared typed command result. | Success, destination cancellation, warning decline, and stage-specific failures carry stable result kinds/codes plus the existing user-facing copy. The Disc and Case workflow adapters publish no status themselves. |
 | Feedback is application-owned and published once. | Button and native-menu dispatch outcomes pass through `appApplicationCommandFeedback.ts`; accepted messages use the shared toast owner, deduplication keys, and Home live-status mirror. |
 | One central export capability and the shared busy coordinator arbitrate execution. | Home/no-session/unresolved/missing-adapter states are disabled. `export.execution` plus focused warning, destination, and write child scopes prevent duplicate dialogs/renders/writes and conflict with lifecycle transitions/navigation. |
-| Rendering and PNG encoding complete in memory before native writing begins. | Both exporters await `canvasToPngBytes`; `canvasImage.ts` creates a Blob, ArrayBuffer, and `number[]` before invoking Rust. Render/encode failure therefore occurs before the current write call. |
+| Explicit physical density and checked PNG encoding complete in memory before native writing begins. | Both exporters pass their sizing DPI to `canvasToPngBytes`; `pngPhysicalResolution.ts` verifies the canvas-produced PNG and establishes one canonical `pHYs` before the existing `number[]` transport invokes Rust. Render/encode failure therefore occurs before the current write call. |
 | Native PNG writing is a direct `std::fs::write(path, bytes)`. | `src-tauri/src/commands/files.rs`. An existing file can be truncated before a later write failure; no same-directory temporary file, flush policy, atomic replace, rollback, or Windows replacement guarantee exists. |
 | Export execution does not call project save/snapshot adapters or update lifecycle path, baseline, format, revision, or dirty state. | The export route only assesses the current editor inputs, chooses a PNG destination after permitted preflight, renders, writes, and announces status. |
 
