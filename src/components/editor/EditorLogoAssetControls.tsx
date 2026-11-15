@@ -28,6 +28,7 @@ export type EditorLogoLayoutField = {
   max: number
   min: number
   onChange: (value: number) => void
+  onInput?: (value: number) => void
   step: number
   value: number
 }
@@ -173,6 +174,7 @@ export function EditorLogoAssetControls({
           max={field.max}
           step={field.step}
           value={field.value}
+          onInput={field.onInput}
           onChange={field.onChange}
         />
       ))}

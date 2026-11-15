@@ -27,22 +27,28 @@ test('formatEditorRangeFieldValue keeps compact numeric input text', () => {
   assert.equal(formatEditorRangeFieldValue(4.6, 1), '4.6')
 })
 
-test('getEditorRangeFieldNumberInputCharacterCapacity fits range boundaries and current values', () => {
+test('number input character capacity is stable and fits formatted boundaries', () => {
   assert.equal(
     getEditorRangeFieldNumberInputCharacterCapacity({
       min: -12.5,
       max: 1000,
       step: 0.1,
-      value: 999.9,
     }),
-    6,
+    7,
   )
   assert.equal(
     getEditorRangeFieldNumberInputCharacterCapacity({
       min: 'not-a-number',
       max: 10,
       step: 1,
-      value: -100,
+    }),
+    3,
+  )
+  assert.equal(
+    getEditorRangeFieldNumberInputCharacterCapacity({
+      min: 0,
+      max: 1,
+      step: 0.01,
     }),
     5,
   )
@@ -75,5 +81,47 @@ test('normalizeEditorRangeFieldValue clamps and snaps typed values', () => {
       rawValue: 'not-a-number',
     }),
     null,
+  )
+  assert.equal(
+    normalizeEditorRangeFieldValue({
+      min: 1,
+      max: 10,
+      step: 1,
+      rawValue: '',
+    }),
+    1,
+  )
+})
+
+test('strict range normalization rejects empty, non-finite, and out-of-range drafts', () => {
+  for (const rawValue of [
+    '',
+    '   ',
+    'not-a-number',
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    -0.1,
+    100.1,
+  ]) {
+    assert.equal(
+      normalizeEditorRangeFieldValue({
+        min: 0,
+        max: 100,
+        step: 1,
+        rawValue,
+        outOfRangeBehavior: 'reject',
+      }),
+      null,
+    )
+  }
+  assert.equal(
+    normalizeEditorRangeFieldValue({
+      min: 1,
+      max: 1000,
+      step: 0.1,
+      rawValue: '1000',
+      outOfRangeBehavior: 'reject',
+    }),
+    1000,
   )
 })

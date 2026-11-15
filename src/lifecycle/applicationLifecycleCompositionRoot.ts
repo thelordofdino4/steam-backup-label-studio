@@ -26,6 +26,7 @@ import {
 import {
   createCaseInsertPresetSessionApplicationCommandDefinitions,
   getCaseInsertPresetSessionApplicationCommandCapability,
+  type CaseInsertPresetSessionEditorApplyPort,
 } from './caseInsertPresetSessionApplicationCommand.ts'
 import {
   createApplicationLifecycleStateStore,
@@ -77,6 +78,7 @@ export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   initialState?: ApplicationLifecycleState
   ports?: ApplicationLifecycleCommandPorts
   exportPng?: ApplicationPngExportCommandOwner
+  caseInsertPresetEditorApply?: CaseInsertPresetSessionEditorApplyPort
   termination?: ApplicationTerminationCapabilities
   createOperationId?: () => string
   createSessionId?: () => string
@@ -261,7 +263,9 @@ export function createApplicationLifecycleCompositionRoot(
   }
   registry.register(createApplicationPngExportCommandDefinition(options.exportPng))
   for (const definition of
-    createCaseInsertPresetSessionApplicationCommandDefinitions()) {
+    createCaseInsertPresetSessionApplicationCommandDefinitions(
+      options.caseInsertPresetEditorApply,
+    )) {
     registry.register(definition)
   }
 

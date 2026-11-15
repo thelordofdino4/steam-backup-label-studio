@@ -3,10 +3,10 @@
 > Purpose: Hydrated `SavedProject` schema, current/legacy JSON compatibility, validation, normalization, and migrations.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
 > Authoritative source: This document for hydrated saved-project fields and migrations; `PROJECT_PACKAGE_FORMAT_CONTRACT.md` for target package/container behavior; SDD for architecture boundaries.
-> Last reviewed against `origin/main` at `dde67fac36de8f473c4ca7082e123ef801810a95` plus the focused Case reserved-artwork viewport runtime and Jewel Case Essentials revision-2 checkpoints documented below.
+> Last reviewed against `origin/main` at `dde67fac36de8f473c4ca7082e123ef801810a95` plus stacked dependency `44fbcd09258d279540b4573fca66fa37bec63792` and the focused Case artwork-assignment/editor-adoption checkpoint documented below.
 
 
-Last refreshed: 2026-08-22.
+Last refreshed: 2026-08-23.
 
 ## Purpose
 
@@ -55,9 +55,11 @@ attachment-only adoption retains it while the application revision advances
 once. There is no exact application-domain adoption no-op. These pure owners do
 not install the successor themselves. The focused lifecycle command/store
 bridge can install the complete authorized session in memory. Save/Open now
-project and recover its explicit attachment/configuration state, and the
-existing Case workflow presentation invokes those semantic owners. Jewel Case
-Essentials revision 1 does not emit reserved-artwork viewport actions. The pure
+project and recover its explicit attachment/configuration state. Ordinary Case
+presentation exposes exact selection plus one-shot Apply only; reviewed-mode
+Apply, exact-revision Reapply/Detach, and persisted recovery/status remain
+compatibility/domain infrastructure rather than visible relationship controls.
+Jewel Case Essentials revision 1 does not emit reserved-artwork viewport actions. The pure
 compatible-owner adoption adapter can populate the ordinary owner field, and
 Save/Open preserve it; ordinary revision-1 Apply/Reapply does not populate it.
 
@@ -456,12 +458,24 @@ type SavedCaseInsertAppliedPresetOwnedFieldV3 = {
 The complete configuration stores the exact stable preset ID/revision and
 source, first-Apply facts, optional Reapply lineage, accepted scope and resolved
 regions, template compatibility identity, reviewed-plan identity, the complete
-exact-address owned-field footprint and coalesced assignment provenance,
-reviewed warning IDs, and accepted material-consent IDs. Format-3 source
+exact-address owned-field footprint and coalesced assignment provenance, plus
+the reviewed-warning and accepted-material-consent ID fields. Reviewed mode may
+populate those fields; one-shot mode preserves their schema positions as empty
+arrays. Format-3 source
 provenance distinguishes the closed policies
 `normalized-content-region-direct-layout-v1`,
 `create-empty-repeated-artwork-slot-v1`, and
 `reserved-artwork-viewport-v1`.
+
+For `one-shot-content-preserving` Apply, these established fields do not mean
+that production UI displayed or accepted a legacy review. The configuration
+retains the immutable plan identity required by the existing formats, while
+both `reviewedWarningIds` and `acceptedMaterialConsentRequirementIds` are empty.
+The one-shot path constructs and persists no review approval, warning-
+acknowledgement, consent-acceptance object, or consent-acceptance identity.
+Strict transition-success validation rejects nonempty values in any of those
+one-shot warning/consent acceptance channels. Reviewed-mode values remain
+readable for compatibility.
 
 For Jewel Case Essentials revision 2, object presence is persisted only for a
 slot created by preset Apply. X, Y, outer-frame scale, image fit, and the exact
@@ -502,12 +516,16 @@ catalog entry is missing, or mutates the recovered configuration.
 The production catalog retains Jewel Case Essentials exact revisions 1 and 2
 under one canonical identity. A saved revision-1 attachment therefore restores
 its exact historical numeric configuration, reports `stale` while revision 2
-is latest, and Reapplies revision 1 without slot creation or viewport writes. A
+is latest, and low-level Reapply remains bound to revision 1 without slot
+creation or viewport writes. A
 saved revision-2 attachment restores format-3 object-presence/layout/fit/
 viewport ownership and reports `current` when compatible. Open does not create
-a missing owned slot, run a viewport plan, or upgrade revision 1. The only
-supported path between revisions is Detach followed by explicit revision-2
-selection, review, and Apply.
+a missing owned slot, run a viewport plan, or upgrade revision 1. The ordinary
+selector exposes the catalog's exact latest summary—currently revision 2—and
+explicit one-shot Apply may atomically replace an exact recovered revision-1
+attachment with selected revision 2 in one full-session/store-generation CAS.
+The selected `(canonical ID, revision)` remains authoritative. This is not
+implicit latest substitution and requires neither Detach nor visible review.
 
 ### Case Reserved-Artwork Viewport State
 
@@ -553,6 +571,27 @@ mode owner. Its existing `layout.x`/`layout.y` own the viewport center,
 `layout.scale` owns the outer-frame scale, and `layout.rotation` owns rotation.
 The new value owns only the reserved frame's basis, normalized size, focal
 position, and zoom; it does not replace source bytes or content bounds.
+
+The current Case repeated-artwork UI edits an already-valid present value
+without changing this representation. `slot.fit` stores exact `contain`,
+`cover`, or `crop`; focal X/Y remain canonical percentages; source zoom remains
+canonical in `[1, 1000]`; and `layout.scale` remains the distinct proportional
+outer-frame scale. Contain and Cover retain dormant focal/zoom values even
+though the shared renderer does not consume them; returning to Crop restores
+them. Source replacement or removal also preserves the record. Save/Open
+therefore round-trips the exact committed framing without a UI-specific field,
+unit conversion, migration, asset binding, schema advance, or package-format
+advance.
+
+Source updates resolve the existing repeated-artwork object by exact stable ID.
+They change only established source content, provenance, and dimensions,
+preserving slot and parent-group enablement, array position, label,
+fit, complete viewport, focal/zoom, outer X/Y/scale/rotation, and frame
+decoration. Source-only clearing retains
+the source-independent slot and viewport, so re-adding content renders through
+the same frame. Project normalization and Save/Open preserve that combined
+state; they never infer or reconstruct an attachment or viewport from image
+shape, matching values, labels, geometry, or catalog data.
 
 An omitted property, explicit `null` input, malformed record, out-of-profile
 width, height, or zoom, unsupported format/template identity, or

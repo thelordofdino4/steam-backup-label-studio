@@ -391,8 +391,12 @@
 }
 
 .case-insert-sidebar {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
   padding-right: 12px;
   padding-left: 12px;
+  scrollbar-gutter: stable;
 }
 
 .case-insert-workflow-section > .panel-summary {
@@ -401,6 +405,32 @@
 
 .case-insert-workflow-section > .panel-content {
   padding: 0 6px 10px;
+}
+
+.case-insert-workflow-section,
+.case-insert-workflow-section > .panel-content,
+.case-insert-workflow-section .editor-nested-panel,
+.case-insert-workflow-section .editor-nested-panel > .panel-content,
+.case-insert-workflow-section .feature-control-body,
+.case-insert-workflow-section .repeated-visual-card-content,
+.case-insert-workflow-section .background-source-layout-controls,
+.case-insert-workflow-section .editor-control-grid,
+.case-insert-workflow-section .editor-range-field,
+.case-insert-workflow-section .editor-range-field-control,
+.case-insert-workflow-section .additional-artwork-frame-controls,
+.case-insert-workflow-section .editor-asset-status-card {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.case-insert-workflow-section .panel-summary,
+.case-insert-workflow-section .panel-summary-title,
+.case-insert-workflow-section .panel-summary-actions,
+.case-insert-workflow-section .repeated-visual-card-summary,
+.case-insert-workflow-section .repeated-visual-card-toolbar,
+.case-insert-workflow-section .field-label {
   min-width: 0;
 }
 
@@ -495,6 +525,14 @@
 .case-insert-workflow-section button,
 .case-insert-workflow-section .editor-asset-status-card {
   max-width: 100%;
+}
+
+.case-insert-workflow-section input[type="file"],
+.case-insert-workflow-section input[type="number"],
+.case-insert-workflow-section input[type="search"],
+.case-insert-workflow-section input[type="text"],
+.case-insert-workflow-section select,
+.case-insert-workflow-section textarea {
   min-width: 0;
 }
 

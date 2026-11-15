@@ -22,15 +22,22 @@ order unless a visual/cascade review proves a move is safe:
 2. `app-home.css` - main-menu/home screen layout and cards.
 3. `app-preview-shell.css` - preview workspace, disc preview container, and case insert preview container.
 4. `app-contextual-text-ribbon.css` - ordered manifest for the app-shell contextual text ribbon split under `src/styles/contextual-text-ribbon/`.
-5. `app-case-insert.css` - case insert preview surfaces, guides, front layers, and case insert control/status cards.
+5. `app-case-insert.css` - case insert preview surfaces, guides, front layers,
+   control/status cards, vertical-sidebar gutter reservation, and the scoped
+   nested-control containment chain.
 6. `app-disc-surface.css` - disc background layer, disc guide overlays, center hole, Steam banner, and selected lockup card.
 7. `app-responsive.css` - the existing max-width 860px app/home/preview responsive overrides.
 8. `app-panels.css` - collapsible panels, panel toggle icon, and Guide Legend swatches.
 9. `app-preview-feedback.css` - preview pane label and preview toast stack.
 10. `app-artwork.css` - current artwork import section spacing.
-11. `app-editor-controls.css` - neutral shared editor control shells, text-control cards, range/style grids, source rows, status cards, and reset/action group primitives used by both editors.
+11. `app-editor-controls.css` - neutral shared editor control shells,
+    text-control cards, stable label/flexible-range/fixed-number row geometry,
+    range/style grids, source rows, status cards, and reset/action group
+    primitives used by both editors.
 12. `app-disc-text.css` - disc text preview layers and disc-number badge layer/styles that are specific to the disc editor.
-13. `app-sidebar-features.css` - shared optional-feature cards, background source layout controls, and mark-selection helpers.
+13. `app-sidebar-features.css` - shared optional-feature cards, contained Case
+    surface tabs, background source layout controls, framing-error wrapping,
+    and mark-selection helpers.
 14. `app-image-candidates.css` - image candidate modal and preview picker styles.
 15. `app-metadata-controls.css` - metadata rows, repeated visual cards, logo upload/status cards, logo discovery, and metadata assistance.
 16. `app-disc-visual-layers.css` - disc title/additional artwork, logo, rating, media, platform, and technical mark preview layers.
@@ -98,6 +105,29 @@ for these old control selector names:
 - `metadata-details`
 - `case-insert-control-card`
 - `case-insert-file-input`
+
+## Case Nested-Control Geometry
+
+The Case sidebar remains the only vertical overflow owner and reserves a stable
+scrollbar gutter. `app-case-insert.css` owns the scoped shrink chain from each
+Case workflow section through nested feature panels, repeated artwork cards,
+source controls, framing/border controls, status, logos, and marks. Widths
+include padding and borders, and flex/grid descendants that carry ordinary
+content must allow shrinking inside the panel content box. Do not replace that
+contract with broad clipping or a second nested vertical scrollbar.
+
+`app-sidebar-features.css` owns the actual Case surface tablist geometry. Its
+three supported surface columns share available width and wrap understandable
+labels inside the list. Screenshot slots remain repeated stable-ID collapsible
+cards rather than a second tablist.
+
+`EditorRangeField` and `app-editor-controls.css` own stable range-row sizing.
+The label column is stable, the native range track is flexible and shrinkable,
+and the number input has one fixed character-capacity width derived from its
+min/max/step domain plus spinner space. Live X/Y/Scale/focal/Zoom values must
+not participate in width calculation. Structural tests can verify these source
+contracts; computed containment, focus-ring clearance, and scrollbar-lane
+behavior still require native Tauri verification.
 
 ## Manual Smoke Checklist
 

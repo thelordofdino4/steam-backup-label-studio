@@ -35,25 +35,40 @@ export function setCaseInsertImageSlotImage(
   image: CaseInsertImageSlotImageInput,
 ): ProjectCaseInsertImageSlot {
   return {
-    ...setEditorImageAssetSourceContent(slot, {
-      imageDataUrl: image.imageDataUrl,
-      imageSize: image.imageSize,
-      imageSource: normalizeProjectImageAssetProvenance(
-        image.imageSource,
-        createEmbeddedProjectImageAssetProvenance(slot.label),
-      ),
-    }),
+    ...setCaseInsertImageSlotSource(slot, image),
     enabled: true,
   }
+}
+
+/** Replaces only source-owned image content on an existing stable slot. */
+export function setCaseInsertImageSlotSource(
+  slot: ProjectCaseInsertImageSlot,
+  image: CaseInsertImageSlotImageInput,
+): ProjectCaseInsertImageSlot {
+  return setEditorImageAssetSourceContent(slot, {
+    imageDataUrl: image.imageDataUrl,
+    imageSize: image.imageSize,
+    imageSource: normalizeProjectImageAssetProvenance(
+      image.imageSource,
+      createEmbeddedProjectImageAssetProvenance(slot.label),
+    ),
+  })
 }
 
 export function clearCaseInsertImageSlotImage(
   slot: ProjectCaseInsertImageSlot,
 ): ProjectCaseInsertImageSlot {
   return {
-    ...clearEditorImageAssetSourceContent(slot),
+    ...clearCaseInsertImageSlotSource(slot),
     enabled: false,
   }
+}
+
+/** Clears only source-owned image content from an existing stable slot. */
+export function clearCaseInsertImageSlotSource(
+  slot: ProjectCaseInsertImageSlot,
+): ProjectCaseInsertImageSlot {
+  return clearEditorImageAssetSourceContent(slot)
 }
 
 export function updateCaseInsertImageSlotFit(
@@ -70,6 +85,17 @@ export function updateCaseInsertImageSlotLayout(
   slot: ProjectCaseInsertImageSlot,
   layout: ProjectCaseInsertLayout,
 ): ProjectCaseInsertImageSlot {
+  if (
+    slot.layout.x === layout.x &&
+    slot.layout.y === layout.y &&
+    slot.layout.scale === layout.scale &&
+    slot.layout.rotation === layout.rotation &&
+    slot.layout.fontSizePt === layout.fontSizePt &&
+    slot.layout.width === layout.width
+  ) {
+    return slot
+  }
+
   return {
     ...slot,
     layout,
@@ -81,6 +107,8 @@ export function updateCaseInsertImageSlotLayoutField(
   field: CaseInsertLayoutField,
   value: number,
 ): ProjectCaseInsertImageSlot {
+  if (slot.layout[field] === value) return slot
+
   return updateCaseInsertImageSlotLayout(slot, {
     ...slot.layout,
     [field]: value,
@@ -91,6 +119,8 @@ export function updateCaseInsertImageSlotLayoutPosition(
   slot: ProjectCaseInsertImageSlot,
   point: CaseInsertLayoutPoint,
 ): ProjectCaseInsertImageSlot {
+  if (slot.layout.x === point.x && slot.layout.y === point.y) return slot
+
   return updateCaseInsertImageSlotLayout(slot, {
     ...slot.layout,
     x: point.x,

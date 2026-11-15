@@ -200,6 +200,74 @@ test('export.png captures one invocation, owns shared scopes, and returns typed 
   assert.equal(root.getLifecycleState(), lifecycleBefore)
 })
 
+test('export.png finishes continuous edits and reacquires the current adapter before capture', async () => {
+  const staleCalls: string[] = []
+  const currentCalls: string[] = []
+  let dependencies = dependenciesFor(discAdapter(staleCalls))
+  let finishCount = 0
+  const owner = createApplicationPngExportCommandOwner(
+    () => dependencies,
+    () => ({
+      finish() {
+        finishCount += 1
+        dependencies = dependenciesFor(discAdapter(currentCalls))
+        return Object.freeze({ status: 'success', value: undefined })
+      },
+    }),
+  )
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({
+      sessionId: 'finish-before-export',
+      project: createBlankDiscSavedProject(),
+    }),
+    exportPng: owner,
+  })
+
+  const result = await root.dispatch('export.png')
+
+  assert.equal(result.disposition, 'executed')
+  assert.equal(finishCount, 1)
+  assert.deepEqual(staleCalls, [])
+  assert.deepEqual(currentCalls, ['capture', 'destination', 'render', 'write'])
+})
+
+test('export.png aborts before adapter capture when continuous-edit finish fails', async () => {
+  const calls: string[] = []
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({
+      sessionId: 'finish-failed-export',
+      project: createBlankDiscSavedProject(),
+    }),
+    exportPng: createApplicationPngExportCommandOwner(
+      () => dependenciesFor(discAdapter(calls)),
+      () => ({
+        finish: () => Object.freeze({
+          status: 'failure',
+          error: Object.freeze({
+            code: 'case.continuous-edit-stale-session',
+            userMessage: 'The edit belongs to a replaced project.',
+            recoverable: true,
+          }),
+        }),
+      }),
+    ),
+  })
+
+  const result = await root.dispatch('export.png')
+
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed') {
+    assert.equal(result.result.status, 'failure')
+    if (result.result.status === 'failure') {
+      assert.equal(
+        result.result.error.code,
+        'case.continuous-edit-stale-session',
+      )
+    }
+  }
+  assert.deepEqual(calls, [])
+})
+
 test('repeated export activation while a warning dialog is pending performs one operation', async () => {
   const calls: string[] = []
   let releaseConfirmation!: (accepted: boolean) => void

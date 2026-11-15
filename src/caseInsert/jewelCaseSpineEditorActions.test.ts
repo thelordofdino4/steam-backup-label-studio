@@ -13,7 +13,15 @@ import {
 } from './jewelCaseSpineEditorActionsFixtures.ts'
 import {
   setJewelCaseSpineMirrored,
+  updateJewelCaseSpineImageSlot,
+  updateJewelCaseSpineTextBlock,
+  updateJewelCaseSpineTitle,
+  updateProjectJewelCaseSpineSide,
+  updateProjectJewelCaseSpineSides,
 } from './jewelCaseTransitions.ts'
+import {
+  updateCaseInsertImageSlotLayoutField,
+} from './imageSlotTransitions.ts'
 import {
   clearJewelCaseSpineImageSlotImage,
   createDefaultJewelCaseSpineGroupedImageSlot,
@@ -34,6 +42,9 @@ import {
   updateJewelCaseSpineTextBlockLayoutValue,
   updateJewelCaseSpineTitleValue,
 } from './jewelCaseSpineTextActions.ts'
+import {
+  updateCaseInsertTextBlockLayoutField,
+} from './textTransitions.ts'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus.ts'
 import {
   setCaseInsertTitleArtworkSteamImage,
@@ -138,6 +149,108 @@ test('spine text block state helpers apply side-scoped mirrored edits', () => {
     findSpineTextBlock(state, 'left', 'left-spine-developer-text'),
   )
   assert.equal(updated.templates, state.templates)
+})
+
+test('spine image and text layout action no-ops preserve complete root identity', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const leftBackground = state.spine.left.background
+  const leftSubtitle = findSpineTextBlock(
+    state,
+    'left',
+    'left-spine-subtitle-text',
+  )
+
+  const imageNoop = updateJewelCaseSpineImageSlotLayoutValue(
+    state,
+    'left',
+    'background',
+    'x',
+    leftBackground.layout.x,
+  )
+  const textNoop = updateJewelCaseSpineTextBlockLayoutValue(
+    state,
+    'left',
+    leftSubtitle.id,
+    'scale',
+    leftSubtitle.layout.scale,
+  )
+
+  assert.equal(imageNoop, state)
+  assert.equal(textNoop, state)
+  assert.equal(imageNoop.spine, state.spine)
+  assert.equal(textNoop.spine, state.spine)
+})
+
+test('spine transition no-ops preserve roots while real changes stay isolated', () => {
+  const state = setJewelCaseSpineMirrored(
+    createDefaultProjectJewelCaseState('Portal 2'),
+    false,
+  )
+  const subtitle = findSpineTextBlock(
+    state,
+    'left',
+    'left-spine-subtitle-text',
+  )
+
+  assert.equal(
+    updateProjectJewelCaseSpineSide(state, 'left', (side) => side),
+    state,
+  )
+  assert.equal(
+    updateProjectJewelCaseSpineSides(state, 'left', (side) => side),
+    state,
+  )
+  assert.equal(
+    updateJewelCaseSpineTitle(state, 'left', (title) => title),
+    state,
+  )
+  assert.equal(
+    updateJewelCaseSpineImageSlot(
+      state,
+      'left',
+      'background',
+      (slot) => updateCaseInsertImageSlotLayoutField(
+        slot,
+        'rotation',
+        slot.layout.rotation,
+      ),
+    ),
+    state,
+  )
+  assert.equal(
+    updateJewelCaseSpineTextBlock(
+      state,
+      'left',
+      subtitle.id,
+      (block) => updateCaseInsertTextBlockLayoutField(
+        block,
+        'y',
+        block.layout.y,
+      ),
+    ),
+    state,
+  )
+
+  const changed = updateJewelCaseSpineTextBlock(
+    state,
+    'left',
+    subtitle.id,
+    (block) => updateCaseInsertTextBlockLayoutField(
+      block,
+      'fontSizePt',
+      (block.layout.fontSizePt ?? 12) + 1,
+    ),
+  )
+
+  assert.notEqual(changed, state)
+  assert.notEqual(changed.spine, state.spine)
+  assert.notEqual(changed.spine.left, state.spine.left)
+  assert.equal(changed.spine.right, state.spine.right)
+  assert.notEqual(
+    findSpineTextBlock(changed, 'left', subtitle.id),
+    subtitle,
+  )
+  assert.equal(changed.templates, state.templates)
 })
 
 test('spine title state helpers preserve one-sided edits when mirroring is off', () => {

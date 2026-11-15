@@ -14,6 +14,9 @@ import {
   normalizeProjectJewelCaseState,
 } from '../caseInsert/normalization.ts'
 import {
+  transitionCaseInsertArtworkFraming,
+} from '../caseInsert/artworkViewportFraming.ts'
+import {
   createCaseInsertProjectSnapshot,
   restoreCaseInsertProjectStateFromContents,
 } from './caseInsertProjectAdapters.ts'
@@ -221,6 +224,42 @@ test('all four ordinary artwork owner families preserve viewport state', () => {
     restored.templates.tray.artworkSlots[0]?.imageSource?.sourceLabel,
     'Viewport artwork',
   )
+})
+
+test('Save/Open preserves framing values committed through the slot transition owner', () => {
+  let caseInsert = caseStateWithViewports()
+  for (const change of [
+    { field: 'fit', value: 'crop' },
+    { field: 'focal-x', value: 9 },
+    { field: 'focal-y', value: 91 },
+    { field: 'zoom', value: 27.5 },
+  ] as const) {
+    const result = transitionCaseInsertArtworkFraming(
+      caseInsert,
+      'tray',
+      'tray-artwork-1',
+      change,
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    caseInsert = result.project
+  }
+  const project = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Viewport UI Round Trip',
+    caseInsert,
+    savedAt: '2026-08-23T12:00:00.000Z',
+  })
+  const restored = restoreCaseInsertProjectStateFromContents(
+    JSON.stringify(project),
+  ).caseInsert.templates.tray.artworkSlots[0]
+
+  assert.ok(restored)
+  assert.equal(restored.fit, 'crop')
+  assert.deepEqual(restored.reservedArtworkViewport?.focalPosition, {
+    xPercent: 9,
+    yPercent: 91,
+  })
+  assert.equal(restored.reservedArtworkViewport?.zoom, 27.5)
 })
 
 test('unsupported slot families and mismatched artwork bases normalize to omission', () => {

@@ -12,6 +12,7 @@ import type {
   ApplicationLifecycleDefinitionContext,
 } from './applicationLifecycleCommandDefinitions.ts'
 import type {
+  ApplicationLifecycleStateCommitResult,
   ApplicationLifecycleStateSnapshot,
 } from './applicationLifecycleStateStore.ts'
 import {
@@ -107,6 +108,12 @@ type InstallationAttempt = {
 export type CaseInsertPresetSessionApplicationCapabilityContext = Readonly<{
   stateSnapshot: ApplicationLifecycleStateSnapshot
   busy: CommandBusyState
+}>
+
+export type CaseInsertPresetSessionEditorApplyPort = Readonly<{
+  commitLifecycleAndApply(
+    commitLifecycle: () => ApplicationLifecycleStateCommitResult,
+  ): ApplicationLifecycleStateCommitResult
 }>
 
 function enabled(): ApplicationCommandCapability {
@@ -217,6 +224,7 @@ function executeInstallation(
   commandId: CaseInsertPresetApplicationCommandId,
   context: ApplicationLifecycleDefinitionContext,
   successorSnapshot: unknown,
+  editorApply: CaseInsertPresetSessionEditorApplyPort | undefined,
 ): ApplicationCommandResult<CaseInsertPresetSessionApplicationCommandSuccess> {
   const expectedOperation = OPERATION_BY_COMMAND[commandId]
   const current = context.getCurrentStateSnapshot()
@@ -224,7 +232,7 @@ function executeInstallation(
 
   let storeResult
   try {
-    storeResult = context.commitState(current.generation, (state) => {
+    const commitLifecycle = () => context.commitState(current.generation, (state) => {
       const commit = commitCaseInsertPresetSessionApplication({
         currentSession: state.activeSession,
         successorSnapshot,
@@ -244,6 +252,9 @@ function executeInstallation(
         activeSession: commit.session,
       })
     })
+    storeResult = editorApply
+      ? editorApply.commitLifecycleAndApply(commitLifecycle)
+      : commitLifecycle()
   } catch (error) {
     const userMessage = 'The Case layout preset result could not be installed.'
     return commandFailed({
@@ -313,7 +324,9 @@ function executeInstallation(
   })
 }
 
-export function createCaseInsertPresetSessionApplicationCommandDefinitions():
+export function createCaseInsertPresetSessionApplicationCommandDefinitions(
+  editorApply?: CaseInsertPresetSessionEditorApplyPort,
+):
 readonly ApplicationCommandDefinition<
   ApplicationLifecycleDefinitionContext,
   unknown,
@@ -329,7 +342,7 @@ readonly ApplicationCommandDefinition<
       execute: (
         context: ApplicationLifecycleDefinitionContext,
         input: unknown,
-      ) => executeInstallation(id, context, input),
+      ) => executeInstallation(id, context, input, editorApply),
       feedbackPolicy: RETURN_ONLY_FEEDBACK,
     })))
 }

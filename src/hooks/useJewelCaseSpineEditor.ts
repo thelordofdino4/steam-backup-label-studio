@@ -98,6 +98,10 @@ import {
 import {
   normalizeCaseInsertLabel,
 } from '../caseInsert/labelText'
+import {
+  transitionJewelCaseSpineArtworkFraming,
+  type CaseInsertArtworkFramingChange,
+} from '../caseInsert/artworkViewportFraming'
 
 type UseJewelCaseSpineEditorOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
@@ -792,6 +796,22 @@ export function useJewelCaseSpineEditor({
     )
   }
 
+  function handleSpineGroupedArtworkFramingChange(
+    side: JewelCaseSpineSide,
+    slotId: string,
+    change: CaseInsertArtworkFramingChange,
+  ) {
+    setProjectJewelCase((currentCaseInsert) => {
+      const result = transitionJewelCaseSpineArtworkFraming(
+        currentCaseInsert,
+        side,
+        slotId,
+        change,
+      )
+      return result.ok ? result.project : currentCaseInsert
+    })
+  }
+
   function handleSpineGroupedImageSlotLayoutChange(
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotGroupKey,
@@ -931,6 +951,7 @@ export function useJewelCaseSpineEditor({
     handleUseSpineGroupedImageSlotLocalSteamScreenshot,
     handleUseSpineGroupedImageSlotWebArtwork,
     handleSpineGroupedImageSlotFitChange,
+    handleSpineGroupedArtworkFramingChange,
     handleSpineGroupedImageSlotLayoutChange,
     handleSpineGroupedImageSlotFrameChange,
     handleResetSpineGroupedImageSlotLayout,

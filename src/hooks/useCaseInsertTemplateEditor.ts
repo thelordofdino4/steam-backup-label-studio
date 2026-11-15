@@ -20,6 +20,7 @@ import {
   clearCaseInsertAdditionalLogoSlotImage,
 } from '../caseInsert/brandingLogoSlots'
 import {
+  clearCaseInsertImageSlotSource,
   resetCaseInsertImageSlotFrame,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
@@ -76,10 +77,10 @@ import {
   clearCaseInsertTemplatePrimaryImageSlot,
   fitCaseInsertTemplatePrimaryImageSlotToRegionHeight,
   getCaseInsertTemplateGroupedImageSlotResetLayout,
-  preserveCaseInsertTemplateGroupedSlotSource,
   resetCaseInsertTemplatePrimaryImageSlotDefaultLayout,
   restoreCaseInsertTemplateTitleArtworkDefault,
   setCaseInsertTemplatePrimaryImageSlotEnabled,
+  setCaseInsertTemplateGroupedSlotImageSource,
   updateCaseInsertTemplatePrimaryImageSlotFit,
   updateCaseInsertTemplatePrimaryImageSlotLayoutValue,
 } from '../caseInsert/templateSurfaceImageSlotActions'
@@ -108,6 +109,10 @@ import {
 import {
   normalizeCaseInsertLabel,
 } from '../caseInsert/labelText'
+import {
+  transitionCaseInsertArtworkFraming,
+  type CaseInsertArtworkFramingChange,
+} from '../caseInsert/artworkViewportFraming'
 
 type UseCaseInsertTemplateEditorOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
@@ -252,10 +257,11 @@ export function useCaseInsertTemplateEditor({
           paneId,
           slotKey,
           slotId,
-          (slot) => setCaseInsertImageSlotImage(slot, image),
-          {
-            enableAdditionalArtwork: slotKey === 'artworkSlots',
-          },
+          (slot) => setCaseInsertTemplateGroupedSlotImageSource(
+            slotKey,
+            slot,
+            image,
+          ),
         ),
     })
   }
@@ -529,13 +535,11 @@ export function useCaseInsertTemplateEditor({
       paneId,
       slotKey,
       slotId,
-      (slot) => setCaseInsertImageSlotImage(
+      (slot) => setCaseInsertTemplateGroupedSlotImageSource(
+        slotKey,
         slot,
-        preserveCaseInsertTemplateGroupedSlotSource(slotKey, slot, image),
+        image,
       ),
-      {
-        enableAdditionalArtwork: slotKey === 'artworkSlots',
-      },
     )
     announceStatus(`Selected ${uploadFile.statusLabel} image.`)
   }
@@ -594,6 +598,22 @@ export function useCaseInsertTemplateEditor({
     updateGroupedImageSlot(paneId, slotKey, slotId, (slot) =>
       updateCaseInsertImageSlotFit(slot, fit),
     )
+  }
+
+  function handleGroupedArtworkFramingChange(
+    paneId: CaseInsertTemplatePaneId,
+    slotId: string,
+    change: CaseInsertArtworkFramingChange,
+  ) {
+    setProjectJewelCase((currentCaseInsert) => {
+      const result = transitionCaseInsertArtworkFraming(
+        currentCaseInsert,
+        paneId,
+        slotId,
+        change,
+      )
+      return result.ok ? result.project : currentCaseInsert
+    })
   }
 
   function handleGroupedImageSlotLayoutChange(
@@ -655,12 +675,7 @@ export function useCaseInsertTemplateEditor({
       slotId,
       (slot) => slotKey === 'logoSlots'
         ? clearCaseInsertAdditionalLogoSlotImage(slot)
-        : {
-            ...slot,
-            imageDataUrl: null,
-            imageSize: null,
-            imageSource: null,
-          },
+        : clearCaseInsertImageSlotSource(slot),
     )
     announceStatus(`Cleared ${normalizeCaseInsertLabel(label)} image.`)
   }
@@ -978,6 +993,7 @@ export function useCaseInsertTemplateEditor({
     handleUseGroupedImageSlotLocalSteamScreenshot,
     handleUseGroupedImageSlotWebArtwork,
     handleGroupedImageSlotFitChange,
+    handleGroupedArtworkFramingChange,
     handleGroupedImageSlotLayoutChange,
     handleGroupedImageSlotFrameChange,
     handleResetGroupedImageSlotLayout,

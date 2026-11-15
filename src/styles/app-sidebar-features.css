@@ -4,13 +4,16 @@
 }
 
 .background-source-layout-controls {
+  box-sizing: border-box;
   border: 0;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
   display: grid;
   gap: 10px;
   margin: 12px 0 0;
+  max-width: 100%;
   min-inline-size: 0;
   padding: 12px 0 0;
+  width: 100%;
 }
 
 .background-source-layout-controls:disabled {
@@ -22,6 +25,12 @@
   font-size: 0.85rem;
   font-weight: 700;
   padding: 0 6px 0 0;
+}
+
+.case-insert-artwork-framing-error {
+  color: #fca5a5;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .feature-section-card,
@@ -51,18 +60,26 @@
 }
 
 .case-insert-surface-tabs {
+  box-sizing: border-box;
   display: grid;
   gap: 6px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 12px;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
 }
 
 .case-insert-surface-tabs-shell {
   align-items: stretch;
+  box-sizing: border-box;
   display: grid;
   gap: 6px;
   grid-template-columns: minmax(0, 1fr) auto;
   margin-bottom: 12px;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
 }
 
 .case-insert-surface-tabs-shell .case-insert-surface-tabs {
@@ -72,6 +89,7 @@
 .case-insert-surface-tabs-action {
   align-items: stretch;
   display: flex;
+  min-width: 0;
 }
 
 .case-insert-surface-tab {
@@ -79,14 +97,19 @@
   background: rgba(15, 23, 42, 0.64);
   border: 1px solid rgba(148, 163, 184, 0.34);
   border-radius: 8px 8px 0 0;
+  box-sizing: border-box;
   color: #dbeafe;
   cursor: pointer;
   display: inline-flex;
   font: inherit;
   justify-content: center;
+  max-width: 100%;
   min-height: 38px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 8px 10px;
   text-align: center;
+  white-space: normal;
 }
 
 .case-insert-surface-tab:hover,

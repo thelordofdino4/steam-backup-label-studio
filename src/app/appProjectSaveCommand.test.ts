@@ -44,6 +44,9 @@ import {
   getDefaultPackageFileName,
   type ApplicationProjectSaveRuntimeDependencies,
 } from './appProjectSaveCommand.ts'
+import type {
+  ApplicationCaseInsertContinuousEditFinishResult,
+} from './applicationCaseInsertContinuousEditPort.ts'
 
 function discProject(
   title = 'Save Disc',
@@ -126,6 +129,8 @@ function createHarness(options: Readonly<{
   state: ApplicationLifecycleState
   dialogResult?: string | null
   write?: (input: WriteInput) => Promise<ProjectFileCommandSuccess>
+  finishContinuousEdit?: () =>
+    ApplicationCaseInsertContinuousEditFinishResult
 }>) {
   const dialogCalls: Array<Parameters<
     ApplicationProjectSaveRuntimeDependencies['saveDialog']
@@ -145,7 +150,12 @@ function createHarness(options: Readonly<{
       },
     },
   }
-  const owners = createApplicationProjectSaveCommandOwners(() => dependencies)
+  const owners = createApplicationProjectSaveCommandOwners(
+    () => dependencies,
+    () => options.finishContinuousEdit
+      ? Object.freeze({ finish: options.finishContinuousEdit })
+      : null,
+  )
   const root = createApplicationLifecycleCompositionRoot({
     initialState: options.state,
     ports: {
@@ -326,6 +336,66 @@ test('direct Save uses the lifecycle-owned project without an editor capture por
   if (result.disposition === 'executed') {
     assert.equal(result.result.status, 'success')
   }
+})
+
+test('Save synchronously finishes a continuous Case edit before lifecycle capture', async () => {
+  const calls: string[] = []
+  const harness: ReturnType<typeof createHarness> = createHarness({
+    state: stateFor(
+      createBlankJewelCaseSavedProject('Before finish'),
+      'sbls-package-v1',
+      'continuous-edit.sbls',
+    ),
+    finishContinuousEdit: () => {
+      calls.push('finish')
+      assert.equal(
+        harness.synchronizeCurrentProject(
+          createBlankJewelCaseSavedProject('Exact final value'),
+        ),
+        'synchronized',
+      )
+      return Object.freeze({ status: 'success', value: undefined })
+    },
+    write: async (input) => {
+      calls.push(`write:${input.normalizedProject.title}`)
+      return Object.freeze({ status: 'success' })
+    },
+  })
+
+  const result = await harness.root.dispatch('project.save')
+
+  assert.equal(result.disposition, 'executed')
+  assert.deepEqual(calls, ['finish', 'write:Exact final value'])
+  assert.equal(harness.writeCalls[0].normalizedProject.title, 'Exact final value')
+})
+
+test('Save contains continuous-edit finish exceptions and performs no capture or write', async () => {
+  const harness = createHarness({
+    state: stateFor(
+      createBlankJewelCaseSavedProject('Unchanged'),
+      'sbls-package-v1',
+      'unchanged.sbls',
+    ),
+    finishContinuousEdit: () => {
+      throw new Error('finish boundary rejected the interaction')
+    },
+  })
+  const before = harness.root.getStateSnapshot()
+
+  const result = await harness.root.dispatch('project.save')
+
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed') {
+    assert.equal(result.result.status, 'failure')
+    if (result.result.status === 'failure') {
+      assert.equal(
+        result.result.error.code,
+        'case.continuous-edit-finish-failed',
+      )
+    }
+  }
+  assert.equal(harness.writeCalls.length, 0)
+  assert.equal(harness.root.getStateSnapshot(), before)
 })
 
 test('Case Save preserves lifecycle-owned reserved artwork viewport and asset evidence in the package write input', async () => {

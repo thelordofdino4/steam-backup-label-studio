@@ -19,6 +19,10 @@ import {
   type RunCaseInsertPngExportParams,
   type RunDiscPngExportParams,
 } from './appPngExport.ts'
+import {
+  finishApplicationCaseInsertContinuousEdit,
+  type GetApplicationCaseInsertContinuousEditPort,
+} from './applicationCaseInsertContinuousEditPort.ts'
 
 type DiscExportInvocation = Omit<
   RunDiscPngExportParams,
@@ -158,6 +162,8 @@ function snapshotFailure(error: unknown): ApplicationCommandResult<never> {
 
 export function createApplicationPngExportCommandOwner(
   getDependencies: () => ApplicationPngExportRuntimeDependencies | null,
+  getContinuousEditPort: GetApplicationCaseInsertContinuousEditPort =
+    () => null,
 ): ApplicationPngExportCommandOwner {
   return Object.freeze({
     availability: 'implemented',
@@ -168,14 +174,20 @@ export function createApplicationPngExportCommandOwner(
       context: ApplicationLifecycleCommandContext,
       operation: ApplicationCommandOperationToken,
     ): Promise<ApplicationCommandResult<ApplicationPngExportSuccess>> {
+      const finishedEdit = finishApplicationCaseInsertContinuousEdit(
+        getContinuousEditPort(),
+      )
+      if (finishedEdit.status !== 'success') return finishedEdit
+
       const current = context.getCurrentStateSnapshot()
       const capabilityContext = Object.freeze({
         stateSnapshot: current,
         busy: Object.freeze({ occupiedScopes: [] }),
       })
       const target = expectedTarget(capabilityContext)
+      const dependencies = getDependencies()
       const adapter = target
-        ? resolveAdapter(getDependencies(), target)
+        ? resolveAdapter(dependencies, target)
         : null
       if (!target || !adapter || adapter.physicalTarget !== target) {
         return snapshotFailure(new Error('The active export target changed before capture.'))

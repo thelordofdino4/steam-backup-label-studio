@@ -405,6 +405,9 @@ function CaseInsertTemplateTextBlock({
               renderedTextBlock.id,
             )}
           onMoveHandlePointerMove={pointerHandlers.handleTemplatePointerMove}
+          onMoveHandlePointerCancel={
+            pointerHandlers.handleTemplatePointerCancel
+          }
           onMoveHandlePointerUp={pointerHandlers.handleTemplatePointerUp}
           onRichTextKeyboardCommand={(command, selection) =>
             previewTextControlHandlers.onRichTextKeyboardCommand?.(
@@ -595,6 +598,9 @@ function CaseInsertTemplateTextList({
               textList.id,
             )}
           onMoveHandlePointerMove={pointerHandlers.handleTemplatePointerMove}
+          onMoveHandlePointerCancel={
+            pointerHandlers.handleTemplatePointerCancel
+          }
           onMoveHandlePointerUp={pointerHandlers.handleTemplatePointerUp}
           onRichTextKeyboardCommand={(command, selection) =>
             previewTextControlHandlers.onRichTextKeyboardCommand?.(

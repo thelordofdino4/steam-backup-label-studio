@@ -250,9 +250,11 @@ export type CaseInsertPresetApplicationAdoptionRelationshipRule = Readonly<{
   operation: CaseInsertPresetApplicationAdoptionOperation
   requiredCurrentAttachment:
     | 'authoritative-absence'
+    | 'authoritative-absence-or-exact-source-configuration'
     | 'exact-source-configuration'
   sourceConfigurationIdentity:
     | 'must-be-absent'
+    | 'absent-or-must-match-current-attachment-exactly'
     | 'must-match-current-attachment-exactly'
   aggregateResult:
     | 'exact-transition-result'
@@ -260,7 +262,11 @@ export type CaseInsertPresetApplicationAdoptionRelationshipRule = Readonly<{
   successorAttachment:
     | 'exact-successor-configuration'
     | 'authoritative-absence'
-  attachmentAction: 'attached' | 'replaced' | 'released'
+  attachmentAction:
+    | 'attached'
+    | 'replaced'
+    | 'released'
+    | 'attached-or-replaced'
   replayRule: 'changed-source-state-is-conflict'
   outOfOrderRule: 'session-revision-template-or-attachment-mismatch-is-conflict'
   currentEvidenceReadiness:
@@ -271,11 +277,13 @@ export const CASE_INSERT_PRESET_APPLICATION_ADOPTION_RELATIONSHIPS =
   Object.freeze({
     apply: Object.freeze({
       operation: 'apply',
-      requiredCurrentAttachment: 'authoritative-absence',
-      sourceConfigurationIdentity: 'must-be-absent',
+      requiredCurrentAttachment:
+        'authoritative-absence-or-exact-source-configuration',
+      sourceConfigurationIdentity:
+        'absent-or-must-match-current-attachment-exactly',
       aggregateResult: 'exact-transition-result',
       successorAttachment: 'exact-successor-configuration',
-      attachmentAction: 'attached',
+      attachmentAction: 'attached-or-replaced',
       replayRule: 'changed-source-state-is-conflict',
       outOfOrderRule:
         'session-revision-template-or-attachment-mismatch-is-conflict',
@@ -417,6 +425,17 @@ export type CaseInsertPresetApplicationAdoptionIdentityInput =
         attachmentAction: 'attached'
       }>
     | Readonly<{
+        operation: 'apply'
+        source: CaseInsertPresetApplicationAdoptionIdentityContext<
+          CaseInsertPresetAttachedIdentityReference
+        >
+        successor: CaseInsertPresetApplicationAdoptionIdentityContext<
+          CaseInsertPresetAttachedIdentityReference
+        >
+        aggregateAdoptionClassification: 'exact-transition-result'
+        attachmentAction: 'replaced'
+      }>
+    | Readonly<{
         operation: 'reapply'
         source: CaseInsertPresetApplicationAdoptionIdentityContext<
           CaseInsertPresetAttachedIdentityReference
@@ -502,13 +521,22 @@ type CaseInsertPresetApplicationAdoptionReceiptCommon = Readonly<{
 }>
 
 export type CaseInsertPresetApplyApplicationAdoptionReceipt =
-  CaseInsertPresetApplicationAdoptionReceiptCommon & Readonly<{
-    operation: 'apply'
-    previousAttachment: CaseInsertPresetUnattachedIdentityReference
-    successorAttachment: CaseInsertPresetAttachedIdentityReference
-    aggregateAdoptionClassification: 'exact-transition-result'
-    attachmentAction: 'attached'
-  }>
+  CaseInsertPresetApplicationAdoptionReceiptCommon & (
+    | Readonly<{
+        operation: 'apply'
+        previousAttachment: CaseInsertPresetUnattachedIdentityReference
+        successorAttachment: CaseInsertPresetAttachedIdentityReference
+        aggregateAdoptionClassification: 'exact-transition-result'
+        attachmentAction: 'attached'
+      }>
+    | Readonly<{
+        operation: 'apply'
+        previousAttachment: CaseInsertPresetAttachedIdentityReference
+        successorAttachment: CaseInsertPresetAttachedIdentityReference
+        aggregateAdoptionClassification: 'exact-transition-result'
+        attachmentAction: 'replaced'
+      }>
+  )
 
 export type CaseInsertPresetReapplyApplicationAdoptionReceipt =
   CaseInsertPresetApplicationAdoptionReceiptCommon & Readonly<{
@@ -979,18 +1007,44 @@ export function classifyCaseInsertPresetApplicationAdoptionRelationship(
   const successorIdentity = input.evidenceEdge.successorConfigurationIdentity
 
   if (operation === 'apply') {
-    if (sourceIdentity !== null ||
-        !validConfigurationIdentity(successorIdentity)) {
+    if (!validConfigurationIdentity(successorIdentity)) {
       return failure(
         'successor-attachment-mismatch',
         'apply-attachment-edge-invalid',
         { operation },
       )
     }
-    if (attachment.state.status !== 'unattached') {
+    if (attachment.state.status === 'unattached') {
+      if (sourceIdentity !== null) {
+        return failure(
+          'unexpected-source-attachment',
+          'apply-unattached-source-configuration-must-be-absent',
+          { operation },
+        )
+      }
+      return deepFreeze({
+        ok: true as const,
+        status: 'attachment-edge-valid' as const,
+        operation,
+        attachmentAction: 'attached' as const,
+        currentAttachmentIdentity: attachment.state.attachmentIdentity,
+        sourceConfigurationIdentity: null,
+        successorConfigurationIdentity: successorIdentity,
+        adoptionReadiness:
+          'evidence-validated-pure-adoption-transition-required' as const,
+      })
+    }
+    if (!validConfigurationIdentity(sourceIdentity)) {
       return failure(
-        'unexpected-source-attachment',
-        'apply-requires-authoritative-absence',
+        'invalid-source-configuration',
+        'apply-source-configuration-identity-invalid',
+        { operation },
+      )
+    }
+    if (attachment.state.configuration.configurationIdentity !== sourceIdentity) {
+      return failure(
+        'configuration-identity-mismatch',
+        'apply-source-configuration-not-current',
         { operation },
       )
     }
@@ -998,9 +1052,9 @@ export function classifyCaseInsertPresetApplicationAdoptionRelationship(
       ok: true as const,
       status: 'attachment-edge-valid' as const,
       operation,
-      attachmentAction: 'attached' as const,
+      attachmentAction: 'replaced' as const,
       currentAttachmentIdentity: attachment.state.attachmentIdentity,
-      sourceConfigurationIdentity: null,
+      sourceConfigurationIdentity: sourceIdentity,
       successorConfigurationIdentity: successorIdentity,
       adoptionReadiness:
         'evidence-validated-pure-adoption-transition-required' as const,
@@ -1770,14 +1824,19 @@ export function projectCaseInsertPresetApplicationAdoptionIdentity(
   const sourceAttachment = source.attachment
   const successorAttachment = successor.attachment
   const relationshipMatches = operation === 'apply'
-    ? input.attachmentAction === 'attached' &&
-      input.aggregateAdoptionClassification === 'exact-transition-result' &&
-      sourceAttachment.status === 'unattached' &&
+    ? input.aggregateAdoptionClassification === 'exact-transition-result' &&
       successorAttachment.status === 'attached' &&
-      input.sourceConfigurationIdentity === null &&
       input.successorConfigurationIdentity ===
         successorAttachment.configurationIdentity &&
-      input.configurationReleaseIdentity === null
+      input.configurationReleaseIdentity === null && (
+        input.attachmentAction === 'attached' &&
+          sourceAttachment.status === 'unattached' &&
+          input.sourceConfigurationIdentity === null ||
+        input.attachmentAction === 'replaced' &&
+          sourceAttachment.status === 'attached' &&
+          input.sourceConfigurationIdentity ===
+            sourceAttachment.configurationIdentity
+      )
     : operation === 'reapply'
       ? input.attachmentAction === 'replaced' &&
         input.aggregateAdoptionClassification === 'exact-transition-result' &&

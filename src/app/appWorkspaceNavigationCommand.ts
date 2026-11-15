@@ -15,6 +15,10 @@ import type {
   ApplicationWorkspaceDestination,
   PreparedApplicationWorkspaceNavigationApply,
 } from './appWorkspaceNavigationApply.ts'
+import {
+  finishApplicationCaseInsertContinuousEdit,
+  type GetApplicationCaseInsertContinuousEditPort,
+} from './applicationCaseInsertContinuousEditPort.ts'
 
 export type ApplicationWorkspaceNavigationRuntimeDependencies = Readonly<{
   prepareWorkspaceApply(
@@ -46,6 +50,8 @@ function failure(
 
 export function createApplicationWorkspaceNavigationCommandOwners(
   getRuntimeDependencies: GetRuntimeDependencies,
+  getContinuousEditPort: GetApplicationCaseInsertContinuousEditPort =
+    () => null,
 ): Readonly<{
   returnHome: ReturnHomeCommandOwner
   resumeProject: ResumeProjectCommandOwner
@@ -77,6 +83,11 @@ export function createApplicationWorkspaceNavigationCommandOwners(
   const returnHome: ReturnHomeCommandOwner = Object.freeze({
     availability: 'implemented',
     executeReturnHome(context) {
+      const finishedEdit = finishApplicationCaseInsertContinuousEdit(
+        getContinuousEditPort(),
+      )
+      if (finishedEdit.status !== 'success') return finishedEdit
+
       const latest = context.getCurrentStateSnapshot()
       const session = latest.state.activeSession
       if (!session || latest.state.visibleWorkspace === 'home') {

@@ -27,6 +27,12 @@ import {
   createApplicationPngExportCommandOwner,
   type ApplicationPngExportRuntimeDependencies,
 } from './appPngExportCommand.ts'
+import type {
+  CaseInsertPresetSessionEditorApplyPort,
+} from '../lifecycle/caseInsertPresetSessionApplicationCommand.ts'
+import type {
+  ApplicationCaseInsertContinuousEditPort,
+} from './applicationCaseInsertContinuousEditPort.ts'
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
@@ -47,6 +53,12 @@ export type ApplicationLifecycleRuntime = Readonly<{
   ): void
   updatePngExportDependencies(
     dependencies: ApplicationPngExportRuntimeDependencies,
+  ): void
+  updateCaseInsertPresetEditorApply(
+    editorApply: CaseInsertPresetSessionEditorApplyPort,
+  ): void
+  updateCaseInsertContinuousEditPort(
+    port: ApplicationCaseInsertContinuousEditPort | null,
   ): void
   dispose(): void
 }>
@@ -74,15 +86,21 @@ export function createApplicationLifecycleRuntime(
   let workspaceNavigationDependencies:
     ApplicationWorkspaceNavigationRuntimeDependencies | null = null
   let pngExportDependencies: ApplicationPngExportRuntimeDependencies | null = null
+  let caseInsertPresetEditorApply:
+    CaseInsertPresetSessionEditorApplyPort | null = null
+  let caseInsertContinuousEditPort:
+    ApplicationCaseInsertContinuousEditPort | null = null
   let disposed = false
   const createRoot = options.createRoot ??
     createApplicationLifecycleCompositionRoot
   const saveOwners = createApplicationProjectSaveCommandOwners(
     () => projectSaveDependencies,
+    () => caseInsertContinuousEditPort,
   )
   const replacementGuard = createProjectReplacementGuard(
     () => projectReplacementDependencies,
     saveOwners.saveProjectWithinOperation,
+    () => caseInsertContinuousEditPort,
   )
   const newOwners = createApplicationProjectNewCommandOwners(
     () => projectNewDependencies,
@@ -91,9 +109,11 @@ export function createApplicationLifecycleRuntime(
   const workspaceNavigationOwners =
     createApplicationWorkspaceNavigationCommandOwners(
       () => workspaceNavigationDependencies,
+      () => caseInsertContinuousEditPort,
     )
   const pngExportOwner = createApplicationPngExportCommandOwner(
     () => pngExportDependencies,
+    () => caseInsertContinuousEditPort,
   )
   const root = createRoot({
     ports: {
@@ -109,6 +129,18 @@ export function createApplicationLifecycleRuntime(
       resumeProject: workspaceNavigationOwners.resumeProject,
     },
     exportPng: pngExportOwner,
+    caseInsertPresetEditorApply: {
+      commitLifecycleAndApply(commitLifecycle) {
+        if (!caseInsertPresetEditorApply) {
+          throw new Error(
+            'The Case preset editor apply adapter is not configured.',
+          )
+        }
+        return caseInsertPresetEditorApply.commitLifecycleAndApply(
+          commitLifecycle,
+        )
+      },
+    },
   })
 
   return Object.freeze({
@@ -159,6 +191,18 @@ export function createApplicationLifecycleRuntime(
         root.refreshCommandCapabilities()
       }
     },
+    updateCaseInsertPresetEditorApply(editorApply) {
+      if (disposed) {
+        throw new Error('The application lifecycle runtime is disposed.')
+      }
+      caseInsertPresetEditorApply = editorApply
+    },
+    updateCaseInsertContinuousEditPort(port) {
+      if (disposed) {
+        throw new Error('The application lifecycle runtime is disposed.')
+      }
+      caseInsertContinuousEditPort = port
+    },
     dispose() {
       if (disposed) return
       disposed = true
@@ -168,6 +212,8 @@ export function createApplicationLifecycleRuntime(
       projectNewDependencies = null
       workspaceNavigationDependencies = null
       pngExportDependencies = null
+      caseInsertPresetEditorApply = null
+      caseInsertContinuousEditPort = null
       root.dispose()
     },
   })
