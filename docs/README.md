@@ -24,7 +24,7 @@ Read [Software Navigation](SOFTWARE_NAVIGATION.md) before starting any SBLS test
 
 Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](IMAGE_ASSET_ACCEPTANCE_POLICY.md) documents the shared raster acceptance boundary, format/ingress matrices and remaining native acceptance for #358.
 
-Native Close/Quit reconciliation: [`NATIVE_TERMINATION_ACCEPTANCE.md`](NATIVE_TERMINATION_ACCEPTANCE.md) records the #360 admission barrier, native acknowledgement safety, primary Case integration boundary, and outstanding Windows acceptance.
+Native Close/Quit reconciliation: [`NATIVE_TERMINATION_ACCEPTANCE.md`](NATIVE_TERMINATION_ACCEPTANCE.md) records the #360 admission barrier, native acknowledgement safety and primary Case integration boundary. [`NATIVE_TERMINATION_WINDOWS_ACCEPTANCE.md`](NATIVE_TERMINATION_WINDOWS_ACCEPTANCE.md) records exact validated heads, bounded Windows observations, saved-package integrity and remaining issue-level gates.
 
 ## Active Authoritative Documents
 

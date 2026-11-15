@@ -1,6 +1,7 @@
 # Native Close and Quit reconciliation
 
-Status: isolated source candidate for #360; native acceptance and publication pending.
+Status: source-reviewed #360 candidate with bounded Windows acceptance; publication and remaining issue-level gates are pending.
+See [Windows native acceptance](NATIVE_TERMINATION_WINDOWS_ACCEPTANCE.md) for exact heads, observed branches, saved-package integrity and explicit limits. The matrix below is the implementation plan; it is not a claim that every branch has been exercised.
 Base: current main `fc1cd4dd`, including #304 and #367. Reuses draft #388's
 `d98c6ed2`, focused admission-retirement ideas from `3d6f2e85`, and the
 once-only cleanup helper from `e2ece750`. No #411 diagnostics, startup recovery
