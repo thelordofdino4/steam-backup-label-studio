@@ -46,6 +46,9 @@ Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](
 
 ## Conditional Reference Documents
 
+Candidate dimension provenance and its validation limits are documented in
+[`IMAGE_CANDIDATE_EVIDENCE.md`](IMAGE_CANDIDATE_EVIDENCE.md) for #169.
+
 | Document | Status | Purpose | Read when | Conflict rule |
 | --- | --- | --- | --- | --- |
 | [`PROJECT_PACKAGE_SAVE_CAPACITY.md`](PROJECT_PACKAGE_SAVE_CAPACITY.md) | Conditional implementation evidence | Save transport framing, independent capacity limits, regression fixtures, and outstanding native memory gates for #357. | Package save transport or capacity work. | Package policy defers to `PROJECT_PACKAGE_FORMAT_CONTRACT.md`; source checks do not replace native acceptance. |
