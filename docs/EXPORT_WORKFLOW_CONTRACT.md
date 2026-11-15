@@ -17,7 +17,7 @@ the target immutable normalized request, typed diagnostics/blockers/results,
 central command/busy/feedback ownership, safe destination replacement, or File
 menu connection defined by the remainder of this contract.
 
-Focused physical-output checkpoint, 2026-11-01 (#359): the shared canvas
+Focused physical-output reconciliation, 2026-11-15 (#359, reusing PR #389): the shared canvas
 serializer now establishes explicit PNG `pHYs` density from the exporter's DPI
 and verifies IHDR dimensions/chunk checksums before returning bytes. Disc and
 both Case outputs use this adapter; no pixel geometry or destination semantics

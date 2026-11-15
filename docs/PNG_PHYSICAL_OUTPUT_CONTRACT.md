@@ -15,6 +15,9 @@ passed to `canvasToPngBytes`. That existing serializer uses
 The value is `round(dpi / 0.0254)`: 300 DPI becomes **11811 pixels/metre**
 (299.9994 DPI), and 600 DPI becomes 23622. Integer unit conversion is expected;
 the maximum density quantization error is 0.0127 DPI.
+The encoded density must be between 1 and `0x7fffffff` pixels/metre: PNG's
+four-byte unsigned integer type is limited to `2^31 - 1`, not the full uint32
+range. Values that round outside this interval reject before publication.
 
 The encoder checks signature, chunk bounds/order, CRCs, required header/image/end
 chunks and exact IHDR-versus-canvas dimensions before returning bytes. It
@@ -29,7 +32,8 @@ after the checked bytes have been written; it does not certify a printer.
 The [PNG specification](https://www.w3.org/TR/png-3/#11pHYs) defines `pHYs`
 units and physical pixel dimensions. Absent metadata does not establish
 physical size. Browser/WebView encoding defaults are not relied on. No claim
-is made about pre-change native WebView bytes: their capture remains pending.
+is made that a decoder's default DPI is embedded metadata. Pre-change Windows
+captures described below establish that the inspected files have no `pHYs`.
 
 ## Raster dimensions and nominal geometry
 
@@ -66,8 +70,9 @@ printer accuracy.
 
 For each supported native platform, record the app commit, OS/WebView version,
 fixture, filename/hash, IHDR dimensions, all `pHYs` values/units, print software,
-printer/driver, scale settings and measured dimensions. Windows acceptance is
-pending; coordinate Linux #333 and macOS #334 independently.
+printer/driver, scale settings and measured dimensions. Windows acceptance of
+the corrected encoder is pending; coordinate Linux #333 and macOS #334
+independently. Physical printer calibration is also pending.
 
 1. From the primary native Tauri application, export a standard Disc, Jewel
    Cover and complete Tray, each with guides off and on. Inspect actual saved
@@ -83,12 +88,30 @@ pending; coordinate Linux #333 and macOS #334 independently.
 3. Print the guide-enabled outputs on ordinary paper. Measure both axes of the
    Cover/Tray bounds and the Disc circle's outline centerline (not the outer
    canvas or stroke edge). Also check the Tray fold spacing against the template.
-   Release calibration passes when each measured size is within **0.5 mm** of
-   the pixel/density-derived size and no clipping or unequal axis scaling is
-   present. Record the actual values, not just pass/fail.
+   The draft proposes **0.5 mm** as a per-axis tolerance around the
+   pixel/density-derived size, with no clipping or unequal axis scaling. This
+   tolerance has not been approved as a product/release criterion. Record the
+   actual values and obtain a declared tolerance before claiming release
+   calibration passed; do not treat this proposal as acceptance evidence.
 4. If outside tolerance, check application/driver scaling and repeat. Record
    unresolved deviation as a release blocker for that tested print path. Do
    not alter template geometry or renderer pixels to hide driver scaling.
 
-No native launch, saved native PNG inspection, calibration print or release
-acceptance has been performed for this source checkpoint. #359 remains open.
+## Observed pre-change Windows output
+
+The native Open-baseline receipt records a 1423 x 1423 Disc PNG with SHA256
+`b5d4a0dad0103bcbadbb3989bfda4131980fe83110786f660325580340dc9b09` and no
+`pHYs` chunk. Its decoder's 96-DPI reading was a default, not an encoded value.
+See [Project Open Baseline Acceptance](PROJECT_OPEN_BASELINE_ACCEPTANCE.md#representative-png-and-evidence-integrity).
+
+The 2026-11-15 primary Case acceptance captured a 1780 x 1390 Tray PNG with
+SHA256 `9dcbc1e0ddfd672e92d90af968e22c5127b5ad81a3013472454ec3f80d922e6c`.
+Read-only inspection found no `pHYs`, while decoded content included the
+adopted screenshot, Portal logo and both Steam spine banners. The primary's
+`docs/ASYNC_CASE_NATIVE_ACCEPTANCE.md` and local
+`sbls-304-367-native-evidence-20261115/native-acceptance-receipt.md` retain that
+bounded evidence. This primary-only Case fixture is not part of the main-only
+source change, and does not validate the corrected encoder or Cover output.
+
+No corrected native PNG inspection, calibration print or release acceptance
+has been performed for this source checkpoint. #359 remains open.

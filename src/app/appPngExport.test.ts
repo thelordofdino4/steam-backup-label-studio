@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { canvasToPngBytes } from '../export/canvasImage.ts'
 import {
   runCaseInsertPngExport as runCaseInsertPngExportAdapter,
   runDiscPngExport as runDiscPngExportAdapter,
@@ -84,6 +85,38 @@ function createDiscInput(
     }),
     ...overrides,
   }
+}
+
+for (const target of ['disc', 'cover', 'tray'] as const) {
+  test(`${target} rejects invalid serialized PNG before writing or reporting success`, async () => {
+    const calls: string[] = []
+    const statuses: string[] = []
+    const canvas = {
+      width: 2,
+      height: 1,
+      toBlob(callback: BlobCallback) {
+        callback(new Blob(['invalid PNG'], { type: 'image/png' }))
+      },
+    } as HTMLCanvasElement
+    const dependencies = {
+      saveDialog: async () => { calls.push('destination'); return 'unchanged.png' },
+      exportPngBytes: async () => {
+        calls.push('encode')
+        return { bytes: await canvasToPngBytes(canvas, 300), width: 2, height: 1, dpi: 300 }
+      },
+      writeBinaryFileCommand: async () => { calls.push('write') },
+      announceStatus: createStatusRecorder(statuses),
+    }
+    const result = target === 'disc'
+      ? await runDiscPngExport(createDiscInput(dependencies))
+      : await runCaseInsertPngExport(createCaseInput({ ...dependencies, activeTemplatePane: target }))
+    assert.equal(result.status, 'failure')
+    assert.deepEqual(calls, ['destination', 'encode'])
+    assert.equal(result.feedback?.kind, 'error')
+    assert.equal(statuses.length, 1)
+    assert.match(statuses[0], /Could not encode PNG physical resolution/)
+    assert.doesNotMatch(statuses[0], /Exported/)
+  })
 }
 
 test('clean case insert export skips confirmation and opens destination after preflight', async () => {

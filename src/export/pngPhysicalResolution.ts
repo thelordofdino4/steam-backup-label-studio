@@ -1,6 +1,6 @@
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const
 const METRES_PER_INCH = 0.0254
-const MAX_PNG_LENGTH = 0x7fffffff
+const MAX_PNG_INTEGER = 0x7fffffff
 const CRC_TABLE = Uint32Array.from({ length: 256 }, (_, value) => {
   let crc = value
   for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0)
@@ -28,11 +28,11 @@ export function encodePngPhysicalResolution(
   expectedSize: Readonly<{ width: number; height: number }>,
 ): Uint8Array {
   const pixelsPerMetre = Math.round(dpi / METRES_PER_INCH)
-  if (!Number.isFinite(dpi) || dpi <= 0 || pixelsPerMetre < 1 || pixelsPerMetre > 0xffffffff) {
+  if (!Number.isFinite(dpi) || dpi <= 0 || pixelsPerMetre < 1 || pixelsPerMetre > MAX_PNG_INTEGER) {
     invalid('DPI cannot be represented')
   }
   for (const value of [expectedSize.width, expectedSize.height]) {
-    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PNG_LENGTH) invalid('invalid canvas dimensions')
+    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PNG_INTEGER) invalid('invalid canvas dimensions')
   }
   if (!PNG_SIGNATURE.every((byte, index) => bytes[index] === byte)) invalid('invalid PNG signature')
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
@@ -45,7 +45,7 @@ export function encodePngPhysicalResolution(
   while (offset < bytes.length) {
     if (bytes.length - offset < 12) invalid('truncated chunk')
     const length = view.getUint32(offset)
-    if (length > MAX_PNG_LENGTH || length > bytes.length - offset - 12) invalid('invalid chunk length')
+    if (length > MAX_PNG_INTEGER || length > bytes.length - offset - 12) invalid('invalid chunk length')
     const end = offset + length + 12
     const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8))
     if (!/^[A-Za-z]{2}[A-Z][A-Za-z]$/.test(type)) invalid('invalid chunk type')

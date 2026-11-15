@@ -87,6 +87,24 @@ test('unrepresentable DPI and invalid or mismatched canvas dimensions reject', (
   assert.throws(() => encodePngPhysicalResolution(fixture(), 300, { width: 1, height: 1 }), /dimensions/)
 })
 
+test('pHYs density respects the PNG four-byte unsigned integer boundary', () => {
+  // PNG defines this integer type as 0..2^31-1, not a full uint32.
+  // A physical resolution additionally needs a nonzero density.
+  for (const pixelsPerMetre of [1, 0x7fffffff]) {
+    const output = encodePngPhysicalResolution(fixture(), pixelsPerMetre * 0.0254, size)
+    const physical = chunks(output).find(({ type }) => type === 'pHYs')!
+    assert.equal(physical.data.readUInt32BE(0), pixelsPerMetre)
+    assert.equal(physical.data.readUInt32BE(4), pixelsPerMetre)
+    assert.equal(physical.data[8], 1)
+  }
+  for (const pixelsPerMetre of [0x80000000, 0xffffffff]) {
+    assert.throws(
+      () => encodePngPhysicalResolution(fixture(), pixelsPerMetre * 0.0254, size),
+      /DPI cannot be represented/,
+    )
+  }
+})
+
 test('malformed PNG framing, CRC, header and terminal chunks reject before byte publication', () => {
   const source = fixture(), records = chunks(source)
   const header = records[0].bytes, data = records.find(({ type }) => type === 'IDAT')!.bytes
