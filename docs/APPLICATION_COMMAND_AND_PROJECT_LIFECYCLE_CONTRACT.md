@@ -671,6 +671,10 @@ Open must execute in this order:
    [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 3. Parse, validate, migrate, and normalize the resulting complete hydrated or
    legacy candidate without mutating the active session.
+   Disc staging captures the fully restored aggregate with the normal editor
+   snapshot owner after preset reconstruction/fallback. Restore-time defaults,
+   provenance, and safe-zone clamps are part of the accepted clean baseline,
+   not a subsequent edit. The source timestamp is retained.
 4. If an active session would be replaced, run the shared replacement guard
    against the latest session state.
 5. Commit the complete candidate through one atomic project/session transition.
