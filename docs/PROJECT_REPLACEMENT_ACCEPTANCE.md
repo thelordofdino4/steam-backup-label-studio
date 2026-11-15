@@ -1,9 +1,9 @@
 # Project replacement acceptance
 
-> Status: Focused reconciliation and acceptance plan for #303.
+> Status: Focused reconciliation and evidence receipt for #303.
 > Reviewed baseline: main `eff9c026de39cac891759f7dd5182b9209ef8323`.
 > Authority: `APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md` owns lifecycle semantics; this document records the bounded issue criteria and evidence limits.
-> Native acceptance: pending. This test/documentation change does not establish native acceptance or close #303/#308.
+> Native acceptance: bounded representative Windows coverage completed on primary `dd06e6f67a62a24ceb4aab1ac3e29a38c9de1fae`; exact coverage and limits are below. The #308 legacy baseline defect remains separate. This receipt does not itself close either issue.
 
 ## Reconciled scope
 
@@ -114,31 +114,94 @@ ignored `logs/` directory include `303-matrix-initial.log`,
 `303-matrix-final.log`, `303-focused-final.log`, `303-node-full.log`,
 `303-rust-full.log`, `303-build.log`, `303-lint.log`, `303-cycles.log`, and
 `303-discovery.log`. The build's existing large-chunk warning was non-fatal.
-These are source/diagnostic results; no native UI was operated for this change.
+These are source/diagnostic results. Native verification is recorded separately
+below and is not inferred from these automated checks.
 
-## Native Windows acceptance matrix
+### Primary integration receipt, 2026-11-15
 
-Read `SOFTWARE_NAVIGATION.md` before testing and every navigation batch. Use the
-authorized native Tauri app from the primary checkout and disposable fixtures
-with fresh output paths. Never replace existing user projects. Record actual
-source/primary commits and outcomes; browser checks cannot satisfy this matrix.
+Candidate `e74ab4a3770fcf8a230f06122f35c3756f6cf55d` was merged into the primary
+Case branch at `95bc386cb176687238b4410e1ab9d43ff3379d89`, preserving prior primary
+`dd06e6f67a62a24ceb4aab1ac3e29a38c9de1fae` as an ancestor. Only the four approved
+test/documentation files changed. The uncommitted native focus-diagnostic
+append in `SOFTWARE_NAVIGATION.md` remained byte-identical through that merge.
 
-| Surface/state | Required observation |
+The integrated primary passed 2,677/2,677 discovered Node tests, with no failed,
+cancelled, skipped, or todo tests, plus build, lint, dependency cycles (971
+files), discovery (3/3), and diff check. Ignored `dist/` was rebuilt; the running
+native development app was not restarted or operated during integration.
+
+Rust was not rerun in primary. Its committed `src-tauri` tree is identical to
+the 329-test isolated candidate. Physical comparison of all 90 tracked paths
+found 76 byte-identical files and 14 differing only in CRLF/LF, with no other
+differences. The previous 329-test result therefore covers unchanged Rust
+source/configuration rather than representing a new primary Rust run. The
+equivalence record and primary validation logs are retained with the isolated
+logs as `303-primary-rust-equivalence.json` and `303-primary-*.log`.
+
+The native/primary receipt updates following this integration change only
+documentation; production source and test inputs remain unchanged.
+
+## Native Windows acceptance, 2026-11-15
+
+The authorized native tester completed representative Windows acceptance on
+primary `dd06e6f67a62a24ceb4aab1ac3e29a38c9de1fae`. No #303 functional failure or
+lost native-menu feedback was observed. Tests used the primary source and the
+approved existing #358 Cargo target, launched with `npm run tauri dev -- --no-watch`.
+The test/documentation integration at primary `95bc386cb176687238b4410e1ab9d43ff3379d89`
+changed no production source. No additional restart is implied by that integration.
+
+`SOFTWARE_NAVIGATION.md` was reread before native action batches. All projects
+were disposable source copies or fresh outputs; existing user projects and
+frozen #358 evidence were not overwritten. Native input and observations used
+the exact process-backed Tauri window, with no browser fallback.
+
+| Surface/state | Observed coverage |
 | --- | --- |
-| Initial Home | New Disc/New Case/valid Load need no guard. Picker cancellation and invalid files leave Home with accurate feedback. |
-| Clean Disc and Case | Same-kind New, cross-kind New, and valid Load replace without a guard. Establish and verify a clean source rather than assuming every legacy Open is clean. |
-| Dirty Disc and Case | Same-kind New, cross-kind New, and valid Load each show one normal prompt. Cancel/Escape retains the visible project, route, and controls. Discard installs the selected target once. |
-| Guard Save | Successful Save completes before replacement. Save As cancellation and an observed failed write retain the original project and abort replacement. Verify output/source preservation independently where possible. |
-| Return Home/Resume | No abandonment prompt. Dirty and clean projects remain resumable, including exact Case Front/Back/Spine routes and current content. |
-| Home with retained work | Dirty New/Load is guarded; Cancel keeps the Resume card and project. Clean replacement requires no guard. |
-| Invalid/cancelled Load | No guard or partial editor reset on either editor or retained Home. |
-| Dialog/reentrancy | Initial focus, Tab/Shift+Tab containment, Escape and focus restoration, repeated activation, and no overlapping dialogs. |
-| Feedback ingress | Check sidebar and native-menu cancellation/failed guard Save. Terminal feedback must survive modal updates and remain readable after return to Home. |
-| Preservation | Representative save/reopen and PNG export retain current artwork, disabled state, text, and geometry. No new rendering/schema behavior is introduced by these tests. |
+| Initial Home | Separate controlled restarts verified New Disc and New Case without a guard. Cancelled/invalid Load stayed Home without Resume and showed feedback. Initial valid Load used a Case package without a guard. |
+| Clean sessions | Disc and Case same-kind New, both cross-kind New directions, Case-to-Disc Open, and Disc-to-Case Open bypassed the guard. Cleanliness came from valid packages or successful native Save, not the legacy fixture. |
+| Dirty sessions | Case same/cross-kind New, Disc cross-kind New and retained-Home same-kind New, and valid Open from both kinds produced one guard. Representative Cancel/Escape retained state/route; Discard installed the selected replacement once. |
+| Guard Save | Successful Case Save created a package before entering Disc. Save As cancellation kept Case and aborted replacement. Deliberate invalid-image Save failure aborted New Case, retained the full-branding Disc, and showed persistent error feedback; the destination was absent. |
+| Home/Resume | Return Home did not guard or discard. Disc, Case Front/Cover Sheet, Back/Tray Card, and Spine/Tray Card resumed their exact observed routes. Home cards showed the matching surface and clean/dirty status. |
+| Retained Home | New/Open Cancel retained Resume; New Case Discard replaced once. Invalid Open was rejected before any guard; a subsequently valid staged Open guarded the dirty retained session. |
+| Modal/reentrancy | Double New activation produced one modal. Tab reached Save and cycled through three buttons back to Save. Escape returned visible focus to New Disc. The documented initial-focus diagnostic used one Return to open Save As without writing. |
+| Native File menu | Explicit File > Save cancellation and deliberate invalid-image failure retained the session and displayed toast plus persistent Project File feedback after Save As closed. No historical feedback patch was replayed. |
+| Preservation | Saved Case and Disc package manifests/project JSON were inspected and source hashes remained unchanged. This is not a new native reopen/export pass; the earlier #358 preservation/export receipt remains separate. |
 
-This matrix does not certify every platform, packaged build, screen reader,
-physical print, or the broader Case editor finish line. Record a blocker or
-explicitly tracked successor for any unfulfilled criterion before closure.
+Native AX and immediate captures sometimes lagged; read-only observations, not
+repeated input, established settled outcomes. Initial document focus in AX and
+the absent pointer-focus ring were inconclusive. One Return activated Save and
+opened Save As, resolving the initial-focus question without a production fix.
+Explicit native File menu Save was used; the earlier unexplained Ctrl+Shift+S
+result was not retried or accepted as passing. Case template selection used the
+documented bound keyboard End/Return route, not popup-pointer retries.
+
+Controlled, announced Alt+F4 closures exited normally. A post-close AX request
+reported an unusable target/no process ID; native inventory and runner exit
+results confirmed closure, and input was not retried. One restart log recorded
+a controlled-to-uncontrolled React warning at 12:01:33 AM. That session included
+legacy loading, but evidence does not isolate its triggering action or attribute
+it to #303. No crash occurred; the other inspected restart logs were warning-free.
+
+Local artifacts are in `Temp/sbls-303-native-evidence-20261115` under the user's
+Windows profile: `native-receipt.md`, chronological `native-results.txt`, and
+`native-restart-1.log` through `native-restart-3.log`. Screenshots were observed
+in the native testing transcript; that folder does not claim saved screenshots.
+
+- `case-saved-before-disc.sbls`: 29,184 bytes; Case project, schema `0.4.0`.
+- `disc-clean-after-save.sbls`: 8,559 bytes; Disc project, schema `0.4.0`.
+- `guard-failure-should-not-exist.sbls` and `menu-failure-should-not-exist.sbls`:
+  both absent after the deliberate failures.
+- The unchanged Case, Disc, and legacy source-copy SHA-256 values were,
+  respectively, `e8248d41c3fdc954e88c9a4c1aea5db32e80626c981042cffa24aa0a8c350869`,
+  `b9d86d7a93bcd71dd9d07a7c1317320ecf775cb71fe187af82549390f7527cb7`, and
+  `bfb46f90992a3b5805c7e2d97653b941a6e6c601893385d1a3d31cb3da5c4693`.
+
+The app was left open on a disposable blank Case cover. This evidence is bounded
+representative Windows acceptance, not every source/action/outcome permutation,
+shortcut, menu item, platform, packaged build, screen reader, physical print, or
+the broader Case finish line. Initial valid Load used Case; later valid Open
+flows exercised both kinds. The #308 legacy exception was used only for failure
+testing, never as evidence of clean-session behavior.
 
 ## Separate #308 baseline defect
 
