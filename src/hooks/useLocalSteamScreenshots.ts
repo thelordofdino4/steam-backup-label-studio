@@ -1,6 +1,6 @@
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   createLocalSteamScreenshotBackgroundImport,
   type BackgroundImageImportResult,
@@ -22,6 +22,17 @@ type UseLocalSteamScreenshotsOptions = {
   announceStatus: (message: string) => void
 }
 
+type ScreenshotIdentity = Readonly<{ sessionId: string | null; appId: number | null }>
+type ScreenshotResults = {
+  identity: ScreenshotIdentity | null
+  screenshots: LocalSteamScreenshotAsset[]
+  thumbnails: Record<string, string>
+  hasChecked: boolean
+}
+const emptyResults: ScreenshotResults = {
+  identity: null, screenshots: [], thumbnails: {}, hasChecked: false,
+}
+
 export function useLocalSteamScreenshots({
   selectedSteamGame,
   applyBackgroundImageImport,
@@ -29,27 +40,44 @@ export function useLocalSteamScreenshots({
   announceStatus,
 }: UseLocalSteamScreenshotsOptions) {
   const asyncWork = useProjectAsyncWork()
-  const [resultSessionId, setResultSessionId] = useState<string | null>(null)
-  const [localSteamScreenshots, setLocalSteamScreenshots] = useState<
-    LocalSteamScreenshotAsset[]
-  >([])
-  const [localSteamScreenshotThumbnails, setLocalSteamScreenshotThumbnails] =
-    useState<Record<string, string>>({})
-  const [hasCheckedLocalSteamScreenshots, setHasCheckedLocalSteamScreenshots] =
-    useState(false)
-  const [pendingSearch, setPendingSearch] = useState<ProjectAsyncRequest | null>(null)
-  const isLocalSteamScreenshotsLoading = pendingSearch !== null && asyncWork.isCurrent(pendingSearch)
+  const sessionId = asyncWork.getCurrentSessionId()
+  const appId = selectedSteamGame?.appId ?? null
+  const identity = useMemo(() => ({ sessionId, appId }), [sessionId, appId])
+  const currentIdentity = useRef(identity)
+  const [results, setResults] = useState<ScreenshotResults>(emptyResults)
+  const currentResults = useRef(results)
+  const [pendingSearch, setPendingSearch] = useState<{
+    identity: ScreenshotIdentity; request: ProjectAsyncRequest
+  } | null>(null)
+  const visibleResults = results.identity === identity ? results : emptyResults
+  const isLocalSteamScreenshotsLoading = pendingSearch?.identity === identity &&
+    asyncWork.isCurrent(pendingSearch.request)
+
+  // Input identity can change without a lifecycle revision. Retire its old
+  // discovery authority, while render-time filtering hides accepted data at once.
+  useLayoutEffect(() => {
+    currentIdentity.current = identity
+    return () => { asyncWork.invalidate('screenshot-discovery') }
+  }, [asyncWork, identity])
+
+  useLayoutEffect(() => { currentResults.current = results }, [results])
+
+  function isIdentityCurrent(candidate: ScreenshotIdentity) {
+    return candidate === currentIdentity.current && candidate.appId !== null &&
+      candidate.sessionId !== null && candidate.sessionId === asyncWork.getCurrentSessionId()
+  }
 
   useEffect(() => {
+    if (results.identity !== identity || results.screenshots.length === 0) return
     let isCancelled = false
 
     async function loadLocalSteamScreenshotThumbnails() {
       const loadedThumbnails = await loadMissingLocalSteamScreenshotThumbnails(
-        localSteamScreenshots,
-        localSteamScreenshotThumbnails,
+        results.screenshots,
+        results.thumbnails,
       )
 
-      if (isCancelled) {
+      if (isCancelled || currentIdentity.current !== identity) {
         return
       }
 
@@ -57,10 +85,9 @@ export function useLocalSteamScreenshots({
         return
       }
 
-      setLocalSteamScreenshotThumbnails((currentThumbnails) => ({
-        ...currentThumbnails,
-        ...loadedThumbnails,
-      }))
+      setResults(current => current === results
+        ? { ...current, thumbnails: { ...current.thumbnails, ...loadedThumbnails } }
+        : current)
     }
 
     void loadLocalSteamScreenshotThumbnails()
@@ -68,58 +95,62 @@ export function useLocalSteamScreenshots({
     return () => {
       isCancelled = true
     }
-  }, [localSteamScreenshots, localSteamScreenshotThumbnails])
+  }, [identity, results])
 
   function resetLocalSteamScreenshotSearch() {
-    setLocalSteamScreenshots([])
-    setHasCheckedLocalSteamScreenshots(false)
-    asyncWork.invalidate('screenshot-discovery')
-    setPendingSearch(null)
+    clearLocalSteamScreenshotResults()
   }
 
   function clearLocalSteamScreenshotResults() {
     asyncWork.invalidate('screenshot-discovery')
-    setLocalSteamScreenshots([])
-    setLocalSteamScreenshotThumbnails({})
-    setHasCheckedLocalSteamScreenshots(false)
+    setResults(emptyResults)
+    setPendingSearch(null)
   }
 
   async function handleFindLocalSteamScreenshots() {
+    if (currentIdentity.current !== identity) return
     if (!selectedSteamGame) {
       announceStatus('Select or import a Steam game before checking local screenshots.')
       return
     }
 
     const request = asyncWork.begin('screenshot-discovery')
-    setPendingSearch(request)
-    setResultSessionId(request.sessionId)
-    setHasCheckedLocalSteamScreenshots(true)
+    setPendingSearch({ identity, request })
+    setResults(current => ({
+      ...(current.identity === identity ? current : emptyResults),
+      identity, hasChecked: true,
+    }))
     announceStatus(`Checking local Steam screenshots for ${selectedSteamGame.title}...`)
 
     try {
       const discovery = await createLocalSteamScreenshotDiscovery(selectedSteamGame)
+      if (!isIdentityCurrent(identity)) return
       asyncWork.publish(request, () => {
-        setLocalSteamScreenshots(discovery.screenshots)
+        setResults({ identity, screenshots: discovery.screenshots, thumbnails: {}, hasChecked: true })
         announceStatus(discovery.statusMessage)
       })
     } catch (error) {
+      if (!isIdentityCurrent(identity)) return
       asyncWork.publish(request, () => {
-        setLocalSteamScreenshots([])
-        setLocalSteamScreenshotThumbnails({})
+        setResults({ ...emptyResults, identity, hasChecked: true })
         announceStatus(`Local Steam screenshot check failed: ${String(error)}`)
       })
     }
   }
 
   async function handleUseLocalSteamScreenshot(asset: LocalSteamScreenshotAsset) {
+    if (!isIdentityCurrent(identity) || currentResults.current.identity !== identity ||
+      !currentResults.current.screenshots.some(current => current.id === asset.id && current.path === asset.path)) return
     const request = asyncWork.begin('background-artwork')
     setSelectedArtworkId(asset.id)
     announceStatus(`Loading ${asset.label}...`)
 
     try {
       const imported = await createLocalSteamScreenshotBackgroundImport(asset)
+      if (!isIdentityCurrent(identity)) return
       asyncWork.commit(request, () => { applyBackgroundImageImport(imported) })
     } catch (error) {
+      if (!isIdentityCurrent(identity)) return
       asyncWork.publish(request, () => {
         setSelectedArtworkId(null)
         announceStatus(`Local screenshot could not be applied: ${String(error)}`)
@@ -128,25 +159,30 @@ export function useLocalSteamScreenshots({
   }
 
   async function handleOpenLocalSteamScreenshotFolder() {
-    const folderPath = localSteamScreenshots[0]?.folderPath
+    if (!isIdentityCurrent(identity)) return
+    const folderPath = currentResults.current.identity === identity
+      ? currentResults.current.screenshots[0]?.folderPath : undefined
 
     if (!folderPath) {
       announceStatus('No local Steam screenshot folder is available yet.')
       return
     }
 
+    const continuation = asyncWork.captureSessionContinuation()
+    const mayAnnounce = () => isIdentityCurrent(identity) &&
+      asyncWork.isSessionContinuationCurrent(continuation)
     try {
       await openLocalFolder(folderPath)
-      announceStatus('Opened local Steam screenshot folder.')
+      if (mayAnnounce()) announceStatus('Opened local Steam screenshot folder.')
     } catch (error) {
-      announceStatus(`Could not open screenshot folder: ${String(error)}`)
+      if (mayAnnounce()) announceStatus(`Could not open screenshot folder: ${String(error)}`)
     }
   }
 
   return {
-    localSteamScreenshots: resultSessionId === asyncWork.getCurrentSessionId() ? localSteamScreenshots : [],
-    localSteamScreenshotThumbnails: resultSessionId === asyncWork.getCurrentSessionId() ? localSteamScreenshotThumbnails : {},
-    hasCheckedLocalSteamScreenshots: resultSessionId === asyncWork.getCurrentSessionId() && hasCheckedLocalSteamScreenshots,
+    localSteamScreenshots: visibleResults.screenshots,
+    localSteamScreenshotThumbnails: visibleResults.thumbnails,
+    hasCheckedLocalSteamScreenshots: visibleResults.hasChecked,
     isLocalSteamScreenshotsLoading,
     resetLocalSteamScreenshotSearch,
     clearLocalSteamScreenshotResults,

@@ -1538,7 +1538,6 @@ function App() {
     const applyDiscVisualDefaults = options.applyDiscVisualDefaults ?? true
 
     clearSelectedArtwork()
-    clearLocalSteamScreenshotResults()
 
     await runSteamImport(appId, async (importedState) => {
       const metadataCandidateResult = buildSteamMetadataCandidatesFromImportedGame(

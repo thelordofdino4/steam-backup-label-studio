@@ -69,3 +69,21 @@ integration; this current-main candidate does not establish that acceptance.
 Headless hook fixtures are isolated behavioral diagnostics, not native or
 visual acceptance. Windows native import/discovery, navigation/reset, Case
 companion behavior, and preview/export acceptance remain outstanding.
+
+Independent reconciliation review exposed a same-session screenshot race:
+while importing game B, game A remains selected and can finish screenshot
+discovery. Accepted arrays, thumbnails, checked state, and retained actions now
+belong to the session plus numeric Steam App ID, including input changes that
+do not publish a lifecycle revision. They hide on the first render for a new
+identity. Starting a different-identity search cannot relabel retained results;
+same-identity refresh preserves them while pending. App no longer clears these
+results merely when an import starts, so a failed or cancelled game B import
+does not discard still-current game A results. Late image/folder feedback and
+thumbnail completions also check their originating identity.
+
+Failure-report authority is explicit and one-use after a throwing synchronous
+application. A newer same-lane request or lane invalidation retires it
+permanently, even after the newer proposal completes or when replacement is
+reentrant inside the failing application. Unrelated proposal completion still
+preserves current failure feedback. Focused regressions reproduce the former
+failures and retain positive current-owner controls.
