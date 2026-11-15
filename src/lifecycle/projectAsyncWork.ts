@@ -50,7 +50,9 @@ export interface ProjectAsyncWork {
  */
 export function createProjectAsyncWork(
   getState: () => ApplicationLifecycleStateSnapshot,
+  options: Readonly<{ canAcceptWork?: () => boolean }> = {},
 ): ProjectAsyncWork {
+  const canAcceptWork = options.canAcceptWork ?? (() => true)
   let sequence = 0
   let mutationGeneration = 0
   let version = 0
@@ -87,7 +89,7 @@ export function createProjectAsyncWork(
     observeSessionRoute()
     const snapshot = getState()
     const session = snapshot.state.activeSession
-    return !disposed && latest.get(request.lane) === request &&
+    return !disposed && canAcceptWork() && latest.get(request.lane) === request &&
       session !== null && snapshot.state.visibleWorkspace !== 'home' &&
       request.sessionId === session.id &&
       request.contentRevision === session.revision &&
@@ -104,7 +106,7 @@ export function createProjectAsyncWork(
     const failed = failedApplications.get(request)
     // A synchronous owner failure may report once, but never regain mutation
     // authority. New requests, navigation, edits, or disposal retire it.
-    const mayReportFailure = !mutates && !disposed && failed !== undefined &&
+    const mayReportFailure = !mutates && !disposed && canAcceptWork() && failed !== undefined &&
       failureOwners.get(request.lane) === request && requestSessions.get(request) === continuation &&
       failed.mutationGeneration === mutationGeneration &&
       failed.stateGeneration === getState().generation
@@ -137,11 +139,13 @@ export function createProjectAsyncWork(
     getCurrentSessionId: () => getState().state.activeSession?.id ?? null,
     captureSessionContinuation() {
       observeSessionRoute()
-      return continuation
+      // Work captured while final native handoff owns admission cannot revive
+      // if that handoff fails and the application becomes interactive again.
+      return !disposed && canAcceptWork() ? continuation : Object.freeze({ sessionId: null })
     },
     isSessionContinuationCurrent(candidate) {
       observeSessionRoute()
-      return !disposed && candidate === continuation && candidate.sessionId !== null &&
+      return !disposed && canAcceptWork() && candidate === continuation && candidate.sessionId !== null &&
         getState().state.visibleWorkspace !== 'home'
     },
     begin(lane: ProjectAsyncLane) {
@@ -160,9 +164,13 @@ export function createProjectAsyncWork(
         stateGeneration: snapshot.generation,
         mutationGeneration,
       })
-      latest.set(lane, request)
       failureOwners.delete(lane)
-      requestSessions.set(request, continuation)
+      if (canAcceptWork()) {
+        latest.set(lane, request)
+        requestSessions.set(request, continuation)
+      } else {
+        latest.delete(lane)
+      }
       notify()
       return request
     },

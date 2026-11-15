@@ -3175,3 +3175,7 @@ Future changes to this SDD should remain evidence-based:
 - Add or update an ADR when a core contract changes.
 - Clearly mark future plans as future.
 - Do not describe planned behavior as implemented until code, tests, and runtime evidence support it.
+
+### Native termination ownership checkpoint (#360)
+
+Close Window/Quit reuse the lifecycle guard, Save owner, revision authorization and busy scopes. A captured handoff lease blocks the existing async request owner before retirement notifications, then finishes pending Case edits through a narrow optional port before final authorization. Main does not install the separate Case coordinator. The native bridge distinguishes proven no-authority rejection from an uncertain acknowledgement; unknown outcomes remain paused rather than admit edits that a delayed close could discard. Once-only awaitable cleanup preserves disposal ordering. See NATIVE_TERMINATION_ACCEPTANCE.md for the bounded source scope and outstanding primary/native gates.

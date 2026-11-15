@@ -34,6 +34,10 @@ function commandLabel(commandId: string): string {
       return 'Resume Project'
     case 'export.png':
       return 'Export PNG'
+    case 'application.close-window':
+      return 'Close Window'
+    case 'application.quit':
+      return 'Quit'
     default:
       return 'The command'
   }
@@ -48,7 +52,9 @@ function declineMessage(commandId: string): string {
   if (
     commandId === 'project.open' ||
     commandId === 'project.new-disc' ||
-    commandId === 'project.new-case'
+    commandId === 'project.new-case' ||
+    commandId === 'application.close-window' ||
+    commandId === 'application.quit'
   ) {
     return `${commandLabel(commandId)} cancelled. The current project was kept.`
   }

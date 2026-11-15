@@ -32,6 +32,10 @@ import {
 } from '../tauri/projectPackageWrite.ts'
 import { isProjectFileCommandFailure } from '../tauri/projectFileFailure.ts'
 import { isProjectPackageCommandFailure } from '../tauri/packageProjectFile.ts'
+import {
+  finishApplicationCaseInsertContinuousEdit,
+  type GetApplicationCaseInsertContinuousEditPort,
+} from './applicationCaseInsertContinuousEditPort.ts'
 
 type DialogFilter = Readonly<{
   name: string
@@ -129,7 +133,13 @@ async function runSave(
   dependencies: ApplicationProjectSaveRuntimeDependencies,
   forceSaveAs: boolean,
   operation: ApplicationCommandOperationToken,
+  getContinuousEditPort: GetApplicationCaseInsertContinuousEditPort,
 ): Promise<ApplicationCommandResult<void>> {
+  const finishedEdit = finishApplicationCaseInsertContinuousEdit(
+    getContinuousEditPort(),
+  )
+  if (finishedEdit.status !== 'success') return finishedEdit
+
   const session = context.getCurrentStateSnapshot().state.activeSession
   if (!session) {
     return failure(
@@ -251,6 +261,8 @@ export type SaveProjectWithinOperation = (
 
 export function createApplicationProjectSaveCommandOwners(
   getRuntimeDependencies: GetRuntimeDependencies,
+  getContinuousEditPort: GetApplicationCaseInsertContinuousEditPort =
+    () => null,
 ): Readonly<{
   saveProject: SaveProjectCommandOwner
   saveProjectAs: SaveProjectAsCommandOwner
@@ -266,7 +278,13 @@ export function createApplicationProjectSaveCommandOwners(
     executeSaveProject(context, _input, operation) {
       const dependencies = getRuntimeDependencies()
       return dependencies
-        ? runSave(context, dependencies, false, operation)
+        ? runSave(
+            context,
+            dependencies,
+            false,
+            operation,
+            getContinuousEditPort,
+          )
         : unavailable()
     },
   })
@@ -275,7 +293,13 @@ export function createApplicationProjectSaveCommandOwners(
     executeSaveProjectAs(context, _input, operation) {
       const dependencies = getRuntimeDependencies()
       return dependencies
-        ? runSave(context, dependencies, true, operation)
+        ? runSave(
+            context,
+            dependencies,
+            true,
+            operation,
+            getContinuousEditPort,
+          )
         : unavailable()
     },
   })
@@ -285,7 +309,13 @@ export function createApplicationProjectSaveCommandOwners(
   ) => {
     const dependencies = getRuntimeDependencies()
     return dependencies
-      ? runSave(context, dependencies, false, operation)
+      ? runSave(
+          context,
+          dependencies,
+          false,
+          operation,
+          getContinuousEditPort,
+        )
       : unavailable()
   }
 

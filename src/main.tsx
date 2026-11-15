@@ -21,7 +21,7 @@ function mountApplication() {
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {
       void menuRuntime.dispose()
-      lifecycleRuntime.dispose()
+      void lifecycleRuntime.dispose()
     })
   }
 

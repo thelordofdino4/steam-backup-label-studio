@@ -1,3 +1,4 @@
+import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { buildSteamMetadataCandidatesFromImportedGame } from '../steam/steamMetadataCandidates'
 import {
@@ -2021,6 +2022,7 @@ function App() {
     onCapabilitiesChanged:
       applicationLifecycleRoot.refreshCommandCapabilities,
   })
+  useApplicationTerminationIngress({ announceStatus, setHomeStatusMessage, applicationModalActive })
   useApplicationMenuCommandIngress({
     announceStatus,
     setHomeStatusMessage,
