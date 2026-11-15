@@ -128,11 +128,15 @@ headless tests do not satisfy that gate.
 - Save lifecycle tests preserve snapshot R as the clean baseline while an edit
   at R+1 remains current and dirty. Capacity rejection preserves the session and
   gives recovery guidance.
-- The first factory-derived Disc fixture exposed a separate existing
-  `disc.rating.custom` unsupported decision for the unrated default. The capacity
-  fixture explicitly selects the supported ESRB T metadata state. No production
-  rating policy is changed here; reconcile that observation with #358 before
-  claiming every default asset-policy state is accepted.
+- Historical observation (2026-11-01): the first factory-derived Disc fixture
+  exposed a separate `disc.rating.custom` unsupported decision for the unrated
+  default. The capacity fixture still selects the supported ESRB T metadata state.
+  The #307 integration through PR #409 subsequently resolved that default-save
+  defect: the capture planner checks `rating?.customImageSize` as accepted
+  evidence, not the empty rating settings object. The focused regression and
+  native blank-Disc save/reopen receipt are recorded in `SOFTWARE_NAVIGATION.md`.
+  This correction does not complete the broader asset-policy work in #358 or
+  the capacity native and memory acceptance gates for #357.
 
 Full source checks and any later native acceptance must be recorded with their
 actual results; this document does not imply an unperformed GUI test passed.
