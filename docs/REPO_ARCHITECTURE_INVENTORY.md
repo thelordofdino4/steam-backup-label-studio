@@ -193,6 +193,7 @@ Key files:
 - `src/app/appProjectSave.ts`
 - `src/app/appProjectSaveCommand.ts`
 - `src/package/projectPackageCapturePlan.ts`
+- `src/package/projectPackageWriteProjection.ts`
 - `src/tauri/projectPackageWrite.ts`
 - `src/app/appProjectRestore.ts`
 - `src/app/appPngExport.ts`
@@ -384,6 +385,7 @@ Key files:
 - `src/app/appProjectOpenCommand.ts`
 - `src/app/appProjectSaveCommand.ts`
 - `src/package/projectPackageCapturePlan.ts`
+- `src/package/projectPackageWriteProjection.ts`
 - `src/diagnostics/projectParityHarness.ts`
 - `src/tauri/binaryProjectFile.ts`
 - `src/tauri/binaryProjectFile.test.ts`
