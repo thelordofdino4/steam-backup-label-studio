@@ -1,4 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react'
+import { ImportedImagePolicyError } from '../image/importedImagePolicy'
 import {
   BackgroundImageLoadError,
   createSteamArtworkBackgroundImport,
@@ -168,7 +169,9 @@ export function useBackgroundImage({
       applyBackgroundImageImport(await createUploadedBackgroundImageImport(file))
     } catch (error) {
       announceStatus(
-        error instanceof BackgroundImageLoadError
+        error instanceof ImportedImagePolicyError
+          ? error.message
+          : error instanceof BackgroundImageLoadError
           ? 'Background image could not be loaded.'
           : 'Background image could not be read.',
       )
@@ -182,13 +185,11 @@ export function useBackgroundImage({
 
   async function handleUseSteamArtwork(asset: SteamArtworkAsset) {
     setIsArtworkLoading(true)
-    setSelectedArtworkId(asset.id)
     announceStatus(`Downloading ${asset.label}...`)
 
     try {
       applyBackgroundImageImport(await createSteamArtworkBackgroundImport(asset))
     } catch (error) {
-      setSelectedArtworkId(null)
       announceStatus(`Steam artwork download failed: ${String(error)}`)
     } finally {
       setIsArtworkLoading(false)

@@ -1,3 +1,4 @@
+import { ImportedImagePolicyError } from '../image/importedImagePolicy'
 import type {
   ChangeEvent,
   Dispatch,
@@ -71,8 +72,10 @@ export function useJewelCaseSpineSteamBannerEditor({
         setCustomJewelCaseSpineSteamBannerLockupImage(state, side, image),
       )
       announceStatus(`Using ${file.name} as the ${side} spine Steam banner icon.`)
-    } catch {
-      announceStatus('The Steam spine banner icon could not be read.')
+    } catch (error) {
+      announceStatus(error instanceof ImportedImagePolicyError
+        ? error.message
+        : 'The Steam spine banner icon could not be read.')
     }
   }
 
