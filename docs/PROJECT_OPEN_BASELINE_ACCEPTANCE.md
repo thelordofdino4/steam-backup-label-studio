@@ -138,6 +138,43 @@ The native receipt, launch log, and source manifest are in
 `Temp/sbls-308-native-evidence-20261115` under the user's Windows profile.
 Screenshots were observed through the native tool, not saved as image files.
 
+### User-authorized post-update attempt, 2026-11-15 UTC
+
+After the user updated the local Codex instance and explicitly requested another
+attempt, environment discovery reported computer-use and unified-computer-use
+version `26.1111.21308`. The fresh native attempt used primary
+`cbd4bdb502b56d80a5b32a566d28278832cbb3fd`, whose changes since tested primary
+`51ad8df8` were documentation only. The prior blocked receipt remains intact.
+
+A fresh inventory contained no SBLS window. Launch from the primary checkout
+using the existing approved Cargo target succeeded, and the exact native app
+displayed Home. Raise brought it in front of Steam. One Load Project click
+opened the owned Open dialog after a stale immediate observation; no click was
+repeated. The tester separated the former input batch: Alt+N was sent alone
+and observed, then one typing request supplied the full disposable legacy path.
+The request returned without error, but immediate and later observations still
+showed an empty filename, an unchanged Search placeholder, and no entered path.
+The filename caret remained inconsistent with AX Search Box focus.
+
+Return was not pressed. No focus or typing retry, alternate input, restart, or
+close followed. No corresponding application error was found in the launch
+log. The focus/input/observation cause remains unknown, and the tooling update
+does not establish that either failure was fixed. Native testing stopped before
+any project load. This is not a #308 application regression or native lifecycle
+acceptance; clean Open, edit/guard, conversion, Save/Save As, Home/Resume,
+Disc/Case preservation, and PNG export remain pending for this candidate.
+
+The app and its Open dialog were left open as native window `462656`. No output
+package or PNG was created. All four source inputs and their four disposable
+copies still match the source manifest hashes above, verified again for this
+receipt. `native-postupdate-receipt.md` and its separate launch log remain in
+the same native evidence directory. The additional chronological navigation
+entries are preserved unchanged in `SOFTWARE_NAVIGATION.md`. Screenshots were
+observed, not saved as files. This follow-up changes documentation only.
+The subsequent read-only control investigation identified a documented direct
+File name setter, but no separate modal window ID. No input was sent; the setter
+remains an untested diagnostic option, not a proven correction or acceptance.
+
 Issue #308 is not closed. The source candidate and local primary integration
 are validated as described above, but native lifecycle acceptance remains
 blocked. Branch publication and the remote-main merge remain explicitly held
