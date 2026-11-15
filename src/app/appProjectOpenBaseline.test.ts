@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
+import { DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL } from '../assets/assetManifest.ts'
 import { createBrandingSources } from '../caseInsert/brandingMarkTargetSourcesFixtures.ts'
 import type { CreateCaseInsertProjectSnapshotParams } from '../caseInsert/types.ts'
 import { createApplicationLifecycleCompositionRoot } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
@@ -15,7 +16,7 @@ import { parseSavedProjectContents } from '../project/projectSchema.ts'
 import { restoreSavedProjectState } from '../project/restoreProjectState.ts'
 import type { SavedDiscProject } from '../project/projectTypes.ts'
 import { createProjectPackageCommandFailure } from '../tauri/packageProjectFile.ts'
-import type { ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
+import { createProjectPackageWritePort, LEGACY_SOURCE_PATH_HEADER_NAME, type ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
 import { stageAppProjectOpen, type StagedProjectOpenCandidate } from './appProjectLoad.ts'
 import { createApplicationEditorAggregateApplier } from './appProjectRestore.ts'
 import { createSavedProjectForWorkspace } from './appProjectSave.ts'
@@ -29,12 +30,16 @@ const fixture = (name: string) => readFile(`fixtures/projects/${name}.sbls.json`
 function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = 'legacy-json') {
   const disc: Partial<CreateProjectSnapshotParams> = {}
   const caseInsert: CreateCaseInsertProjectSnapshotParams = {}
-  const options = { contents, cancelSave: false, onBackgroundResolution: () => {} }
+  const options = {
+    contents, cancelSave: false, onBackgroundResolution: () => {},
+    writePort: null as ProjectPackageWritePort | null,
+  }
   let workspace: 'disc' | 'caseInsert' = 'disc'
   let candidate: StagedProjectOpenCandidate | undefined
   let insideBatch = false
   let publications = 0
   let prompts = 0
+  let saveDialogs = 0
   const writes: Parameters<ProjectPackageWritePort['encodeAndWrite']>[0][] = []
   const set = <Key extends keyof CreateProjectSnapshotParams>(key: Key) =>
     (value: CreateProjectSnapshotParams[Key]) => {
@@ -106,7 +111,7 @@ function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = '
       recognizeProjectFileFormatCommand: async () => format,
       readProjectFileCommand: async () => options.contents,
       decodeProjectPackageFileCommand: async () => new TextEncoder().encode(options.contents),
-      defaultSteamBannerLockupImageUrl: '/assets/default-steam-lockup.png',
+      defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
       resolveBackgroundImageSize: async () => {
         options.onBackgroundResolution()
         return { width: 960, height: 640 }
@@ -116,10 +121,11 @@ function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = '
     prepareEditorAggregateApply(value) { candidate = value; return apply.prepare(value) },
   })
   runtime.updateProjectSaveDependencies({
-    saveDialog: async () => options.cancelSave ? null : destinationPath,
+    saveDialog: async () => { saveDialogs += 1; return options.cancelSave ? null : destinationPath },
     packageWrite: {
       async encodeAndWrite(input) {
         writes.push(input)
+        if (options.writePort) return options.writePort.encodeAndWrite(input)
         throw createProjectPackageCommandFailure('project.package.asset-type-invalid', 'asset-validation')
       },
     },
@@ -134,6 +140,7 @@ function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = '
     candidate: () => candidate!,
     publications: () => publications,
     prompts: () => prompts,
+    saveDialogs: () => saveDialogs,
     async open() {
       const result = await root.dispatch('project.open')
       assert.equal(result.disposition, 'executed')
@@ -303,4 +310,58 @@ test('a failed later Open cannot replace the prepared legacy baseline or editor 
   assert.equal(app.candidate(), applied)
   assert.equal(app.prompts(), 0)
   assert.equal(app.sync(), 'no-op')
+})
+
+test('minimal legacy conversion sends a portable built-in request and adopts its successful baseline', async () => {
+  const app = harness(await fixture('legacy-minimal-0.1.0'))
+  await app.open()
+  assertCleanSync(app)
+  const opened = app.root.getLifecycleState().activeSession!
+  let invokes = 0
+  let projectedContents = ''
+  app.options.writePort = createProjectPackageWritePort(async <Result>(command, body, options) => {
+    invokes += 1
+    assert.equal(command, 'encode_and_write_project_package_file')
+    assert.ok(body instanceof Uint8Array)
+    const view = new DataView(body.buffer, body.byteOffset, body.byteLength)
+    const decoder = new TextDecoder('utf-8', { fatal: true })
+    assert.equal(decoder.decode(body.subarray(0, 8)), 'SBLSPSV2')
+    const planLength = view.getUint32(8, false)
+    const projectLength = view.getUint32(12, false)
+    assert.equal(view.getUint32(16, false), 0, 'No project-owned image parts are required')
+    const plan = JSON.parse(decoder.decode(body.subarray(20, 20 + planLength)))
+    assert.deepEqual(plan.captures.find(({ ownerId }: { ownerId: string }) => ownerId === 'disc.steam-banner').decision,
+      { kind: 'qualified-built-in', compatibilityId: 'steam-banner:banner-lockup' })
+    assert.equal(plan.captures.some(({ decision }: { decision: { kind: string } }) => decision.kind === 'unsupported-nonportable-asset'), false)
+    projectedContents = decoder.decode(body.subarray(20 + planLength, 20 + planLength + projectLength))
+    const project = JSON.parse(projectedContents)
+    assert.equal(project.steamBackupLogo.lockupImageDataUrl, null)
+    assert.equal(project.steamBackupLogo.lockupImageSource.source, 'built-in')
+    assert.equal(projectedContents.includes(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL), false)
+    assert.equal(options.headers[LEGACY_SOURCE_PATH_HEADER_NAME], invokes === 1 ? encodeURIComponent(sourcePath) : undefined)
+    // Native byte validation and atomic filesystem writing have their own Rust
+    // tests; this port assertion proves the actual frontend request, not a disk write.
+    return { status: 'success' } as Result
+  })
+  for (let save = 0; save < 2; save += 1) {
+    const result = await app.root.dispatch('project.save')
+    assert.equal(result.disposition, 'executed')
+    if (result.disposition !== 'executed') return
+    assert.equal(result.result.status, 'success')
+    const session = app.root.getLifecycleState().activeSession!
+    assert.equal(session.id, opened.id)
+    assert.equal(session.revision, 0)
+    assert.equal(session.currentPath, destinationPath)
+    assert.equal(session.persistenceFormat, 'sbls-package-v1')
+    assert.equal(selectIsActiveProjectDirty(app.root.getLifecycleState()), false)
+    assert.deepEqual(session.cleanBaseline, opened.cleanBaseline)
+    assert.equal(app.sync(), 'no-op')
+    assert.equal(app.saveDialogs(), 1, 'Only the first legacy conversion opens Save As')
+  }
+  assert.equal(invokes, 2)
+  const reopened = harness(projectedContents, 'sbls-package-v1')
+  await reopened.open()
+  assertCleanSync(reopened)
+  assert.equal(reopened.disc.steamBannerLockupImageUrl, DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
+  assert.equal(reopened.disc.steamBannerLockupImageSource?.source, 'built-in')
 })

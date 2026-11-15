@@ -1,6 +1,6 @@
 # Project Open baseline acceptance
 
-> Status: Focused #308 source repair; native acceptance blocked before project load.
+> Status: Focused #308 source repair with a minimal-legacy conversion compatibility follow-up awaiting native verification.
 > Baseline: main `5a899b88e0c4137c6b15839ca0a4cc0e2bbb32c1`.
 > Authority: `APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md` owns session semantics; `PROJECT_FILE_SPEC.md` owns restoration policy.
 
@@ -22,11 +22,59 @@ aggregate and its clean baseline. The first canonically equal editor capture
 is a revision, state, and publication no-op. A real edit still becomes dirty.
 
 This is shared Disc staging for both legacy JSON and hydrated package input.
-The Case staging owner is unchanged. Restoration/clamping policy, asset bytes,
-schema, dirty comparison, replacement guard, Save failure behavior, and native
-I/O are unchanged. No design fields are excluded from dirty comparison and no
-post-Open effect clears dirty state. Close/Quit, history, crash recovery, broader
-lifecycle work, and banner-provenance policy are outside this repair.
+The Case staging owner is unchanged. The initial baseline slice did not change
+restoration/clamping policy, asset bytes, schema, dirty comparison, replacement
+guards, Save failure behavior, or native I/O. The bounded compatibility
+follow-up below corrects only provenance for a restored app-default banner.
+No design fields are excluded from dirty comparison and no post-Open effect
+clears dirty state. Close/Quit, history, crash recovery, and broader lifecycle
+work remain outside this repair.
+
+## Minimal legacy conversion compatibility follow-up
+
+After the earlier navigation blockers, native pointer-only navigation loaded
+the tracked 597-byte `legacy-minimal-0.1.0.sbls.json` on primary `708f9f19`
+(production source unchanged since `51ad8df8`). Save conversion to a fresh
+destination failed with "A required project asset could not be captured safely."
+The destination directory remained empty, the source hash remained unchanged,
+and the preview/session was retained. This was not the full-branding fixture's
+intentional unsupported-SVG failure. No Save retry was used to diagnose it.
+
+Production staging, snapshot, capture-plan, and transport-projection replay
+identified exactly one unsupported owner: `disc.steam-banner`. The sparse
+legacy fixture has no banner asset fields. Restoration supplied the app's
+default Steam banner URL while retaining null provenance. The normal snapshot
+therefore persisted that runtime URL, and the closed capture registry correctly
+classified it as `unsupported-nonportable-asset`. The native request adapter
+passes that decision unchanged to the codec, whose encoder rejects it as
+`AssetCaptureFailed` at `asset-capture` before writing. No project-owned images
+were present in this reproduction.
+
+The existing banner restoration owner now supplies built-in provenance only
+when a nonempty runtime default was restored and the saved owner has no image,
+dimensions, or explicit provenance. The ordinary snapshot then omits the
+runtime URL and the existing package registry qualifies
+`steam-banner:banner-lockup`. Retained custom bytes, explicit/partial custom
+provenance, dimensions, enabled state, and placement are not reclassified or
+discarded. Missing runtime defaults do not invent provenance. No URL/filename
+whitelist, codec relaxation, Save exception, or guard change was introduced.
+
+The minimal-default regression failed before this change. Four additional
+restore/capture regressions exercise the actual app default, absent defaults,
+visible/disabled custom bytes, and missing/partial custom evidence. A fifth
+regression runs production Open/application/capture/Save and the raw write-port
+framing, verifies the qualified built-in request without runtime URLs or image
+parts, then checks successful path/baseline adoption, direct repeated Save, and
+clean shared staging of the projected package content. Its native invocation is
+a test port, not proof of a filesystem write or codec execution. Existing Rust
+codec/native tests and a fresh native conversion remain separate gates.
+
+The historical `c46467ed` proposal was inspected, not replayed. This focused
+change additionally refuses to infer built-in identity from partial explicit
+provenance or malformed saved dimensions. The original baseline correction
+remains intact. Native acceptance
+must use the corrected primary source after review and validation; successful
+minimal conversion is not yet claimed.
 
 ## Automated acceptance
 
