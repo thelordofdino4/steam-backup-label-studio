@@ -112,7 +112,7 @@ export function validateDiscGeometryDraft(
       field,
       relatedFields: [upperField],
       message: code === 'safe-after-printable'
-        ? `Safe diameter is advisory, but must be at most ${limit} mm to remain inside the printable diameter.`
+        ? `Safe diameter must be at most ${limit} mm to remain inside the printable diameter.`
         : `${FIELD_LABELS[field]} must be at most ${limit} mm (${FIELD_LABELS[upperField].toLowerCase()}${inset ? ` minus ${inset} mm` : ''}).`,
       recovery: `Correct ${FIELD_LABELS[field].toLowerCase()} or ${FIELD_LABELS[upperField].toLowerCase()}; neither value is changed automatically.`,
     })

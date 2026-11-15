@@ -39,6 +39,18 @@ test('cross-field conflict remains visible and associated with both controls', a
   const description = await input.getAttribute('aria-describedby')
   assert.ok(description)
   assert.match(await page.locator('[id="' + description + '"]').textContent(), /printable|print boundary/i)
+  const panel = page.locator('details')
+  const advisory = panel.getByText(/Safe zone is advisory only/)
+  assert.equal(await advisory.count(), 1)
+  assert.equal(await panel.getByText(/advisory/i).count(), 1)
+  assert.equal(await advisory.evaluate(element =>
+    element.previousElementSibling?.classList.contains('custom-dimension-grid')), true)
+  for (const label of ['Safe zone', 'Outer print boundary']) {
+    const errorId = await field(label).getAttribute('aria-describedby')
+    const errorText = await page.locator('[id="' + errorId + '"]').textContent()
+    assert.match(errorText, /must be at most 118 mm/)
+    assert.doesNotMatch(errorText, /advisory/i)
+  }
   assert.deepEqual(await committed(), before)
 })
 test('valid edit retains the established commit and clamp behavior', async () => {

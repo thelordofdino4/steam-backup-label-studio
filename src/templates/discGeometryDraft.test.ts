@@ -103,7 +103,7 @@ test('all cross-field relationships identify both affected controls and preserve
     assert.equal(error?.field, field)
     assert.deepEqual(error?.relatedFields, [related])
     assert.match(error?.message ?? '', /must be at most.*mm/)
-    if (code === 'safe-after-printable') assert.match(error?.message ?? '', /advisory.*inside the printable diameter/)
+    if (code === 'safe-after-printable') assert.match(error?.message ?? '', /inside the printable diameter/)
     assert.equal('candidate' in result, false)
   }
 })
