@@ -46,6 +46,8 @@ Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](
 
 ## Conditional Reference Documents
 
+Case back copy review preparation: [`CASE_BACK_COPY_FIT_REVIEW.md`](CASE_BACK_COPY_FIT_REVIEW.md) records the read-only #181 owner, estimated fit evidence, and remaining Game planning/application gates.
+
 | Document | Status | Purpose | Read when | Conflict rule |
 | --- | --- | --- | --- | --- |
 | [`PROJECT_PACKAGE_SAVE_CAPACITY.md`](PROJECT_PACKAGE_SAVE_CAPACITY.md) | Conditional implementation evidence | Save transport framing, independent capacity limits, regression fixtures, and outstanding native memory gates for #357. | Package save transport or capacity work. | Package policy defers to `PROJECT_PACKAGE_FORMAT_CONTRACT.md`; source checks do not replace native acceptance. |
