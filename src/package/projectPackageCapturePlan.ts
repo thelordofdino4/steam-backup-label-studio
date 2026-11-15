@@ -361,7 +361,7 @@ function pushDiscPlan(
       rating?.source === 'custom' && rating.customImageSize
         ? null
         : ratingBuiltInId(project),
-      hasAcceptedEvidence(rating, rating?.customImageSize),
+      hasAcceptedEvidence(rating?.customImageSize),
     ),
   ))
 
