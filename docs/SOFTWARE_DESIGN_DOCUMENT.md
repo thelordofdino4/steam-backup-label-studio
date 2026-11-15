@@ -2512,6 +2512,9 @@ Disc background image geometry, reconstructs Disc preset state, and projects
 Case branding before any live mutation. Its commit phase establishes the exact
 accepted normalized snapshot as a path-bearing revision-zero clean session and
 applies the complete editor aggregate synchronously in the same React batch.
+The Disc accepted snapshot uses `createProjectSnapshot` after all restoration
+and preset fallback, preserving the source timestamp so initial editor capture
+is canonically equal to the Open baseline rather than a synthetic edit.
 
 The draft target-state application-command, single-project session, path,
 baseline, dirty-state, replacement-guard, and native close/Quit semantics are

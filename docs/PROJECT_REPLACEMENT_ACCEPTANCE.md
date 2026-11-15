@@ -205,6 +205,11 @@ testing, never as evidence of clean-session behavior.
 
 ## Separate #308 baseline defect
 
+The historical defect and evidence boundary below are now addressed by the
+focused source repair in [Project Open baseline acceptance](PROJECT_OPEN_BASELINE_ACCEPTANCE.md).
+That document distinguishes the new aggregate-application/synchronization
+regressions from native acceptance and from broader #308 lifecycle work.
+
 [Issue #308 comment 6889060855](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308#issuecomment-6889060855)
 records a pre-existing full-branding legacy Disc Open mismatch. Parsed Open
 initially creates a clean baseline, but the later restored aggregate adds

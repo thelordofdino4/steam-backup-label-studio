@@ -1,0 +1,306 @@
+import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+import test from 'node:test'
+import { createBrandingSources } from '../caseInsert/brandingMarkTargetSourcesFixtures.ts'
+import type { CreateCaseInsertProjectSnapshotParams } from '../caseInsert/types.ts'
+import { createApplicationLifecycleCompositionRoot } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
+import {
+  captureNormalizedProjectSnapshot,
+  createCanonicalProjectComparisonValue,
+} from '../lifecycle/canonicalProject.ts'
+import { selectIsActiveProjectDirty } from '../lifecycle/projectSession.ts'
+import { createBlankJewelCaseSavedProject } from '../project/caseInsertProjectAdapters.ts'
+import type { CreateProjectSnapshotParams } from '../project/createProjectSnapshot.ts'
+import { parseSavedProjectContents } from '../project/projectSchema.ts'
+import { restoreSavedProjectState } from '../project/restoreProjectState.ts'
+import type { SavedDiscProject } from '../project/projectTypes.ts'
+import { createProjectPackageCommandFailure } from '../tauri/packageProjectFile.ts'
+import type { ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
+import { stageAppProjectOpen, type StagedProjectOpenCandidate } from './appProjectLoad.ts'
+import { createApplicationEditorAggregateApplier } from './appProjectRestore.ts'
+import { createSavedProjectForWorkspace } from './appProjectSave.ts'
+import { createApplicationLifecycleRuntime } from './applicationLifecycleRuntime.ts'
+
+const sourcePath = 'C:\\projects\\legacy.sbls.json'
+const destinationPath = 'C:\\projects\\converted.sbls'
+const fixture = (name: string) => readFile(`fixtures/projects/${name}.sbls.json`, 'utf8')
+
+/** Production Open/apply/capture/sync/Save owners; native I/O and React setters are ports. */
+function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = 'legacy-json') {
+  const disc: Partial<CreateProjectSnapshotParams> = {}
+  const caseInsert: CreateCaseInsertProjectSnapshotParams = {}
+  const options = { contents, cancelSave: false, onBackgroundResolution: () => {} }
+  let workspace: 'disc' | 'caseInsert' = 'disc'
+  let candidate: StagedProjectOpenCandidate | undefined
+  let insideBatch = false
+  let publications = 0
+  let prompts = 0
+  const writes: Parameters<ProjectPackageWritePort['encodeAndWrite']>[0][] = []
+  const set = <Key extends keyof CreateProjectSnapshotParams>(key: Key) =>
+    (value: CreateProjectSnapshotParams[Key]) => {
+      assert.equal(insideBatch, true)
+      disc[key] = value
+    }
+  const apply = createApplicationEditorAggregateApplier({
+    batchReactUpdates(commit) {
+      insideBatch = true
+      try { commit() } finally { insideBatch = false }
+    },
+    shell: {
+      setActiveWorkspace: (value) => { workspace = value },
+      setHomeStatusMessage: () => {},
+      restoreCaseInsertRoute: (pane) => { caseInsert.activeCaseInsertTemplatePane = pane },
+    },
+    commonProject: {
+      setManualGameTitle(value) { set('manualGameTitle')(value); caseInsert.manualGameTitle = value },
+      setProjectMetadata(value) { set('projectMetadata')(value); caseInsert.projectMetadata = value },
+      setSelectedSteamGame(value) { set('selectedSteamGame')(value); caseInsert.selectedSteamGame = value },
+    },
+    discProject: {
+      restoreDiscGuidedWorkflow: set('discGuidedWorkflow'),
+      setProjectLogoAssets: set('projectLogoAssets'),
+      setProjectTitleArtwork: set('projectTitleArtwork'),
+      setProjectAdditionalArtwork: set('projectAdditionalArtwork'),
+      setProjectRatingBadge: set('projectRatingBadge'),
+      setProjectMediaMark: set('projectMediaMark'),
+      setProjectPlatformMarks: set('projectPlatformMarks'),
+      setProjectTechnicalMarks: set('projectTechnicalMarks'),
+      restoreDiscTemplateState(value) {
+        set('selectedDiscTemplateId')(value.selectedDiscTemplateId)
+        set('customDiscTemplate')(value.customDiscTemplate ?? value.selectedDiscTemplate)
+      },
+      setSteamLogoPlacement: set('steamLogoPlacement'),
+      setSteamBannerColors: set('steamBannerColors'),
+      setSteamBannerLockupImageUrl: set('steamBannerLockupImageUrl'),
+      setSteamBannerLockupImageSource: set('steamBannerLockupImageSource'),
+      setSteamBannerLockupImageSize: set('steamBannerLockupImageSize'),
+      setSteamBannerLockupLayout: set('steamBannerLockupLayout'),
+      setSteamBannerUseTextFallback: set('steamBannerUseTextFallback'),
+      setSteamBannerFallbackText: set('steamBannerFallbackText'),
+      restoreExportGuides: set('exportGuides'),
+      restoreDiscTextState: (value) => { Object.assign(disc, value) },
+      restoreBackgroundImageState: (value) => { Object.assign(disc, value) },
+    },
+    caseInsertProject: { setProjectJewelCase: (value) => { caseInsert.caseInsert = value } },
+    transientEditor: {
+      clearPreviewSelections: () => {},
+      clearDiscArtworkSelection: () => {},
+      clearDiscLocalScreenshotResults: () => {},
+      restoreActiveDiscPresetState: () => {},
+    },
+  })
+  const runtime = createApplicationLifecycleRuntime({
+    createRoot: (ports) => createApplicationLifecycleCompositionRoot({
+      ...ports,
+      createSessionId: () => 'opened-session',
+    }),
+  })
+  const root = runtime.root
+  root.subscribe(() => { publications += 1 })
+  runtime.updateProjectReplacementDependencies({
+    promptForReplacementDecision: async () => { prompts += 1; return 'cancel' },
+  })
+  runtime.updateProjectOpenDependencies({
+    stageCandidate: () => stageAppProjectOpen({
+      openDialog: async () => sourcePath,
+      recognizeProjectFileFormatCommand: async () => format,
+      readProjectFileCommand: async () => options.contents,
+      decodeProjectPackageFileCommand: async () => new TextEncoder().encode(options.contents),
+      defaultSteamBannerLockupImageUrl: '/assets/default-steam-lockup.png',
+      resolveBackgroundImageSize: async () => {
+        options.onBackgroundResolution()
+        return { width: 960, height: 640 }
+      },
+      caseInsertBrandingSources: createBrandingSources(),
+    }),
+    prepareEditorAggregateApply(value) { candidate = value; return apply.prepare(value) },
+  })
+  runtime.updateProjectSaveDependencies({
+    saveDialog: async () => options.cancelSave ? null : destinationPath,
+    packageWrite: {
+      async encodeAndWrite(input) {
+        writes.push(input)
+        throw createProjectPackageCommandFailure('project.package.asset-type-invalid', 'asset-validation')
+      },
+    },
+  })
+  const snapshot = () => createSavedProjectForWorkspace({
+    activeWorkspace: workspace,
+    discProject: disc as CreateProjectSnapshotParams,
+    caseInsertProject: caseInsert,
+  })
+  return {
+    root, options, disc, writes, snapshot,
+    candidate: () => candidate!,
+    publications: () => publications,
+    prompts: () => prompts,
+    async open() {
+      const result = await root.dispatch('project.open')
+      assert.equal(result.disposition, 'executed')
+      if (result.disposition !== 'executed') throw new Error('Open did not execute')
+      assert.equal(result.result.status, 'success')
+    },
+    sync() {
+      const session = root.getLifecycleState().activeSession!
+      return root.synchronizeCurrentProject({ sessionId: session.id, kind: session.kind, project: snapshot() })
+    },
+  }
+}
+
+function assertCleanSync(app: ReturnType<typeof harness>) {
+  const before = app.root.getStateSnapshot()
+  const session = before.state.activeSession!
+  const publications = app.publications()
+  const comparison = createCanonicalProjectComparisonValue(captureNormalizedProjectSnapshot(app.snapshot()))
+  assert.equal(comparison, session.cleanBaseline?.comparisonValue)
+  assert.equal(app.sync(), 'no-op')
+  assert.equal(app.sync(), 'no-op')
+  assert.equal(app.root.getStateSnapshot(), before)
+  assert.equal(app.publications(), publications)
+  assert.equal(session.revision, 0)
+  assert.equal(selectIsActiveProjectDirty(before.state), false)
+}
+
+for (const name of ['full-branding', 'legacy-minimal-0.1.0', 'custom-dimensions', 'blank-project', 'background-only']) {
+  test(`${name} legacy Open applies and captures a clean revision-zero aggregate`, async () => {
+    const contents = await fixture(name)
+    const app = harness(contents)
+    await app.open()
+    assertCleanSync(app)
+    assert.equal(app.root.getLifecycleState().activeSession?.currentPath, sourcePath)
+    assert.equal(app.root.getLifecycleState().activeSession?.persistenceFormat, 'legacy-json')
+    assert.equal(app.root.getLifecycleState().activeSession?.project.savedAt, JSON.parse(contents).savedAt)
+    if (name === 'full-branding') {
+      const original = parseSavedProjectContents(contents) as SavedDiscProject
+      const current = app.snapshot() as SavedDiscProject
+      assert.deepEqual(original.platformMarks?.assets.pc?.layout, { enabled: true, scale: 1, x: 24, y: 82 })
+      assert.notDeepEqual(current.platformMarks?.assets.pc?.layout, original.platformMarks?.assets.pc?.layout)
+      assert.equal(current.logoAssets?.developerLogoSource?.source, 'embedded')
+      assert.equal(current.background.imageDataUrl, original.background.imageDataUrl)
+      assert.equal(current.logoAssets?.developerLogoDataUrl, original.logoAssets?.developerLogoDataUrl)
+      assert.equal(current.logoAssets?.publisherLogoDataUrl, original.logoAssets?.publisherLogoDataUrl)
+    }
+  })
+}
+
+test('package Open uses the same restored Disc baseline as legacy Open', async () => {
+  const app = harness(await fixture('full-branding'), 'sbls-package-v1')
+  await app.open()
+  assertCleanSync(app)
+  assert.equal(app.root.getLifecycleState().activeSession?.persistenceFormat, 'sbls-package-v1')
+})
+
+for (const failReconstruction of [false, true]) {
+  test(`Open baseline includes the final ${failReconstruction ? 'deactivated' : 'active'} guided workflow`, async (t) => {
+    const project = JSON.parse(await fixture('full-branding')) as SavedDiscProject
+    project.editor = { guidedLayout: {
+      id: 'disc:guided-layout:classic-top-title', version: 1,
+      omittedSlotIds: [], completedSlotIds: [],
+    } }
+    // Image inspection is the last asynchronous restore step. Fail browser
+    // measurement only after restoration so the staging owner's later preset
+    // reconstruction/fallback path, rather than parsing, is exercised.
+    delete project.background.imageSize
+    const before = await restoreSavedProjectState(project)
+    assert.ok(before.discGuidedWorkflow.activeLayout)
+    const app = harness(JSON.stringify(project))
+    let measurements = 0
+    if (failReconstruction) {
+      const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
+      t.after(() => {
+        if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument)
+        else Reflect.deleteProperty(globalThis, 'document')
+      })
+      app.options.onBackgroundResolution = () => {
+        Object.defineProperty(globalThis, 'document', {
+          configurable: true,
+          value: { createElement() { measurements += 1; throw new Error('Canvas unavailable') } },
+        })
+      }
+    }
+    await app.open()
+    const candidate = app.candidate()
+    assert.equal(candidate.projectType, 'disc')
+    if (candidate.projectType !== 'disc') return
+    assert.equal(Boolean(candidate.activeDiscPresetState), !failReconstruction)
+    assert.equal(Boolean(candidate.restoredProject.discGuidedWorkflow.activeLayout), !failReconstruction)
+    assert.equal(Boolean(candidate.normalizedProject.editor), !failReconstruction)
+    assert.deepEqual(candidate.normalizedProject.background.imageSize, { width: 960, height: 640 })
+    if (failReconstruction) assert.ok(measurements > 0)
+    assertCleanSync(app)
+  })
+}
+
+test('Case Open aggregate application and normal capture remain clean', async () => {
+  const project = createBlankJewelCaseSavedProject('Case control')
+  project.editor = { ...project.editor, activeCaseInsertTemplatePane: 'tray' }
+  const app = harness(JSON.stringify(project))
+  await app.open()
+  assertCleanSync(app)
+  assert.deepEqual(app.root.getLifecycleState().activeSession?.lastEditorRoute, { workspace: 'caseInsert', surface: 'back' })
+})
+
+test('a real edit after legacy Open becomes dirty once without changing the baseline', async () => {
+  const app = harness(await fixture('full-branding'))
+  await app.open()
+  assertCleanSync(app)
+  const baseline = app.root.getLifecycleState().activeSession!.cleanBaseline
+  app.disc.manualGameTitle = 'A real title edit'
+  assert.equal(app.sync(), 'synchronized')
+  assert.equal(app.root.getLifecycleState().activeSession?.revision, 1)
+  assert.equal(selectIsActiveProjectDirty(app.root.getLifecycleState()), true)
+  assert.deepEqual(app.root.getLifecycleState().activeSession?.cleanBaseline, baseline)
+  assert.equal(app.sync(), 'no-op')
+  const result = await app.root.dispatch('project.open')
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed') assert.equal(result.result.status, 'declined')
+  assert.equal(app.prompts(), 1)
+})
+
+for (const dirty of [false, true]) {
+  for (const cancel of [false, true]) {
+    test(`${dirty ? 'edited' : 'clean'} legacy conversion ${cancel ? 'cancellation' : 'failure'} preserves the entire session`, async () => {
+      const app = harness(await fixture('full-branding'))
+      await app.open()
+      assertCleanSync(app)
+      if (dirty) {
+        app.disc.manualGameTitle = 'Keep this unsaved edit'
+        assert.equal(app.sync(), 'synchronized')
+      }
+      const before = app.root.getStateSnapshot()
+      app.options.cancelSave = cancel
+      const result = await app.root.dispatch('project.save')
+      assert.equal(result.disposition, 'executed')
+      if (result.disposition !== 'executed') return
+      assert.equal(result.result.status, cancel ? 'cancelled' : 'failure')
+      if (result.result.status === 'failure') assert.equal(result.result.error.code, 'project.package.asset-type-invalid')
+      assert.equal(app.root.getStateSnapshot(), before)
+      assert.equal(app.root.getLifecycleState().activeSession?.currentPath, sourcePath)
+      assert.equal(app.root.getLifecycleState().activeSession?.persistenceFormat, 'legacy-json')
+      assert.equal(selectIsActiveProjectDirty(app.root.getLifecycleState()), dirty)
+      assert.equal(app.sync(), 'no-op')
+      assert.equal(app.writes.length, cancel ? 0 : 1)
+      if (!cancel) {
+        assert.equal(app.writes[0].legacySourcePath, sourcePath)
+        assert.equal(app.writes[0].destinationPath, destinationPath)
+        assert.deepEqual(app.writes[0].normalizedProject, before.state.activeSession!.project)
+      }
+    })
+  }
+}
+
+test('a failed later Open cannot replace the prepared legacy baseline or editor content', async () => {
+  const app = harness(await fixture('full-branding'))
+  await app.open()
+  assertCleanSync(app)
+  const before = app.root.getStateSnapshot()
+  const applied = app.candidate()
+  app.options.contents = '{invalid'
+  const result = await app.root.dispatch('project.open')
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed') assert.equal(result.result.status, 'failure')
+  assert.equal(app.root.getStateSnapshot(), before)
+  assert.equal(app.candidate(), applied)
+  assert.equal(app.prompts(), 0)
+  assert.equal(app.sync(), 'no-op')
+})

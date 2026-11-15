@@ -21,6 +21,7 @@ import {
   normalizeSavedCaseInsertProject,
   restoreCaseInsertProjectState,
 } from '../project/caseInsertProjectAdapters.ts'
+import { createProjectSnapshot } from '../project/createProjectSnapshot.ts'
 import {
   parseSavedProjectContents,
   ProjectSchemaError,
@@ -248,7 +249,6 @@ async function stageDiscProject(
   project: SavedDiscProject,
   params: StageProjectOpenContentsParams,
 ): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
-  const normalizedProject = captureNormalizedProjectSnapshot(project)
   let restoredProject: RestoredProjectState
 
   try {
@@ -331,6 +331,18 @@ async function stageDiscProject(
   }
 
   try {
+    // Open accepts the fully prepared editor aggregate, including restore-time
+    // defaults/clamps and preset fallback. Use the editor's persistence owner so
+    // its first synchronization compares equal without hiding real later edits.
+    const normalizedProject = captureNormalizedProjectSnapshot({
+      ...createProjectSnapshot({
+        ...restoredProject,
+        selectedDiscTemplateId: restoredProject.template.selectedDiscTemplateId,
+        customDiscTemplate: restoredProject.template.customDiscTemplate ??
+          restoredProject.template.selectedDiscTemplate,
+      }),
+      savedAt: project.savedAt,
+    })
     return commandSucceeded(captureCandidate({
       projectType: 'disc',
       selectedPath,
