@@ -1,8 +1,11 @@
 # Project package save capacity
 
-Status: Implementation and source-validation record for #357; native WebView/IPC
-memory acceptance remains pending. Package-format policy remains owned by
-[the package contract](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
+Status: Implementation, source validation, and bounded Windows debug native
+WebView/IPC and representative memory receipts are recorded for #357. Final
+publication and CI verification remain pending. Broader maximum-envelope and
+cross-platform memory activation gates remain open under
+[the package contract](PROJECT_PACKAGE_FORMAT_CONTRACT.md), which owns
+package-format policy.
 
 ## Boundary and compatibility
 
