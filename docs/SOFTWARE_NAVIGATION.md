@@ -50,7 +50,7 @@ Test execution route: Vite8.0.14 cache rename failed under restricted runner. Us
 Final verification: full Node 2418/2418, dimension integration 9/9, focused capture/geometry 23/23, Rust 318/318, build, lint, cycles, discovery 3/3 and diff-check passed. Native save/reopen, last-valid draft serialization, narrow layout and single-bottom-advisory119 passed. No publication, commit, merge, issue closure or primary app-code update. Screen reader, exact client/DPI and physical print remain outside this acceptance.
 
 
-## Primary integration receipt � 2026-11-15 UTC
+## Primary integration receipt - 2026-11-15 UTC
 
 The isolated-candidate and no-publication statements above describe the historical pre-integration run, not current repository state. Its failure evidence and restrictions remain applicable. PR #409 subsequently merged to main `4cd5c40d74d40e22f21089d56320bd35ea65d708`. The primary checkout, preserving local Case work, was verified clean at `521572258457c021c8afd4afe52af7a08b90fe87` before this documentation update.
 
@@ -72,5 +72,7 @@ disabled artwork state and Case background owners, and unchanged original legacy
 files. This extends the earlier primary smoke receipt with fresh Save/reopen
 coverage. Detailed sizes, hashes, source checks, and measurement scope are recorded
 in `PROJECT_PACKAGE_SAVE_CAPACITY.md`. This is Windows debug representative
-coverage only. Representative process-tree memory sampling completed without collection errors; results and limitations are in the capacity receipt. Broader maximum-envelope and cross-platform format-contract gates remain open. The
+coverage only. Representative process-tree memory sampling completed without
+collection errors; results and limitations are in the capacity receipt. Broader
+maximum-envelope and cross-platform format-contract gates remain open. The
 required read-before-navigation and evidence-gated retry procedure remains in force.
