@@ -1,6 +1,6 @@
 # PNG physical output and calibration
 
-> Status: Current encoding contract; native and physical-print acceptance pending (#359).
+> Status: Current encoding contract; representative Windows samples verified, physical-print acceptance pending (#359).
 > Purpose: Bind template dimensions, raster dimensions, PNG density metadata and print calibration without changing renderer geometry.
 > Read when: Changing PNG encoding, DPI, output dimensions, export success copy or release print acceptance.
 > Authority: Physical PNG encoding rules here; template geometry remains owned by `TEMPLATE_SPEC.md` and template/domain source, workflow by `EXPORT_WORKFLOW_CONTRACT.md`, and preview/export parity by the SDD.
@@ -70,9 +70,12 @@ printer accuracy.
 
 For each supported native platform, record the app commit, OS/WebView version,
 fixture, filename/hash, IHDR dimensions, all `pHYs` values/units, print software,
-printer/driver, scale settings and measured dimensions. Windows acceptance of
-the corrected encoder is pending; coordinate Linux #333 and macOS #334
-independently. Physical printer calibration is also pending.
+printer/driver, scale settings and measured dimensions. Representative Windows
+Disc/Cover/Tray saved outputs with guides off/on now verify the corrected encoder;
+see [Windows PNG acceptance and inspection correction](PNG_PHYSICAL_WINDOWS_ACCEPTANCE.md).
+That receipt explicitly corrects an unsupported Tray content-loss interpretation
+using the original PNG bytes. Coordinate Linux #333 and macOS #334 independently.
+Physical printer calibration remains pending.
 
 1. From the primary native Tauri application, export a standard Disc, Jewel
    Cover and complete Tray, each with guides off and on. Inspect actual saved
@@ -113,5 +116,6 @@ adopted screenshot, Portal logo and both Steam spine banners. The primary's
 bounded evidence. This primary-only Case fixture is not part of the main-only
 source change, and does not validate the corrected encoder or Cover output.
 
-No corrected native PNG inspection, calibration print or release acceptance
-has been performed for this source checkpoint. #359 remains open.
+The later representative corrected native PNG inspections are recorded separately
+in [Windows PNG acceptance](PNG_PHYSICAL_WINDOWS_ACCEPTANCE.md). No calibration
+print or release acceptance is claimed. #359 remains open.
