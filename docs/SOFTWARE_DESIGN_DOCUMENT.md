@@ -3145,11 +3145,15 @@ Consequences:
 The following are documented future plans or active gaps, not current implemented guarantees:
 
 - Guided Start and opening-screen workflow.
-- Home Return/Resume, Close/termination use of the dirty-aware guard, and native
-  package workflow acceptance; the guard is already active for New Disc, New
-  Case, and Open, while content-recognized `.sbls` Open/Save/Save As,
-  encoder/write composition, session format identity, bounded binary project
-  I/O, and native decode/staging are source-connected.
+- Close/termination use of the dirty-aware guard remains future work under
+  #360. Home Return/Resume is already source-connected and retains the exact
+  session without replacement; New Disc, New Case, and Open already use the
+  shared dirty-aware guard. The bounded #303 reconciliation and remaining
+  acceptance are recorded in
+  [`PROJECT_REPLACEMENT_ACCEPTANCE.md`](PROJECT_REPLACEMENT_ACCEPTANCE.md).
+  Content-recognized `.sbls` Open/Save/Save As, encoder/write composition,
+  session format identity, bounded binary project I/O, and native decode/staging
+  are source-connected; broader package/lifecycle acceptance remains separate.
 - DVD/Amaray and Blu-ray case editors.
 - Direct printer integration.
 - Full arbitrary layer management.
