@@ -97,5 +97,7 @@ and derived continuations. Existing and during-handoff authority stays retired
 after a failed/stale attempt; only fresh work may begin after proven-safe
 rejection. Guard Cancel preserves unrelated current work. Unknown post-dispatch
 outcomes retain the barrier because a queued native close may still execute.
+The composition root also gates all semantic commands, including native menu,
+export and Case ingress, after the original termination busy scope is released.
 See [Native termination acceptance](NATIVE_TERMINATION_ACCEPTANCE.md) for the
 protocol, primary continuous-edit integration boundary and native gates.

@@ -79,6 +79,7 @@ export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   exportPng?: ApplicationPngExportCommandOwner
   termination?: ApplicationTerminationCapabilities
   getTerminationCapabilities?: () => ApplicationTerminationCapabilities
+  canAcceptCommands?: () => boolean
   createOperationId?: () => string
   createSessionId?: () => string
   onSubscriberError?: (error: unknown) => void
@@ -169,6 +170,21 @@ export function createApplicationLifecycleCompositionRoot(
   let generation = 0
   let disposed = false
 
+  const handoffBlocked: ApplicationCommandCapability = Object.freeze({
+    canExecute: false,
+    reasonCode: 'application.termination-pending',
+    userMessage: 'The native close outcome is pending; project commands are paused.',
+  })
+
+  function applyCommandAdmission<Id extends string>(
+    capabilities: Readonly<Record<Id, ApplicationCommandCapability>>,
+  ): Readonly<Record<Id, ApplicationCommandCapability>> {
+    if (options.canAcceptCommands?.() !== false) return capabilities
+    return Object.freeze(Object.fromEntries(
+      Object.keys(capabilities).map(id => [id, handoffBlocked]),
+    )) as Readonly<Record<Id, ApplicationCommandCapability>>
+  }
+
   function capabilitiesFor(
     stateSnapshot: ApplicationLifecycleStateSnapshot,
     busy: CommandBusyState,
@@ -187,26 +203,26 @@ export function createApplicationLifecycleCompositionRoot(
       CaseInsertPresetApplicationCommandId,
       ApplicationCommandCapability
     >>
-    return Object.freeze({
+    return applyCommandAdmission(Object.freeze({
       ...lifecycleCapabilities,
       'export.png': getApplicationPngExportCapability(options.exportPng, {
         stateSnapshot,
         busy,
       }),
       ...caseInsertPresetCapabilities,
-    })
+    }))
   }
 
   function lifecycleCapabilitiesFor(
     stateSnapshot: ApplicationLifecycleStateSnapshot,
     busy: CommandBusyState,
   ) {
-    return executableProjectLifecycleCommandCapabilities({
+    return applyCommandAdmission(executableProjectLifecycleCommandCapabilities({
       lifecycle: stateSnapshot.state,
       busy,
       termination: options.getTerminationCapabilities?.() ?? termination,
       owners: ownerAvailability,
-    })
+    }))
   }
 
   function captureSnapshot(
@@ -313,6 +329,14 @@ export function createApplicationLifecycleCompositionRoot(
           disposition: 'not-executed',
           reason: 'unknown-command',
           commandId,
+        })
+      }
+      // Native menus and programmatic callers are outside the inert DOM.
+      // Retain semantic admission protection after command busy scopes release.
+      if (options.canAcceptCommands?.() === false) {
+        return Object.freeze({
+          disposition: 'not-executed', reason: 'disabled', commandId,
+          userMessage: handoffBlocked.userMessage,
         })
       }
       return dispatcher.dispatch(

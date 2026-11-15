@@ -17,6 +17,10 @@ After the preservation guard succeeds, a captured handoff lease blocks #367
 async admission before retiring requests, failure feedback and derived session
 continuations. Work begun during that barrier is permanently unauthorized,
 even if the handoff later fails. Guard Cancel never begins this barrier.
+The same lease gates every semantic command at composition-root capability
+projection and dispatch. Native menu ingress is outside inert DOM, so this
+protection remains after the original command's busy scopes are released,
+including after successful acknowledgement while the native event is queued.
 The final synchronous interaction preparation and narrow Case finish port run
 before comparing the original guard authorization with current session/revision.
 The authorization is never refreshed to hide a late edit. Failed finish or a

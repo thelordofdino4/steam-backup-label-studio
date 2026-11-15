@@ -115,6 +115,7 @@ export function createApplicationLifecycleRuntime(
   )
   const root = createRoot({
     getTerminationCapabilities: terminationRuntime.capabilities,
+    canAcceptCommands: () => !disposed && !terminationRuntime.isHandoffPending(),
     ports: {
       closeWindow: terminationOwners.closeWindow,
       quitApplication: terminationOwners.quitApplication,
