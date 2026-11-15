@@ -655,3 +655,22 @@ test('ASCII case-insensitive .sbls eligibility is exact and never rewrites names
     'name',
   ]) assert.equal(hasEligibleSblsPath(path), false, String(path))
 })
+
+
+test('capacity rejection gives recovery guidance and preserves the session', async () => {
+  const expected = createProjectFileCommandFailure(
+    'project.file-too-large', 'size-limit-exceeded', 'project-package-write-request',
+  )
+  const harness = createHarness({
+    state: stateFor(discProject('Capacity'), 'sbls-package-v1', 'existing.sbls'),
+    write: async () => { throw expected },
+  })
+  const before = harness.root.getStateSnapshot()
+  const result = await harness.root.dispatch('project.save')
+  assert.equal(harness.root.getStateSnapshot(), before)
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed' && result.result.status === 'failure') {
+    assert.equal(result.result.error.cause, expected)
+    assert.match(result.result.error.userMessage, /Reduce image dimensions.*save again/)
+  } else assert.fail('Expected a safe capacity failure')
+})

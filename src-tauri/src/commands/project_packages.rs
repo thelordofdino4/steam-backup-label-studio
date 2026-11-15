@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use sbls_package_codec::{
-    decode_project_package, encode_project_package_from_borrowed, AssetCapture,
-    AssetCaptureDecision, AssetOwner, CaseSurface, LogoRole, PackageCreator, PlatformKind,
-    ProjectPackageFailure, TechnicalKind,
+    decode_project_package, encode_project_package_from_borrowed,
+    encode_project_package_from_parts, AssetCapture, AssetCaptureDecision, AssetOwner, CaseSurface,
+    LogoRole, PackageCreator, PlatformKind, ProjectPackageFailure, TechnicalKind,
 };
 use serde::{Deserialize, Serialize};
 use tauri::http::HeaderMap;
@@ -22,6 +22,11 @@ use crate::project_file::{self, AtomicProjectWritePhase};
 const LEGACY_SOURCE_PATH_HEADER_NAME: &str = "x-sbls-legacy-source-path-v1";
 const WRITE_REQUEST_MAGIC: &[u8; 8] = b"SBLSPSV1";
 const WRITE_REQUEST_HEADER_BYTES: usize = 16;
+const WRITE_REQUEST_V2_MAGIC: &[u8; 8] = b"SBLSPSV2";
+const WRITE_REQUEST_V2_HEADER_BYTES: usize = 20;
+const MAX_DATA_URL_BYTES: usize = 89_478_511;
+const MAX_DATA_URL_POOL_BYTES: usize = 268_435_456;
+const MAX_DATA_URLS: usize = 512;
 const MAX_CAPTURE_PLAN_BYTES: usize = 2_097_152;
 const MAX_PROJECT_JSON_BYTES: usize = 16_777_216;
 const MAX_CONCRETE_OWNERS: usize = 4_096;
@@ -157,16 +162,18 @@ struct CaptureDto {
     deny_unknown_fields
 )]
 enum CaptureDecisionDto {
-    NoAcceptedAsset,
-    ProjectOwnedDataUrl,
+    NoAcceptedAsset {},
+    ProjectOwnedDataUrl {},
+    ProjectOwnedDataUrlPart { data_url_index: usize },
     QualifiedBuiltIn { compatibility_id: String },
-    UnsupportedNonportableAsset,
+    UnsupportedNonportableAsset {},
 }
 
 #[derive(Debug)]
 struct ParsedWriteRequest<'a> {
     project_json: &'a [u8],
     captures: Vec<AssetCapture>,
+    data_urls: Option<Vec<(AssetOwner, &'a str)>>,
 }
 
 fn write_request_failure(category: &'static str) -> EncodeAndWriteProjectPackageFileFailure {
@@ -308,7 +315,20 @@ fn parse_owner_id(value: &str) -> Option<AssetOwner> {
 }
 
 fn parse_write_request(bytes: &[u8]) -> Result<ParsedWriteRequest<'_>, &'static str> {
-    if bytes.len() < WRITE_REQUEST_HEADER_BYTES || &bytes[..8] != WRITE_REQUEST_MAGIC {
+    let magic = bytes.get(..8).ok_or("framing-invalid")?;
+    let version = if magic == WRITE_REQUEST_MAGIC {
+        1
+    } else if magic == WRITE_REQUEST_V2_MAGIC {
+        2
+    } else {
+        return Err("framing-invalid");
+    };
+    let header_length = if version == 1 {
+        WRITE_REQUEST_HEADER_BYTES
+    } else {
+        WRITE_REQUEST_V2_HEADER_BYTES
+    };
+    if bytes.len() < header_length {
         return Err("framing-invalid");
     }
     let plan_length = read_be_u32(&bytes[8..12]).ok_or("framing-invalid")?;
@@ -316,42 +336,106 @@ fn parse_write_request(bytes: &[u8]) -> Result<ParsedWriteRequest<'_>, &'static 
     if plan_length > MAX_CAPTURE_PLAN_BYTES || project_length > MAX_PROJECT_JSON_BYTES {
         return Err("size-limit-exceeded");
     }
-    let plan_end = WRITE_REQUEST_HEADER_BYTES
+    let plan_end = header_length
         .checked_add(plan_length)
         .ok_or("size-limit-exceeded")?;
     let project_end = plan_end
         .checked_add(project_length)
         .ok_or("size-limit-exceeded")?;
-    if project_end != bytes.len() {
+    if project_end > bytes.len() {
         return Err("framing-invalid");
     }
-    let plan: CapturePlanDto = serde_json::from_slice(&bytes[WRITE_REQUEST_HEADER_BYTES..plan_end])
+    let mut pool = Vec::new();
+    if version == 2 {
+        let count = read_be_u32(&bytes[16..20]).ok_or("framing-invalid")?;
+        if count > MAX_DATA_URLS
+            || bytes.len()
+                > WRITE_REQUEST_V2_HEADER_BYTES
+                    + MAX_CAPTURE_PLAN_BYTES
+                    + MAX_PROJECT_JSON_BYTES
+                    + 4 * MAX_DATA_URLS
+                    + MAX_DATA_URL_POOL_BYTES
+        {
+            return Err("size-limit-exceeded");
+        }
+        pool.try_reserve_exact(count)
+            .map_err(|_| "allocation-denied")?;
+        let mut offset = project_end;
+        let mut pool_bytes = 0_usize;
+        for _ in 0..count {
+            let length_end = offset.checked_add(4).ok_or("size-limit-exceeded")?;
+            let length = read_be_u32(bytes.get(offset..length_end).ok_or("framing-invalid")?)
+                .ok_or("framing-invalid")?;
+            pool_bytes = pool_bytes
+                .checked_add(length)
+                .ok_or("size-limit-exceeded")?;
+            if length > MAX_DATA_URL_BYTES || pool_bytes > MAX_DATA_URL_POOL_BYTES {
+                return Err("size-limit-exceeded");
+            }
+            let end = length_end
+                .checked_add(length)
+                .ok_or("size-limit-exceeded")?;
+            let value = std::str::from_utf8(bytes.get(length_end..end).ok_or("framing-invalid")?)
+                .map_err(|_| "framing-invalid")?;
+            pool.push(value);
+            offset = end;
+        }
+        if offset != bytes.len() {
+            return Err("framing-invalid");
+        }
+    } else if project_end != bytes.len() {
+        return Err("framing-invalid");
+    }
+    let plan: CapturePlanDto = serde_json::from_slice(&bytes[header_length..plan_end])
         .map_err(|_| "capture-plan-invalid")?;
-    if plan.version != 1 || plan.captures.len() > MAX_CONCRETE_OWNERS {
+    if plan.version != version || plan.captures.len() > MAX_CONCRETE_OWNERS {
         return Err("capture-plan-invalid");
     }
     let mut captures = Vec::new();
     captures
         .try_reserve_exact(plan.captures.len())
         .map_err(|_| "allocation-denied")?;
+    let mut data_urls = Vec::new();
+    data_urls
+        .try_reserve_exact(plan.captures.len())
+        .map_err(|_| "allocation-denied")?;
+    let mut used = [false; MAX_DATA_URLS];
     for capture in plan.captures {
         let owner = parse_owner_id(&capture.owner_id).ok_or("capture-plan-invalid")?;
         let decision = match capture.decision {
-            CaptureDecisionDto::NoAcceptedAsset => AssetCaptureDecision::NoAcceptedAsset,
-            CaptureDecisionDto::ProjectOwnedDataUrl => AssetCaptureDecision::ProjectOwnedDataUrl,
+            CaptureDecisionDto::NoAcceptedAsset {} => AssetCaptureDecision::NoAcceptedAsset,
+            CaptureDecisionDto::ProjectOwnedDataUrl {} => {
+                if version != 1 {
+                    return Err("capture-plan-invalid");
+                }
+                AssetCaptureDecision::ProjectOwnedDataUrl
+            }
+            CaptureDecisionDto::ProjectOwnedDataUrlPart { data_url_index } => {
+                if version != 2 {
+                    return Err("capture-plan-invalid");
+                }
+                let value = pool.get(data_url_index).ok_or("capture-plan-invalid")?;
+                used[data_url_index] = true;
+                data_urls.push((owner, *value));
+                AssetCaptureDecision::ProjectOwnedDataUrl
+            }
             CaptureDecisionDto::QualifiedBuiltIn { compatibility_id } => {
                 AssetCaptureDecision::qualified_built_in(&compatibility_id)
                     .map_err(|_| "capture-plan-invalid")?
             }
-            CaptureDecisionDto::UnsupportedNonportableAsset => {
+            CaptureDecisionDto::UnsupportedNonportableAsset {} => {
                 AssetCaptureDecision::UnsupportedNonportableAsset
             }
         };
         captures.push(AssetCapture::new(owner, decision));
     }
+    if used[..pool.len()].iter().any(|used| !used) {
+        return Err("capture-plan-invalid");
+    }
     Ok(ParsedWriteRequest {
         project_json: &bytes[plan_end..project_end],
         captures,
+        data_urls: (version == 2).then_some(data_urls),
     })
 }
 
@@ -417,10 +501,19 @@ where
     let creator = PackageCreator::steam_backup_label_studio(env!("CARGO_PKG_VERSION"))
         .map_err(ProjectPackageCommandFailure::from)
         .map_err(EncodeAndWriteProjectPackageFileFailure::ProjectPackage)?;
-    let package =
-        encode_project_package_from_borrowed(request.project_json, &creator, &request.captures)
-            .map_err(ProjectPackageCommandFailure::from)
-            .map_err(EncodeAndWriteProjectPackageFileFailure::ProjectPackage)?;
+    let package = match request.data_urls.as_deref() {
+        Some(data_urls) => encode_project_package_from_parts(
+            request.project_json,
+            &creator,
+            &request.captures,
+            data_urls,
+        ),
+        None => {
+            encode_project_package_from_borrowed(request.project_json, &creator, &request.captures)
+        }
+    }
+    .map_err(ProjectPackageCommandFailure::from)
+    .map_err(EncodeAndWriteProjectPackageFileFailure::ProjectPackage)?;
     drop(request.captures);
 
     let write_result = project_file::write_with_precommit_guard(&destination, &package, || {
@@ -811,18 +904,24 @@ mod tests {
     }
 
     fn one_pixel_bmp_data_url() -> String {
+        sized_bmp_data_url(1)
+    }
+
+    fn sized_bmp_data_url(side: u32) -> String {
         const BASE64: &[u8; 64] =
             b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        let mut bmp = [0_u8; 58];
+        let pixel_bytes = ((side * 3 + 3) / 4) * 4 * side;
+        let size = 54 + pixel_bytes;
+        let mut bmp = vec![0_u8; size as usize];
         bmp[0..2].copy_from_slice(b"BM");
-        bmp[2..6].copy_from_slice(&58_u32.to_le_bytes());
+        bmp[2..6].copy_from_slice(&size.to_le_bytes());
         bmp[10..14].copy_from_slice(&54_u32.to_le_bytes());
         bmp[14..18].copy_from_slice(&40_u32.to_le_bytes());
-        bmp[18..22].copy_from_slice(&1_u32.to_le_bytes());
-        bmp[22..26].copy_from_slice(&1_u32.to_le_bytes());
+        bmp[18..22].copy_from_slice(&side.to_le_bytes());
+        bmp[22..26].copy_from_slice(&side.to_le_bytes());
         bmp[26..28].copy_from_slice(&1_u16.to_le_bytes());
         bmp[28..30].copy_from_slice(&24_u16.to_le_bytes());
-        bmp[34..38].copy_from_slice(&4_u32.to_le_bytes());
+        bmp[34..38].copy_from_slice(&pixel_bytes.to_le_bytes());
         bmp[54..57].copy_from_slice(&[0x11, 0x22, 0x33]);
 
         let mut encoded = String::from("data:image/bmp;base64,");
@@ -1404,5 +1503,9 @@ mod tests {
             .filter(|entry| entry.file_name().to_string_lossy().contains(".tmp"))
             .count();
         assert_eq!(leftovers, 0);
+    }
+    mod capacity_tests {
+        use super::*;
+        include!("project_package_capacity_tests.rs");
     }
 }
