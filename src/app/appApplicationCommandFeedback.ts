@@ -109,8 +109,9 @@ function statusToastKind(
 
 /**
  * Publishes one command result to the shared toast/status owner and mirrors the
- * accepted message to Home. Active deduplication keys are owned by that shared
- * status owner, so duplicate adapters cannot double-publish.
+ * accepted persistent message to Home. Case Apply success is toast-only.
+ * Active deduplication keys are owned by that shared status owner, so duplicate
+ * adapters cannot double-publish.
  */
 export function publishApplicationCommandFeedback(
   dispatch: ApplicationCommandDispatchResult<unknown>,
@@ -119,10 +120,17 @@ export function publishApplicationCommandFeedback(
   const feedback = selectApplicationCommandFeedback(dispatch)
   if (!feedback) return null
 
+  const toastOnly = dispatch.commandId === 'case.layoutPreset.apply' &&
+    dispatch.disposition === 'executed' &&
+    dispatch.result.status === 'success' &&
+    feedback.kind === 'success'
   const published = dependencies.announceStatus(feedback.message, {
     kind: statusToastKind(feedback.kind),
     deduplicationKey: feedback.deduplicationKey,
+    ...(toastOnly ? { toastOnly: true } : {}),
   })
-  if (published) dependencies.setHomeStatusMessage(feedback.message)
+  if (published) {
+    dependencies.setHomeStatusMessage(toastOnly ? '' : feedback.message)
+  }
   return published ? feedback : null
 }
