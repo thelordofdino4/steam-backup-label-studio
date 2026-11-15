@@ -43,3 +43,29 @@ Behavioral oracles remain the current import/source, preset fit, disabled-state 
 Focused coverage includes real lifecycle New/Open/content/navigation transitions, exact-once/replay/forged tickets, Save baseline preservation, cross-lane competing commits, stale failure suppression, real React Steam preparation races, real PNG decode through upload owners, all four Case surfaces, metadata auto-apply, accepted branding companion callbacks, and queued reconciliation revocation. Full build, lint, Node, Rust and cycle checks are required alongside focused ownership tests.
 
 Integration with #357/#358/#359/#360/#362 requires reconciliation and revalidation against the existing lifecycle and continuous-edit contracts. Native Steam/discovery, image control, preview/export, and lifecycle smoke remain required for acceptance. This document does not close #367 or claim that #363/#365/#366 document migration is implemented.
+
+## Current-main reconciliation checkpoint, 2026-11-15
+
+The isolated candidate reuses both #392 implementation/correction commits on
+current main `e3a55625`, with the separately reconciled #304 prerequisite
+`183ff4d5`. The four overlapping image hooks preserve #358's actionable image
+policy errors and accepted background selection while applying the same checked
+request boundary. The existing title-upload fixture now supplies the lifecycle
+owner, and the async image fixture stubs only native validation transport while
+retaining real file reading, image decoding, and request ownership. No #411
+diagnostics, native termination, schema, package, or Rust changes are included.
+
+This candidate does not include the primary checkout's unpublished Case
+continuous-edit and preset changes. That later integration must retain the
+existing Case finish/flush port and source/framing owners. A painted or unpainted
+continuous edit may be newer than the published lifecycle revision; async
+application must not treat the older revision as current. Explicit completion
+and deferred branding reconciliation need a safe finish/defer boundary, not a
+side effect in render-time authority queries. Preserve the primary cover/tray
+source-only helper and each spine owner's existing per-surface behavior inside
+checked callbacks. Tests must cover this combined boundary before primary
+integration; this current-main candidate does not establish that acceptance.
+
+Headless hook fixtures are isolated behavioral diagnostics, not native or
+visual acceptance. Windows native import/discovery, navigation/reset, Case
+companion behavior, and preview/export acceptance remain outstanding.
