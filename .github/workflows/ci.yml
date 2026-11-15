@@ -43,7 +43,8 @@ jobs:
 
   node-tests:
     name: Node behavioral and boundary tests
-    runs-on: ubuntu-latest
+    # Keep the locked Playwright browser on a supported distribution.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
