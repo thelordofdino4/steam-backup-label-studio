@@ -134,6 +134,6 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Required user-visible smoke starts from `npm run tauri dev` in the primary checkout and targets the spawned native Tauri window.
    - Identify the native app by the process spawned from this repository or by its exact executable path, not by a window title that a browser tab can mimic.
    - Reject Brave, Chrome, Edge, and other browser windows even when their title contains the application name.
-   - Any App automation gets one session and at most one retry after a tool or bridge failure. If it still fails, stop and report the native bridge failure.
+   - Before starting any SBLS testing and before every attempt to navigate or interact with SBLS, read `docs/SOFTWARE_NAVIGATION.md`. After any failed attempt, do not retry until you have discovered and documented why it failed, the evidence and uncertainty, and a supported correction in that document. Read the updated entry before retrying and record the outcome. If the cause or correction remains unknown, investigate without UI input or report the blocker. This evidence-gated rule replaces the fixed one-retry limit; it never overrides permission denials, security boundaries, tool restrictions, or user stops.
    - Do not repeatedly try random selectors, JavaScript snippets, window-title guesses, or coordinate guesses after tool failure.
    - Never report an automation failure as an app regression unless the screenshot, DOM state, or manual/runtime reproduction supports that conclusion.
