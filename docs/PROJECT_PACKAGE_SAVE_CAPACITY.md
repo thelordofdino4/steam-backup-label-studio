@@ -154,3 +154,76 @@ actual results; this document does not imply an unperformed GUI test passed.
 These are source and native headless test results. No native GUI launch,
 WebView/IPC peak-memory measurement, packaged-platform test, or visual acceptance
 was performed. The issue remains open for those required gates and integration.
+
+## Windows primary native receipt (2026-11-15 UTC)
+
+The earlier unperformed-native statements above describe the 2026-11-01
+checkpoint. The following later receipt covers Windows debug execution only.
+Primary `b739cce325604d32c5758b2843cdcea25dc73cf5` preserves the local Case
+commits and integrates capacity with #307. The native tester reported successful
+legacy load, Save As to a new `.sbls`, package reopen, and repeat Save for both
+bounded fixtures. No native navigation failure occurred. Original legacy JSON
+files remained unchanged. This is representative acceptance, not a worst-case
+memory envelope, release-build measurement, or cross-platform claim.
+
+| Evidence | Disc | Case |
+| --- | ---: | ---: |
+| Legacy hydrated JSON bytes | 16,786,232 | 16,806,572 |
+| V2 request bytes from production helper | 4,204,823 | 4,224,994 |
+| Native saved package bytes | 3,156,071 | 3,176,522 |
+| Exact BMP assets / registered bindings | 1 / 4 | 1 / 4 |
+
+Native package SHA-256:
+- Disc: `2d786d76132cdcbb5ca49de4b1169610fbce9a8c2e11e1595e27dc6c6ef52d46`.
+- Case: `5b1b6474fd287f9bdb3dd25cca3fcc8e249c6f09694f1a698eb96bec0138c507`.
+
+Each package retained the exact 3,145,782-byte BMP with SHA-256
+`852b27f8d01fd6fda67512989e20e14679b73d65c9fdadaf9d21b84e09b22d7b`.
+Disc disabled title/additional-artwork state survived; Case retained the four
+background owners. Package inspection confirmed deduplication and all bindings.
+
+Source checks: isolated integration `49b7d870` passed 2,422 Node and 325 Rust
+(82 application + 243 codec) tests, build, lint, cycles, discovery, locked Cargo
+check, and diff-check. Refresh `756678ac` has the identical source tree. Primary
+`b739cce3` passed 2,505 Node tests, build, lint, cycles (963 files), discovery
+(3/3), and diff-check, with zero failed/cancelled/skipped/todo tests. Primary
+Rust content exactly matched the 325-test isolated tree; this is source identity
+evidence, not a new primary Rust test run.
+
+### Representative native process-tree memory
+
+Sampling covered the verified native app and six WebView descendants, the same
+seven members throughout. The Disc-only interval was 03:20:54.5257862 through
+03:23:27.2495562 UTC; the Case interval was 03:23:27.2495562 through
+03:28:27.5976369 UTC. The first recorder continued into Case testing, so its full
+run is not attributed to Disc: Disc statistics stop exactly at Case start.
+
+| Measurement (MiB) | Disc-only | Case |
+| --- | ---: | ---: |
+| Peak simultaneous-sample private bytes | 567.762 | 590.191 |
+| Peak simultaneous-sample summed working set | 679.246 | 769.086 |
+| First 10 seconds mean private bytes | 312.350 | 395.892 |
+| First 10 seconds mean summed working set | 488.492 | 591.711 |
+| Final 10 seconds mean private bytes | 360.600 | 422.162 |
+| Final 10 seconds mean summed working set | 584.849 | 645.938 |
+| Complete samples / interval samples | 301 / 301 | 590 / 590 |
+| Maximum observed sampling gap (milliseconds) | 564.2 | 528.6 |
+
+The Disc peaks both occurred at 03:21:17.9812058 UTC (595,341,312 private bytes;
+712,241,152 summed working-set bytes). Case private bytes peaked at
+03:25:00.3522718 UTC (618,860,544 bytes); its summed working set peaked at
+03:24:59.8368682 UTC (806,445,056 bytes). The first-window means use 20 samples
+per project. The final Disc window uses 20 pre-Case samples; the settled final
+Case window uses 19 samples. Both full 300-second recorders produced 590 samples
+rather than the nominal 600 because sampling includes collection/cadence time.
+No incomplete samples or collection errors were reported. Package and original
+legacy hashes were rechecked unchanged at 03:28:33 UTC.
+
+These are sequential, near-simultaneous process-tree observations, not sums of
+independent lifetime peaks. Summed working set can double-count shared pages;
+private committed bytes are not RSS. Inter-sample peaks and short-lived processes
+can be missed. These measurements are neither leak proof nor a worst-case memory
+envelope. They support the tested bounded #357 regression on Windows debug only,
+not release builds or other platforms. The broader format-contract activation
+gates for maximum-envelope, whole-process memory and other-platform evidence
+remain explicitly open. This receipt does not waive those gates or close #358.
