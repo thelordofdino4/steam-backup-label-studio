@@ -1,6 +1,6 @@
 # Project Open baseline acceptance
 
-> Status: Focused #308 source repair with a minimal-legacy conversion compatibility follow-up awaiting native verification.
+> Status: Bounded #308 source, automated, and native acceptance complete locally; publication and issue closure remain held.
 > Baseline: main `5a899b88e0c4137c6b15839ca0a4cc0e2bbb32c1`.
 > Authority: `APPLICATION_COMMAND_AND_PROJECT_LIFECYCLE_CONTRACT.md` owns session semantics; `PROJECT_FILE_SPEC.md` owns restoration policy.
 
@@ -67,7 +67,8 @@ framing, verifies the qualified built-in request without runtime URLs or image
 parts, then checks successful path/baseline adoption, direct repeated Save, and
 clean shared staging of the projected package content. Its native invocation is
 a test port, not proof of a filesystem write or codec execution. Existing Rust
-codec/native tests and a fresh native conversion remain separate gates.
+codec/native tests and the fresh native conversion reported below provide
+separate evidence.
 
 The historical `c46467ed` proposal was inspected, not replayed. This focused
 change additionally refuses to infer built-in identity from partial explicit
@@ -76,10 +77,9 @@ Review of the first candidate caught that malformed image objects/arrays/numbers
 were normalized to null before the new inference. A follow-up raw-image type
 gate preserves their prior unsupported classification, with parser-through-
 capture regressions. Only null/undefined and existing normalized-empty string
-absence may qualify, not malformed non-string image data. The original baseline correction
-remains intact. Native acceptance
-must use the corrected primary source after review and validation; successful
-minimal conversion is not yet claimed.
+absence may qualify, not malformed non-string image data. The original baseline
+correction remains intact. Native acceptance below used the corrected primary
+source after review and validation, with a fresh Open before conversion.
 
 ## Automated acceptance
 
@@ -89,7 +89,7 @@ guard, and Save owners. Native I/O and React setter ports are supplied by the
 test. This is stronger than candidate-to-candidate equality, but does not mount
 React or establish native visual acceptance.
 
-The 15 regressions cover:
+The initial 15 baseline regressions cover:
 
 - All five tracked legacy fixtures, including full branding, minimal schema
   migration, custom geometry, disabled defaults, and background-only content.
@@ -155,7 +155,37 @@ Logs remain in the isolated worktree's ignored `logs/` folder, including
 `308-node-final.log`, `308-rust-full.log`, and the `308-primary-*` and final
 build/lint/cycles/discovery logs. Failed diagnostic records are retained.
 
-## Native Windows attempt and blocker, 2026-11-15 UTC
+### Final corrected source and integration receipt, 2026-11-15 UTC
+
+Corrected immutable candidate `cb3e635747be3391b22f6aff546da3f1af44c9a9`
+passed 37 focused tests, 2,616 discovered Node tests, and 329 locked Rust tests
+(84 application and 245 codec), with no failures or skips. Build, lint,
+dependency cycles (958 files), discovery (3/3), and diff checks passed.
+Independent review reproduced the malformed-image classification gap in the
+first provenance candidate, then verified the correction with 65 focused tests
+and no remaining blocking findings.
+
+The corrected candidate was integrated as primary
+`71397958ba68f676c0f4a7e07caf42f9992af388`, retaining both the reviewed candidate
+and the original local Case commit `55d8beaf` as ancestors. Primary validation
+passed 2,699 Node tests, build, lint, cycles (972 files), discovery (3/3), and
+working-tree/commit diff checks. Its `dist/` was rebuilt. The reviewed source
+and tests match the candidate exactly; other existing Case work was preserved.
+Rust was not rerun in primary: its checked-in `src-tauri` tree still equals the
+tested candidate's `d08155290b458acc5984cde54856be87c93a58cb`.
+
+Final logs are `logs/308-banner-corrected-{node,rust,lint,cycles,discovery}.log`
+in the isolated worktree and `logs/308-banner-primary-{node,build,lint,cycles,discovery}.log`
+in primary. Earlier failing reproductions and immutable reviewed commits remain
+preserved. This final receipt changes documentation only, not the tested source,
+native runtime, disposable fixtures, or currently open edited test session.
+
+## Historical native Windows attempt and blocker, 2026-11-15 UTC
+
+The two blocked attempts below are historical records. They did not establish
+native acceptance. A later supported pointer/file-list route enabled the bounded
+acceptance reported in the final section without resolving the earlier typing,
+paste, or AX setter failures.
 
 The native tester launched `npm run tauri dev -- --no-watch` from primary
 `51ad8df8`, using the existing #358 Cargo target. Vite and Cargo started
@@ -228,18 +258,105 @@ The subsequent read-only control investigation identified a documented direct
 File name setter, but no separate modal window ID. No input was sent; the setter
 remains an untested diagnostic option, not a proven correction or acceptance.
 
-Issue #308 is not closed. The source candidate and local primary integration
-are validated as described above, but native lifecycle acceptance remains
-blocked. Branch publication and the remote-main merge remain explicitly held
-pending the owner's response to the named-branch publication request. No branch
-push, PR creation, or remote merge is claimed by this receipt.
+At the end of that historical attempt, native lifecycle acceptance remained
+blocked. The subsequent results below supersede that acceptance status, not the
+recorded input failures or their unresolved causes.
 
-## Remaining native acceptance
+## Final bounded native acceptance, 2026-11-15 UTC
 
-From the synchronized primary checkout, Open a disposable copy of the legacy
-full-branding fixture, confirm clean Home/Resume and prompt-free clean
-replacement, then make a real edit and confirm the guard. Verify cancelled and
-invalid-image conversion failures retain the displayed design and correct
-clean/dirty status without writing the legacy source. Repeat a representative
-minimal migration, valid package, and Case control. Record actual native
-observations separately; automated results do not close the broader #308 issue.
+Native testing used the primary checkout and the exact executable-backed Tauri
+window, not a browser substitute. After corrected primary `71397958` was built,
+the existing launch log recorded HMR at 02:04:20 local. The minimal legacy source
+was freshly reopened so the corrected restoration ran. No restart or close was
+performed for this phase. All later pickers used the documented pointer/file-list
+route; earlier typing/paste and AX setter causes remain unknown and those failed
+methods were not retried. `SOFTWARE_NAVIGATION.md` retains the complete chronology.
+
+### Open, editing, replacement, and preservation
+
+- Completed file selection from untouched minimal legacy to full branding, and
+  from untouched full branding to the Disc package, replaced the clean project
+  without a guard. A canceled picker alone was not counted as this acceptance.
+- The Disc package preserved its disabled JPEG title artwork. Home reported all
+  changes saved, and Resume retained the preview. Enabling that artwork was a
+  genuine edit that triggered New Disc's unsaved-changes guard; Cancel retained
+  it. Restoring the checkbox to its original state allowed clean Open to Case.
+- The Case control retained its disabled background. Enabling it displayed the
+  retained 2:1 magenta rectangle; disabling it restored the original preview.
+  Home reported all changes saved and Resume returned to Case Front. This is
+  representative Case coverage, not every Front/Back/Spine route.
+- Untouched full-branding conversion failed with the expected invalid-image
+  error, retained the visible design, created no output, and left New Disc free
+  of a dirty guard. After the corrected integration, a fresh full-branding Open
+  followed by disabling Game title produced a real edit and the expected guard.
+  The guard's Save branch failed with the same known unsupported-image error,
+  aborted replacement, and retained the preview and title edit. A subsequent New
+  Disc still showed the guard; Cancel retained the edited project. Thus both
+  clean and dirty failure behavior were observed. Exact internal identity,
+  baseline, and format preservation, including clean/dirty conversion cancel,
+  are covered by the production lifecycle tests rather than invented native
+  state inspection.
+
+### Corrected conversion and Save paths
+
+Fresh minimal legacy Open converted successfully to the previously absent
+`fixed-first/steam-backup-label.sbls` under the disposable output root. The
+8,542-byte package contains `manifest.json` (311 bytes) and `project.json`
+(8,007 bytes), no embedded asset entries, schema 0.4.0, and built-in default
+Steam banner provenance. Its SHA-256 is
+`bf43ef9708e6c3d4672f118cb5413d1848faca6e88d663c6127948fedb7f52db`.
+
+Repeated Save succeeded without another destination dialog and advanced the
+first package's modification time while keeping its bytes identical. Explicit
+File > Save As created `fixed-second/steam-backup-label.sbls` with the same bytes.
+Another Save As was canceled. Subsequent Save advanced only the second path
+from `07:12:46.0420891Z` to `07:13:30.2315094Z`; the first remained at
+`07:09:31.0278824Z`. Path adoption and retention are evidenced by the actual
+written targets, not direct inspection of private session state. A byte-identical
+staged converted package reopened natively without a guard. After PNG export,
+completed Open of full branding also bypassed the guard, confirming clean state.
+
+### Representative PNG and evidence integrity
+
+Native PNG export produced `exports/steam-backup-label.png`: 1,423 x 1,423 pixels,
+146,384 bytes, SHA-256
+`b5d4a0dad0103bcbadbb3989bfda4131980fe83110786f660325580340dc9b09`.
+Visual inspection showed the expected Steam banner, blank disc fill, and center
+cutout, without editor placeholders or guide marks. The native preflight used
+the selected 300-DPI pixel calculation, but the PNG has **no pHYs chunk**. The
+decoder's 96-DPI reading is a default, not an encoded value. This verifies pixel
+geometry and representative rendering, not embedded 300-DPI metadata, physical
+print calibration, every asset combination, or all Case export surfaces.
+
+All four original sources, four evidence copies, and four staged fixture copies
+still match their original hashes: 12/12 checks passed. Original sources were
+not overwritten. The initial `failure`, pre-fix `first`, and `dirty-failure`
+output directories remain empty. The successful package/PNG outputs are confined
+to `Desktop/sbls-308-native-output-20261115-01`. The untracked
+`src-tauri/sbls-native-308-disposable-20261115-01/` folder is excluded from commits.
+
+The complete receipt is
+`C:/Users/John Paul Keller/AppData/Local/Temp/sbls-308-native-evidence-20261115/native-final-acceptance.md`,
+SHA-256 `86a12fe59d6f27999f86ac71409e4b70bb875d9c2a33bd7510972b565a8c658b`.
+The same directory retains `native-postupdate-receipt.md`, the launch logs,
+`source-manifest.json`, `final-source-integrity.json`, `converted-path-check.json`,
+and `minimal-converted-first-initial.sbls`. Screenshots were observed in the native
+transcript; no saved screenshot files are claimed. The native app remains open
+on the disposable dirty full-branding project with Game title disabled and no
+modal. This documentation pass did not interact with it.
+
+### Scope and publication status
+
+The bounded #308 baseline and minimal-legacy compatibility acceptance is complete.
+Prior #303/#357 receipts cover broader replacement, Home/Resume, and repeated Save
+routes; #312 covers atomic-write failure. This run did not test OS write-denial
+injection, Close/Quit #360, every route combination, cross-platform/packaged builds,
+screen-reader behavior, physical print calibration, or unrelated Steam/network
+flows. Controlled/uncontrolled input warnings remain in the earlier launch log;
+their exact controls and relation to the capture failure are unproven. No new
+application regression was observed after the corrected integration.
+
+Issue #308 is not closed. Branch publication, PR creation, and the remote-main
+merge remain explicitly held pending the owner's response to the publication
+request. Locally known `origin/main` remains `5a899b88e0c4137c6b15839ca0a4cc0e2bbb32c1`;
+this receipt did not fetch, push, create a PR, merge remotely, or close an issue.
