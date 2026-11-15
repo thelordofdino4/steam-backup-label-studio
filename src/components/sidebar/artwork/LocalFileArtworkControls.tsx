@@ -1,3 +1,4 @@
+import { IMPORTED_IMAGE_ACCEPT } from '../../../image/importedImagePolicy'
 import type { ReactNode, Ref } from 'react'
 import { EditorFeaturePanel } from '../../editor/EditorPanel'
 import type { ArtworkPanelProps } from './types'
@@ -32,7 +33,7 @@ export function LocalFileArtworkControls({
             id="background-upload"
             className="logo-file-input"
             type="file"
-            accept="image/*"
+            accept={IMPORTED_IMAGE_ACCEPT}
             onChange={handleBackgroundUpload}
           />
           {fineTuneControls}

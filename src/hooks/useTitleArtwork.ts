@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { ImportedImagePolicyError } from '../image/importedImagePolicy'
 import type { SteamLogoPlacement } from '../discText/index'
 import {
   completeDiscGuidedSlotWhenSatisfied,
@@ -190,8 +191,12 @@ export function useTitleArtwork({
         isDiscGuidedTitleArtworkOwnerSatisfied(nextTitleArtwork),
       )
       announceStatus('Custom game logo artwork selected.')
-    } catch {
-      announceStatus('Game logo image could not be read.')
+    } catch (error) {
+      announceStatus(
+        error instanceof ImportedImagePolicyError
+          ? error.message
+          : 'Game logo image could not be read.',
+      )
     }
   }
 

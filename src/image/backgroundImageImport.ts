@@ -8,6 +8,7 @@ import {
   createImportedImageAssetFromDataUrl,
 } from '../utils/importedImageAsset'
 import { readImageFileAsDataUrl } from '../utils/imageFile'
+import { ImportedImagePolicyError } from './importedImagePolicy'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type { ProjectImageAssetProvenance } from '../project/projectTypes'
 
@@ -56,7 +57,8 @@ export async function createUploadedBackgroundImageImport(
 
   try {
     imageDataUrl = await readImageFileAsDataUrl(file)
-  } catch {
+  } catch (error) {
+    if (error instanceof ImportedImagePolicyError) throw error
     throw new BackgroundImageReadError()
   }
 
@@ -69,7 +71,8 @@ export async function createUploadedBackgroundImageImport(
         sourceLabel: file.name,
       }),
     )
-  } catch {
+  } catch (error) {
+    if (error instanceof ImportedImagePolicyError) throw error
     throw new BackgroundImageLoadError()
   }
 }

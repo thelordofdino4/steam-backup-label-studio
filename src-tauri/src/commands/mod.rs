@@ -1,4 +1,5 @@
 pub(crate) mod files;
+pub(crate) mod image_import;
 pub(crate) mod local_images;
 pub(crate) mod local_steam;
 pub(crate) mod official_site;

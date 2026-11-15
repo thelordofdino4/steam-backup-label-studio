@@ -50,7 +50,7 @@ Test execution route: Vite8.0.14 cache rename failed under restricted runner. Us
 Final verification: full Node 2418/2418, dimension integration 9/9, focused capture/geometry 23/23, Rust 318/318, build, lint, cycles, discovery 3/3 and diff-check passed. Native save/reopen, last-valid draft serialization, narrow layout and single-bottom-advisory119 passed. No publication, commit, merge, issue closure or primary app-code update. Screen reader, exact client/DPI and physical print remain outside this acceptance.
 
 
-## Primary integration receipt — 2026-11-15 UTC
+## Primary integration receipt ï¿½ 2026-11-15 UTC
 
 The isolated-candidate and no-publication statements above describe the historical pre-integration run, not current repository state. Its failure evidence and restrictions remain applicable. PR #409 subsequently merged to main `4cd5c40d74d40e22f21089d56320bd35ea65d708`. The primary checkout, preserving local Case work, was verified clean at `521572258457c021c8afd4afe52af7a08b90fe87` before this documentation update.
 
@@ -61,3 +61,10 @@ The isolated-candidate and no-publication statements above describe the historic
 - The first primary suite passed 2500/2501: a source-inspection test expected LF while `src/app/App.tsx` had CRLF. The exact token was absent in raw text and present after newline normalization; this was not an application seam regression. The test-only `readSource` normalization was committed locally as `52157225`; focused and full suites then passed. No production source workaround was needed.
 - Rust tests were not rerun for this receipt. All 83 tracked `src-tauri` paths matched the previously tested candidate: 67 were byte-identical, and 16 differed only by CRLF/LF. Cargo manifests and lockfile were byte-identical. Prior Rust 318/318 results therefore cover the unchanged Rust source/configuration, rather than representing a new primary Rust run.
 - Passing full-suite log: `primary-node-portable-20261115.log` in the isolated test workspace. The detailed local manual-results record contains this receipt. Screen reader, exact client/DPI measurements, physical print calibration, and fresh primary save/export remain outside this repeated smoke.
+
+## Isolated image-policy integration (2026-11-15 UTC)
+
+Initial automated Rust workspace run failed before compilation: Cargo could not create this isolated worktree's src-tauri/target directory (Windows access denied, os error 5). No test executed and this is not an application failure. Requesting tool-approved normal execution is the supported next step; no security setting change or alternate write path is used. Outcome remains pending.
+
+
+Restricted Node aggregate: guided browser harness timed out before interaction. Independent Vite diagnostic reproduced EPERM renaming logs/image-policy-cache-diagnostic/deps_temp_60034e54 to deps; default cache likewise retained only deps_temp directories. The partial aggregate was stopped through its own execution session after three timeouts. This does not establish an app regression. Requesting approved normal execution for aggregate retry, using the verified Playwright cache; no production configuration changes. Outcome pending.

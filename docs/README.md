@@ -22,6 +22,8 @@ This map is the entry point for repository documentation. If two documents disag
 
 Read [Software Navigation](SOFTWARE_NAVIGATION.md) before starting any SBLS testing and before every navigation attempt and follow its evidence-gated retry procedure.
 
+Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](IMAGE_ASSET_ACCEPTANCE_POLICY.md) documents the shared raster acceptance boundary, format/ingress matrices and remaining native acceptance for #358.
+
 ## Active Authoritative Documents
 
 | Document | Status | Purpose | Read when | Conflict rule |
