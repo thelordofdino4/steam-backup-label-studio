@@ -27,8 +27,8 @@ export function createPerformanceFixture(id) {
   if (kind === 'disc') {
     project.discText.values.backupDate = '2026-01-01'
     // The benchmark uses the published ESRB E compatibility tuple. The
-    // current blank no-rating plan rejects its placeholder evidence; that
-    // independent save-policy gap must not be hidden by codec overrides.
+    // historical blank no-rating plan rejected placeholder evidence; that
+    // policy gap is now fixed; retain the tuple for baseline comparability.
     project.metadata.ratingSystem = 'ESRB'
     project.metadata.ratingValue = 'E'
   }

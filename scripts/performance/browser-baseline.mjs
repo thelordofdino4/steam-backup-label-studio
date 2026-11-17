@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { chromium } from 'playwright'
 import { createServer } from 'vite'
-import { fixtureIds } from './fixtures.mjs'
+import { fixtureIds, fixtureSizes } from './fixtures.mjs'
 
 if (process.argv.length !== 3) throw new Error('Usage: node --experimental-strip-types scripts/performance/browser-baseline.mjs <generated-run-directory>')
 const directory = resolve(process.argv[2])
@@ -69,16 +69,39 @@ try {
           return caseExport.exportCaseInsertPngBytes({ caseInsert: project.caseInsert,
             activeTemplatePane: target, brandingSources: state })
         })
-        exportResults[target] = { durationMs: rendered.durations,
+        // Validate bytes outside the measured exporter boundary.
+        const bytes = Uint8Array.from(rendered.last.bytes)
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+        const signature = [...bytes.slice(0, 8)]
+        let ihdr, physical
+        for (let offset = 8; offset + 12 <= bytes.length;) {
+          const length = view.getUint32(offset)
+          if (offset + 12 + length > bytes.length) throw new Error('Truncated PNG chunk')
+          const type = String.fromCharCode(...bytes.slice(offset + 4, offset + 8))
+          if (type === 'IHDR') ihdr = [view.getUint32(offset + 8), view.getUint32(offset + 12)]
+          if (type === 'pHYs') physical = [view.getUint32(offset + 8), view.getUint32(offset + 12), bytes[offset + 16]]
+          offset += length + 12
+        }
+        exportResults[target] = { durationMs: rendered.durations, signature, ihdr, physical,
           width: rendered.last.width, height: rendered.last.height,
           pngBytes: rendered.last.bytes.length }
       }
       return { id, imageDecodeMs: decoded.durations, activePixelAnalysisMs: analyzed.durations,
         decodedDimensions: [decoded.last.naturalWidth, decoded.last.naturalHeight],
-        analyzedDimensions: [analyzed.last.width, analyzed.last.height], exportResults }
+        analyzedDimensions: [analyzed.last.width, analyzed.last.height],
+        // Stored metadata omits full-image bounds by design. Check the raw
+        // analysis separately; dimensions-only fallback is not an oracle.
+        contentBounds: bounds.getImageContentBoundsFromLoadedImage(decoded.last), exportResults }
     }, id)
     assert.deepEqual(result.decodedDimensions, result.analyzedDimensions)
-    for (const exported of Object.values(result.exportResults)) assert.ok(exported.pngBytes > 8)
+    const dimension = fixtureSizes[id.split('-')[1]]
+    assert.deepEqual(result.decodedDimensions, [dimension, dimension])
+    assert.deepEqual(result.contentBounds, { x: 0, y: 0, width: dimension, height: dimension })
+    for (const exported of Object.values(result.exportResults)) {
+      assert.deepEqual(exported.signature, [137, 80, 78, 71, 13, 10, 26, 10])
+      assert.deepEqual(exported.ihdr, [exported.width, exported.height])
+      assert.deepEqual(exported.physical, [11811, 11811, 1])
+    }
     results.push(result)
     await page.close()
   }

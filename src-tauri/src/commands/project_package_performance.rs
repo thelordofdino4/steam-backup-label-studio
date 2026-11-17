@@ -52,17 +52,24 @@ fn project_package_performance_baseline() {
             let bytes = fs::read(fixture.join("request.bin")).unwrap();
             let (framing_ms, parsed) = measure(|| parse_write_request(&bytes).unwrap());
             let (encode_ms, package) = measure(|| {
-                encode_project_package_from_borrowed(
-                    parsed.project_json,
-                    &creator,
-                    &parsed.captures,
-                )
+                match &parsed.data_urls {
+                    Some(data_urls) => encode_project_package_from_parts(
+                        parsed.project_json, &creator, &parsed.captures, data_urls,
+                    ),
+                    None => encode_project_package_from_borrowed(
+                        parsed.project_json, &creator, &parsed.captures,
+                    ),
+                }
                 .unwrap()
             });
             let (decode_ms, decoded) = measure(|| decode_project_package(&package).unwrap());
             let (hydrated, _) = decoded.into_parts();
             // Normalize object key order through JSON values, not raw bytes.
-            let input: serde_json::Value = serde_json::from_slice(parsed.project_json).unwrap();
+            // V2 request metadata deliberately has null asset leaves. Compare
+            // hydrated output with the independently persisted source fixture.
+            let input: serde_json::Value = serde_json::from_slice(
+                &fs::read(fixture.join("project.json")).unwrap(),
+            ).unwrap();
             let output: serde_json::Value = serde_json::from_slice(&hydrated).unwrap();
             // Qualified built-in leaves are intentionally omitted by packaging;
             // verify actual repeated asset bytes and schema/kind survive.
@@ -77,6 +84,9 @@ fn project_package_performance_baseline() {
                 ]
             };
             for owner in owners {
+                assert!(input.pointer(owner).and_then(|value| value.as_str())
+                    .is_some_and(|value| value.starts_with("data:image/bmp;base64,")),
+                    "Expected nonempty fixture asset at {owner}");
                 assert_eq!(input.pointer(owner), output.pointer(owner));
             }
             drop(parsed);

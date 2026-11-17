@@ -32,13 +32,13 @@ a statistically established percentile distribution.
 Six fixtures cover Disc and Case Insert at three image sizes. Each starts from
 its existing complete blank-project constructor and enables background and title
 artwork. One deterministic 24-bit BI_RGB BMP is retained at both registered
-owners. Case uses Cover owners; Tray is also exported to retain its path in the
+owners. Case uses Cover owners; Tray is also exported as a default-path control, not a large-image workload, in the
 benchmark. Disabled/default state and qualified built-ins remain present. Disc explicitly
 uses the published ESRB E metadata tuple (badge stays disabled). The initial
 blank `ratingSystem=none` fixture was rejected by the existing capture-plan
 owner as `unsupported-nonportable-asset` at `disc.rating.custom`, despite null
 custom image/size and disabled placeholder state. The separate #358 image-policy work addresses this by checking actual
-custom-image evidence. The gap remains present on the measured main baseline.
+custom-image evidence. The gap was present on the November 1 baseline and is fixed on current main; the compatibility tuple remains solely to preserve workload comparability.
 The benchmark does not duplicate that fix or bypass the production capture plan.
 Saved time and backup dates are pinned. Built-in URLs use stable repository
 asset paths. Deterministic xorshift pixel noise avoids compression-ratio artifacts.
@@ -50,7 +50,7 @@ These are controlled workloads, not a claim about a typical user's project mix.
 | Normal | 512 x 512 | 786,486 | 2,097,340 | 1,048,576 |
 | Large | 1400 x 1400 | 5,880,054 | 15,680,188 | 7,840,000 |
 
-The large fixture fits the integrated 16 MiB hydrated save request limit.
+The historical large fixture fit the former V1 16 MiB hydrated JSON limit. Current frontend framing is V2: metadata, unique data-URL pool and fan-out limits are independent, as specified in PROJECT_PACKAGE_SAVE_CAPACITY.md. The same six workloads are retained; they do not probe the newer maximum envelope.
 Actual native round-trip success, rather than byte arithmetic alone, determines
 supported-fixture acceptance. Native checks verify schema/kind and both exact
 asset leaves; package bytes and hydrated output size are recorded. Qualified
@@ -137,3 +137,8 @@ than one real project before treating these controlled fixtures as representativ
 #363/#365 and subsequent document migrations still need that pre-migration native
 evidence. No cache, GPU/WebGL rewrite, asset-store redesign or optimization is
 justified by this harness alone. #368 remains open.
+
+## Current-main reconciliation — 2026-11-17
+
+Based on main d895c58c. The historical November 1 report is preserved unchanged. Native codec timing now follows production V1/V2 dispatch; restored image leaves are compared against the independent hydrated project fixture, with non-null data-URL assertions. Browser analysis requires exact full opaque bounds; PNG output validates signature, IHDR dimensions and 300-DPI pHYs outside timed regions. Current runs record framing magic separately. No production behavior or thresholds changed. Fresh run evidence and native measurement limits remain separate.
+The separate raw-bounds check supports successful pixel access; it does not independently prove the timed helper's content-shape computation succeeded. Stored full-image bounds are intentionally omitted by production normalization.

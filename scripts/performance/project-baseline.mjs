@@ -52,6 +52,7 @@ if (process.argv[2] === '--fixture') {
   writeFileSync(join(directory, 'request.bin'), body, { flag: 'wx' })
   const report = {
     ...characteristics, projectUtf8Bytes: Buffer.byteLength(json), requestBytes: body.byteLength,
+    framingMagic: new TextDecoder().decode(body.subarray(0, 8)),
     fixtureSha256: createHash('sha256').update(json).digest('hex'), timingMs,
     memory: { nodeEnd: process.memoryUsage(), nodeProcessPeakRssKiB: process.resourceUsage().maxRSS },
   }
