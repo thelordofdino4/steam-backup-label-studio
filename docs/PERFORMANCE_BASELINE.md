@@ -142,3 +142,26 @@ justified by this harness alone. #368 remains open.
 
 Based on main d895c58c. The historical November 1 report is preserved unchanged. Native codec timing now follows production V1/V2 dispatch; restored image leaves are compared against the independent hydrated project fixture, with non-null data-URL assertions. Browser analysis requires exact full opaque bounds; PNG output validates signature, IHDR dimensions and 300-DPI pHYs outside timed regions. Current runs record framing magic separately. No production behavior or thresholds changed. Fresh run evidence and native measurement limits remain separate.
 The separate raw-bounds check supports successful pixel access; it does not independently prove the timed helper's content-shape computation succeeded. Stored full-image bounds are intentionally omitted by production normalization.
+
+### Fresh sequential current-main run
+
+[2026-11-17 raw report](performance/2026-11-17-baseline.json) records clean
+measurement source `86c5f942c08674bc389ed63561b35e4095422901`, production main
+`d895c58cdd057306c2a6fc7593162dcfe99b5908`, checkout-byte harness SHA256 values,
+compiler/hardware/browser versions, all six fixture hashes and raw samples.
+Node, native-code and browser stages ran sequentially after aggregate tests ended.
+All six V2 frames passed exact hydrated asset round trips, atomic Save/read-decode
+and real Disc/Cover/Tray exporter checks. The original run remains historical;
+constructor/framing/export policy changes mean this is not a controlled claim
+that one isolated optimization caused any timing difference.
+
+Current request sizes are 75,341 / 1,058,381 / 7,849,809 bytes for Disc and
+95,715 / 1,078,755 / 7,870,183 for Case. Both native and browser reports preserve
+one warm-up and five raw samples per boundary. These warm debug/headless figures
+remain diagnostic, not native GUI, whole-process memory, percentile thresholds,
+physical-print or packaged-platform acceptance.
+
+Validation: 2,838 Node tests and 343 Rust tests passed; the one ignored benchmark
+was separately exercised successfully. Build, lint, cycles (978 files), discovery
+(3/3), and diff checks passed. Independent immutable-source review approved the
+reconciliation. No primary checkout source or native app was changed/launched.
