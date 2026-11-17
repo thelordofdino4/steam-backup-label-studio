@@ -15,6 +15,7 @@ its report. Use a newly generated directory for a complete repeat.
 node --experimental-strip-types scripts/performance/project-baseline.mjs
 $env:SBLS_PERFORMANCE_DIR = '<directory printed above>'
 cargo test --manifest-path src-tauri/Cargo.toml --package app --locked project_package_performance_baseline -- --ignored --nocapture --test-threads=1
+node --experimental-strip-types scripts/performance/staging-baseline.mjs $env:SBLS_PERFORMANCE_DIR
 node --experimental-strip-types scripts/performance/browser-baseline.mjs $env:SBLS_PERFORMANCE_DIR
 ```
 
@@ -165,3 +166,111 @@ Validation: 2,838 Node tests and 343 Rust tests passed; the one ignored benchmar
 was separately exercised successfully. Build, lint, cycles (978 files), discovery
 (3/3), and diff checks passed. Independent immutable-source review approved the
 reconciliation. No primary checkout source or native app was changed/launched.
+
+
+## Opt-in native lifecycle observer (#368, partial)
+
+Set `VITE_SBLS_LIFECYCLE_TIMING=1` in the launching process environment before
+an explicitly authorized `npm run tauri dev` session. Both Vite DEV and this exact
+flag must be true. Unset/default and production builds do not construct the
+observer or display its report. This does not enable telemetry, files, clipboard,
+network export, synthetic input, scheduling changes, or developer-console control.
+
+Existing composition-root boundaries collect at most 256 completed samples:
+
+- `project.open`, `project.save`, `project.save-as`, `export.png`: from immediately
+  before dispatcher/context construction until its existing promise settles.
+  This **includes human dialog/preflight waiting**, capture, transport, and any
+  command work; it is not native-only time, pure IPC, feedback commit or paint.
+  Unknown command strings and pre-dispatch termination-admission rejections are
+  not recorded. Disabled/busy responses from the dispatcher are `not-executed`.
+- `synchronize-current-project`: the existing capture/compare/store attempt,
+  including synchronous subscriber notification. Outcomes distinguish changed,
+  no-op, invalid, wrong-kind and stale-session. This is not pure snapshot cost,
+  a control-event latency, or the separate local Case continuous-edit duration.
+- Before/after values are **lifecycle state generations**, not content revision
+  IDs or a claim that one command owns all intervening changes.
+
+The observer uses one WebView `performance.now` clock. It adds measurement overhead
+when enabled; these are instrumented debug measurements, not uninstrumented or
+release performance. No native-clock subtraction, frame callbacks, or display
+latency inference is permitted. Native substages, interaction/preview correlation,
+whole-process memory and the rest of #368 remain outstanding.
+
+### Supported retrieval and native acceptance still required
+
+After the measured operations finish, expand **Development lifecycle timing
+report** and press **Refresh timing report**. The report is read-only semantic
+text with sequence, fixed boundary/outcome, elapsed milliseconds, generations,
+retained count, dropped-oldest count and invalid-clock count. It updates only on
+explicit refresh, never on the measured hot path. Read through the documented
+native CUA accessibility/screenshot route; no hidden JavaScript or clipboard is
+needed. Closing the app loses the bounded local buffer. Record exact integrated
+commit, flag, fixture hashes and operation order separately; three-decimal display
+is formatting precision, not timing accuracy. Samples are ordered by completion,
+not dispatch start, and overlapping/nested work can contribute to multiple samples.
+
+Before publishing measurements, run an announced primary native session, exercise
+success/cancel/failure plus no-op/real sync with disposable projects, verify the
+reported outcomes against visible behavior and saved/reopened artifacts, and
+confirm report retrieval. Keep dialog-wait totals distinct from machine-only
+work. No native run or accepted performance result is claimed by adding this code.
+
+
+Observer source validation: focused 14 tests, full Node 2,843 tests, build/lint,
+cycles (981 files) and discovery (3 tests) pass. The initial aggregate found one
+structural assertion assuming a zero-argument runtime constructor; the corrected
+assertion still requires exactly one runtime call and tolerates optional observer
+arguments. The subsequent full aggregate passed. An isolated headless component
+diagnostic verified disabled gates, semantic report text and explicit-refresh
+isolation; this is not native acceptance. Rust source and manifests are unchanged
+from the earlier verified main baseline; no fresh Rust execution is claimed.
+
+
+## Persisted Case fixture correction (2026-11-17)
+
+Native Case Open exposed a diagnostic generator gap shared by main and primary:
+request construction used canonical content snapshots, which deliberately omit
+`caseInsertLayoutPreset`. The codec round trip preserved assets but could not
+establish frontend Open validity. The former Case native-output packages are
+invalid production Open inputs; the source fixture JSON itself was complete.
+Historical reports and original inputs are retained unchanged. Their native
+codec figures are not evidence of Case frontend staging or GUI acceptance.
+
+New request generation retains the existing blank-project persistence constructors
+and their complete Case companion, validating/copying through the production parser.
+Content-only capture/validation/comparison remain separately measured. Serialization
+now explicitly labels content-snapshot versus persisted-project input; capture
+planning/framing use the persisted project. These are changed workload boundaries,
+not controlled before/after optimization evidence. Original and persisted fixture
+hashes are separately recorded. No production schema, codec or lifecycle behavior
+is changed.
+
+Before writing frames, the generator exercises production Open staging. The ignored
+native test also checks exact Case persisted state and writes actual decoded bytes
+outside timing. The separate staging command consumes those bytes, asserting both
+exact BMP leaves and exact Case preset recovery through production Open. It uses
+deterministic branding dependencies and a declared fixture image-size resolver;
+this is not real WebView image decode, UI adoption or native GUI acceptance.
+
+
+### Fresh corrected pipeline receipt
+
+[2026-11-17 persisted-fixture correction report](performance/2026-11-17-persisted-fixture-correction.json)
+records source `44012551`, raw Node/native samples, compiler and environment,
+checkout-byte harness hashes, six persisted/request/package/hydrated artifact
+hashes, and successful actual-native-hydration staging results. Stages ran
+sequentially after tests finished. The Node source status truthfully records an
+untracked redirected run-location receipt; tracked source was unchanged.
+
+All six corrected frames passed native codec, atomic Save/read-decode, exact
+asset/preset checks and production frontend Open staging. Case request sizes are
+95,875 / 1,078,915 / 7,870,343 bytes; Disc remains 75,341 / 1,058,381 / 7,849,809.
+Staging verifies both exact assets again in the accepted normalized aggregate.
+No browser export rerun or corrected-fixture native GUI acceptance is claimed.
+
+Validation: focused 7/7, final full Node 2,850/2,850, Rust 343/343 plus one
+intentionally ignored benchmark; that benchmark separately passed the six fresh
+frames. Build, lint, cycles (981 files), discovery (3/3) and diff checks passed.
+Historical November 1/17 reports and original fixture constructor are unchanged.
+This correction does not complete #368 or justify an optimization.

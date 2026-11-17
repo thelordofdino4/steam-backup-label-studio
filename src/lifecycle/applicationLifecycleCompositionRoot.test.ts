@@ -1,3 +1,4 @@
+import { createLifecyclePerformanceObserver } from './lifecyclePerformanceObserver.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createCaseInsertProjectSnapshot } from '../project/caseInsertProjectAdapters.ts'
@@ -636,4 +637,49 @@ test('root disposal removes owned subscriptions and rejects later dispatch', asy
   )
   assert.throws(() => root.subscribe(() => {}), /disposed/)
   assert.equal(notifications, 0)
+})
+
+
+test('opt-in observer retains command cancellation and sync outcomes without private input', async () => {
+  let now = 0
+  const observer = createLifecyclePerformanceObserver(() => now++)
+  const initialState = createNewProjectSession({ sessionId: 'private-session', project: createDiscProject() })
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState, performanceObserver: observer,
+    ports: { ...implementedNoOpPorts(), openProject: { availability: 'implemented',
+      executeOpenProject: () => ({ status: 'cancelled', reason: 'file-dialog-dismissed' }) } },
+  })
+  const project = root.getLifecycleState().activeSession!.project as SavedDiscProject
+  assert.equal(root.synchronizeCurrentProject({ sessionId: 'private-session', kind: 'disc', project }), 'no-op')
+  assert.equal(root.synchronizeCurrentProject({ sessionId: 'wrong', kind: 'disc', project }), 'stale-session')
+  assert.equal(root.synchronizeCurrentProject({ sessionId: 'private-session', kind: 'disc', project: { ...project, title: 'private title', game: { manualTitle: 'private title', selectedSteamGame: null } } }), 'synchronized')
+  await root.dispatch('project.open')
+  await root.dispatch('private unknown command')
+  const samples = observer.snapshot().samples
+  assert.deepEqual(samples.map(s => s.outcome), ['no-op', 'stale-session', 'synchronized', 'cancelled'])
+  assert.equal(samples[2].generationAfter, samples[2].generationBefore + 1)
+  assert.equal(JSON.stringify(samples).includes('private'), false)
+  root.dispose()
+})
+
+
+test('observer records typed failure and busy/disabled results, and cannot break dispatch', async () => {
+  const observer = createLifecyclePerformanceObserver()
+  const root = createApplicationLifecycleCompositionRoot({ performanceObserver: observer,
+    ports: { openProject: { availability: 'implemented', executeOpenProject: () => ({
+      status: 'failure', error: { code: 'private-code', userMessage: 'private message', recoverable: true },
+    }) } },
+  })
+  const failed = await root.dispatch('project.open')
+  assert.equal(failed.disposition, 'executed')
+  await root.dispatch('project.save')
+  assert.deepEqual(observer.snapshot().samples.map(s => s.outcome), ['failure', 'not-executed'])
+  assert.equal(JSON.stringify(observer.snapshot()).includes('private'), false)
+  root.dispose()
+  const bad = { begin() { throw Error('observer failure') }, snapshot: observer.snapshot }
+  const unaffected = createApplicationLifecycleCompositionRoot({ performanceObserver: bad,
+    ports: implementedNoOpPorts() })
+  assert.equal((await unaffected.dispatch('project.open')).disposition, 'executed')
+  assert.equal(unaffected.synchronizeCurrentProject({ sessionId: 'missing', kind: 'disc', project: createDiscProject() }), 'stale-session')
+  unaffected.dispose()
 })

@@ -1,3 +1,4 @@
+import type { LifecyclePerformanceObserver } from '../lifecycle/lifecyclePerformanceObserver.ts'
 import { createApplicationNativeTerminationCommandOwners } from './appNativeTerminationCommand.ts'
 import { createApplicationTerminationRuntime, type ApplicationTerminationRuntimeDependencies, type NativeTerminationFeedback } from './applicationTerminationRuntime.ts'
 import {
@@ -60,6 +61,7 @@ export type ApplicationLifecycleRuntime = Readonly<{
 }>
 
 export type ApplicationLifecycleRuntimeOptions = Readonly<{
+  performanceObserver?: LifecyclePerformanceObserver
   nativeTermination?: ApplicationTerminationRuntimeDependencies
   createRoot?: (
     options: ApplicationLifecycleCompositionRootOptions,
@@ -114,6 +116,7 @@ export function createApplicationLifecycleRuntime(
     terminationRuntime.handoff, replacementGuard, () => caseInsertContinuousEditPort,
   )
   const root = createRoot({
+    performanceObserver: options.performanceObserver,
     getTerminationCapabilities: terminationRuntime.capabilities,
     canAcceptCommands: () => !disposed && !terminationRuntime.isHandoffPending(),
     ports: {

@@ -89,6 +89,14 @@ fn project_package_performance_baseline() {
                     "Expected nonempty fixture asset at {owner}");
                 assert_eq!(input.pointer(owner), output.pointer(owner));
             }
+            if kind == "case" {
+                assert!(input["caseInsertLayoutPreset"].is_object());
+                assert_eq!(input["caseInsertLayoutPreset"], output["caseInsertLayoutPreset"]);
+            }
+            // Outside timing: expose actual codec hydration for frontend Open oracle.
+            fs::OpenOptions::new().write(true).create_new(true)
+                .open(fixture.join("native-hydrated.json")).unwrap()
+                .write_all(&hydrated).unwrap();
             drop(parsed);
             let destination = fixture.join("native-output.sbls");
             assert!(

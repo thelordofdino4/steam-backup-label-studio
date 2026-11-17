@@ -1,3 +1,5 @@
+import { createLifecyclePerformanceObserver, isLifecycleTimingEnabled } from './lifecycle/lifecyclePerformanceObserver.ts'
+import { LifecyclePerformanceReport } from './diagnostics/LifecyclePerformanceReport.tsx'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
@@ -15,7 +17,11 @@ import './styles/layoutFix.css'
 import App from './app/App.tsx'
 
 function mountApplication() {
-  const lifecycleRuntime = createApplicationLifecycleRuntime()
+  const performanceObserver = isLifecycleTimingEnabled(
+    import.meta.env.DEV, import.meta.env.VITE_SBLS_LIFECYCLE_TIMING,
+  )
+    ? createLifecyclePerformanceObserver() : undefined
+  const lifecycleRuntime = createApplicationLifecycleRuntime({ performanceObserver })
   const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
 
   if (import.meta.hot) {
@@ -30,6 +36,7 @@ function mountApplication() {
       <ApplicationMenuBoundary runtime={menuRuntime}>
         <StrictMode>
           <App />
+          {performanceObserver && <LifecyclePerformanceReport observer={performanceObserver} />}
         </StrictMode>
       </ApplicationMenuBoundary>
     </ApplicationLifecycleBoundary>,

@@ -13,7 +13,7 @@ test('production mounts one lifecycle runtime and current lifecycle surfaces sha
     ])
 
   assert.equal(
-    (mainSource.match(/createApplicationLifecycleRuntime\(\)/g) ?? []).length,
+    (mainSource.match(/createApplicationLifecycleRuntime\(/g) ?? []).length,
     1,
   )
   assert.match(mainSource, /ApplicationLifecycleBoundary runtime=/)
