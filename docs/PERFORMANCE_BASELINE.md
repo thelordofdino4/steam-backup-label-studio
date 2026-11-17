@@ -15,6 +15,7 @@ its report. Use a newly generated directory for a complete repeat.
 node --experimental-strip-types scripts/performance/project-baseline.mjs
 $env:SBLS_PERFORMANCE_DIR = '<directory printed above>'
 cargo test --manifest-path src-tauri/Cargo.toml --package app --locked project_package_performance_baseline -- --ignored --nocapture --test-threads=1
+node --experimental-strip-types scripts/performance/staging-baseline.mjs $env:SBLS_PERFORMANCE_DIR
 node --experimental-strip-types scripts/performance/browser-baseline.mjs $env:SBLS_PERFORMANCE_DIR
 ```
 
@@ -224,3 +225,30 @@ arguments. The subsequent full aggregate passed. An isolated headless component
 diagnostic verified disabled gates, semantic report text and explicit-refresh
 isolation; this is not native acceptance. Rust source and manifests are unchanged
 from the earlier verified main baseline; no fresh Rust execution is claimed.
+
+
+## Persisted Case fixture correction (2026-11-17)
+
+Native Case Open exposed a diagnostic generator gap shared by main and primary:
+request construction used canonical content snapshots, which deliberately omit
+`caseInsertLayoutPreset`. The codec round trip preserved assets but could not
+establish frontend Open validity. The former Case native-output packages are
+invalid production Open inputs; the source fixture JSON itself was complete.
+Historical reports and original inputs are retained unchanged. Their native
+codec figures are not evidence of Case frontend staging or GUI acceptance.
+
+New request generation retains the existing blank-project persistence constructors
+and their complete Case companion, validating/copying through the production parser.
+Content-only capture/validation/comparison remain separately measured. Serialization
+now explicitly labels content-snapshot versus persisted-project input; capture
+planning/framing use the persisted project. These are changed workload boundaries,
+not controlled before/after optimization evidence. Original and persisted fixture
+hashes are separately recorded. No production schema, codec or lifecycle behavior
+is changed.
+
+Before writing frames, the generator exercises production Open staging. The ignored
+native test also checks exact Case persisted state and writes actual decoded bytes
+outside timing. The separate staging command consumes those bytes, asserting both
+exact BMP leaves and exact Case preset recovery through production Open. It uses
+deterministic branding dependencies and a declared fixture image-size resolver;
+this is not real WebView image decode, UI adoption or native GUI acceptance.

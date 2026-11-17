@@ -10,6 +10,7 @@ import { captureNormalizedProjectSnapshot, createCanonicalProjectComparisonValue
 import { validateNormalizedProjectSchema } from '../../src/project/projectSchema.ts'
 import { createProjectPackageCapturePlan } from '../../src/package/projectPackageCapturePlan.ts'
 import { createProjectPackageWriteRequest } from '../../src/tauri/projectPackageWrite.ts'
+import { createPerformancePersistedProject, assertPerformanceOpenStaging } from './persistence.mjs'
 import { createPerformanceFixture, fixtureIds } from './fixtures.mjs'
 
 const samples = 5
@@ -30,11 +31,14 @@ if (process.argv[2] === '--fixture') {
   const json = JSON.stringify(project)
   assert.equal(json, JSON.stringify(createPerformanceFixture(id).project), 'Fixture must be repeatable')
   const snapshot = captureNormalizedProjectSnapshot(project)
-  const plan = createProjectPackageCapturePlan(snapshot)
+  const persisted = createPerformancePersistedProject(project)
+  const persistedJson = JSON.stringify(persisted)
+  await assertPerformanceOpenStaging(new TextEncoder().encode(persistedJson), persisted, characteristics.width)
+  const plan = createProjectPackageCapturePlan(persisted)
   assert.equal(plan.captures.filter(c => c.decision.kind === 'project-owned-data-url').length, 2)
   assert.ok(plan.captures.every(c => c.decision.kind !== 'unsupported-nonportable-asset'),
     'All fixture owners must have supported capture decisions')
-  const body = createProjectPackageWriteRequest(snapshot, plan)
+  const body = createProjectPackageWriteRequest(persisted, plan)
   const timingMs = {
     captureValidateFreeze: measure(() => captureNormalizedProjectSnapshot(project)),
     schemaValidationOnly: measure(() => { validateNormalizedProjectSchema(snapshot); return true }),
@@ -43,17 +47,20 @@ if (process.argv[2] === '--fixture') {
     canonicalComparisonCached: measure(() => createCanonicalProjectComparisonValue(snapshot)),
     scalarSuccessorCaptureComparisonProxy: measure(i => createCanonicalProjectComparisonValue(
       captureNormalizedProjectSnapshot({ ...project, title: `Edit ${i}` })), i => i),
-    jsonSerialization: measure(() => JSON.stringify(snapshot)),
-    capturePlan: measure(() => createProjectPackageCapturePlan(snapshot)),
-    rawRequestFraming: measure(() => createProjectPackageWriteRequest(snapshot, plan)),
+    contentSnapshotJsonSerialization: measure(() => JSON.stringify(snapshot)),
+    persistedProjectJsonSerialization: measure(() => JSON.stringify(persisted)),
+    persistedProjectCapturePlan: measure(() => createProjectPackageCapturePlan(persisted)),
+    rawRequestFraming: measure(() => createProjectPackageWriteRequest(persisted, plan)),
   }
   mkdirSync(directory)
-  writeFileSync(join(directory, 'project.json'), json, { flag: 'wx' })
+  writeFileSync(join(directory, 'project.json'), persistedJson, { flag: 'wx' })
   writeFileSync(join(directory, 'request.bin'), body, { flag: 'wx' })
   const report = {
-    ...characteristics, projectUtf8Bytes: Buffer.byteLength(json), requestBytes: body.byteLength,
+    ...characteristics, projectUtf8Bytes: Buffer.byteLength(persistedJson), originalFixtureUtf8Bytes: Buffer.byteLength(json), requestBytes: body.byteLength,
     framingMagic: new TextDecoder().decode(body.subarray(0, 8)),
-    fixtureSha256: createHash('sha256').update(json).digest('hex'), timingMs,
+    fixtureSha256: createHash('sha256').update(persistedJson).digest('hex'),
+    originalFixtureSha256: createHash('sha256').update(json).digest('hex'),
+    persistenceBoundary: 'persisted-project-with-case-companion', timingMs,
     memory: { nodeEnd: process.memoryUsage(), nodeProcessPeakRssKiB: process.resourceUsage().maxRSS },
   }
   writeJson(join(directory, 'node.json'), report)
@@ -77,3 +84,4 @@ if (process.argv[2] === '--fixture') {
   writeJson(join(directory, 'node-baseline.json'), report)
   console.log(JSON.stringify({ directory, fixtures: results.map(r => ({ id: r.id, requestBytes: r.requestBytes })) }, null, 2))
 }
+
