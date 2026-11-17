@@ -84,4 +84,3 @@ if (process.argv[2] === '--fixture') {
   writeJson(join(directory, 'node-baseline.json'), report)
   console.log(JSON.stringify({ directory, fixtures: results.map(r => ({ id: r.id, requestBytes: r.requestBytes })) }, null, 2))
 }
-
