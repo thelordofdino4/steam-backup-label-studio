@@ -252,3 +252,25 @@ outside timing. The separate staging command consumes those bytes, asserting bot
 exact BMP leaves and exact Case preset recovery through production Open. It uses
 deterministic branding dependencies and a declared fixture image-size resolver;
 this is not real WebView image decode, UI adoption or native GUI acceptance.
+
+
+### Fresh corrected pipeline receipt
+
+[2026-11-17 persisted-fixture correction report](performance/2026-11-17-persisted-fixture-correction.json)
+records source `44012551`, raw Node/native samples, compiler and environment,
+checkout-byte harness hashes, six persisted/request/package/hydrated artifact
+hashes, and successful actual-native-hydration staging results. Stages ran
+sequentially after tests finished. The Node source status truthfully records an
+untracked redirected run-location receipt; tracked source was unchanged.
+
+All six corrected frames passed native codec, atomic Save/read-decode, exact
+asset/preset checks and production frontend Open staging. Case request sizes are
+95,875 / 1,078,915 / 7,870,343 bytes; Disc remains 75,341 / 1,058,381 / 7,849,809.
+Staging verifies both exact assets again in the accepted normalized aggregate.
+No browser export rerun or corrected-fixture native GUI acceptance is claimed.
+
+Validation: focused 7/7, final full Node 2,850/2,850, Rust 343/343 plus one
+intentionally ignored benchmark; that benchmark separately passed the six fresh
+frames. Build, lint, cycles (981 files), discovery (3/3) and diff checks passed.
+Historical November 1/17 reports and original fixture constructor are unchanged.
+This correction does not complete #368 or justify an optimization.
