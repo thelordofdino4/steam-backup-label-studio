@@ -32,6 +32,10 @@ export async function assertPerformanceOpenStaging(hydratedBytes, persisted, wid
   })
   assert.equal(result.status, 'success', result.error?.diagnosticMessage)
   assert.equal(result.value.projectType, persisted.projectType)
+  for (const path of pointers) {
+    assert.equal(path.reduce((value, key) => value[key], result.value.normalizedProject),
+      path.reduce((value, key) => value[key], persisted))
+  }
   if (persisted.projectType === 'caseInsert') {
     assert.deepEqual(result.value.caseInsertPresetRecovery.persistedState, persisted.caseInsertLayoutPreset)
   }
