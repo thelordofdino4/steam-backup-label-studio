@@ -165,3 +165,52 @@ Validation: 2,838 Node tests and 343 Rust tests passed; the one ignored benchmar
 was separately exercised successfully. Build, lint, cycles (978 files), discovery
 (3/3), and diff checks passed. Independent immutable-source review approved the
 reconciliation. No primary checkout source or native app was changed/launched.
+
+
+## Opt-in native lifecycle observer (#368, partial)
+
+Set `VITE_SBLS_LIFECYCLE_TIMING=1` in the launching process environment before
+an explicitly authorized `npm run tauri dev` session. Both Vite DEV and this exact
+flag must be true. Unset/default and production builds do not construct the
+observer or display its report. This does not enable telemetry, files, clipboard,
+network export, synthetic input, scheduling changes, or developer-console control.
+
+Existing composition-root boundaries collect at most 256 completed samples:
+
+- `project.open`, `project.save`, `project.save-as`, `export.png`: from immediately
+  before dispatcher/context construction until its existing promise settles.
+  This **includes human dialog/preflight waiting**, capture, transport, and any
+  command work; it is not native-only time, pure IPC, feedback commit or paint.
+  Unknown command strings and pre-dispatch termination-admission rejections are
+  not recorded. Disabled/busy responses from the dispatcher are `not-executed`.
+- `synchronize-current-project`: the existing capture/compare/store attempt,
+  including synchronous subscriber notification. Outcomes distinguish changed,
+  no-op, invalid, wrong-kind and stale-session. This is not pure snapshot cost,
+  a control-event latency, or the separate local Case continuous-edit duration.
+- Before/after values are **lifecycle state generations**, not content revision
+  IDs or a claim that one command owns all intervening changes.
+
+The observer uses one WebView `performance.now` clock. It adds measurement overhead
+when enabled; these are instrumented debug measurements, not uninstrumented or
+release performance. No native-clock subtraction, frame callbacks, or display
+latency inference is permitted. Native substages, interaction/preview correlation,
+whole-process memory and the rest of #368 remain outstanding.
+
+### Supported retrieval and native acceptance still required
+
+After the measured operations finish, expand **Development lifecycle timing
+report** and press **Refresh timing report**. The report is read-only semantic
+text with sequence, fixed boundary/outcome, elapsed milliseconds, generations,
+retained count, dropped-oldest count and invalid-clock count. It updates only on
+explicit refresh, never on the measured hot path. Read through the documented
+native CUA accessibility/screenshot route; no hidden JavaScript or clipboard is
+needed. Closing the app loses the bounded local buffer. Record exact integrated
+commit, flag, fixture hashes and operation order separately; three-decimal display
+is formatting precision, not timing accuracy. Samples are ordered by completion,
+not dispatch start, and overlapping/nested work can contribute to multiple samples.
+
+Before publishing measurements, run an announced primary native session, exercise
+success/cancel/failure plus no-op/real sync with disposable projects, verify the
+reported outcomes against visible behavior and saved/reopened artifacts, and
+confirm report retrieval. Keep dialog-wait totals distinct from machine-only
+work. No native run or accepted performance result is claimed by adding this code.

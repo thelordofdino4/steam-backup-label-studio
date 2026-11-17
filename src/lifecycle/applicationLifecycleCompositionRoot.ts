@@ -1,3 +1,4 @@
+import { beginLifecyclePerformanceSample, type LifecyclePerformanceObserver } from './lifecyclePerformanceObserver.ts'
 import {
   type ApplicationCommandCapability,
   type ApplicationCommandDispatchResult,
@@ -74,6 +75,7 @@ export type ApplicationLifecycleCompositionSubscriber = (
 ) => void
 
 export type ApplicationLifecycleCompositionRootOptions = Readonly<{
+  performanceObserver?: LifecyclePerformanceObserver
   initialState?: ApplicationLifecycleState
   ports?: ApplicationLifecycleCommandPorts
   exportPng?: ApplicationPngExportCommandOwner
@@ -303,6 +305,36 @@ export function createApplicationLifecycleCompositionRoot(
     })
   }
 
+  function synchronizeCurrentProject(input: Readonly<{
+    sessionId: ProjectSessionId
+    kind: EditorProjectType
+    project: SavedProject
+  }>) {
+    if (disposed) return 'invalid'
+
+    const snapshot = stateStore.getSnapshot()
+    const session = snapshot.state.activeSession
+    if (!session || session.id !== input.sessionId) return 'stale-session'
+    if (session.kind !== input.kind) return 'wrong-kind'
+
+    let result
+    try {
+      const project = captureNormalizedProjectSnapshot(input.project)
+      if (getNormalizedProjectKind(project) !== input.kind) return 'wrong-kind'
+      result = stateStore.commitTransition(snapshot.generation, (state) =>
+        synchronizeActiveProjectContent(state, {
+          ...input,
+          project: project as unknown as SavedProject,
+        }))
+    } catch {
+      return 'invalid'
+    }
+
+    if (result.status === 'committed') return 'synchronized'
+    if (result.status === 'no-op') return 'no-op'
+    return 'stale-session'
+  }
+
   const root: ApplicationLifecycleCompositionRoot = Object.freeze({
     getLifecycleState: () => stateStore.getSnapshot().state,
     getStateSnapshot: () => stateStore.getSnapshot(),
@@ -339,40 +371,33 @@ export function createApplicationLifecycleCompositionRoot(
           userMessage: handoffBlocked.userMessage,
         })
       }
-      return dispatcher.dispatch(
+      const measured = commandId === 'project.open' || commandId === 'project.save' ||
+        commandId === 'project.save-as' || commandId === 'export.png'
+      const finish = measured && options.performanceObserver ? beginLifecyclePerformanceSample(
+        options.performanceObserver, commandId, stateStore.getSnapshot().generation,
+      ) : undefined
+      const pending = dispatcher.dispatch(
         commandId,
         createCommandContext(definition.id),
         input,
       )
-    },
-    synchronizeCurrentProject(input: Readonly<{
-      sessionId: ProjectSessionId
-      kind: EditorProjectType
-      project: SavedProject
-    }>) {
-      if (disposed) return 'invalid'
-
-      const snapshot = stateStore.getSnapshot()
-      const session = snapshot.state.activeSession
-      if (!session || session.id !== input.sessionId) return 'stale-session'
-      if (session.kind !== input.kind) return 'wrong-kind'
-
-      let result
-      try {
-        const project = captureNormalizedProjectSnapshot(input.project)
-        if (getNormalizedProjectKind(project) !== input.kind) return 'wrong-kind'
-        result = stateStore.commitTransition(snapshot.generation, (state) =>
-          synchronizeActiveProjectContent(state, {
-            ...input,
-            project: project as unknown as SavedProject,
-          }))
-      } catch {
-        return 'invalid'
+      if (finish) {
+        // Observe the existing promise; do not replace it or await an extra stage.
+        void pending.then(
+          result => finish(result.disposition === 'executed'
+            ? result.result.status : 'not-executed', stateStore.getSnapshot().generation),
+          () => finish('threw', stateStore.getSnapshot().generation),
+        )
       }
-
-      if (result.status === 'committed') return 'synchronized'
-      if (result.status === 'no-op') return 'no-op'
-      return 'stale-session'
+      return pending
+    },
+    synchronizeCurrentProject(input: Parameters<ApplicationLifecycleCompositionRoot['synchronizeCurrentProject']>[0]) {
+      const observer = options.performanceObserver
+      if (!observer) return synchronizeCurrentProject(input)
+      const finish = beginLifecyclePerformanceSample(observer, 'synchronize-current-project', stateStore.getSnapshot().generation)
+      const result = synchronizeCurrentProject(input)
+      finish?.(result, stateStore.getSnapshot().generation)
+      return result
     },
     synchronizeCurrentEditorRoute(input: Readonly<{
       sessionId: ProjectSessionId
