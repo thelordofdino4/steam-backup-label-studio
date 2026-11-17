@@ -214,3 +214,13 @@ success/cancel/failure plus no-op/real sync with disposable projects, verify the
 reported outcomes against visible behavior and saved/reopened artifacts, and
 confirm report retrieval. Keep dialog-wait totals distinct from machine-only
 work. No native run or accepted performance result is claimed by adding this code.
+
+
+Observer source validation: focused 14 tests, full Node 2,843 tests, build/lint,
+cycles (981 files) and discovery (3 tests) pass. The initial aggregate found one
+structural assertion assuming a zero-argument runtime constructor; the corrected
+assertion still requires exactly one runtime call and tolerates optional observer
+arguments. The subsequent full aggregate passed. An isolated headless component
+diagnostic verified disabled gates, semantic report text and explicit-refresh
+isolation; this is not native acceptance. Rust source and manifests are unchanged
+from the earlier verified main baseline; no fresh Rust execution is claimed.

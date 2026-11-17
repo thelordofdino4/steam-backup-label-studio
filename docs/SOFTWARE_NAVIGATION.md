@@ -306,3 +306,19 @@ Published source 92e835ff passed exact-head GitHub CI run 43989477371 (frontend 
 The first strengthened browser PNG oracle failed after export, before any report was saved: DataView expected ArrayBuffer, but production exporters intentionally return number[] bytes. This is benchmark adapter misuse, not export failure. Convert returned bytes with Uint8Array.from outside the measured exporter boundary before byte-header validation. No source/export semantics change or native UI occurred. Reread before the corrected diagnostic run; do not treat the failed run as accepted timing evidence.
 
 The corrected browser diagnostic passed all six fixtures, including raw full-image bounds and PNG signature/IHDR/300-DPI metadata. Separate native-code benchmark passed all six exact asset round trips. No native UI acceptance is implied.
+
+
+## Lifecycle observer component diagnostic (2026-11-17)
+
+The first isolated headless report-component fixture imported React through its
+raw CommonJS file URL. Vite reported that react/index.js has no default export;
+no report interaction completed and no native app was launched. This is a harness
+module-resolution error, not an application regression. The supported correction
+is to use bare React imports through Vite's module resolver, matching application
+source. Read this entry before the corrected diagnostic. The fixture has no
+project/native bridge and cannot establish native acceptance.
+
+Corrected headless component diagnostic passed disabled production/unset flag
+controls, accessible report text, and explicit-refresh isolation: adding a
+synthetic sample did not change displayed report text until Refresh. This is
+component behavior only; primary native report retrieval remains outstanding.
