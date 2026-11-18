@@ -274,3 +274,56 @@ intentionally ignored benchmark; that benchmark separately passed the six fresh
 frames. Build, lint, cycles (981 files), discovery (3/3) and diff checks passed.
 Historical November 1/17 reports and original fixture constructor are unchanged.
 This correction does not complete #368 or justify an optimization.
+
+## Opt-in Disc interaction identity observer (#368, narrower than acceptance)
+
+A separate exact development flag, VITE_SBLS_INTERACTION_TIMING=1, enables a
+bounded local report. Production/default builds construct no observer. This
+first slice covers only Disc title-artwork **scale** handler and the **plain
+custom-note inline draft** handler. HTML/source mode, metadata-bound text, other
+Disc controls, Case controls, pointer hardware latency and displayed frames are
+not measured. No native run or accepted baseline is claimed by this change.
+
+Start is immediately inside the existing owner handler, before its ordinary
+normalization/clamping. End is the first subsequent DiscPreview layout effect
+whose corresponding immutable artwork/values object is the exact result that
+handler scheduled. It measures handler-to-matching-props React layout commit,
+not commit of a complete document transaction, lifecycle content revision,
+completion of image decoding, paint, compositor presentation, or native work.
+Custom-note layout clamping occurs in the existing handler; identity correlation
+is with its values object, not an independently audited whole-preview subtree.
+
+Diagnostic code does not force capture/synchronization, add React state updates,
+wrap production setters, or alter scheduling. A WeakMap associates existing
+result objects with numeric tickets without storing their content in samples or
+holding strong references to project assets. Only fixed kind/outcome enums,
+sequence numbers and elapsed times enter the report. Session identity is used
+transiently for invalidation, never recorded. Recording is bounded to 256 entries
+and does not schedule report rendering; explicit Refresh interaction timing
+report reads the buffer. App close loses this buffer.
+
+No-op means the effective clamped scale or plain custom-note value did not
+change, even if the owner allocated a fresh object. A later instrumented event
+supersedes the prior pending event in that channel; the latest event in that
+uncommitted batch is also excluded as coalesced rather than attributing a whole
+batch to its final handler. A mismatched first commit,
+hidden/disabled target, unmount, or lifecycle session/workspace replacement
+excludes the sample. StrictMode repeated effects cannot complete a ticket twice.
+Pending work without any observed commit stays separately counted. A conservative
+**5-second cutoff** excludes long/delayed observations as expired. Therefore the
+successful subset is censored, NOT an unqualified latency distribution. Report
+all excluded outcomes and pending counts with any future measurements. No timers
+or frame callbacks are introduced; sampling itself adds debug-build overhead.
+
+Headless behavioral coverage exercises real useTitleArtwork/useDiscTextState
+handlers and the same useDiscInteractionCommit seam invoked by DiscPreview,
+including real input onChange, StrictMode, batching, no-op, disabled/HTML paths,
+unmount/session replacement, and injected diagnostic failures. It is not native
+GUI acceptance or whole-preview rendering/paint evidence. Narrow further native
+acceptance must be announced and run from the primary checkout after review,
+without replacing its separate Case work. #368 remains open.
+
+Candidate source validation: 15 focused observer/real-hook seam tests and all
+2,865 Node tests pass; build, lint, cycles (987 files), discovery (3/3), and
+diff checks pass. Rust source is unchanged and was not rerun for this frontend
+diagnostic slice. Native GUI and measurements remain unrun.
