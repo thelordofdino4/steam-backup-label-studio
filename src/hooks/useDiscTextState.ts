@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
+import { InteractionPerformanceContext } from '../diagnostics/InteractionPerformanceContext.ts'
+import { observeInteraction } from '../diagnostics/interactionPerformanceObserver.ts'
 import {
   completeDiscGuidedSlotWhenSatisfied,
   DISC_GUIDED_COMPLETION_SLOT_IDS,
@@ -181,6 +183,7 @@ export function useDiscTextState({
   )
   const [selectedDiscTextKey, setSelectedDiscTextKey] =
     useState<DiscTextKey | null>(null)
+  const interactionObserver = useContext(InteractionPerformanceContext)
   const [projectDiscNumberArtwork, setProjectDiscNumberArtwork] = useState(() =>
     createDefaultProjectDiscNumberArtwork(),
   )
@@ -716,6 +719,9 @@ export function useDiscTextState({
     value: string,
     options: { sourceMode?: boolean } = {},
   ) {
+    const interaction = key === 'customNote' && !options.sourceMode &&
+      !isDiscTextHtmlEnabled(discTextHtmlSources, key) && interactionObserver
+      ? observeInteraction(() => interactionObserver.begin('disc-custom-note-plain')) : undefined
     if (options.sourceMode) {
       const renderedPlainText = parseHtmlText(value).plainText
       const nextInputUpdate = updateDiscTextInlineDraftValue(
@@ -785,6 +791,9 @@ export function useDiscTextState({
       nextInputUpdate,
       getDiscTextInputUpdateRenderedContent(key, nextInputUpdate),
     )
+    if (interactionObserver && interaction) observeInteraction(() => interactionObserver.expect(
+      interaction, nextInputUpdate.values, discTextValues.customNote !== nextInputUpdate.values.customNote,
+    ))
   }
 
   function finalizeDiscTextInlineDraft(
