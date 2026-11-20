@@ -7,7 +7,3 @@ export function readProjectFile(path: string) {
 export function writeProjectFile(path: string, contents: string) {
   return invoke('write_project_file', { path, contents })
 }
-
-export function writeBinaryFile(path: string, bytes: number[]) {
-  return invoke('write_binary_file', { path, bytes })
-}
