@@ -43,14 +43,14 @@ function createCaseInput(
     brandingSources: {} as RunCaseInsertPngExportParams['brandingSources'],
     saveDialog: async () => 'case.png',
     confirmDialog: async () => true,
-    writeBinaryFileCommand: async () => undefined,
+    writePngFileCommand: async () => undefined,
     buildPreflightSummary: () => ({
       message: 'case preflight',
       hasWarnings: false,
       warnings: [],
     }),
     exportPngBytes: async () => ({
-      bytes: [1, 2, 3],
+      bytes: new Uint8Array([1, 2, 3]),
       width: 100,
       height: 200,
       dpi: 300,
@@ -72,14 +72,14 @@ function createDiscInput(
     getPreviewSize: () => 512,
     saveDialog: async () => 'disc.png',
     confirmDialog: async () => true,
-    writeBinaryFileCommand: async () => undefined,
+    writePngFileCommand: async () => undefined,
     buildPreflightSummary: () => ({
       message: 'disc preflight',
       hasWarnings: false,
       warnings: [],
     }),
     exportPngBytes: async () => ({
-      bytes: [9],
+      bytes: new Uint8Array([9]),
       width: 300,
       height: 300,
     }),
@@ -104,7 +104,7 @@ for (const target of ['disc', 'cover', 'tray'] as const) {
         calls.push('encode')
         return { bytes: await canvasToPngBytes(canvas, 300), width: 2, height: 1, dpi: 300 }
       },
-      writeBinaryFileCommand: async () => { calls.push('write') },
+      writePngFileCommand: async () => { calls.push('write') },
       announceStatus: createStatusRecorder(statuses),
     }
     const result = target === 'disc'
@@ -139,9 +139,9 @@ test('clean case insert export skips confirmation and opens destination after pr
     },
     exportPngBytes: async (params) => {
       calls.push(`export:${params.activeTemplatePane}:${params.dpi}`)
-      return { bytes: [1, 2, 3], width: 100, height: 200, dpi: params.dpi ?? 0 }
+      return { bytes: new Uint8Array([1, 2, 3]), width: 100, height: 200, dpi: params.dpi ?? 0 }
     },
-    writeBinaryFileCommand: async (path, bytes) => {
+    writePngFileCommand: async (path, bytes) => {
       calls.push(`write:${path}:${bytes.join(',')}`)
     },
     announceStatus: createStatusRecorder(statuses),
@@ -178,9 +178,9 @@ test('case insert warnings receive exactly one confirmation before destination s
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [1], width: 10, height: 20, dpi: 300 }
+      return { bytes: new Uint8Array([1]), width: 10, height: 20, dpi: 300 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
   }))
@@ -211,9 +211,9 @@ test('case insert cover export preserves filename, render inputs, bytes, dimensi
     },
     exportPngBytes: async (params) => {
       calls.push(`export:${params.activeTemplatePane}:${params.dpi}`)
-      return { bytes: [4, 5, 6], width: 1414, height: 1414, dpi: 300 }
+      return { bytes: new Uint8Array([4, 5, 6]), width: 1414, height: 1414, dpi: 300 }
     },
-    writeBinaryFileCommand: async (path, bytes) => {
+    writePngFileCommand: async (path, bytes) => {
       calls.push(`write:${path}:${bytes.join(',')}`)
     },
     announceStatus: createStatusRecorder(statuses),
@@ -249,9 +249,9 @@ test('declining case insert warnings does not choose a destination, render, or w
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0, dpi: 300 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0, dpi: 300 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -280,9 +280,9 @@ test('cancelling case insert destination after clean preflight does not render o
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0, dpi: 300 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0, dpi: 300 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -311,9 +311,9 @@ test('cancelling case insert destination after accepted warnings does not render
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0, dpi: 300 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0, dpi: 300 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -346,9 +346,9 @@ test('clean disc export keeps preflight and renderer inputs distinct without con
     },
     exportPngBytes: async (params) => {
       calls.push(`export:${params.previewSize}:${params.manualGameTitle}`)
-      return { bytes: [9], width: 300, height: 300 }
+      return { bytes: new Uint8Array([9]), width: 300, height: 300 }
     },
-    writeBinaryFileCommand: async (path, bytes) => {
+    writePngFileCommand: async (path, bytes) => {
       calls.push(`write:${path}:${bytes.join(',')}`)
     },
     announceStatus: createStatusRecorder(statuses),
@@ -386,9 +386,9 @@ test('disc warnings receive exactly one confirmation before destination and rend
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [9], width: 300, height: 300 }
+      return { bytes: new Uint8Array([9]), width: 300, height: 300 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
   }))
@@ -426,9 +426,9 @@ test('declining disc warnings does not choose a destination, measure, render, or
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -461,9 +461,9 @@ test('cancelling disc destination after accepted warnings defers preview measure
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -496,9 +496,9 @@ test('cancelling disc destination after clean preflight skips confirmation and p
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -531,9 +531,9 @@ test('preflight failure is terminal and prevents every dialog and side effect', 
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -562,9 +562,9 @@ test('warning confirmation failure is terminal and prevents destination selectio
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0, dpi: 300 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0, dpi: 300 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -589,9 +589,9 @@ test('destination failure is terminal and prevents rendering and writing', async
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [], width: 0, height: 0, dpi: 300 }
+      return { bytes: new Uint8Array([]), width: 0, height: 0, dpi: 300 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -622,7 +622,7 @@ test('render failure is terminal and prevents writing', async () => {
       calls.push('export')
       throw new Error('render unavailable')
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
     },
     announceStatus: createStatusRecorder(statuses),
@@ -651,9 +651,9 @@ test('write failure emits one failure status and no success status', async () =>
     },
     exportPngBytes: async () => {
       calls.push('export')
-      return { bytes: [9], width: 300, height: 300 }
+      return { bytes: new Uint8Array([9]), width: 300, height: 300 }
     },
-    writeBinaryFileCommand: async () => {
+    writePngFileCommand: async () => {
       calls.push('write')
       throw new Error('write unavailable')
     },
@@ -706,7 +706,7 @@ for (const kind of ['disc', 'case'] as const) {
       const message = stage === 'render' ? 'render failed' : 'PNG destination commit failed during temporary-file synchronization'
       const overrides = {
         ...(stage === 'render' ? { exportPngBytes: async () => { throw new Error(message) } } : {}),
-        writeBinaryFileCommand: async () => { writes++; throw new Error(message) },
+        writePngFileCommand: async () => { writes++; throw new Error(message) },
       }
       const result = kind === 'disc'
         ? await runDiscPngExportAdapter(createDiscInput(overrides))

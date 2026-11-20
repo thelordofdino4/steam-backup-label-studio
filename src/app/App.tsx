@@ -193,7 +193,8 @@ import type {
   SavedDiscProject,
   SavedProject,
 } from '../project/projectTypes'
-import { readProjectFile, writeBinaryFile } from '../tauri/fileSystem'
+import { readProjectFile } from '../tauri/fileSystem'
+import { writePngFile } from '../tauri/pngFile.ts'
 import { decodeProjectPackageFile } from '../tauri/packageProjectFile'
 import { recognizeProjectFileFormat } from '../tauri/projectFileFormat'
 import { encodeAndWriteProjectPackageFile } from '../tauri/projectPackageWrite'
@@ -1908,7 +1909,7 @@ function App() {
               }),
               saveDialog: save,
               confirmDialog: confirm,
-              writeBinaryFileCommand: writeBinaryFile,
+              writePngFileCommand: writePngFile,
               buildPreflightSummary: buildCaseInsertExportPreflightSummary,
               exportPngBytes: exportCaseInsertPngBytes,
             }),
@@ -1958,7 +1959,7 @@ function App() {
               discExportPreviewFallbackSize,
             saveDialog: save,
             confirmDialog: confirm,
-            writeBinaryFileCommand: writeBinaryFile,
+            writePngFileCommand: writePngFile,
             buildPreflightSummary: buildExportPreflightSummary,
             exportPngBytes: exportDiscLabelPngBytes,
           }),

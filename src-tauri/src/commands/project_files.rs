@@ -1030,9 +1030,8 @@ mod tests {
             json_contents
         );
 
-        crate::commands::files::write_binary_file(
-            png_path.to_string_lossy().into_owned(),
-            png_bytes.clone(),
+        crate::commands::files::write_export_png_request(
+            &crate::commands::files::png_request_body(&png_path, &png_bytes),
         )
         .unwrap();
         assert_eq!(fs::read(png_path).unwrap(), png_bytes);

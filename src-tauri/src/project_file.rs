@@ -1084,7 +1084,7 @@ mod tests {
 
     #[test]
     fn png_command_creates_and_replaces_exact_binary_bytes_without_touching_neighbors() {
-        use crate::commands::files::write_binary_file;
+        use crate::commands::files::{png_request_body, write_export_png_request};
         let directory = TestDirectory::new("png-command");
         let destination = directory.join("export-\u{00e9}.png");
         let neighbor = directory.join("keep.png");
@@ -1093,7 +1093,7 @@ mod tests {
             b"\x89PNG\r\n\x1a\n\0larger-export\xff".as_slice(),
             b"\x89PNG\0small".as_slice(),
         ] {
-            write_binary_file(destination.to_str().unwrap().into(), bytes.to_vec()).unwrap();
+            write_export_png_request(&png_request_body(&destination, bytes)).unwrap();
             assert_eq!(fs::read(&destination).unwrap(), bytes);
             assert_eq!(fs::read(&neighbor).unwrap(), b"neighbor bytes");
             assert_no_operation_temporaries(&directory);
@@ -1102,7 +1102,7 @@ mod tests {
 
     #[test]
     fn png_command_failure_phases_preserve_destination_and_clean_temporary() {
-        use crate::commands::files::write_binary_file_with;
+        use crate::commands::files::{png_request_body, write_export_png_request_with};
         for phase in [
             AtomicProjectWritePhase::CreateTemporary,
             AtomicProjectWritePhase::WriteTemporary,
@@ -1117,11 +1117,10 @@ mod tests {
             let old = b"\x89PNG\0prior-export\xff";
             fs::write(&destination, old).unwrap();
             let mut file_system = InjectedAtomicFileSystem::new(Some(phase));
-            let error = write_binary_file_with(
-                destination.to_str().unwrap(),
-                b"\x89PNG\0replacement",
+            let error = write_export_png_request_with(
+                &png_request_body(&destination, b"\x89PNG\0replacement"),
                 |path, bytes| {
-                    write_with_injection(Path::new(path), &temporary, bytes, &mut file_system)
+                    write_with_injection(path, &temporary, bytes, &mut file_system)
                 },
             )
             .unwrap_err();
@@ -1143,11 +1142,10 @@ mod tests {
         let mut file_system =
             InjectedAtomicFileSystem::new(Some(AtomicProjectWritePhase::WriteTemporary));
         file_system.fail_cleanup = true;
-        let error = crate::commands::files::write_binary_file_with(
-            destination.to_str().unwrap(),
-            b"replacement",
+        let error = crate::commands::files::write_export_png_request_with(
+            &crate::commands::files::png_request_body(&destination, b"replacement"),
             |path, bytes| {
-                write_with_injection(Path::new(path), &temporary, bytes, &mut file_system)
+                write_with_injection(path, &temporary, bytes, &mut file_system)
             },
         )
         .unwrap_err();
@@ -1164,9 +1162,8 @@ mod tests {
         let destination = directory.join("export.png");
         fs::create_dir(&destination).unwrap();
         fs::write(destination.join("keep"), b"keep me").unwrap();
-        let error = crate::commands::files::write_binary_file(
-            destination.to_str().unwrap().into(),
-            b"PNG".to_vec(),
+        let error = crate::commands::files::write_export_png_request(
+            &crate::commands::files::png_request_body(&destination, b"PNG"),
         )
         .unwrap_err();
         assert!(error.contains("destination replacement"), "{error}");
@@ -1186,18 +1183,16 @@ mod tests {
             .share_mode(0)
             .open(&destination)
             .unwrap();
-        let error = crate::commands::files::write_binary_file(
-            destination.to_str().unwrap().into(),
-            b"new PNG".to_vec(),
+        let error = crate::commands::files::write_export_png_request(
+            &crate::commands::files::png_request_body(&destination, b"new PNG"),
         )
         .unwrap_err();
         assert!(error.contains("destination replacement"));
         drop(lock);
         assert_eq!(fs::read(&destination).unwrap(), b"old PNG");
         assert_no_operation_temporaries(&directory);
-        crate::commands::files::write_binary_file(
-            destination.to_str().unwrap().into(),
-            b"new PNG".to_vec(),
+        crate::commands::files::write_export_png_request(
+            &crate::commands::files::png_request_body(&destination, b"new PNG"),
         )
         .unwrap();
         assert_eq!(fs::read(&destination).unwrap(), b"new PNG");

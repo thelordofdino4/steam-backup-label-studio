@@ -44,9 +44,9 @@ function discAdapter(
         },
         exportPngBytes: async () => {
           calls.push('render')
-          return { bytes: [1, 2], width: 300, height: 300 }
+          return { bytes: new Uint8Array([1, 2]), width: 300, height: 300 }
         },
-        writeBinaryFileCommand: async () => {
+        writePngFileCommand: async () => {
           calls.push('write')
         },
         ...overrides,
