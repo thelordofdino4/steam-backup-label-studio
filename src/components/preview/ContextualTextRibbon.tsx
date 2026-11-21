@@ -1,3 +1,4 @@
+import { getContextualTextRibbonContrastMinWidth } from './contextualTextRibbonSelectSizing'
 import {
   useLayoutEffect,
   useRef,
@@ -126,10 +127,11 @@ function getRibbonGroupContentWidth(element: HTMLElement) {
 function getRibbonDeclaredWidthProfile(
   element: HTMLElement,
 ): ContextualTextRibbonWidthProfile | null {
-  const min = getFiniteDataNumber(element.dataset.ribbonGroupMinWidth)
-  const preferred =
-    getFiniteDataNumber(element.dataset.ribbonGroupPreferredWidth)
-  const max = getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth)
+  const min = Math.max(getContextualTextRibbonContrastMinWidth(element),
+    getFiniteDataNumber(element.dataset.ribbonGroupMinWidth))
+  const preferred = Math.max(min,
+    getFiniteDataNumber(element.dataset.ribbonGroupPreferredWidth))
+  const max = Math.max(preferred, getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth))
 
   if (min > 0 && preferred >= min && max >= preferred) {
     if (element.dataset.ribbonGroupFit === 'content') {

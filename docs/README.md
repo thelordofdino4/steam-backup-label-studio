@@ -12,6 +12,8 @@
 
 This map is the entry point for repository documentation. If two documents disagree, use the conflict rule listed here rather than treating older status reports, audits, or implementation plans as current truth.
 
+Desktop scaling evidence: [`DESKTOP_SCALING_ACCEPTANCE.md`](DESKTOP_SCALING_ACCEPTANCE.md) records the #374 candidate native matrix, focused contrast-value repair, and unverified size/DPI obligations.
+
 ## Always Read
 
 | Document | Status | Purpose | Read when | Conflict rule |

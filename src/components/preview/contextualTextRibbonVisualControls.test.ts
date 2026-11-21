@@ -156,14 +156,8 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
     ribbonCss,
     /\.contextual-text-ribbon-control-row::-webkit-scrollbar\s*\{[\s\S]*width:\s*0[\s\S]*height:\s*var\(--contextual-text-ribbon-horizontal-scrollbar-height\)/,
   )
-  assert.match(
-    ribbonCss,
-    /@container \(max-width: 719px\)[\s\S]*\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control select\s*\{[\s\S]*width:\s*34px[\s\S]*color:\s*transparent/,
-  )
-  assert.match(
-    ribbonCss,
-    /@container \(max-width: 519px\)[\s\S]*\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control select\s*\{[\s\S]*width:\s*34px[\s\S]*color:\s*transparent/,
-  )
+  // Selected contrast text/containment at breakpoints is covered by the mounted
+  // contextualTextRibbonContrast.integration.test.mjs behavioral regression.
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-group--artistic-feature[\s\S]*\.contextual-text-ribbon-range-value-input\s*\{/,
