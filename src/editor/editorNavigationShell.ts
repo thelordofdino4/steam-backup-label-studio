@@ -25,7 +25,6 @@ export type EditorNavigationShellRoleSectionId =
   | 'feature-bullets-callouts'
   | 'screenshots'
   | 'system-requirements'
-  | 'steam-backup-branding'
   | 'vertical-game-logo-title'
   | 'company-logo'
   | 'optional-media-format-type'
@@ -89,7 +88,6 @@ const CASE_BACK_ROLE_SECTIONS = [
   { id: 'feature-bullets-callouts', label: 'Feature Bullets / Callouts' },
   { id: 'system-requirements', label: 'System Requirements' },
   { id: 'legal-info', label: 'Legal Info' },
-  { id: 'additional-artwork', label: 'Additional Artwork' },
   { id: 'additional-text', label: 'Additional Text' },
 ] as const satisfies readonly EditorNavigationShellRoleSection[]
 
@@ -101,10 +99,6 @@ const SPINE_ROLE_SECTIONS = [
   {
     id: 'vertical-game-logo-title',
     label: 'Vertical Game Logo or Game Title',
-  },
-  {
-    id: 'steam-backup-branding',
-    label: 'Steam Logo / Steam Backup Branding',
   },
   { id: 'company-logo', label: 'Company Logo' },
   { id: 'optional-media-format-type', label: 'Optional Media Format Type' },
