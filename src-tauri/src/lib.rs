@@ -19,7 +19,7 @@ fn application_invoke_handler(
         application_menu::dispose_application_menu,
         commands::files::write_project_file,
         commands::files::read_project_file,
-        commands::files::write_binary_file,
+        commands::files::write_export_png,
         commands::project_files::read_binary_project_file,
         commands::project_files::recognize_project_file_format,
         commands::project_files::write_binary_project_file,
@@ -70,8 +70,10 @@ mod tests {
     #[test]
     fn dedicated_project_persistence_commands_are_registered_in_the_application_handler() {
         let source = include_str!("lib.rs");
+        assert!(!source.contains(&["commands::files::", "write_binary_file"].concat()));
         for (module, command) in [
             ("image_import", "validate_imported_image_asset"),
+            ("files", "write_export_png"),
             ("project_files", "read_binary_project_file"),
             ("project_files", "recognize_project_file_format"),
             ("project_files", "write_binary_project_file"),

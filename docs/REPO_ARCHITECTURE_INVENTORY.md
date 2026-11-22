@@ -509,7 +509,7 @@ Save/load path:
   opaque JSON bytes to `src-tauri/src/project_file.rs`, which owns exclusive
   adjacent-temp creation, write/flush/sync/close ordering, platform replacement,
   and safe owned-temp cleanup. `read_project_file` remains the JSON text read
-  boundary. `write_binary_file` remains a separate direct binary writer.
+  boundary. `write_export_png` is a separate raw PNG adapter over the shared atomic writer.
 - Dormant `read_binary_project_file` accepts an empty top-level raw body and
   returns raw bytes; dormant `write_binary_project_file` borrows the top-level
   raw request bytes and delegates them to the atomic writer. Both carry the

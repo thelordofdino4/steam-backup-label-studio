@@ -98,7 +98,7 @@ Terms used here:
 The complete current route is implemented by the shared application-command
 root, `appPngExportCommand.ts`, `appPngExportInputs.ts`, `appPngExport.ts`, the
 two preflight builders, the two canvas exporters, `canvasImage.ts`, the native
-menu ingress, the Tauri dialog plugin, and `write_binary_file`.
+menu ingress, the Tauri dialog plugin, and `write_export_png`.
 
 | Current fact | Evidence and consequence |
 | --- | --- |
@@ -120,7 +120,7 @@ menu ingress, the Tauri dialog plugin, and `write_binary_file`.
 | Export returns the shared typed command result. | Success, destination cancellation, warning decline, and stage-specific failures carry stable result kinds/codes plus the existing user-facing copy. The Disc and Case workflow adapters publish no status themselves. |
 | Feedback is application-owned and published once. | Button and native-menu dispatch outcomes pass through `appApplicationCommandFeedback.ts`; accepted messages use the shared toast owner, deduplication keys, and Home live-status mirror. |
 | One central export capability and the shared busy coordinator arbitrate execution. | Home/no-session/unresolved/missing-adapter states are disabled. `export.execution` plus focused warning, destination, and write child scopes prevent duplicate dialogs/renders/writes and conflict with lifecycle transitions/navigation. |
-| Explicit physical density and checked PNG encoding complete in memory before native writing begins. | Both exporters pass their sizing DPI to `canvasToPngBytes`; `pngPhysicalResolution.ts` verifies the canvas-produced PNG and establishes one canonical `pHYs` before the existing `number[]` transport invokes Rust. Render/encode failure therefore occurs before the current write call. |
+| Explicit physical density and checked PNG encoding complete in memory before native writing begins. | Both exporters pass their sizing DPI to `canvasToPngBytes`; `pngPhysicalResolution.ts` verifies the canvas-produced PNG and establishes one canonical `pHYs` before the versioned raw byte transport invokes Rust without a JavaScript number array. Render/encode failure therefore occurs before the current write call. |
 | Native PNG writing uses the existing atomic byte writer. | `src-tauri/src/commands/files.rs` delegates to `project_file::write`: adjacent exclusive temporary creation, complete write, flush/sync/close, then one replacement. Failure preserves the destination and attempts owned-temp cleanup; #362 tests cover command outcomes and Windows locked-destination retry. |
 | Export execution does not call project save/snapshot adapters or update lifecycle path, baseline, format, revision, or dirty state. | The export route only assesses the current editor inputs, chooses a PNG destination after permitted preflight, renders, writes, and announces status. |
 
@@ -475,11 +475,22 @@ ribbon, sidebar, panel chrome, status/toasts, and modal UI. Exported proof guide
 are the sole guide exception and require captured configuration.
 
 The frontend fully renders and encodes into memory before calling Rust.
-Under #362, `write_binary_file` passes the complete bytes to the existing
+The #362 safety boundary remains unchanged: `write_export_png` passes the complete bytes to the existing
 `project_file::write` primitive. It does not open/truncate the destination for
 streaming output. Rendering failure remains `export.render-failed`; a failed
 native destination commit remains the distinct `export.write-failed` outcome,
 with phase-specific PNG failure text and no success announcement.
+
+The dedicated production PNG IPC body is raw: eight ASCII bytes `SBLSPEV1`,
+one unsigned little-endian 32-bit UTF-8 path byte length, the exact path bytes
+(no terminator, percent encoding or normalization), then the complete PNG bytes.
+The path must be nonempty, valid Unicode without NUL, and at most 128 KiB in
+UTF-8. That budget covers ordinary paths and Windows extended-length UTF-16
+paths without a percent-expanded HTTP-header ceiling. Path/body framing errors
+fail before any filesystem access; JSON is not accepted or retried. This is an
+IPC detail, not an on-disk PNG or project format. JavaScript builds one
+contiguous frame with one PNG byte copy; Rust borrows the PNG tail. This
+removes boxing but is not a zero-copy WebView or release performance claim.
 
 Target destination safety invariant:
 

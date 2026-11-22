@@ -16,7 +16,7 @@ export type CanvasImageRect = {
 }
 
 export function canvasToPngBytes(canvas: HTMLCanvasElement, dpi: number) {
-  return new Promise<number[]>((resolve, reject) => {
+  return new Promise<Uint8Array>((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
         reject(new Error('Could not create PNG blob.'))
@@ -25,9 +25,9 @@ export function canvasToPngBytes(canvas: HTMLCanvasElement, dpi: number) {
 
       blob
         .arrayBuffer()
-        .then((buffer) => resolve(Array.from(encodePngPhysicalResolution(
+        .then((buffer) => resolve(encodePngPhysicalResolution(
           new Uint8Array(buffer), dpi, { width: canvas.width, height: canvas.height },
-        ))))
+        )))
         .catch(reject)
     }, 'image/png')
   })

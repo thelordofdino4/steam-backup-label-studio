@@ -129,7 +129,8 @@ test('shared canvas adapter publishes only checked PNG bytes at the explicit cal
     callback(new Blob([new Uint8Array(fixture([density(3780)]))], { type }))
   } } as HTMLCanvasElement
   const output = await canvasToPngBytes(canvas, 600)
-  assert.equal(chunks(Uint8Array.from(output)).find(({ type }) => type === 'pHYs')!.data.readUInt32BE(0), 23622)
+  assert.ok(output instanceof Uint8Array)
+  assert.equal(chunks(output).find(({ type }) => type === 'pHYs')!.data.readUInt32BE(0), 23622)
 })
 
 test('null Blob, failed reads and invalid encoder output reject without success bytes', async () => {
