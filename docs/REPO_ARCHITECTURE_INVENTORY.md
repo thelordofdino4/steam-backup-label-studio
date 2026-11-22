@@ -12,6 +12,17 @@ This inventory records how Steam Backup Label Studio is implemented in the repos
 
 Focused async ownership map: [Async Project Work Contract](ASYNC_PROJECT_WORK_CONTRACT.md) records the runtime request owner, existing image/discovery consumers, and session-bound Case reconciliation (#367).
 
+## Document-owner migration reference
+
+The focused #363 [committed document ownership contract](COMMITTED_DOCUMENT_OWNERSHIP_CONTRACT.md)
+maps current owners at canonical main `c2a7cd15b8c536bd68087da188266c24ed56b68d`, including
+native Close/Quit, async admission and the optional Case edit finish port.
+The target is one document installation; the first Disc-background migration
+and old-path deletion remain work for #365. This does not refresh the broad
+historical inventory below or imply runtime migration or native acceptance.
+The [#368 closeout](https://github.com/thelordofdino4/steam-backup-label-studio/issues/368)
+records evidence separately from the displayed-frame successor #422.
+
 ## Basis
 
 - Branch: `main`
