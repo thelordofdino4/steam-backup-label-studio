@@ -30,6 +30,16 @@ for (let index = 0; mode !== '--rust-only' && index < testFiles.length; index +=
   }
 }
 
+// Run this one comparison lane after the complete Node suite, not alongside it.
+if (!failed && mode === '--node-only' &&
+    process.env.GITHUB_ACTIONS === 'true' &&
+    process.env.GITHUB_EVENT_NAME === 'pull_request' &&
+    process.env.GITHUB_HEAD_REF === 'agent/365-background-baseline-ci-20261122' &&
+    process.env.GITHUB_BASE_REF === 'main') {
+  const baseline = spawnSync(process.execPath, ['scripts/performance/disc-background-mounted-baseline.mjs'], { stdio: 'inherit' })
+  if (baseline.status !== 0) failed = true
+}
+
 for (const { command, args } of mode === '--node-only' ? [] : testCommands) {
   const result = spawnSync(command, args, {
     shell: false,
