@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { createHash, webcrypto } from 'node:crypto'
 import { runInNewContext } from 'node:vm'
 import { readFileSync } from 'node:fs'
-import { bmp, CLASSIC_IMPORT_FIXTURES, decodeGeneratedDiscPackageWrite, validateGeneratedClassicImport } from './disc-background-ab-regressions.mjs'
+import { bmp, CLASSIC_IMPORT_FIXTURES, decodeGeneratedDiscPackageWrite, openDiscProjectFile, validateGeneratedClassicImport } from './disc-background-ab-regressions.mjs'
 import { validateImportedImageDataUrl } from '../../src/tauri/importedImageValidation.ts'
 import { createProjectPackageCapturePlan } from '../../src/package/projectPackageCapturePlan.ts'
 import { createBlankDiscSavedProject } from '../../src/project/blankDiscProject.ts'
@@ -61,6 +61,57 @@ test('fixture validation rejects unknown bytes, the wrong transport or dimension
   await assert.rejects(validateGeneratedClassicImport(
     bytes(fixtureUrl(landscape,[40,170,212])),[landscape]),/Unrecognized generated import digest/)
   await assert.rejects(validateGeneratedClassicImport(exact,[{...landscape,width:95}]),/BMP profile or dimensions/)
+})
+
+test('the default-closed real Project File markup reveals its scoped Save and Load in order', async () => {
+  const project = readFileSync(new URL('../../src/components/sidebar/ProjectPanel.tsx',import.meta.url),'utf8')
+  const panelSource = readFileSync(new URL('../../src/components/editor/EditorPanel.tsx',import.meta.url),'utf8')
+  const app = readFileSync(new URL('../../src/app/App.tsx',import.meta.url),'utf8')
+  const [,title] = /<EditorPanel title="([^"]+)">/.exec(project)
+  const names = [...project.matchAll(/<button[^>]*>\s*([^<]+?)\s*<\/button>/g)].map(match=>match[1].trim())
+  const [saveName,loadName] = names.filter(name=>name==='Save Project'||name==='Load Project')
+  assert.equal(title,'Project File')
+  assert.deepEqual([saveName,loadName],['Save Project','Load Project'])
+  assert.match(panelSource,/<details[\s\S]*?open=\{open\}[\s\S]*?<summary[\s\S]*?className="panel-summary-title"/)
+  assert.match(app,/<aside className="sidebar">[\s\S]*?<ProjectPanel/)
+  const openFrom = async initialOpen => {
+    const calls=[]
+    const details={open:initialOpen}
+    const panel={
+      count:async()=>1,
+      getByRole:(role,opts)=>{
+        assert.equal(role,'button')
+        assert.equal(opts.exact,true)
+        assert.equal(details.open,true,'ARIA child lookup happened before opening the panel')
+        assert.ok([saveName,loadName].includes(opts.name))
+        calls.push('scope '+opts.name)
+        return {
+          waitFor:async({state})=>{assert.equal(state,'visible');assert.equal(details.open,true)},
+          count:async()=>details.open?1:0,
+          click:async()=>{assert.equal(details.open,true);calls.push('click '+opts.name)},
+        }
+      },
+    }
+    const summary={
+      count:async()=>1,
+      waitFor:async({state})=>assert.equal(state,'visible'),
+      evaluate:async(fn)=>fn({parentElement:details}),
+      click:async()=>{assert.equal(details.open,false);calls.push('open summary');details.open=true},
+      locator:selector=>{assert.equal(selector,'xpath=..');return panel},
+    }
+    const page={locator:selector=>{
+      assert.equal(selector,`aside.sidebar > details > summary:has(> .panel-summary-title:text-is("${title}"))`)
+      return summary
+    }}
+    const {save,load,openedByHarness}=await openDiscProjectFile(page)
+    assert.equal(openedByHarness,!initialOpen)
+    await save.click()
+    await load.click()
+    assert.deepEqual(calls,[...(initialOpen?[]:['open summary']),
+      'scope Save Project','scope Load Project','click Save Project','click Load Project'])
+  }
+  await openFrom(false)
+  await openFrom(true)
 })
 
 test('candidate workflow remains standard CI; comparison guard cannot run on main or other branches', () => {

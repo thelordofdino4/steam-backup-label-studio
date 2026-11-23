@@ -112,6 +112,30 @@ async function revealDetails(page, locator) {
   await locator.waitFor({state:'visible'})
 }
 
+// Qualify the always-visible summary first. A role locator for a hidden
+// descendant cannot identify the default-closed disclosure.
+export async function openDiscProjectFile(page) {
+  const summary = page.locator('aside.sidebar > details > summary:has(> .panel-summary-title:text-is("Project File"))')
+  assert.equal(await summary.count(),1,'project-file: expected one direct Project File summary')
+  await summary.waitFor({state:'visible',timeout:5000})
+  const detailsOpen = () => summary.evaluate(node => node.parentElement.open)
+  const openedByHarness = !(await detailsOpen())
+  if (openedByHarness) await summary.click()
+  const panel = summary.locator('xpath=..')
+  assert.equal(await panel.count(),1,'project-file: expected exact summary disclosures parent')
+  const save = panel.getByRole('button',{name:'Save Project',exact:true})
+  const load = panel.getByRole('button',{name:'Load Project',exact:true})
+  await save.waitFor({state:'visible',timeout:5000})
+  await load.waitFor({state:'visible',timeout:5000})
+  assert.equal(await detailsOpen(),true,'project-file: direct disclosure did not open')
+  assert.equal(await save.count(),1,'project-file: expected one visible scoped Save Project')
+  assert.equal(await load.count(),1,'project-file: expected one visible scoped Load Project')
+  return {save,load,openedByHarness}
+}
+
+const stage = (name, extra={}) =>
+  console.log('SBLS365_AB_REGRESSION_STAGE '+JSON.stringify({stage:name,...extra}))
+
 async function sliderProof(page, context) {
   console.log('SBLS365_AB_REGRESSION_STAGE '+JSON.stringify({stage:'trusted-range'}))
   const range = page.locator(control)
@@ -232,24 +256,32 @@ async function presetAndStorageProof(page) {
   const stable=await readView(page)
   assert.equal(stable.scale,manual.scale,'manual placement was reapplied away')
   assert.deepEqual(stable.offset,manual.offset)
-  const save=page.getByRole('button',{name:'Save Project',exact:true})
-  await revealDetails(page,save)
+  stage('classic-manual-placement-checked',{revisionDelta:manual.rev-beforeManual.rev})
+  stage('project-file-reveal-started')
+  const {save,load,openedByHarness}=await openDiscProjectFile(page)
+  stage('project-file-revealed',{openedByHarness})
+  stage('classic-save-started')
   await save.click()
   await page.waitForFunction(()=>globalThis.__sbls365.readRegression().saved,true,{timeout:5000})
   const saved=await readView(page)
-  assert.equal(saved.savedScale,manual.scale)
-  assert.deepEqual(saved.savedOffset,manual.offset)
-  assert.equal(await page.evaluate(hash=>globalThis.__sbls365.checkAssetHash(hash,true),assetHash),true)
+  assert.equal(saved.savedScale,manual.scale,'classic-save: emitted scale does not match committed placement')
+  assert.deepEqual(saved.savedOffset,manual.offset,'classic-save: emitted offset does not match committed placement')
+  assert.equal(await page.evaluate(hash=>globalThis.__sbls365.checkAssetHash(hash,true),assetHash),true,
+    'classic-save: emitted asset does not match the pinned fixture')
   await page.waitForFunction(()=>globalThis.__sbls365.readRegression().clean,true,{timeout:5000})
+  stage('classic-save-frame-checked')
   await page.evaluate(()=>globalThis.__sbls365.reopenSaved())
-  await page.getByRole('button',{name:'Load Project',exact:true}).click()
+  stage('classic-reopen-started')
+  await load.click()
   await page.waitForFunction(id=>{const v=globalThis.__sbls365.readRegression();return v.id!==id&&v.rev===0},manual.id,{timeout:7000})
   const reopened=await readView(page)
-  assert.equal(reopened.scale,manual.scale)
-  assert.deepEqual(reopened.offset,manual.offset)
-  assert.equal(reopened.source,'uploaded')
-  assert.equal(await page.evaluate(hash=>globalThis.__sbls365.checkAssetHash(hash),assetHash),true)
-  assert.equal(reopened.clean,true)
+  assert.equal(reopened.scale,manual.scale,'classic-reopen: scale drift')
+  assert.deepEqual(reopened.offset,manual.offset,'classic-reopen: offset drift')
+  assert.equal(reopened.source,'uploaded','classic-reopen: source drift')
+  assert.equal(await page.evaluate(hash=>globalThis.__sbls365.checkAssetHash(hash),assetHash),true,
+    'classic-reopen: imported bytes drift')
+  assert.equal(reopened.clean,true,'classic-reopen: session did not establish a clean baseline')
+  stage('classic-reopen-checked',{revision:reopened.rev})
   return {stalePresetRejected:true,newerSiblingPreserved:true,classicImports:2,centeredMaximalContain:true,manualTwoEditsPreserved:true,saveFrameChecked:true,reopened:true}
 }
 
