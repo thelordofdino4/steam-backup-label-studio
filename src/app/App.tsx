@@ -223,6 +223,7 @@ import {
 import {
   createCaseInsertPngExportInput,
   createDiscPngExportInput,
+  getDiscPngExportPreviewWidth,
 } from './appPngExportInputs'
 import {
   createCaseInsertPreviewTextHandlers,
@@ -1954,9 +1955,10 @@ function App() {
               discTextStyles,
               discTextLayout,
             }),
-            getPreviewSize: () =>
-              discPreviewRef.current?.getBoundingClientRect().width ??
+            getPreviewSize: () => getDiscPngExportPreviewWidth(
+              discPreviewRef.current,
               discExportPreviewFallbackSize,
+            ),
             saveDialog: save,
             confirmDialog: confirm,
             writePngFileCommand: writePngFile,
