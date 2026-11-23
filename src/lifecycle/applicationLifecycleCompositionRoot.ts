@@ -40,9 +40,14 @@ import {
   executableProjectLifecycleCommandCapabilities,
   type ApplicationTerminationCapabilities,
 } from './lifecycleCommandCapabilities.ts'
-import type { SavedProject } from '../project/projectTypes.ts'
+import type { DiscLegacyProjectProjection } from '../project/createProjectSnapshot.ts'
+import type { SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
 import {
   synchronizeActiveProjectContent,
+  editDiscBackground,
+  replaceActiveProjectContent,
+  type DiscBackgroundEdit,
+  type DiscProjectSession,
   synchronizeActiveProjectRoute,
   type ApplicationLifecycleState,
   type ProjectSessionEditorRoute,
@@ -51,6 +56,8 @@ import {
 import type { EditorProjectType } from '../editor/editorTypes.ts'
 import {
   captureNormalizedProjectSnapshot,
+  capturedDiscBackgroundsAreExactlyEqual,
+  preserveCapturedDiscBackground,
   getNormalizedProjectKind,
 } from './canonicalProject.ts'
 
@@ -87,6 +94,28 @@ export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   onSubscriberError?: (error: unknown) => void
 }>
 
+const discPresetSiblingKeys = [
+  'titleArtwork', 'logoAssets', 'ratingBadge', 'mediaMark',
+  'platformMarks', 'technicalMarks', 'discText',
+] as const
+
+function hasClosedDataFootprint(input: object, allowed: readonly string[]): boolean {
+  if (!input) return false
+  const prototype = Object.getPrototypeOf(input)
+  if (prototype !== Object.prototype && prototype !== null) return false
+  const descriptors = Object.getOwnPropertyDescriptors(input)
+  return Reflect.ownKeys(descriptors).every(key => typeof key === 'string' &&
+    allowed.includes(key) && 'value' in descriptors[key]! &&
+    descriptors[key]!.enumerable && descriptors[key]!.value !== undefined)
+}
+
+type DiscPresetTextFields = Pick<NonNullable<SavedDiscProject['discText']>, 'layout' | 'settings'>
+export type DiscPresetSiblingFields = Partial<Pick<SavedDiscProject,
+  Exclude<typeof discPresetSiblingKeys[number], 'discText'>>> & { discText?: DiscPresetTextFields }
+export type DiscBackgroundCompoundCompanion =
+  | Readonly<{ kind: 'preset'; fields: DiscPresetSiblingFields; guidedLayout?: SavedDiscGuidedLayoutState | null }>
+  | Readonly<{ kind: 'guided'; guidedLayout: SavedDiscGuidedLayoutState }>
+
 export interface ApplicationLifecycleCompositionRoot {
   getLifecycleState(): ApplicationLifecycleState
   getStateSnapshot(): ApplicationLifecycleStateSnapshot
@@ -108,6 +137,16 @@ export interface ApplicationLifecycleCompositionRoot {
     commandId: string,
     input?: unknown,
   ): Promise<ApplicationCommandDispatchResult<Value>>
+  canCommitDiscBackground(): boolean
+  commitDiscBackground(edit: DiscBackgroundEdit): 'committed' | 'no-op' | 'stale' | 'unavailable' | 'invalid'
+  commitDiscBackgroundCompound(
+    edit: DiscBackgroundEdit,
+    companion: DiscBackgroundCompoundCompanion,
+  ): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
+  synchronizeDiscLegacyProject(input: Readonly<{
+    sessionId: ProjectSessionId
+    legacy: DiscLegacyProjectProjection
+  }>): ReturnType<ApplicationLifecycleCompositionRoot['synchronizeCurrentProject']>
   synchronizeCurrentProject(input: Readonly<{
     sessionId: ProjectSessionId
     kind: EditorProjectType
@@ -305,6 +344,46 @@ export function createApplicationLifecycleCompositionRoot(
     })
   }
 
+  type SyncResult = ReturnType<ApplicationLifecycleCompositionRoot['synchronizeCurrentProject']>
+  // Closed #372 compatibility write footprint. Unknown valid persisted fields
+  // inherited from the active snapshot are not a legacy UI write target.
+  const discLegacyKeys = new Set([
+    'schemaVersion', 'projectType', 'editor', 'title', 'savedAt', 'game',
+    'metadata', 'logoAssets', 'titleArtwork', 'discNumberArtwork',
+    'additionalArtwork', 'ratingBadge', 'mediaMark', 'platformMarks',
+    'technicalMarks', 'template', 'steamBackupLogo', 'export', 'discText',
+  ])
+
+  function synchronizeDiscLegacyProject(input: Parameters<ApplicationLifecycleCompositionRoot['synchronizeDiscLegacyProject']>[0]): SyncResult {
+    if (disposed) return 'invalid'
+    const snapshot = stateStore.getSnapshot()
+    const session = snapshot.state.activeSession
+    if (!session || session.id !== input.sessionId) return 'stale-session'
+    if (session.kind !== 'disc') return 'wrong-kind'
+    try {
+      const legacy = input.legacy
+      if (!legacy || (Object.getPrototypeOf(legacy) !== Object.prototype &&
+                     Object.getPrototypeOf(legacy) !== null)) return 'invalid'
+      const descriptors = Object.getOwnPropertyDescriptors(legacy)
+      if (Reflect.ownKeys(descriptors).some((key) => {
+        if (typeof key !== 'string' || !discLegacyKeys.has(key)) return true
+        return !('value' in descriptors[key]!) || !descriptors[key]!.enumerable
+      })) return 'invalid'
+      // The editor controls presence of its known optional fields too.
+      const project = { ...session.project }
+      for (const key of discLegacyKeys) Reflect.deleteProperty(project, key)
+      Object.assign(project, legacy)
+      const validated = captureNormalizedProjectSnapshot(project as unknown as SavedProject)
+      if (getNormalizedProjectKind(validated) !== 'disc') return 'wrong-kind'
+      const result = stateStore.commitTransition(snapshot.generation, (state) =>
+        synchronizeActiveProjectContent(state, { sessionId: session.id, kind: 'disc', project: validated as unknown as SavedProject }))
+      return result.status === 'committed' ? 'synchronized' :
+        result.status === 'no-op' ? 'no-op' : 'stale-session'
+    } catch {
+      return 'invalid'
+    }
+  }
+
   function synchronizeCurrentProject(input: Readonly<{
     sessionId: ProjectSessionId
     kind: EditorProjectType
@@ -321,6 +400,11 @@ export function createApplicationLifecycleCompositionRoot(
     try {
       const project = captureNormalizedProjectSnapshot(input.project)
       if (getNormalizedProjectKind(project) !== input.kind) return 'wrong-kind'
+      // Compatibility callers may read/pass a full Disc projection, but do
+      // not gain a second background writer through the old ingress.
+      if (session.kind === 'disc' && !capturedDiscBackgroundsAreExactlyEqual(
+        session.project.background, (project as DiscProjectSession['project']).background,
+      )) return 'invalid'
       result = stateStore.commitTransition(snapshot.generation, (state) =>
         synchronizeActiveProjectContent(state, {
           ...input,
@@ -333,6 +417,13 @@ export function createApplicationLifecycleCompositionRoot(
     if (result.status === 'committed') return 'synchronized'
     if (result.status === 'no-op') return 'no-op'
     return 'stale-session'
+  }
+
+  function canCommitDiscBackground() {
+    const { state } = stateStore.getSnapshot()
+    return !disposed && options.canAcceptCommands?.() !== false &&
+      !busyCoordinator.getState().occupiedScopes.includes('project.mutation') &&
+      state.visibleWorkspace === 'disc' && state.activeSession?.kind === 'disc'
   }
 
   const root: ApplicationLifecycleCompositionRoot = Object.freeze({
@@ -391,6 +482,60 @@ export function createApplicationLifecycleCompositionRoot(
       }
       return pending
     },
+    canCommitDiscBackground,
+    commitDiscBackground(edit: DiscBackgroundEdit) {
+      if (!canCommitDiscBackground()) return 'unavailable'
+      const snapshot = stateStore.getSnapshot()
+      const session = snapshot.state.activeSession
+      if (!session || session.kind !== 'disc' || snapshot.state.visibleWorkspace !== 'disc') return 'unavailable'
+      if (session.id !== edit.sessionId || session.revision !== edit.expectedRevision) return 'stale'
+      try {
+        return stateStore.commitTransition(snapshot.generation, state => editDiscBackground(state, edit)).status
+      } catch {
+        return 'invalid'
+      }
+    },
+    commitDiscBackgroundCompound(edit: DiscBackgroundEdit, companion: DiscBackgroundCompoundCompanion) {
+      if (!canCommitDiscBackground()) return 'unavailable'
+      const snapshot = stateStore.getSnapshot()
+      const session = snapshot.state.activeSession
+      if (session?.kind !== 'disc') return 'unavailable'
+      if (session.id !== edit.sessionId || session.revision !== edit.expectedRevision) return 'stale'
+      try {
+        if (edit.operation.kind !== 'asset' && edit.operation.kind !== 'visibility') return 'invalid'
+        if (companion.kind !== 'preset' && companion.kind !== 'guided') return 'invalid'
+        const prepared = editDiscBackground(snapshot.state, edit).activeSession
+        if (prepared?.kind !== 'disc') return 'invalid'
+        const draft = { ...session.project, background: prepared.project.background }
+        if (companion.kind === 'preset') {
+          const fields = companion.fields
+          if (!hasClosedDataFootprint(fields, discPresetSiblingKeys)) return 'invalid'
+          const { discText, ...directFields } = fields
+          if (discText && !hasClosedDataFootprint(discText, ['layout', 'settings'])) return 'invalid'
+          if (Object.hasOwn(fields, 'discText') && !discText) return 'invalid'
+          Object.assign(draft, directFields)
+          if (discText) draft.discText = { ...session.project.discText, ...discText }
+        }
+        if (companion.guidedLayout !== undefined) {
+          if (companion.guidedLayout === null) {
+            const editor = { ...session.project.editor }
+            delete editor.guidedLayout
+            if (Object.keys(editor).length) draft.editor = editor
+            else delete draft.editor
+          } else {
+            draft.editor = { ...session.project.editor, guidedLayout: companion.guidedLayout }
+          }
+        }
+        const validated = captureNormalizedProjectSnapshot(draft as unknown as SavedProject)
+        if (getNormalizedProjectKind(validated) !== 'disc') return 'invalid'
+        const project = preserveCapturedDiscBackground(validated as DiscProjectSession['project'], prepared.project)
+        return stateStore.commitTransition(snapshot.generation, state =>
+          replaceActiveProjectContent(state, project as unknown as SavedProject)).status
+      } catch {
+        return 'invalid'
+      }
+    },
+    synchronizeDiscLegacyProject,
     synchronizeCurrentProject(input: Parameters<ApplicationLifecycleCompositionRoot['synchronizeCurrentProject']>[0]) {
       const observer = options.performanceObserver
       if (!observer) return synchronizeCurrentProject(input)

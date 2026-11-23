@@ -19,7 +19,7 @@ import { createProjectPackageCommandFailure } from '../tauri/packageProjectFile.
 import { createProjectPackageWritePort, LEGACY_SOURCE_PATH_HEADER_NAME, type ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
 import { stageAppProjectOpen, type StagedProjectOpenCandidate } from './appProjectLoad.ts'
 import { createApplicationEditorAggregateApplier } from './appProjectRestore.ts'
-import { createSavedProjectForWorkspace } from './appProjectSave.ts'
+import { createLegacyProjectForWorkspace } from './appProjectSave.ts'
 import { createApplicationLifecycleRuntime } from './applicationLifecycleRuntime.ts'
 
 const sourcePath = 'C:\\projects\\legacy.sbls.json'
@@ -84,7 +84,6 @@ function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = '
       setSteamBannerFallbackText: set('steamBannerFallbackText'),
       restoreExportGuides: set('exportGuides'),
       restoreDiscTextState: (value) => { Object.assign(disc, value) },
-      restoreBackgroundImageState: (value) => { Object.assign(disc, value) },
     },
     caseInsertProject: { setProjectJewelCase: (value) => { caseInsert.caseInsert = value } },
     transientEditor: {
@@ -130,11 +129,19 @@ function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = '
       },
     },
   })
-  const snapshot = () => createSavedProjectForWorkspace({
+  const projectProjection = () => createLegacyProjectForWorkspace({
     activeWorkspace: workspace,
     discProject: disc as CreateProjectSnapshotParams,
     caseInsertProject: caseInsert,
   })
+  const snapshot = () => {
+    const projection = projectProjection()
+    if (projection.kind === 'caseInsert') return projection.project
+    const session = root.getLifecycleState().activeSession
+    assert.equal(session?.kind, 'disc')
+    if (session?.kind !== 'disc') throw new Error('Missing Disc session')
+    return { ...projection.project, background: session.project.background }
+  }
   return {
     root, options, disc, writes, snapshot,
     candidate: () => candidate!,
@@ -149,7 +156,10 @@ function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = '
     },
     sync() {
       const session = root.getLifecycleState().activeSession!
-      return root.synchronizeCurrentProject({ sessionId: session.id, kind: session.kind, project: snapshot() })
+      const projection = projectProjection()
+      return projection.kind === 'disc'
+        ? root.synchronizeDiscLegacyProject({ sessionId: session.id, legacy: projection.project })
+        : root.synchronizeCurrentProject({ sessionId: session.id, kind: 'caseInsert', project: projection.project })
     },
   }
 }

@@ -233,8 +233,9 @@ test('focused hooks compose persisted workflow with transient resolved geometry'
   )
   assert.match(
     appSource,
-    /discGuidedPlaceholderPreview\.recordPresetApplication\(/,
+    /getNextDiscGuidedWorkflowForPresetApplication\(\{[\s\S]*?ownerState: discGuidedSlotState/,
   )
+  assert.match(appSource, /kind: 'preset', fields, guidedLayout: createSavedDiscGuidedLayout\(guided\)/)
   assert.match(
     appSource,
     /presetState:\s*activeDiscPreset\.getActivePresetState\(\)/,

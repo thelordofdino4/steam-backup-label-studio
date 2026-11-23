@@ -11,6 +11,7 @@ import type { ProjectReplacementDecision } from './appProjectReplacementGuard.ts
 import type { NativeTerminationKind } from './appNativeTerminationCommand.ts'
 import type { ApplicationCommandDispatchResult } from '../lifecycle/applicationCommandTypes.ts'
 import type { ApplicationProjectSaveRuntimeDependencies } from './appProjectSaveCommand.ts'
+import { createDiscBackgroundDraftBinding } from '../hooks/useDiscBackgroundDraft.ts'
 import { NativeTerminationRejectedError } from '../tauri/nativeTermination.ts'
 
 function blank(kind: 'disc' | 'caseInsert'): SavedProject {
@@ -196,6 +197,33 @@ test('revision changed during final UI flush aborts handoff and restores interac
   assert.equal(h.counts().restores, 1)
   assert.deepEqual(h.commits, [])
   h.runtime.dispose()
+})
+
+test('late Disc background draft blocks final native handoff without consuming the live edit', async () => {
+  const blankProject = createBlankDiscSavedProject()
+  const project = { ...blankProject, background: { ...blankProject.background,
+    imageDataUrl: 'data:image/png;base64,TEST' } }
+  const h = await harness({ state: createLoadedProjectSession({
+    sessionId: 'late-background', project, currentPath: 'saved.sbls', persistenceFormat: 'sbls-package-v1',
+  }), prepare: () => {
+    assert.equal(draft.begin('late-pointer'), true)
+    draft.update('late-pointer', current => ({ ...current, scale: 1.5 }))
+  } })
+  const draft = createDiscBackgroundDraftBinding(h.runtime)
+  h.runtime.updateDiscBackgroundContinuousEditPort(draft)
+  const result = await h.runtime.root.dispatch('application.quit')
+  assert.equal(status(result), 'failure')
+  if (result.disposition === 'executed' && result.result.status === 'failure') {
+    assert.equal(result.result.error.code, 'disc.background-draft-not-committed')
+  }
+  assert.equal(h.counts().restores, 1)
+  assert.deepEqual(h.commits, [])
+  assert.equal(h.runtime.root.getLifecycleState().activeSession?.revision, 0)
+  assert.equal(draft.read()?.scale, 1.5)
+  assert.equal(draft.finish().status, 'success')
+  assert.equal(h.runtime.root.getLifecycleState().activeSession?.revision, 1)
+  assert.equal(draft.read(), null)
+  await h.runtime.dispose()
 })
 
 test('failed handoff restores interaction/capabilities and allows a later attempt', async () => {

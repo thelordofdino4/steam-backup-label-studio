@@ -56,6 +56,7 @@ export type ApplicationLifecycleRuntime = Readonly<{
   updatePngExportDependencies(
     dependencies: ApplicationPngExportRuntimeDependencies,
   ): void
+  updateDiscBackgroundContinuousEditPort(port: ApplicationCaseInsertContinuousEditPort | null): void
   updateCaseInsertContinuousEditPort(port: ApplicationCaseInsertContinuousEditPort | null): void
   dispose(): Promise<void>
 }>
@@ -85,18 +86,24 @@ export function createApplicationLifecycleRuntime(
   let workspaceNavigationDependencies:
     ApplicationWorkspaceNavigationRuntimeDependencies | null = null
   let pngExportDependencies: ApplicationPngExportRuntimeDependencies | null = null
+  let discBackgroundContinuousEditPort: ApplicationCaseInsertContinuousEditPort | null = null
   let caseInsertContinuousEditPort: ApplicationCaseInsertContinuousEditPort | null = null
   let disposed = false
   const createRoot = options.createRoot ??
     createApplicationLifecycleCompositionRoot
+  const getDiscBackgroundEdit = (): ApplicationCaseInsertContinuousEditPort | null =>
+    root.getLifecycleState().visibleWorkspace === 'disc' ? discBackgroundContinuousEditPort : null
+  const getCurrentEditorEdit = (): ApplicationCaseInsertContinuousEditPort | null =>
+    root.getLifecycleState().visibleWorkspace === 'disc'
+      ? getDiscBackgroundEdit() : caseInsertContinuousEditPort
   const saveOwners = createApplicationProjectSaveCommandOwners(
     () => projectSaveDependencies,
-    () => caseInsertContinuousEditPort,
+    getCurrentEditorEdit,
   )
   const replacementGuard = createProjectReplacementGuard(
     () => projectReplacementDependencies,
     saveOwners.saveProjectWithinOperation,
-    () => caseInsertContinuousEditPort,
+    getCurrentEditorEdit,
   )
   const newOwners = createApplicationProjectNewCommandOwners(
     () => projectNewDependencies,
@@ -105,15 +112,17 @@ export function createApplicationLifecycleRuntime(
   const workspaceNavigationOwners =
     createApplicationWorkspaceNavigationCommandOwners(
       () => workspaceNavigationDependencies,
+      getDiscBackgroundEdit,
     )
   const pngExportOwner = createApplicationPngExportCommandOwner(
     () => pngExportDependencies,
+    getDiscBackgroundEdit,
   )
   const terminationRuntime = createApplicationTerminationRuntime(
     () => root, options.nativeTermination, () => projectAsyncWork.invalidateAll(),
   )
   const terminationOwners = createApplicationNativeTerminationCommandOwners(
-    terminationRuntime.handoff, replacementGuard, () => caseInsertContinuousEditPort,
+    terminationRuntime.handoff, replacementGuard, getCurrentEditorEdit,
   )
   const root = createRoot({
     performanceObserver: options.performanceObserver,
@@ -149,6 +158,7 @@ export function createApplicationLifecycleRuntime(
     projectNewDependencies = null
     workspaceNavigationDependencies = null
     pngExportDependencies = null
+    discBackgroundContinuousEditPort = null
     caseInsertContinuousEditPort = null
     unsubscribeAsyncWork()
     projectAsyncWork.dispose()
@@ -206,6 +216,10 @@ export function createApplicationLifecycleRuntime(
       ) {
         root.refreshCommandCapabilities()
       }
+    },
+    updateDiscBackgroundContinuousEditPort(port) {
+      if (disposed) throw new Error('The application lifecycle runtime is disposed.')
+      discBackgroundContinuousEditPort = port
     },
     updateCaseInsertContinuousEditPort(port) {
       if (disposed) throw new Error('The application lifecycle runtime is disposed.')

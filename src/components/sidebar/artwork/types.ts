@@ -43,6 +43,13 @@ export type ArtworkPanelProps = {
   backgroundScale: number
   backgroundOffset: BackgroundOffset
   backgroundOffsetSliderRanges: BackgroundOffsetSliderRanges
+  backgroundRangeGesture?: Readonly<{
+    begin(key: string): boolean
+    finish(key: string): unknown
+    cancel(key: string): void
+    scale(key: string, value: number): void
+    offset(key: string, field: 'x' | 'y', value: number): void
+  }>
   handleBackgroundScaleChange: (value: number) => void
   handleBackgroundOffsetChange: (
     field: BackgroundOffsetField,
