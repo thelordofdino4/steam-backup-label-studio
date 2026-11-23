@@ -30,18 +30,6 @@ for (let index = 0; mode !== '--rust-only' && index < testFiles.length; index +=
   }
 }
 
-// Keep benchmark replay isolated to this exact draft PR and after the full Node suite.
-if (!failed && mode === '--node-only' &&
-    process.env.GITHUB_ACTIONS === 'true' &&
-    process.env.GITHUB_EVENT_NAME === 'pull_request' &&
-    process.env.GITHUB_REPOSITORY === 'thelordofdino4/steam-backup-label-studio' &&
-    process.env.GITHUB_HEAD_REF === 'agent/365-background-ab-ci-20261123' &&
-    process.env.GITHUB_BASE_REF === 'main') {
-  const result = spawnSync(process.execPath,
-    ['scripts/performance/disc-background-ab-ci.mjs', '--canvas-only'], { stdio: 'inherit' })
-  if (result.status !== 0) failed = true
-}
-
 for (const { command, args } of mode === '--node-only' ? [] : testCommands) {
   const result = spawnSync(command, args, {
     shell: false,
