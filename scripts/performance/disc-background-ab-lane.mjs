@@ -7,17 +7,18 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { CLASSIC_IMPORT_FIXTURES, decodeGeneratedDiscPackageWrite, runMountedRegressions, validateGeneratedClassicImport } from './disc-background-ab-regressions.mjs'
+import { armCanvasPointerObservation, qualifyCanvasPointerSequence, runTrustedBackgroundCanvas } from './disc-background-canvas.mjs'
 const [, , root, lane, batch, fixtureRoot, mode] = process.argv
 assert.ok(mode === undefined || mode === '--verify-source-only')
-assert.ok(root && ['before', 'after'].includes(lane) && ['A', 'B', 'regressions'].includes(batch))
-assert.ok(batch !== 'regressions' || lane === 'after')
+assert.ok(root && ['before', 'after'].includes(lane) && ['A', 'B', 'regressions', 'canvas'].includes(batch))
+assert.ok(!['regressions','canvas'].includes(batch) || lane === 'after')
 
 const require = createRequire(resolve(root, 'package.json'))
 const { createServer } = await import(pathToFileURL(require.resolve('vite/package.json').replace(/package\.json$/, 'dist/node/index.js')))
 const { chromium } = require('playwright')
 const hashBlob = path => { const b = readFileSync(resolve(root, path)); return createHash('sha1').update('blob '+b.length+'\0').update(b).digest('hex') }
 const baseline = '7c8c0debd00b11027c954f36b697665e3e2e1318'
-const product = '7227a6190b144a70db19af32024bf1ad123a82d5'
+const product = 'ddc885d103fa37a7052b91d6e9917914bc7c63ce'
 const exactBaselineFiles = {
   "package-lock.json": "e4adaccfac1c115ef78511829672dfdc2228ce1e",
   "src/main.tsx": "3da470110e013670a93b081e7ad1fe93d361302e",
@@ -29,7 +30,7 @@ const exactBaselineFiles = {
   "scripts/performance/persistence.mjs": "07177e1fd1373e22c20b1443d8bb6c8a375340a7"
 }
 const AFTER_BLOBS = {
-  "src/app/App.tsx": "34931986291ab291b4c5efa1ebe54d93aae35284",
+  "src/app/App.tsx": "57743176f08f9d22207debbe527a21cd5164fdbf",
   "src/hooks/useBackgroundImage.ts": "176246025f6c1f64951a1ddcfb1d453f7f206504",
   "src/lifecycle/applicationLifecycleCompositionRoot.ts": "450ec953c290ba17eb925d521777433401a81a3f",
   "src/app/appDiscBackgroundCompoundCommand.ts": "9af1d13780612a4027ae1f7a000ca9b691e4f691",
@@ -49,6 +50,8 @@ const expected = {
 const digest=b=>createHash('sha256').update(b).digest('hex')
 const metadata={}
 const fixturePaths={}
+const canvasFixtureHash='fb9b4ee461ace5f4eb2b3ba1f90fd104ab42286fc019131d31102f83491c9e40'
+let canvasFixture
 try {
 for(const [size, hash] of Object.entries(expected)){
  const fixtureDirectory = resolve(evidence,`disc-${size}`)
@@ -61,6 +64,14 @@ for(const [size, hash] of Object.entries(expected)){
  assert.equal(p.projectType,'disc')
  assert.equal(p.background.enabled,true)
  metadata[size]={sha256:hash,bytes:blob.length,scale:p.background.scale,assetHash:digest(p.background.imageDataUrl),width:p.background.imageSize.width}
+ if(batch==='canvas'&&size==='small'){
+   assert.deepEqual(p.background.offset,{x:0,y:0})
+   assert.equal(p.background.scale,1)
+   // Separate fixture gives the square background enough travel on both axes.
+   p.background.scale=1.5
+   canvasFixture=Buffer.from(JSON.stringify(p))
+   assert.equal(digest(canvasFixture),canvasFixtureHash)
+ }
 }
 const replace=(s,a,b)=>{assert.equal(s.split(a).length,2,`instrumentation anchor: ${a.slice(0,100)}`);return s.replace(a,b)}
 const handler="  function handleBackgroundScaleChange(value: number) {"
@@ -89,6 +100,10 @@ try{
        const size=req.url?.match(/^\/__sbls365_fixture\/(small|normal|large)$/)?.[1]
        if(!size) return next()
        res.setHeader('Content-Type','application/json')
+       if(batch==='canvas'){
+         assert.equal(size,'small')
+         return res.end(canvasFixture)
+       }
        createReadStream(fixturePaths[size]).pipe(res)
      })
    },
@@ -147,7 +162,7 @@ ${afterCapture}
      if (lane==='after' && path==='src/app/App.tsx') assert.ok(plugin.transform(source,id).includes('interruptPreparedPreset(session, setProjectTitleArtwork)') && source.includes(regressionAnchor))
      assert.equal(typeof plugin.transform(source,id),'string')
    }
-   console.log('SBLS365_AB_OFFLINE '+JSON.stringify({lane,fixtureHashes:expected,overlayAnchors:'verified',browser:false}))
+   console.log('SBLS365_AB_OFFLINE '+JSON.stringify({lane,batch,fixtureHashes:expected,canvasFixtureHash:batch==='canvas'?canvasFixtureHash:null,overlayAnchors:'verified',browser:false}))
    process.exitCode=0
  } else {
    server=await createServer({root,cacheDir:resolve(evidence,'vite-cache'),server:{host:'127.0.0.1',port:0,strictPort:true,fs:{allow:[root,evidence,realpathSync(resolve(root,'node_modules'))]}},logLevel:'error',plugins:[plugin]})
@@ -161,8 +176,8 @@ ${afterCapture}
  assert.equal(await smoke.title(),'')
  await smoke.close()
  console.log('SBLS365_AB_SMOKE '+JSON.stringify({browser:version,node:process.version,os:process.platform,arch:process.arch,baseline,lane,batch}))
- for(const size of batch==='regressions'?['small']:['small','normal','large']){
-   const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1,hasTouch:batch==='regressions'})
+ for(const size of ['regressions','canvas'].includes(batch)?['small']:['small','normal','large']){
+   const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1,hasTouch:['regressions','canvas'].includes(batch)})
    await context.route('**/*',r=>r.request().url().startsWith(url+'/')||r.request().url().startsWith('data:')?r.continue():r.abort())
    const page=await context.newPage()
    const errors=[], consoleErrors=[]
@@ -298,6 +313,14 @@ ${afterCapture}
    try{await page.waitForFunction(w=>globalThis.__sbls365.view().width===w,metadata[size].width,{timeout:15000})}
    catch(e){rawSetup.push({size,errors,consoleErrors,text:(await page.locator('body').innerText()).slice(0,1800),invokes:await page.evaluate(()=>globalThis.__sbls365.invokes)});throw e}
    assert.equal(await page.evaluate(()=>globalThis.__sbls365.view().enabled),true)
+   if(batch==='canvas'){
+     await page.evaluate(armCanvasPointerObservation)
+     const result=await runTrustedBackgroundCanvas(page,context,qualifyCanvasPointerSequence)
+     assert.equal(errors.length,0,errors.join('\n'))
+     console.log('SBLS365_CANVAS_RESULT '+JSON.stringify({fixtureSha:canvasFixtureHash,product,browser:version,...result}))
+     await context.close()
+     continue
+   }
    const control='local-file-background-scale-number'
    const target='#'+control
    const input=page.locator(target)
@@ -411,7 +434,7 @@ ${afterCapture}
    assert.equal(errors.length,0,errors.join('\n'))
    await context.close()
  }
-if(batch==='regressions') {
+if(['regressions','canvas'].includes(batch)) {
   assert.equal(rows.length,0,'Regression setup must not be counted as timing')
 } else {
 const measured=rows.filter(r=>r.meta.phase==='measure')

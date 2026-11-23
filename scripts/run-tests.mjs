@@ -38,7 +38,7 @@ if (!failed && mode === '--node-only' &&
     process.env.GITHUB_HEAD_REF === 'agent/365-background-ab-ci-20261123' &&
     process.env.GITHUB_BASE_REF === 'main') {
   const result = spawnSync(process.execPath,
-    ['scripts/performance/disc-background-ab-ci.mjs'], { stdio: 'inherit' })
+    ['scripts/performance/disc-background-ab-ci.mjs', '--canvas-only'], { stdio: 'inherit' })
   if (result.status !== 0) failed = true
 }
 
