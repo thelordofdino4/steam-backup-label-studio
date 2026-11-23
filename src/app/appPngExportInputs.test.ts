@@ -3,8 +3,27 @@ import test from 'node:test'
 import {
   createCaseInsertPngExportInput,
   createDiscPngExportInput,
+  getDiscPngExportPreviewWidth,
   type CreateDiscPngExportInputParams,
 } from './appPngExportInputs.ts'
+
+test('Disc PNG width stays in layout coordinates across viewport zoom and pan', () => {
+  for (const zoom of [0.5, 1, 1.12, 2]) {
+    const preview = {
+      offsetWidth: 600,
+      getBoundingClientRect: () => ({ width: 600 * zoom, x: -123, y: 45 }),
+    }
+    assert.equal(getDiscPngExportPreviewWidth(preview, 640), 600)
+  }
+  assert.equal(getDiscPngExportPreviewWidth({ offsetWidth: 540 }, 640), 540)
+})
+
+test('Disc PNG width falls back when the preview is absent or cannot be measured', () => {
+  assert.equal(getDiscPngExportPreviewWidth(null, 640), 640)
+  for (const offsetWidth of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.equal(getDiscPngExportPreviewWidth({ offsetWidth }, 640), 640)
+  }
+})
 
 test('case insert export input groups app-owned branding sources', () => {
   const caseInsert = { templateType: 'jewelCase' }

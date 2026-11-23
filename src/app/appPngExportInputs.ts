@@ -27,6 +27,15 @@ export type DiscPngExportInput = Pick<
   'exportInput' | 'preflight'
 >
 
+export function getDiscPngExportPreviewWidth(
+  preview: Pick<HTMLElement, 'offsetWidth'> | null,
+  fallback: number,
+) {
+  // Disc background offsets are local layout pixels, not transformed viewport pixels.
+  const width = preview?.offsetWidth ?? 0
+  return Number.isFinite(width) && width > 0 ? width : fallback
+}
+
 export type CreateDiscPngExportInputParams = {
   selectedDiscTemplateId: DiscPngExportPreflight['selectedDiscTemplateId']
   selectedDiscTemplate: DiscPngExportPreflight['selectedDiscTemplate']
