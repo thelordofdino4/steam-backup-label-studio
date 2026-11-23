@@ -124,7 +124,21 @@ try{
      const P=globalThis.__sbls365={
        root:null, invokes,
        view(){return view(P.root?.getLifecycleState().activeSession)},
-       layout(){return [...document.querySelectorAll('.fieldset, fieldset')].filter(el=>el.querySelector('input[id$="-background-scale-number"]')).map(el=>({label:el.getAttribute('aria-label'),disabled:el.disabled,id:el.querySelector('input[id$="-background-scale-number"]').id,open:el.getBoundingClientRect().width>0}))},
+       layout(){
+         const selector='input[id$="-background-scale-number"]'
+         return [...document.querySelectorAll(selector)].map(input=>{
+           const panels=[]
+           for(let node=input.parentElement;node;node=node.parentElement){
+             if(node.tagName==='DETAILS')panels.unshift({
+               title:node.querySelector(':scope > summary > .panel-summary-title')?.textContent?.trim(),
+               open:node.open,
+             })
+           }
+           const label=input.closest('fieldset')?.getAttribute('aria-label')
+           const rect=input.getBoundingClientRect()
+           return {id:input.id,label,enabled:input.matches(':enabled'),rect:{width:rect.width,height:rect.height},panels}
+         })
+       },
        initTrial(meta,expected){if(active)throw Error('overlap');active={meta,expected,before:P.view(),in:[],keys:[],captures:[],commits:[]}},
        getTrial(){return active},
        drain(){const r=active;active=null;probe=null;return r},
@@ -157,21 +171,43 @@ try{
    try{await page.waitForFunction(w=>globalThis.__sbls365.view().width===w,metadata[size].width,{timeout:15000})}
    catch(e){rawSetup.push({size,errors,consoleErrors,text:(await page.locator('body').innerText()).slice(0,1800),invokes:await page.evaluate(()=>globalThis.__sbls365.invokes)});throw e}
    assert.equal(await page.evaluate(()=>globalThis.__sbls365.view().enabled),true)
-   const selector='input[id$="-background-scale-number"]:enabled:visible'
-   let input=page.locator(selector)
-   if(await input.count()===0){
-     const section=page.getByRole('button',{name:/^Background Image$/i})
-     if(await section.count()===1)await section.click()
-     if(await input.count()===0){
-       const local=page.getByRole('button',{name:/^(Local File|Local Image|Upload Local Image)$/i})
-       if(await local.count()===1)await local.click()
-     }
-   }
-   const setup={size,errors,consoleErrors,layout:await page.evaluate(()=>globalThis.__sbls365.layout()),invokes:await page.evaluate(()=>globalThis.__sbls365.invokes)}
+   const control='local-file-background-scale-number'
+   const target='#'+control
+   const input=page.locator(target)
+   const summaries=page.locator('details:has('+target+') > summary')
+   const expectedTitles=['Background Image','Local file']
+   const readLayout=()=>page.evaluate(()=>globalThis.__sbls365.layout())
+   const setup={size,errors,consoleErrors,layout:await readLayout(),invokes:await page.evaluate(()=>globalThis.__sbls365.invokes),reveals:[]}
    rawSetup.push(setup)
-   if(await input.count()!==1){setup.text=(await page.locator('body').innerText()).slice(0,3500);throw Error('Unique visible enabled Disc background scale not located')}
-   const control=await input.getAttribute('id')
-   setup.control=control
+   const panels=()=>setup.layout.find(x=>x.id===control)?.panels
+   try {
+     assert.equal(await input.count(),1,'Expected one Local file Background Scale input')
+     assert.deepEqual(panels()?.map(x=>x.title),expectedTitles,'Unexpected Background Scale disclosure ancestry')
+     assert.equal(await summaries.count(),expectedTitles.length,'Expected one direct summary per ancestor')
+     for(let i=0;i<expectedTitles.length;i++){
+       const panel=panels()[i]
+       const summary=summaries.nth(i)
+       assert.equal(await summary.locator(':scope > .panel-summary-title').textContent(),panel.title)
+       if(!panel.open){
+         await summary.click({timeout:5000})
+         await page.waitForFunction(({control,i})=>globalThis.__sbls365.layout().find(x=>x.id===control)?.panels[i]?.open===true,{control,i},{timeout:5000})
+       }
+       setup.layout=await readLayout()
+       assert.equal(panels()[i].open,true)
+       setup.reveals.push({title:panel.title,openedByHarness:!panel.open})
+     }
+     await input.waitFor({state:'visible',timeout:5000})
+     assert.equal(await input.isEnabled(),true,'Background Scale is visible but disabled')
+     assert.equal(await input.getAttribute('type'),'number')
+     const layout=setup.layout.find(x=>x.id===control)
+     assert.equal(layout?.label,'Local file background fine tuning controls')
+     assert.ok(layout?.panels.every(x=>x.open),'Background Scale disclosures are not open')
+     console.log('SBLS365_SETUP '+JSON.stringify({size,control,layout,reveals:setup.reveals}))
+   } catch (error) {
+     setup.layout=await readLayout()
+     setup.text=(await page.locator('body').innerText()).slice(0,3500)
+     throw error
+   }
    const start=Number(await input.inputValue())
    assert.equal(start,metadata[size].scale)
    async function noChange(){
@@ -240,7 +276,7 @@ console.log('SBLS365_BASELINE '+JSON.stringify({status:'passed',baseline,sourceB
 } catch(e){
   for (const r of rows) emitRow(r)
   const scrub=x=>String(x).replaceAll(root,'<checkout>').replaceAll(evidence,'<temp>')
-  console.error('SBLS365_FAILED '+JSON.stringify({qualifiedRows:rows.length,error:scrub(e.message),setup:rawSetup.map(({size,layout,invokes,errors,consoleErrors,text})=>({size,layout,invokes,errors:errors?.map(scrub),consoleErrors:consoleErrors?.map(scrub),text:scrub(text??'').slice(0,900)}))}))
+  console.error('SBLS365_FAILED '+JSON.stringify({qualifiedRows:rows.length,error:scrub(e.message),setup:rawSetup.map(({size,layout,reveals,invokes,errors,consoleErrors,text})=>({size,layout,reveals,invokes,errors:errors?.map(scrub),consoleErrors:consoleErrors?.map(scrub),text:scrub(text??'').slice(0,900)}))}))
   throw new Error('Disc background baseline did not qualify; see sanitized failure record', {cause: undefined})
 } finally {
  await browser?.close()
