@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { createHash, webcrypto } from 'node:crypto'
+import { runInNewContext } from 'node:vm'
 import { readFileSync } from 'node:fs'
-import { bmp, decodeGeneratedDiscPackageWrite } from './disc-background-ab-regressions.mjs'
+import { bmp, CLASSIC_IMPORT_FIXTURES, decodeGeneratedDiscPackageWrite, validateGeneratedClassicImport } from './disc-background-ab-regressions.mjs'
+import { validateImportedImageDataUrl } from '../../src/tauri/importedImageValidation.ts'
 import { createProjectPackageCapturePlan } from '../../src/package/projectPackageCapturePlan.ts'
 import { createBlankDiscSavedProject } from '../../src/project/blankDiscProject.ts'
 import { createProjectPackageWriteRequest } from '../../src/tauri/projectPackageWrite.ts'
@@ -20,6 +23,44 @@ test('generated portrait BMP input and renderer raw-Save fixture hydrate exact b
   const wire=createProjectPackageWriteRequest(project,plan)
   assert.deepEqual(decodeGeneratedDiscPackageWrite(wire).background,project.background)
   assert.throws(()=>decodeGeneratedDiscPackageWrite(wire.subarray(0,wire.length-1)))
+})
+
+const fixtureUrl=(spec,color=spec.color)=>
+  'data:image/bmp;base64,'+bmp(spec.width,spec.height,color).toString('base64')
+const bytes = value => new TextEncoder().encode(value)
+
+test('serialized fixture gate accepts only the exact two raw requests through the real renderer validation port', async () => {
+  const isolated = runInNewContext(`(${validateGeneratedClassicImport})`, {
+    Uint8Array, DataView, TextDecoder, atob, crypto:webcrypto,
+  })
+  for (const fixture of CLASSIC_IMPORT_FIXTURES) {
+    const input=fixtureUrl(fixture)
+    const raw=bytes(input)
+    assert.equal(raw.byteLength,fixture.bytes)
+    assert.equal(createHash('sha256').update(raw).digest('hex'),fixture.sha256)
+    const accepted=await validateImportedImageDataUrl(input,async (command,body)=>{
+      assert.equal(command,'validate_imported_image_asset')
+      assert.deepEqual(body,raw)
+      const receipt=await isolated(body,[fixture])
+      assert.equal(receipt.key,fixture.key)
+      assert.equal(receipt.sha256,fixture.sha256)
+      assert.equal(receipt.response.width,fixture.width)
+      assert.equal(receipt.response.height,fixture.height)
+      return receipt.response
+    })
+    assert.equal(accepted,input)
+  }
+})
+
+test('fixture validation rejects unknown bytes, the wrong transport or dimensions, and unarmed imports', async () => {
+  const [landscape,portrait]=CLASSIC_IMPORT_FIXTURES
+  const exact=bytes(fixtureUrl(landscape))
+  await assert.rejects(validateGeneratedClassicImport(exact,[]),/Unexpected generated import body/)
+  await assert.rejects(validateGeneratedClassicImport(exact,[portrait]),/Unexpected generated import body/)
+  await assert.rejects(validateGeneratedClassicImport(exact.buffer,[landscape]),/Unexpected generated import body/)
+  await assert.rejects(validateGeneratedClassicImport(
+    bytes(fixtureUrl(landscape,[40,170,212])),[landscape]),/Unrecognized generated import digest/)
+  await assert.rejects(validateGeneratedClassicImport(exact,[{...landscape,width:95}]),/BMP profile or dimensions/)
 })
 
 test('candidate workflow remains standard CI; comparison guard cannot run on main or other branches', () => {

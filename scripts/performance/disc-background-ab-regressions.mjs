@@ -27,6 +27,40 @@ export function bmp(width, height, color) {
   return data
 }
 
+// Exact public, generated regression inputs; none are benchmark fixture changes.
+export const CLASSIC_IMPORT_FIXTURES = Object.freeze([
+  Object.freeze({ key:'landscape', width:96, height:48, color:[40,170,213], bytes:18526,
+    sha256:'f757a46f682a3a541539eee5cae2a8e8bb4bacf5fa7b29790fdcd284cd6f361b' }),
+  Object.freeze({ key:'portrait', width:48, height:144, color:[210,100,35], bytes:27742,
+    sha256:'f33cc91caf071d846763654e89aec97181bac157a5f70cd7cf259b5c9dd9ad53' }),
+])
+
+// Serialized into the isolated renderer alongside the existing native fake.
+// Return only the documented shape for two pinned, raw generated bodies.
+export async function validateGeneratedClassicImport(body, fixtures) {
+  const candidates = body instanceof Uint8Array
+    ? fixtures.filter(x => x.bytes === body.byteLength) : []
+  if (!candidates.length) throw Error('Unexpected generated import body')
+  const hash = await crypto.subtle.digest('SHA-256', body)
+  const sha256 = [...new Uint8Array(hash)].map(v=>v.toString(16).padStart(2,'0')).join('')
+  const pinned = candidates.find(x=>x.sha256===sha256)
+  if (!pinned) throw Error('Unrecognized generated import digest')
+  const dataUrl = new TextDecoder('utf-8',{fatal:true}).decode(body)
+  const prefix = 'data:image/bmp;base64,'
+  if (!dataUrl.startsWith(prefix)) throw Error('Unexpected generated import MIME')
+  const bmpBytes = Uint8Array.from(atob(dataUrl.slice(prefix.length)), c=>c.charCodeAt(0))
+  const v = new DataView(bmpBytes.buffer)
+  if (bmpBytes.byteLength < 54 || v.getUint16(0,false)!==0x424d ||
+      v.getUint32(2,true)!==bmpBytes.byteLength || v.getUint32(10,true)!==54 ||
+      v.getUint32(14,true)!==40 || v.getInt32(18,true)!==pinned.width ||
+      v.getInt32(22,true)!==pinned.height || pinned.width<=0 || pinned.height<=0 ||
+      v.getUint16(26,true)!==1 || v.getUint16(28,true)!==24 || v.getUint32(30,true)!==0) {
+    throw Error('Unexpected generated BMP profile or dimensions')
+  }
+  return { key:pinned.key, sha256,
+    response:{status:'success',mimeType:'image/bmp',width:pinned.width,height:pinned.height} }
+}
+
 export function decodeGeneratedDiscPackageWrite(args) {
   const decoder=new TextDecoder('utf-8',{fatal:true})
   const bytes=args instanceof ArrayBuffer?new Uint8Array(args):args
@@ -143,26 +177,45 @@ async function presetAndStorageProof(page) {
 
   console.log('SBLS365_AB_REGRESSION_STAGE '+JSON.stringify({stage:'classic-import-manual-persistence'}))
   const upload=page.locator('#background-upload')
-  const adopter=async (data,width,height) => {
+  const adopter=async ({key,width,height,color,sha256}) => {
     const old=await readView(page)
+    const data=bmp(width,height,color)
     const dataUrl='data:image/bmp;base64,'+data.toString('base64')
-    const hash=digest(dataUrl)
-    await upload.setInputFiles({name:'benchmark-generated.bmp',mimeType:'image/bmp',buffer:data})
-    await page.waitForFunction(({width,height,rev})=>{
-      const v=globalThis.__sbls365.readRegression()
-      return v.width===width&&v.height===height&&v.rev>rev
-    },{width,height,rev:old.rev},{timeout:7000})
+    assert.equal(digest(dataUrl),sha256,'Generated import input drifted')
+    const safeReceipt=(stage, extra={})=>console.log('SBLS365_AB_IMPORT '+JSON.stringify({
+      stage,fixture:key,sha256,width,height,...extra,
+    }))
+    const validationBefore=(await page.evaluate(()=>globalThis.__sbls365.importReceipts())).length
+    safeReceipt('started')
+    await upload.setInputFiles({name:`benchmark-generated-${key}.bmp`,mimeType:'image/bmp',buffer:data})
+    try {
+      await page.waitForFunction(({width,height,rev})=>{
+        const v=globalThis.__sbls365.readRegression()
+        return v.width===width&&v.height===height&&v.rev>rev
+      },{width,height,rev:old.rev},{timeout:7000})
+    } catch (error) {
+      const observed=await readView(page)
+      safeReceipt('adoption-unqualified',{
+        observedWidth:observed.width??null, observedHeight:observed.height??null,
+        revisionDelta:observed.rev-old.rev,
+        validations:(await page.evaluate(()=>globalThis.__sbls365.importReceipts())).slice(validationBefore),
+      })
+      throw error
+    }
     await settle(page)
     const now=await readView(page)
+    const validations=(await page.evaluate(()=>globalThis.__sbls365.importReceipts())).slice(validationBefore)
+    assert.deepEqual(validations,[{status:'fixture-accepted',fixture:key,sha256,width,height}])
     assert.equal(now.rev,old.rev+1)
     assert.equal(now.source,'uploaded')
     assert.deepEqual(now.offset,{x:0,y:0})
     near(now.scale,0.92/Math.max(width/height,height/width))
-    assert.equal(await page.evaluate(hash=>globalThis.__sbls365.checkAssetHash(hash),hash),true)
-    return hash
+    assert.equal(await page.evaluate(hash=>globalThis.__sbls365.checkAssetHash(hash),sha256),true)
+    safeReceipt('adopted',{revisionDelta:1})
+    return sha256
   }
-  await adopter(bmp(96,48,[40,170,213]),96,48)
-  const assetHash=await adopter(bmp(48,144,[210,100,35]),48,144)
+  await adopter(CLASSIC_IMPORT_FIXTURES[0])
+  const assetHash=await adopter(CLASSIC_IMPORT_FIXTURES[1])
   const scale=page.locator(control+'-number')
   const beforeManual=await readView(page)
   await scale.press('ArrowUp')

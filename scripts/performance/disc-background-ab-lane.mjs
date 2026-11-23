@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { decodeGeneratedDiscPackageWrite, runMountedRegressions } from './disc-background-ab-regressions.mjs'
+import { CLASSIC_IMPORT_FIXTURES, decodeGeneratedDiscPackageWrite, runMountedRegressions, validateGeneratedClassicImport } from './disc-background-ab-regressions.mjs'
 const [, , root, lane, batch, fixtureRoot, mode] = process.argv
 assert.ok(mode === undefined || mode === '--verify-source-only')
 assert.ok(root && ['before', 'after'].includes(lane) && ['A', 'B', 'regressions'].includes(batch))
@@ -168,13 +168,14 @@ ${afterCapture}
    const errors=[], consoleErrors=[]
    page.on('pageerror',e=>errors.push(e.message))
    page.on('console',e=>{if(e.type()==='error'||e.type()==='warning')consoleErrors.push(e.text().slice(0,280))})
-   const initialize = ({size,isRegression}, decodeGeneratedDiscPackageWrite)=>{
-     let active=null, probe=null, direct=null
-     const invokes=[], pointer=[]
+   const initialize = ({size,isRegression,importFixtures}, decodeGeneratedDiscPackageWrite, validateGeneratedClassicImport)=>{
+     let active=null, probe=null, direct=null, validatingImport=false
+     const invokes=[], pointer=[], importChecks=[]
      let savedProject=null, savedPath=null, reopen=false, interrupt=false, interruptions=0, expectedSibling=null
      function view(s){const b=s?.kind==='disc'?s.project?.background:null;return {id:s?.id,rev:s?.revision,scale:b?.scale,width:b?.imageSize?.width,enabled:b?.enabled}}
      const P=globalThis.__sbls365={
        root:null, invokes,
+       importReceipts: () => importChecks.slice(),
        readRegression() {
          const s=P.root?.getLifecycleState().activeSession
          const b=s?.project.background
@@ -253,6 +254,21 @@ ${afterCapture}
          invokes.push(cmd)
          if(cmd==='plugin:dialog|open')return reopen?savedPath:'/sbls365-fixture.sbls'
          if(cmd==='plugin:dialog|save'&&isRegression)return '/sbls365-fake-saved.sbls'
+         if(cmd==='validate_imported_image_asset'&&isRegression){
+           if(validatingImport) throw Error('Overlapping generated import validation')
+           validatingImport=true
+           const expected = importFixtures[importChecks.length]
+           try {
+             const {key,sha256,response}=await validateGeneratedClassicImport(args,expected?[expected]:[])
+             importChecks.push({status:'fixture-accepted',fixture:key,sha256,width:response.width,height:response.height})
+             return response
+           } catch (error) {
+             if(importChecks.length<importFixtures.length+1) importChecks.push({status:'fixture-rejected'})
+             throw error
+           } finally {
+             validatingImport=false
+           }
+         }
          if(cmd==='encode_and_write_project_package_file'&&isRegression){
            savedPath=decodeURIComponent(options?.headers?.['x-sbls-project-path-v1']??'')
            if(!['/sbls365-fixture.sbls','/sbls365-fake-saved.sbls'].includes(savedPath))throw Error('Unexpected fixture destination')
@@ -272,10 +288,11 @@ ${afterCapture}
        },
      }
    }
-   const init = {size,isRegression:batch==='regressions'}
-   // Both functions are checked-in source. No page/text input becomes code.
+   const isRegression=batch==='regressions'
+   const init = {size,isRegression,importFixtures:isRegression?CLASSIC_IMPORT_FIXTURES:[]}
+   // All three functions are checked-in source. No page/text input becomes code.
    await page.addInitScript({content:
-     `(${initialize})(${JSON.stringify(init)},${decodeGeneratedDiscPackageWrite})`})
+     `(${initialize})(${JSON.stringify(init)},${decodeGeneratedDiscPackageWrite},${validateGeneratedClassicImport})`})
    await page.goto(url)
    await page.locator('[data-smoke-id=home-load-project]').click({timeout:20000})
    try{await page.waitForFunction(w=>globalThis.__sbls365.view().width===w,metadata[size].width,{timeout:15000})}
