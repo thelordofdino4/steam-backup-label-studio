@@ -75,3 +75,64 @@ for (const [target, dimensions] of [['disc', [1423, 1423]], ['cover', [1414, 141
     }
   })
 }
+
+test('real Disc PNG pixels ignore viewport zoom and pan at a fixed local preview width', async () => {
+  const variants = await page.evaluate(async () => {
+    const [{ createBlankDiscSavedProject }, { restoreProjectStateFromContents },
+      { getDiscPngExportPreviewWidth }, { exportDiscLabelPngBytes }] = await Promise.all([
+      import('/src/project/blankDiscProject.ts'), import('/src/project/restoreProjectState.ts'),
+      import('/src/app/appPngExportInputs.ts'), import('/src/export/exportPng.ts'),
+    ])
+    const state = await restoreProjectStateFromContents(JSON.stringify(createBlankDiscSavedProject()))
+    const stage = document.createElement('div')
+    const preview = document.createElement('div')
+    preview.style.width = '600px'
+    stage.append(preview)
+    document.body.append(stage)
+    try {
+      const artwork = document.createElement('canvas')
+      artwork.width = artwork.height = 152
+      const context = artwork.getContext('2d')
+      context.fillStyle = '#274051'
+      context.fillRect(16, 16, 120, 120)
+      context.fillStyle = '#ff00ff'
+      context.fillRect(55, 49, 13, 13)
+      context.fillStyle = '#00ffff'
+      context.fillRect(87, 88, 11, 11)
+      const params = {
+        ...state, selectedDiscTemplate: state.template.selectedDiscTemplate,
+        steamLogoPlacement: 'none', backgroundImageUrl: artwork.toDataURL('image/png'),
+        backgroundImageSize: { width: 152, height: 152,
+          contentBounds: { x: 16, y: 16, width: 120, height: 120 } },
+        backgroundScale: 1.5, backgroundOffset: { x: 33, y: -7 },
+        exportGuides: { centerHole: false, outerEdge: false, printableArea: false, safeZone: false },
+      }
+      const result = []
+      for (const [zoom, panX, panY, localWidth] of [
+        [1, 0, 0, 600], [0.5, -41, 62, 600], [1.12, 19, -27, 600],
+        [2, -60, 29, 600], [1, 0, 0, 480],
+      ]) {
+        stage.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`
+        preview.style.width = `${localWidth}px`
+        const rect = preview.getBoundingClientRect()
+        const previewSize = getDiscPngExportPreviewWidth(preview, 640)
+        const output = await exportDiscLabelPngBytes({ ...params, previewSize })
+        result.push({ localWidth, previewSize, renderedWidth: rect.width, x: rect.x, bytes: Array.from(output.bytes) })
+      }
+      return result
+    } finally {
+      stage.remove()
+    }
+  })
+  const reference = Buffer.from(variants[0].bytes)
+  const shifted = Buffer.from(variants[4].bytes)
+  for (const variant of variants.slice(0, 4)) {
+    assert.equal(variant.previewSize, 600)
+    assert.equal(variant.localWidth, 600)
+    assert.deepEqual(Buffer.from(variant.bytes), reference)
+  }
+  assert.deepEqual([variants[1].renderedWidth, variants[3].renderedWidth], [300, 1200])
+  assert.notEqual(variants[3].x, variants[0].x)
+  assert.equal(variants[4].previewSize, 480)
+  assert.notDeepEqual(shifted, reference, 'negative control: a real layout-width change moves the pixels')
+})
