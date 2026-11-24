@@ -31,6 +31,9 @@ const gifBase64 = [
   'IZh5kdmYmBCaWZeakKHZIJtxASXnnHTWaeedeOap55589unnn4AGKuighBZq6KGIJqoonwEBADs=',
 ].join('')
 
+const fixtureRoute = '/__lifetime'
+const fixtureHtml = '<!doctype html><html><head></head><body><div id="fixture"></div><script type="module" src="/__lifetime-entry.js"></script></body></html>'
+
 let server, browser, cacheDir
 test.before(async () => {
   cacheDir = await mkdtemp(join(tmpdir(), 'sbls-disc-background-lifetime-'))
@@ -40,9 +43,12 @@ test.before(async () => {
     server: { host: '127.0.0.1', port: 0, strictPort: false },
     plugins: [{ name: 'private-background-lifetime',
       configureServer(instance) {
-        instance.middlewares.use('/__lifetime', (_req, res) => {
-          res.setHeader('Content-Type', 'text/html')
-          res.end('<!doctype html><div id="fixture"></div><script type="module" src="/__lifetime-entry.js"></script>')
+        instance.middlewares.use(fixtureRoute, async (_req, res, next) => {
+          try {
+            const html = await instance.transformIndexHtml(fixtureRoute, fixtureHtml)
+            res.setHeader('Content-Type', 'text/html')
+            res.end(html)
+          } catch (error) { next(error) }
         })
       },
       resolveId(id) { return id === '/__lifetime-entry.js' ? '\0sbls-private-duration' : undefined },
@@ -69,7 +75,7 @@ for (const size of [128, 512, 1400, 'animated']) {
       const address = server.httpServer.address()
       assert.equal(typeof address, 'object')
       page.setDefaultTimeout(12_000)
-      await page.goto(`http://127.0.0.1:${address.port}/__lifetime`)
+      await page.goto(`http://127.0.0.1:${address.port}${fixtureRoute}`)
       await page.waitForFunction(() => typeof window.runLifetimeRegression === 'function')
       const result = await page.evaluate(({ size, gifBase64 }) =>
         window.runLifetimeRegression({ size, gifBase64 }), { size, gifBase64 })
