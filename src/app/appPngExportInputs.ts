@@ -1,3 +1,7 @@
+import { DISC_TEXT_KEYS } from '../discText/constants.ts'
+import type { DiscTextLayout } from '../discText/types.ts'
+import type { CommittedDiscProject } from '../lifecycle/canonicalProject.ts'
+import type { RatingBadgeLayout } from '../project/projectTypes.ts'
 import type {
   RunCaseInsertPngExportParams,
   RunDiscPngExportParams,
@@ -69,6 +73,71 @@ export type CreateDiscPngExportInputParams = {
   projectPlatformMarks: DiscPngExportPreflight['projectPlatformMarks']
   projectTechnicalMarks: DiscPngExportPreflight['projectTechnicalMarks']
   exportGuides: DiscPngExportPreflight['exportGuides']
+}
+
+type DiscPngLayoutInput = Pick<
+  CreateDiscPngExportInputParams, 'discTextSettings' | 'discTextLayout' | 'projectRatingBadge'
+>
+
+function projectTextLayout(
+  stored: Readonly<Partial<DiscTextLayout>>,
+  fallback: DiscTextLayout,
+): DiscTextLayout {
+  return {
+    x: stored.x ?? fallback.x,
+    y: stored.y ?? fallback.y,
+    width: stored.width ?? fallback.width,
+    scale: stored.scale ?? fallback.scale,
+    fontSizePt: stored.fontSizePt ?? fallback.fontSizePt,
+    align: stored.align ?? fallback.align,
+    mode: stored.mode ?? fallback.mode,
+    arcDegrees: stored.arcDegrees ?? fallback.arcDegrees,
+    arcSide: stored.arcSide ?? fallback.arcSide,
+    avoidVisualElements: stored.avoidVisualElements ?? fallback.avoidVisualElements,
+  }
+}
+
+function projectBadgeLayout(
+  stored: Readonly<Partial<RatingBadgeLayout>> | undefined,
+  fallback: RatingBadgeLayout,
+): RatingBadgeLayout {
+  return stored ? {
+    enabled: stored.enabled ?? fallback.enabled,
+    scale: stored.scale ?? fallback.scale,
+    x: stored.x ?? fallback.x,
+    y: stored.y ?? fallback.y,
+  } : fallback
+}
+
+/** A preset is published before React mirrors it. Project its accepted geometry
+ * and visibility once, without re-running Open normalization or clamping.
+ * Absent optional legacy leaves keep their existing rendered defaults.
+ */
+export function captureDiscPngLayout(
+  project: Pick<CommittedDiscProject, 'discText' | 'ratingBadge'>,
+  rendered: DiscPngLayoutInput,
+): DiscPngLayoutInput {
+  const discTextSettings = { ...rendered.discTextSettings }
+  const discTextLayout = { ...rendered.discTextLayout }
+  for (const key of DISC_TEXT_KEYS) {
+    const enabled = project.discText?.settings?.[key]
+    if (enabled !== undefined) discTextSettings[key] = enabled
+    const storedLayout = project.discText?.layout?.[key]
+    if (storedLayout) discTextLayout[key] = projectTextLayout(storedLayout, discTextLayout[key])
+  }
+
+  return {
+    discTextSettings,
+    discTextLayout,
+    projectRatingBadge: {
+      ...rendered.projectRatingBadge,
+      layout: projectBadgeLayout(project.ratingBadge?.layout, rendered.projectRatingBadge.layout),
+      uskBadge: {
+        ...rendered.projectRatingBadge.uskBadge,
+        layout: projectBadgeLayout(project.ratingBadge?.uskBadge?.layout, rendered.projectRatingBadge.uskBadge.layout),
+      },
+    },
+  }
 }
 
 export function createCaseInsertPngExportInput({

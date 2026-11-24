@@ -15,6 +15,20 @@ import '/src/styles/layoutFix.css'
 
 const max = 160
 const revisions = [], scopes = []
+let armed, trial
+const readLayout = ({ discTextLayout, discTextSettings, projectRatingBadge }) => ({
+  title: discTextLayout?.title,
+  legal: discTextLayout?.copyright,
+  rating: projectRatingBadge?.layout,
+  uskRating: projectRatingBadge?.uskBadge?.layout,
+  settings: discTextSettings,
+})
+const readSavedLayout = p => readLayout({
+  discTextLayout: p.discText?.layout, discTextSettings: p.discText?.settings, projectRatingBadge: p.ratingBadge,
+})
+window.noteDiscCommandCapture = (command, input, revision) => {
+  if (trial?.command === command) trial.capture = { input, revision }
+}
 let overflow = false, lastRevision = '', lastScopes = ''
 const add = (list, record) => {
   if (list.length >= max) { overflow = true; return }
@@ -51,6 +65,18 @@ const lifecycleRuntime = createApplicationLifecycleRuntime({
     root.subscribe(snapshot => {
       const session = snapshot.lifecycle.activeSession
       if (!session || session.kind !== 'disc') return
+      if (armed && session.id === armed.sessionId && session.revision === armed.start + 1 &&
+          !session.project.editor?.guidedLayout) {
+        const { command, previous } = armed
+        armed = undefined // allow nested busy notifications, but dispatch exactly once
+        trial = { command, previous, accepted: readSavedLayout(materializeDiscProject(session.project)),
+          revision: session.revision, synchronousCapture: false }
+        const current = trial
+        void root.dispatch(command).then(result => {
+          current.terminal = result.disposition === 'executed' ? result.result.status : result.disposition
+        })
+        current.synchronousCapture = Boolean(current.capture)
+      }
       const key = session.id + ':' + session.revision
       if (key !== lastRevision) {
         lastRevision = key
@@ -66,6 +92,19 @@ const lifecycleRuntime = createApplicationLifecycleRuntime({
     return root
   },
 })
+window.armDiscPresetReadback = command => {
+  if (!['project.save', 'export.png'].includes(command) || armed || trial) throw Error('Invalid probe arm')
+  const session = lifecycleRuntime.root.getLifecycleState().activeSession
+  if (session?.kind !== 'disc') throw Error('Expected active Disc')
+  armed = { command, sessionId: session.id, start: session.revision, previous: readSavedLayout(materializeDiscProject(session.project)) }
+}
+window.readDiscPresetReadback = () => structuredClone(trial)
+window.observeOrdinaryDiscExport = () => {
+  const session = lifecycleRuntime.root.getLifecycleState().activeSession
+  if (session?.kind !== 'disc' || armed) throw Error('Expected settled active Disc')
+  trial = { command: 'export.png', accepted: readSavedLayout(materializeDiscProject(session.project)),
+    revision: session.revision }
+}
 const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
 const appNode = document.getElementById('root')
 createRoot(appNode).render(createElement(ApplicationLifecycleBoundary, { runtime: lifecycleRuntime },
