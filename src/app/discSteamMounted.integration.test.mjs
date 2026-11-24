@@ -24,6 +24,8 @@ export function createDiscPngExportInput(input) {
     title: captured.exportInput.discTextLayout?.title,
     legal: captured.exportInput.discTextLayout?.copyright,
     rating: captured.exportInput.projectRatingBadge?.layout,
+    uskRating: captured.exportInput.projectRatingBadge?.uskBadge?.layout,
+    settings: captured.exportInput.discTextSettings,
   })
   return captured
 }`
@@ -34,6 +36,7 @@ export function projectPinnedDiscSave(pin) {
   const p = real(pin)
   window.noteDiscCommandCapture('project.save', {
     title: p.discText?.layout?.title, legal: p.discText?.layout?.copyright, rating: p.ratingBadge?.layout,
+    uskRating: p.ratingBadge?.uskBadge?.layout, settings: p.discText?.settings,
   }, pin.revision)
   return p
 }`
@@ -293,6 +296,34 @@ for (const command of ['project.save', 'export.png']) {
       assert.notEqual(trial.terminal, 'success', 'browser does not support native output')
       if (command === 'project.save') assert.equal(trial.capture.revision, trial.revision)
       assert.deepEqual(trial.capture.input, trial.accepted, command + ' must use accepted R, not previous mirrored layout')
+      if (command === 'export.png') {
+        await reveal(page, 'Project File')
+        const exportButton = page.getByRole('button', { name: 'Export PNG', exact: true })
+        const captureOrdinary = async () => {
+          await drain(page)
+          await page.evaluate(() => window.observeOrdinaryDiscExport())
+          const before = (await receipt(page)).commands.samples.length
+          await exportButton.click()
+          await page.waitForFunction(previous => window.readDiscSteamReceipt().commands.samples.length === previous + 1,
+            before)
+          const observed = await page.evaluate(() => window.readDiscPresetReadback())
+          assert.deepEqual(observed.capture.input, observed.accepted, 'ordinary settled export uses accepted layout')
+          return observed
+        }
+        const ordinary = await captureOrdinary()
+        assert.equal(ordinary.revision, trial.revision)
+        assert.deepEqual(ordinary.capture.input, trial.capture.input)
+        assert.equal(ordinary.capture.input.rating.enabled, false, 'retained disabled rating stays disabled')
+
+        await reveal(page, 'Layout Presets')
+        await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+        await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+        await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.guided.id ===
+          'disc:guided-layout:classic-top-title')
+        const guided = await captureOrdinary()
+        assert.ok(guided.revision > trial.revision)
+        assert.equal(guided.capture.input.rating.enabled, false, 'Guided does not enable dormant rating')
+      }
     } finally { await page.close() }
   })
 }

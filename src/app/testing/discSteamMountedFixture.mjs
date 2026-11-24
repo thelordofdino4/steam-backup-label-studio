@@ -16,13 +16,15 @@ import '/src/styles/layoutFix.css'
 const max = 160
 const revisions = [], scopes = []
 let armed, trial
-const readLayout = ({ discTextLayout, projectRatingBadge }) => ({
+const readLayout = ({ discTextLayout, discTextSettings, projectRatingBadge }) => ({
   title: discTextLayout?.title,
   legal: discTextLayout?.copyright,
   rating: projectRatingBadge?.layout,
+  uskRating: projectRatingBadge?.uskBadge?.layout,
+  settings: discTextSettings,
 })
 const readSavedLayout = p => readLayout({
-  discTextLayout: p.discText?.layout, projectRatingBadge: p.ratingBadge,
+  discTextLayout: p.discText?.layout, discTextSettings: p.discText?.settings, projectRatingBadge: p.ratingBadge,
 })
 window.noteDiscCommandCapture = (command, input, revision) => {
   if (trial?.command === command) trial.capture = { input, revision }
@@ -97,6 +99,12 @@ window.armDiscPresetReadback = command => {
   armed = { command, sessionId: session.id, start: session.revision, previous: readSavedLayout(materializeDiscProject(session.project)) }
 }
 window.readDiscPresetReadback = () => structuredClone(trial)
+window.observeOrdinaryDiscExport = () => {
+  const session = lifecycleRuntime.root.getLifecycleState().activeSession
+  if (session?.kind !== 'disc' || armed) throw Error('Expected settled active Disc')
+  trial = { command: 'export.png', accepted: readSavedLayout(materializeDiscProject(session.project)),
+    revision: session.revision }
+}
 const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
 const appNode = document.getElementById('root')
 createRoot(appNode).render(createElement(ApplicationLifecycleBoundary, { runtime: lifecycleRuntime },

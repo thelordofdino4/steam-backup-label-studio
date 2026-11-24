@@ -223,6 +223,7 @@ import {
   type SteamLogoPlacement,
 } from '../discText/index'
 import {
+  captureDiscPngLayout,
   createCaseInsertPngExportInput,
   createDiscPngExportInput,
   getDiscPngExportPreviewWidth,
@@ -1955,25 +1956,22 @@ function App() {
         ? Object.freeze({
           kind: 'disc',
           physicalTarget: 'disc-label',
-          captureInvocation: () => {
-            const ownedBackground = getDiscSession()?.project.background
-            if (!ownedBackground) throw new Error('The Disc background owner changed before export.')
+          captureInvocation: session => {
             return {
               ...createDiscPngExportInput({
                 selectedDiscTemplateId,
                 selectedDiscTemplate,
-                ...captureDiscBackgroundExportInput(ownedBackground),
+                ...captureDiscBackgroundExportInput(session.project.background),
+                ...captureDiscPngLayout(session.project, { discTextSettings, discTextLayout, projectRatingBadge }),
                 selectedSteamGame,
                 manualGameTitle,
                 steamLogoPlacement,
                 steamBannerUseTextFallback,
                 steamBannerFallbackText,
                 steamBannerLockupImageUrl,
-                discTextSettings,
                 projectLogoAssets,
                 projectTitleArtwork,
                 projectMetadata,
-                projectRatingBadge,
                 projectMediaMark,
                 projectPlatformMarks,
                 projectTechnicalMarks,
@@ -1988,7 +1986,6 @@ function App() {
                 discTextValueSources,
                 discTextHtmlSources,
                 discTextStyles,
-                discTextLayout,
               }),
               getPreviewSize: () => getDiscPngExportPreviewWidth(
                 discPreviewRef.current,

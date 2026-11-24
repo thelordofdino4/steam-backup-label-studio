@@ -8,6 +8,7 @@ import type {
   ApplicationPngExportCommandOwner,
   ApplicationPngExportCapabilityContext,
 } from '../lifecycle/applicationPngExportCommand.ts'
+import type { DiscProjectSession } from '../lifecycle/projectSession.ts'
 import { hasBusyScopeConflict } from '../lifecycle/commandBusyScopes.ts'
 import type {
   ApplicationLifecycleCommandContext,
@@ -33,7 +34,7 @@ type CaseExportInvocation = Omit<
 export type ApplicationDiscPngExportAdapter = Readonly<{
       kind: 'disc'
       physicalTarget: 'disc-label'
-      captureInvocation(): DiscExportInvocation
+      captureInvocation(session: DiscProjectSession): DiscExportInvocation
     }>
 
 export type ApplicationCasePngExportAdapter = Readonly<{
@@ -186,12 +187,14 @@ export function createApplicationPngExportCommandOwner(
       }
 
       try {
-        return adapter.kind === 'disc'
-          ? runDiscPngExport({ ...adapter.captureInvocation(), operation })
-          : runCaseInsertPngExport({
-              ...adapter.captureInvocation(),
-              operation,
-            })
+        if (adapter.kind === 'disc') {
+          const session = current.state.activeSession
+          if (session?.kind !== 'disc') {
+            return snapshotFailure(new Error('The active Disc revision changed before capture.'))
+          }
+          return runDiscPngExport({ ...adapter.captureInvocation(session), operation })
+        }
+        return runCaseInsertPngExport({ ...adapter.captureInvocation(), operation })
       } catch (error) {
         return snapshotFailure(error)
       }
