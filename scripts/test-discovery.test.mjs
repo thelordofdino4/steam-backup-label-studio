@@ -43,3 +43,16 @@ test('the standard runner lists the complete discovered suite from another worki
   assert.deepEqual(testFiles, listed)
   assert.ok(listed.includes('src/steam/steamMetadataCandidates.test.ts'))
 })
+
+test('explicit CI lanes partition the complete suite without skipping the lifetime file', () => {
+  function list(lane) {
+    return execFileSync(process.execPath, [
+      join(repositoryRoot, 'scripts/run-tests.mjs'), '--list', lane,
+    ], { cwd: tmpdir(), encoding: 'utf8' }).trim().split(/\r?\n/)
+  }
+  const remaining = list('--exclude-disc-background-lifetime')
+  const lifetime = list('--disc-background-lifetime-only')
+  assert.deepEqual(lifetime, ['src/export/discBackgroundLifetime.integration.test.mjs'])
+  assert.ok(!remaining.includes(lifetime[0]))
+  assert.deepEqual([...remaining, ...lifetime].sort(), discoverTestFiles())
+})
