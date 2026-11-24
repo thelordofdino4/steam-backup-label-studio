@@ -1,3 +1,4 @@
+import { hasDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { useLayoutEffect, useState, useSyncExternalStore } from 'react'
 import type { ApplicationLifecycleRuntime } from '../app/applicationLifecycleRuntime.ts'
 import type { ApplicationCaseInsertContinuousEditFinishResult } from '../app/applicationCaseInsertContinuousEditPort.ts'
@@ -66,7 +67,7 @@ export function createDiscBackgroundDraftBinding(runtime: ApplicationLifecycleRu
     begin(key: string) {
       const session = current()
       if (!session || participating || !(session.project.background.enabled ?? true) ||
-          !session.project.background.imageDataUrl) return false
+          !hasDiscBackgroundAsset(session.project.background.asset)) return false
       const ticket = draft.begin(identityOf(session), session.project.background)
       if (!ticket) return false
       participating = { key, ticket }

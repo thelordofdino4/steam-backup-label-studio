@@ -1,3 +1,4 @@
+import { DiscBackgroundRaster, type DiscBackgroundAsset } from './discBackgroundAsset.ts'
 import {
   createSelectedBackgroundImageState,
   type BackgroundImageState,
@@ -26,6 +27,7 @@ export class BackgroundImageLoadError extends Error {
 
 export type BackgroundImageImportResult = {
   background: BackgroundImageState
+  stagedAsset: DiscBackgroundAsset
   imageSource: ProjectImageAssetProvenance
   selectedArtworkId: string | null
   statusMessage: string
@@ -39,7 +41,11 @@ export async function createBackgroundImageImportFromDataUrl(
 ): Promise<BackgroundImageImportResult> {
   const importedImage = await createImportedImageAssetFromDataUrl(imageDataUrl)
 
+  // Image preparation already validated and canonicalized these exact bytes.
+  const stagedAsset = await DiscBackgroundRaster.stageAcceptedSource(importedImage.imageDataUrl)
+
   return {
+    stagedAsset,
     background: createSelectedBackgroundImageState(
       importedImage.imageDataUrl,
       importedImage.imageSize,

@@ -1,3 +1,4 @@
+import { materializeDiscProject } from '../lifecycle/canonicalProject.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
@@ -137,11 +138,9 @@ for (const projectType of ['disc', 'caseInsert'] as const) {
       assert.equal('caseInsertPresetApplication' in session, false)
     }
     assert.deepEqual(session.lastEditorRoute, candidate.editorRoute)
-    assert.deepEqual(session.project, candidate.normalizedProject)
-    assert.deepEqual(
-      session.cleanBaseline?.exactSnapshot,
-      candidate.normalizedProject,
-    )
+    assert.deepEqual(session.kind === 'disc' ? materializeDiscProject(session.project) : session.project,
+      candidate.normalizedProject)
+    assert.equal(session.cleanBaseline?.exactSnapshot, session.project)
     assert.equal(root.getStateSnapshot().generation, 1)
     assert.deepEqual(applied, [candidate])
   })
@@ -242,10 +241,10 @@ test('failed package Open preserves an existing destination and clean baseline',
     root.getLifecycleState().activeSession?.currentPath,
     'C:\\projects\\existing.sbls',
   )
-  assert.deepEqual(
-    root.getLifecycleState().activeSession?.cleanBaseline?.exactSnapshot,
-    candidate.normalizedProject,
-  )
+  const retained = root.getLifecycleState().activeSession
+  assert.ok(retained?.kind === 'disc')
+  assert.equal(retained.cleanBaseline?.exactSnapshot, retained.project)
+  assert.deepEqual(materializeDiscProject(retained.project), candidate.normalizedProject)
   assert.equal(applyCount, 1)
 })
 
@@ -304,11 +303,9 @@ for (const projectType of ['disc', 'caseInsert'] as const) {
       } else {
         assert.equal('caseInsertPresetApplication' in session, false)
       }
-      assert.deepEqual(session.project, candidate.normalizedProject)
-      assert.deepEqual(
-        session.cleanBaseline?.exactSnapshot,
-        candidate.normalizedProject,
-      )
+      assert.deepEqual(session.kind === 'disc' ? materializeDiscProject(session.project) : session.project,
+      candidate.normalizedProject)
+      assert.equal(session.cleanBaseline?.exactSnapshot, session.project)
       assert.deepEqual(session.lastEditorRoute, candidate.editorRoute)
       assert.equal(canSaveProjectSessionDirectly(session), directSaveEligible)
       assert.deepEqual(applied, [candidate])

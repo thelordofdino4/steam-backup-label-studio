@@ -1,3 +1,5 @@
+import { captureDiscBackgroundExportInput } from '../lifecycle/canonicalProject.ts'
+import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { buildSteamMetadataCandidatesFromImportedGame } from '../steam/steamMetadataCandidates'
@@ -1049,7 +1051,7 @@ function App() {
         enabled: background.enabled ?? true,
         scale: background.scale,
         offset: background.offset,
-        imageDataUrl: background.imageDataUrl,
+        imageDataUrl: readDiscBackgroundAsset(background.asset),
         imageSource: background.imageSource ?? null,
         imageSize: background.imageSize ?? null,
       },
@@ -1099,7 +1101,11 @@ function App() {
         imageDataUrl: preparedBackground.backgroundImageUrl,
         imageSource: preparedBackground.backgroundImageSource,
         imageSize: preparedBackground.backgroundImageSize,
-      } : background },
+      } : {
+        note: background.note, enabled: background.enabled, scale: background.scale,
+        offset: background.offset, imageSource: background.imageSource,
+        imageSize: background.imageSize, imageDataUrl: readDiscBackgroundAsset(background.asset),
+      } },
     }, { kind: 'preset', fields, guidedLayout: createSavedDiscGuidedLayout(guided) }, mirror => {
       const owners = plan.owners
       for (const owner of result.dispatchedOwners) {
@@ -1952,13 +1958,11 @@ function App() {
           captureInvocation: () => {
             const ownedBackground = getDiscSession()?.project.background
             if (!ownedBackground) throw new Error('The Disc background owner changed before export.')
-            const enabled = ownedBackground.enabled ?? true
             return {
               ...createDiscPngExportInput({
                 selectedDiscTemplateId,
                 selectedDiscTemplate,
-                backgroundImageUrl: enabled ? ownedBackground.imageDataUrl ?? null : null,
-                backgroundImageSize: enabled ? ownedBackground.imageSize ?? null : null,
+                ...captureDiscBackgroundExportInput(ownedBackground),
                 selectedSteamGame,
                 manualGameTitle,
                 steamLogoPlacement,
@@ -1975,8 +1979,6 @@ function App() {
                 projectTechnicalMarks,
                 exportGuides,
                 resolvedDiscTextTitle,
-                backgroundScale: ownedBackground.scale,
-                backgroundOffset: ownedBackground.offset,
                 steamBannerColors,
                 steamBannerLockupImageSize,
                 steamBannerLockupLayout,

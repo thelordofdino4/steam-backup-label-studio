@@ -1,3 +1,4 @@
+import { materializeDiscProject } from '../lifecycle/canonicalProject.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setImmediate } from 'node:timers/promises'
@@ -65,7 +66,7 @@ function status(result: ApplicationCommandDispatchResult<unknown>) {
 }
 function edit(runtime: ReturnType<typeof createApplicationLifecycleRuntime>) {
   const session = runtime.root.getLifecycleState().activeSession!
-  const project = structuredClone(session.project)
+  const project = structuredClone(session.kind === 'disc' ? materializeDiscProject(session.project) : session.project)
   project.title = 'Newer revision'
   if (project.game) project.game.manualTitle = 'Newer revision'
   runtime.root.synchronizeCurrentProject({ sessionId: session.id, kind: session.kind, project })

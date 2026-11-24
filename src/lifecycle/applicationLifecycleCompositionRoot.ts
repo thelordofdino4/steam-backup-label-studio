@@ -45,7 +45,7 @@ import type { SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject } from 
 import {
   synchronizeActiveProjectContent,
   editDiscBackground,
-  replaceActiveProjectContent,
+  replaceActiveDiscRemainder,
   type DiscBackgroundEdit,
   type DiscProjectSession,
   synchronizeActiveProjectRoute,
@@ -56,8 +56,8 @@ import {
 import type { EditorProjectType } from '../editor/editorTypes.ts'
 import {
   captureNormalizedProjectSnapshot,
-  capturedDiscBackgroundsAreExactlyEqual,
-  preserveCapturedDiscBackground,
+  isCapturedSavedDiscProject,
+  savedDiscBackgroundMatches,
   getNormalizedProjectKind,
 } from './canonicalProject.ts'
 
@@ -99,14 +99,34 @@ const discPresetSiblingKeys = [
   'platformMarks', 'technicalMarks', 'discText',
 ] as const
 
-function hasClosedDataFootprint(input: object, allowed: readonly string[]): boolean {
-  if (!input) return false
+function readClosedDataFootprint(
+  input: unknown,
+  allowed: ReadonlySet<string>,
+  mayBeUndefined?: ReadonlySet<string>,
+): Record<string, unknown> | null {
+  if (typeof input !== 'object' || input === null) return null
   const prototype = Object.getPrototypeOf(input)
-  if (prototype !== Object.prototype && prototype !== null) return false
+  if (prototype !== Object.prototype && prototype !== null) return null
   const descriptors = Object.getOwnPropertyDescriptors(input)
-  return Reflect.ownKeys(descriptors).every(key => typeof key === 'string' &&
-    allowed.includes(key) && 'value' in descriptors[key]! &&
-    descriptors[key]!.enumerable && descriptors[key]!.value !== undefined)
+  const entries: [string, unknown][] = []
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key !== 'string' || !allowed.has(key)) return null
+    const descriptor = descriptors[key]
+    if (!descriptor || !('value' in descriptor) || !descriptor.enumerable ||
+        (descriptor.value === undefined && !mayBeUndefined?.has(key))) return null
+    entries.push([key, descriptor.value])
+  }
+  return Object.fromEntries(entries)
+}
+
+const presetCompanionKeys = new Set(['kind', 'fields', 'guidedLayout'])
+const guidedCompanionKeys = new Set(['kind', 'guidedLayout'])
+const optionalGuidedKey = new Set(['guidedLayout'])
+const presetSiblingFootprint = new Set<string>(discPresetSiblingKeys)
+const presetTextFootprint = new Set(['layout', 'settings'])
+
+function discRemainderOf(project: DiscProjectSession['project']): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(project).filter(([key]) => key !== 'background'))
 }
 
 type DiscPresetTextFields = Pick<NonNullable<SavedDiscProject['discText']>, 'layout' | 'settings'>
@@ -361,22 +381,17 @@ export function createApplicationLifecycleCompositionRoot(
     if (!session || session.id !== input.sessionId) return 'stale-session'
     if (session.kind !== 'disc') return 'wrong-kind'
     try {
-      const legacy = input.legacy
-      if (!legacy || (Object.getPrototypeOf(legacy) !== Object.prototype &&
-                     Object.getPrototypeOf(legacy) !== null)) return 'invalid'
-      const descriptors = Object.getOwnPropertyDescriptors(legacy)
-      if (Reflect.ownKeys(descriptors).some((key) => {
-        if (typeof key !== 'string' || !discLegacyKeys.has(key)) return true
-        return !('value' in descriptors[key]!) || !descriptors[key]!.enumerable
-      })) return 'invalid'
-      // The editor controls presence of its known optional fields too.
-      const project = { ...session.project }
-      for (const key of discLegacyKeys) Reflect.deleteProperty(project, key)
-      Object.assign(project, legacy)
-      const validated = captureNormalizedProjectSnapshot(project as unknown as SavedProject)
-      if (getNormalizedProjectKind(validated) !== 'disc') return 'wrong-kind'
-      const result = stateStore.commitTransition(snapshot.generation, (state) =>
-        synchronizeActiveProjectContent(state, { sessionId: session.id, kind: 'disc', project: validated as unknown as SavedProject }))
+      const legacy = readClosedDataFootprint(input.legacy, discLegacyKeys, discLegacyKeys)
+      if (!legacy) return 'invalid'
+      // The editor controls the presence of its known optional fields, but
+      // neither Background nor unknown retained fields belong to this writer.
+      const remainder = discRemainderOf(session.project)
+      for (const key of discLegacyKeys) Reflect.deleteProperty(remainder, key)
+      Object.assign(remainder, legacy)
+      // Reflection/validation may run nested proxy traps. Prepare before the
+      // generation check so a reentrant acceptance cannot be overwritten.
+      const prepared = replaceActiveDiscRemainder(snapshot.state, session, remainder)
+      const result = stateStore.commitTransition(snapshot.generation, () => prepared)
       return result.status === 'committed' ? 'synchronized' :
         result.status === 'no-op' ? 'no-op' : 'stale-session'
     } catch {
@@ -402,9 +417,8 @@ export function createApplicationLifecycleCompositionRoot(
       if (getNormalizedProjectKind(project) !== input.kind) return 'wrong-kind'
       // Compatibility callers may read/pass a full Disc projection, but do
       // not gain a second background writer through the old ingress.
-      if (session.kind === 'disc' && !capturedDiscBackgroundsAreExactlyEqual(
-        session.project.background, (project as DiscProjectSession['project']).background,
-      )) return 'invalid'
+      if (session.kind === 'disc' && (!isCapturedSavedDiscProject(project) ||
+        !savedDiscBackgroundMatches(project.background, session.project.background))) return 'invalid'
       result = stateStore.commitTransition(snapshot.generation, (state) =>
         synchronizeActiveProjectContent(state, {
           ...input,
@@ -490,7 +504,8 @@ export function createApplicationLifecycleCompositionRoot(
       if (!session || session.kind !== 'disc' || snapshot.state.visibleWorkspace !== 'disc') return 'unavailable'
       if (session.id !== edit.sessionId || session.revision !== edit.expectedRevision) return 'stale'
       try {
-        return stateStore.commitTransition(snapshot.generation, state => editDiscBackground(state, edit)).status
+        const prepared = editDiscBackground(snapshot.state, edit)
+        return stateStore.commitTransition(snapshot.generation, () => prepared).status
       } catch {
         return 'invalid'
       }
@@ -503,34 +518,35 @@ export function createApplicationLifecycleCompositionRoot(
       if (session.id !== edit.sessionId || session.revision !== edit.expectedRevision) return 'stale'
       try {
         if (edit.operation.kind !== 'asset' && edit.operation.kind !== 'visibility') return 'invalid'
-        if (companion.kind !== 'preset' && companion.kind !== 'guided') return 'invalid'
-        const prepared = editDiscBackground(snapshot.state, edit).activeSession
-        if (prepared?.kind !== 'disc') return 'invalid'
-        const draft = { ...session.project, background: prepared.project.background }
-        if (companion.kind === 'preset') {
-          const fields = companion.fields
-          if (!hasClosedDataFootprint(fields, discPresetSiblingKeys)) return 'invalid'
+        const envelope = readClosedDataFootprint(companion, presetCompanionKeys, optionalGuidedKey)
+        if (!envelope || (envelope.kind !== 'preset' && envelope.kind !== 'guided')) return 'invalid'
+        const remainder = discRemainderOf(session.project)
+        if (envelope.kind === 'preset') {
+          const fields = readClosedDataFootprint(envelope.fields, presetSiblingFootprint)
+          if (!fields) return 'invalid'
           const { discText, ...directFields } = fields
-          if (discText && !hasClosedDataFootprint(discText, ['layout', 'settings'])) return 'invalid'
-          if (Object.hasOwn(fields, 'discText') && !discText) return 'invalid'
-          Object.assign(draft, directFields)
-          if (discText) draft.discText = { ...session.project.discText, ...discText }
+          if (Object.hasOwn(fields, 'discText')) {
+            const text = readClosedDataFootprint(discText, presetTextFootprint)
+            if (!text) return 'invalid'
+            Object.assign(remainder, { discText: { ...session.project.discText, ...text } })
+          }
+          Object.assign(remainder, directFields)
+        } else if (Object.keys(envelope).some(key => !guidedCompanionKeys.has(key)) ||
+                   envelope.guidedLayout === undefined || envelope.guidedLayout === null) {
+          return 'invalid'
         }
-        if (companion.guidedLayout !== undefined) {
-          if (companion.guidedLayout === null) {
+        if (envelope.guidedLayout !== undefined) {
+          if (envelope.guidedLayout === null) {
             const editor = { ...session.project.editor }
             delete editor.guidedLayout
-            if (Object.keys(editor).length) draft.editor = editor
-            else delete draft.editor
+            if (Object.keys(editor).length) remainder.editor = editor
+            else delete remainder.editor
           } else {
-            draft.editor = { ...session.project.editor, guidedLayout: companion.guidedLayout }
+            Object.assign(remainder, { editor: { ...session.project.editor, guidedLayout: envelope.guidedLayout } })
           }
         }
-        const validated = captureNormalizedProjectSnapshot(draft as unknown as SavedProject)
-        if (getNormalizedProjectKind(validated) !== 'disc') return 'invalid'
-        const project = preserveCapturedDiscBackground(validated as DiscProjectSession['project'], prepared.project)
-        return stateStore.commitTransition(snapshot.generation, state =>
-          replaceActiveProjectContent(state, project as unknown as SavedProject)).status
+        const prepared = replaceActiveDiscRemainder(snapshot.state, session, remainder, edit)
+        return stateStore.commitTransition(snapshot.generation, () => prepared).status
       } catch {
         return 'invalid'
       }

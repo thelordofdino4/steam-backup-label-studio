@@ -1,3 +1,4 @@
+import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { commitPreparedDiscBackgroundCompound } from '../app/appDiscBackgroundCompoundCommand.ts'
 import { useDiscBackgroundDraft } from './useDiscBackgroundDraft.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
@@ -60,7 +61,7 @@ const emptyBackground = Object.freeze({
   enabled: true,
   scale: DEFAULT_BACKGROUND_SCALE,
   offset: Object.freeze(createDefaultBackgroundOffset()),
-  imageDataUrl: null,
+  asset: null,
   imageSource: null,
   imageSize: null,
 })
@@ -92,7 +93,7 @@ export function useBackgroundImage({
   }
   const getBackground = () => selectDiscBackground(getDiscSession())
   const committed = useSyncExternalStore(root.subscribe, getBackground, getBackground)
-  const backgroundImageUrl = committed.imageDataUrl
+  const backgroundImageUrl = readDiscBackgroundAsset(committed.asset)
   const backgroundImageSource = committed.imageSource ?? null
   const backgroundImageSize = committed.imageSize ?? null
   const { scale: backgroundScale, offset: backgroundOffset } = transform ?? committed
@@ -175,7 +176,7 @@ export function useBackgroundImage({
       offset: importedBackground.background.offset,
     }, session.project.background)
 
-    const operation: DiscBackgroundOperation = { kind: 'asset', background: {
+    const operation: DiscBackgroundOperation = { kind: 'asset', stagedAsset: importedBackground.stagedAsset, background: {
       ...nextBackground, note: session.project.background.note,
     } }
     const accepted = () => {
@@ -284,7 +285,7 @@ export function useBackgroundImage({
     if (!session || !root.canCommitDiscBackground()) return
     const current = session.project.background
     const proposed: DiscBackgroundPresetOwnerState = {
-      enabled, imageDataUrl: current.imageDataUrl,
+      enabled, imageDataUrl: readDiscBackgroundAsset(current.asset),
       imageSource: current.imageSource ?? null, imageSize: current.imageSize ?? null,
       scale: current.scale, offset: current.offset,
     }
