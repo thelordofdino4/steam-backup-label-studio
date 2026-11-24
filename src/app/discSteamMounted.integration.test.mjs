@@ -222,7 +222,7 @@ test('real Disc App: deferred Steam edit fence, one complete revision, Save and 
     }
     const final = await receipt(page)
     assert.ok(final.scopes.some(event => event.revision === r.revision &&
-      event.activeScopes.includes('dialog.project-file')), 'real Save reached dialog after pin')
+      event.activeScopes.includes('dialog.project-file')), 'real Save acquired project-file scope at accepted revision')
     assert.ok(final.scopes.some(event => event.revision === r.revision &&
       event.activeScopes.some(scope => scope === 'dialog.export-warning' || scope === 'dialog.export-destination')),
     'real export reached preflight/destination after capture')
