@@ -3,21 +3,26 @@ import { repositoryRoot } from './discover-tests.mjs'
 import { testCommands, testFiles } from './test-file-list.mjs'
 
 const [mode, lane, ...extra] = process.argv.slice(2)
-const lifetimeTestFile = 'src/export/discBackgroundLifetime.integration.test.mjs'
+// Both files exercise the Chromium sandbox on the ordinary Windows runner.
+const sandboxedBrowserTestFiles = [
+  'src/app/discSteamMounted.integration.test.mjs',
+  'src/export/discBackgroundLifetime.integration.test.mjs',
+]
 const validModes = ['--list', '--node-only', '--rust-only']
-const validLanes = ['--exclude-disc-background-lifetime', '--disc-background-lifetime-only']
+const validLanes = ['--exclude-sandboxed-browser', '--sandboxed-browser-only']
 
 if (extra.length || (mode && !validModes.includes(mode)) ||
     (lane && (!validLanes.includes(lane) || mode === '--rust-only'))) {
-  throw new Error('Usage: node scripts/run-tests.mjs [--list|--node-only|--rust-only] [--exclude-disc-background-lifetime|--disc-background-lifetime-only]')
+  throw new Error('Usage: node scripts/run-tests.mjs [--list|--node-only|--rust-only] [--exclude-sandboxed-browser|--sandboxed-browser-only]')
 }
 
-if (lane && !testFiles.includes(lifetimeTestFile)) {
-  throw new Error('The explicit Disc Background lifetime test lane must contain a discovered test file.')
+if (lane) {
+  const missing = sandboxedBrowserTestFiles.filter(file => !testFiles.includes(file))
+  if (missing.length) throw new Error('Missing sandboxed browser test files: ' + missing.join(', '))
 }
-const selectedTestFiles = lane === '--exclude-disc-background-lifetime'
-  ? testFiles.filter(file => file !== lifetimeTestFile)
-  : lane === '--disc-background-lifetime-only' ? [lifetimeTestFile] : testFiles
+const selectedTestFiles = lane === '--exclude-sandboxed-browser'
+  ? testFiles.filter(file => !sandboxedBrowserTestFiles.includes(file))
+  : lane === '--sandboxed-browser-only' ? sandboxedBrowserTestFiles : testFiles
 
 if (mode === '--list') {
   console.log(selectedTestFiles.join('\n'))
