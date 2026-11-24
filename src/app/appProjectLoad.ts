@@ -1,3 +1,4 @@
+import { DiscBackgroundRaster, type DiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { legacyImageFormatWarning } from '../package/legacyImageFormatWarning.ts'
 import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
@@ -11,6 +12,7 @@ import type {
 } from '../caseInsert/brandingSlotSources.ts'
 import {
   captureNormalizedProjectSnapshot,
+  isCapturedSavedDiscProject,
   getNormalizedProjectKind,
   type DeepReadonly,
   type NormalizedPersistableProject,
@@ -89,6 +91,7 @@ export type StagedDiscProjectOpenCandidate = Readonly<{
   selectedPath: string
   persistenceFormat: ProjectPersistenceFormat
   normalizedProject: NormalizedPersistableProject
+  stagedDiscBackground?: DiscBackgroundAsset
   editorRoute: Readonly<{ workspace: 'disc' }>
   restoredProject: DeepReadonly<RestoredProjectState>
   activeDiscPresetState: DeepReadonly<ActiveDiscPresetState> | null
@@ -176,6 +179,11 @@ function deepFreeze<Value>(value: Value): Value {
 function captureCandidate(
   candidate: StagedProjectOpenCandidate,
 ): StagedProjectOpenCandidate {
+  if (candidate.projectType === 'disc') {
+    const { stagedDiscBackground, ...persistedAndRestore } = candidate
+    const frozen = deepFreeze(structuredClone(persistedAndRestore))
+    return Object.freeze({ ...frozen, ...(stagedDiscBackground === undefined ? {} : { stagedDiscBackground }) })
+  }
   return deepFreeze(structuredClone(candidate))
 }
 
@@ -343,11 +351,19 @@ async function stageDiscProject(
       }),
       savedAt: project.savedAt,
     })
+    // Native package decode has already validated the exact embedded raster.
+    // Legacy JSON retains its existing compatibility policy; do not silently
+    // promote unverified or unsupported legacy strings to validated handles.
+    const restoredSource = isCapturedSavedDiscProject(normalizedProject)
+      ? normalizedProject.background.imageDataUrl : null
+    const stagedDiscBackground = params.persistenceFormat === 'sbls-package-v1' && restoredSource
+      ? await DiscBackgroundRaster.stageAcceptedSource(restoredSource) : undefined
     return commandSucceeded(captureCandidate({
       projectType: 'disc',
       selectedPath,
       persistenceFormat: params.persistenceFormat,
       normalizedProject,
+      stagedDiscBackground,
       editorRoute: Object.freeze({ workspace: 'disc' }),
       restoredProject,
       activeDiscPresetState,

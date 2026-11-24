@@ -1,3 +1,4 @@
+import { materializeDiscProject } from './canonicalProject.ts'
 import { createLifecyclePerformanceObserver } from './lifecyclePerformanceObserver.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -649,7 +650,9 @@ test('opt-in observer retains command cancellation and sync outcomes without pri
     ports: { ...implementedNoOpPorts(), openProject: { availability: 'implemented',
       executeOpenProject: () => ({ status: 'cancelled', reason: 'file-dialog-dismissed' }) } },
   })
-  const project = root.getLifecycleState().activeSession!.project as SavedDiscProject
+  const disc = root.getLifecycleState().activeSession
+  assert.ok(disc?.kind === 'disc')
+  const project = materializeDiscProject(disc.project)
   assert.equal(root.synchronizeCurrentProject({ sessionId: 'private-session', kind: 'disc', project }), 'no-op')
   assert.equal(root.synchronizeCurrentProject({ sessionId: 'wrong', kind: 'disc', project }), 'stale-session')
   assert.equal(root.synchronizeCurrentProject({ sessionId: 'private-session', kind: 'disc', project: { ...project, title: 'private title', game: { manualTitle: 'private title', selectedSteamGame: null } } }), 'synchronized')

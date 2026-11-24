@@ -1,3 +1,4 @@
+import { materializeDiscProject } from '../lifecycle/canonicalProject.ts'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
@@ -140,7 +141,7 @@ function harness(contents: string, format: 'legacy-json' | 'sbls-package-v1' = '
     const session = root.getLifecycleState().activeSession
     assert.equal(session?.kind, 'disc')
     if (session?.kind !== 'disc') throw new Error('Missing Disc session')
-    return { ...projection.project, background: session.project.background }
+    return { ...projection.project, background: materializeDiscProject(session.project).background }
   }
   return {
     root, options, disc, writes, snapshot,
@@ -169,7 +170,14 @@ function assertCleanSync(app: ReturnType<typeof harness>) {
   const session = before.state.activeSession!
   const publications = app.publications()
   const comparison = createCanonicalProjectComparisonValue(captureNormalizedProjectSnapshot(app.snapshot()))
-  assert.equal(comparison, session.cleanBaseline?.comparisonValue)
+  if (session.kind === 'disc') {
+    const baseline = session.cleanBaseline?.exactSnapshot
+    assert.ok(baseline && 'background' in baseline)
+    assert.equal(comparison, createCanonicalProjectComparisonValue(
+      captureNormalizedProjectSnapshot(materializeDiscProject(baseline))))
+  } else {
+    assert.equal(comparison, session.cleanBaseline?.comparisonValue)
+  }
   assert.equal(app.sync(), 'no-op')
   assert.equal(app.sync(), 'no-op')
   assert.equal(app.root.getStateSnapshot(), before)
@@ -300,7 +308,9 @@ for (const dirty of [false, true]) {
       if (!cancel) {
         assert.equal(app.writes[0].legacySourcePath, sourcePath)
         assert.equal(app.writes[0].destinationPath, destinationPath)
-        assert.deepEqual(app.writes[0].normalizedProject, before.state.activeSession!.project)
+        const current = before.state.activeSession
+        assert.ok(current?.kind === 'disc')
+        assert.deepEqual(app.writes[0].normalizedProject, materializeDiscProject(current.project))
       }
     })
   }

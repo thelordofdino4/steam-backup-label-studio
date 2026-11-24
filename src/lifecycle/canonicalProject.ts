@@ -1,5 +1,9 @@
+import {
+  DiscBackgroundRaster, discBackgroundAssetsExactlyEqual, isDiscBackgroundAsset, legacyDiscBackgroundAsset,
+  readDiscBackgroundAsset, reuseDiscBackgroundAsset, type DiscBackgroundAsset,
+} from '../image/discBackgroundAsset.ts'
 import type { EditorProjectType } from '../editor/editorTypes.ts'
-import { validateNormalizedProjectSchema } from '../project/projectSchema.ts'
+import { validateNormalizedDiscProjectRemainder, validateNormalizedProjectSchema } from '../project/projectSchema.ts'
 import { resolveSavedProjectType } from '../project/projectRouting.ts'
 import type {
   SavedCaseInsertProject,
@@ -41,13 +45,18 @@ const canonicalComparisonValues = new WeakMap<
   CanonicalProjectComparisonValue
 >()
 
-type CapturedDiscProject = DeepReadonly<SavedDiscProject>
-type CapturedDiscBackground = CapturedDiscProject['background']
+export type CapturedSavedDiscProject = DeepReadonly<SavedDiscProject>
+export type CapturedSavedDiscBackground = CapturedSavedDiscProject['background']
+export type CommittedDiscBackground =
+  Omit<CapturedSavedDiscBackground, 'imageDataUrl'> & Readonly<{ asset: DiscBackgroundAsset }>
+export type CommittedDiscProject =
+  Omit<CapturedSavedDiscProject, 'background'> & Readonly<{ background: CommittedDiscBackground }>
+export type CapturedLifecycleProject = CommittedDiscProject | NormalizedCaseInsertProject
 
 // An identity for the already validated unmigrated fields, shared by successive
 // background-only revisions. Weak keys give it the lifetime of pinned snapshots.
 type DiscRemainderIdentity = { comparison?: string }
-const discRemainders = new WeakMap<CapturedDiscProject, DiscRemainderIdentity>()
+const discRemainders = new WeakMap<object, DiscRemainderIdentity>()
 
 const FORBIDDEN_ROOT_PROJECT_KEYS = new Set([
   'caseInsertPresetApplication',
@@ -242,12 +251,19 @@ export function normalizedProjectValueMatches(candidate: unknown, captured: unkn
 }
 
 function createComparisonProjection(
-  project: NormalizedPersistableProject,
+  project: NormalizedPersistableProject | CapturedLifecycleProject,
   kind: EditorProjectType,
 ): JsonObject {
   const projection = cloneRecord(project as unknown as JsonObject)
 
   delete projection.savedAt
+
+  if (isCommittedDiscProject(project)) {
+    const { asset, ...background } = project.background
+    const leaf = DiscBackgroundRaster.owns(asset)
+      ? { assetId: asset.id } : { imageDataUrl: readDiscBackgroundAsset(asset) }
+    projection.background = sortedFrozen({ ...background, ...leaf }) as unknown as JsonValue
+  }
 
   if (kind === 'caseInsert') {
     const editor = projection.editor
@@ -279,20 +295,77 @@ export function captureNormalizedProjectSnapshot(
     clone,
   ) as unknown as NormalizedPersistableProject
   capturedProjectSnapshots.add(captured as object)
-  if (getNormalizedProjectKind(captured) === 'disc') {
-    discRemainders.set(captured as CapturedDiscProject, {})
-  }
   return captured
 }
 
+function isCommittedDiscProject(value: unknown): value is CommittedDiscProject {
+  return typeof value === 'object' && value !== null && discRemainders.has(value)
+}
+
+function sortedFrozen<T extends object>(value: T): Readonly<T> {
+  const ordered = Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))
+  return Object.freeze({ ...ordered, ...value })
+}
+
+/** Only already captured lifecycle records bypass saved JSON ingress. */
+export function captureLifecycleProjectSnapshot(
+  value: unknown,
+  stagedAsset?: DiscBackgroundAsset,
+): CapturedLifecycleProject {
+  if (isCommittedDiscProject(value)) {
+    if (stagedAsset !== undefined) throw new TypeError('A committed Disc project cannot be restaged.')
+    return value
+  }
+  const saved = captureNormalizedProjectSnapshot(value as SavedProject)
+  if (!isCapturedSavedDiscProject(saved)) return saved
+  const { imageDataUrl, ...background } = saved.background
+  if (stagedAsset !== undefined &&
+      (!isDiscBackgroundAsset(stagedAsset) || readDiscBackgroundAsset(stagedAsset) !== imageDataUrl)) {
+    throw new TypeError('Staged Disc background no longer matches the saved projection.')
+  }
+  const committed = Object.freeze({
+    ...saved,
+    background: sortedFrozen({ ...background, asset: stagedAsset ?? legacyDiscBackgroundAsset(imageDataUrl) }),
+  })
+  discRemainders.set(committed, {})
+  return committed
+}
+
+export function isCapturedSavedDiscProject(value: NormalizedPersistableProject): value is CapturedSavedDiscProject {
+  return value.template.type === 'disc'
+}
+
+export function materializeDiscProject(project: CommittedDiscProject): SavedDiscProject {
+  if (!isCommittedDiscProject(project)) throw new TypeError('A committed Disc snapshot is required.')
+  const { asset, ...background } = project.background
+  const projected = Object.freeze({
+    ...project,
+    background: sortedFrozen({ ...background, imageDataUrl: readDiscBackgroundAsset(asset) }),
+  })
+  // The older writer API declares mutable arrays although it only reads them.
+  return projected as unknown as SavedDiscProject
+}
+
+/** Resolve only from the revision selected at export capture. The immutable
+ * input retains its exact source through rendering, even if the editor advances. */
+export function captureDiscBackgroundExportInput(background: CommittedDiscBackground) {
+  const enabled = background.enabled ?? true
+  return Object.freeze({
+    backgroundImageUrl: enabled ? readDiscBackgroundAsset(background.asset) : null,
+    backgroundImageSize: enabled ? background.imageSize ?? null : null,
+    backgroundScale: background.scale,
+    backgroundOffset: background.offset,
+  })
+}
+
 export function getNormalizedProjectKind(
-  project: NormalizedPersistableProject,
+  project: NormalizedPersistableProject | CapturedLifecycleProject,
 ): EditorProjectType {
   return resolveSavedProjectType(project)
 }
 
 export function createCanonicalProjectComparisonValue(
-  project: NormalizedPersistableProject,
+  project: NormalizedPersistableProject | CapturedLifecycleProject,
 ): CanonicalProjectComparisonValue {
   const cached = canonicalComparisonValues.get(project as object)
   if (cached !== undefined) return cached
@@ -301,7 +374,7 @@ export function createCanonicalProjectComparisonValue(
     getNormalizedProjectKind(project),
   )
   const comparison = JSON.stringify(projection) as CanonicalProjectComparisonValue
-  if (capturedProjectSnapshots.has(project as object)) {
+  if (capturedProjectSnapshots.has(project as object) || isCommittedDiscProject(project)) {
     canonicalComparisonValues.set(project as object, comparison)
   }
   return comparison
@@ -309,86 +382,123 @@ export function createCanonicalProjectComparisonValue(
 
 /** Exact structural equality for already normalized immutable project data. */
 export function normalizedProjectSnapshotsAreExactlyEqual(
-  first: NormalizedPersistableProject,
-  second: NormalizedPersistableProject,
+  first: NormalizedPersistableProject | CapturedLifecycleProject,
+  second: NormalizedPersistableProject | CapturedLifecycleProject,
 ): boolean {
-  return first === second || sameJsonValue(
-    first as unknown as JsonValue,
-    second as unknown as JsonValue,
-  )
+  if (first === second) return true
+  if (isCommittedDiscProject(first) && isCommittedDiscProject(second)) {
+    if (!committedDiscBackgroundsAreExactlyEqual(first.background, second.background)) return false
+    const restA = { ...first, background: null }
+    const restB = { ...second, background: null }
+    return sameJsonValue(restA as unknown as JsonValue, restB as unknown as JsonValue)
+  }
+  if (isCommittedDiscProject(first) || isCommittedDiscProject(second)) return false
+  return sameJsonValue(first as unknown as JsonValue, second as unknown as JsonValue)
 }
 
 /** Compare exact semantic content without serializing unchanged Disc artwork. */
 export function projectContentsAreSemanticallyEqual(
-  first: NormalizedPersistableProject,
-  second: NormalizedPersistableProject,
+  first: CapturedLifecycleProject,
+  second: CapturedLifecycleProject,
 ): boolean {
   if (first === second) return true
-  const a = discRemainders.get(first as CapturedDiscProject)
-  const b = discRemainders.get(second as CapturedDiscProject)
-  if (!a || !b) {
-    return createCanonicalProjectComparisonValue(first) ===
-      createCanonicalProjectComparisonValue(second)
+  if (!isCommittedDiscProject(first) || !isCommittedDiscProject(second)) {
+    if (isCommittedDiscProject(first) || isCommittedDiscProject(second)) return false
+    return createCanonicalProjectComparisonValue(first) === createCanonicalProjectComparisonValue(second)
   }
-  const firstDisc = first as CapturedDiscProject
-  const secondDisc = second as CapturedDiscProject
-  if (!sameJsonValue(firstDisc.background as unknown as JsonValue,
-    secondDisc.background as unknown as JsonValue)) return false
+  if (!committedDiscBackgroundsAreExactlyEqual(first.background, second.background)) return false
+  const a = discRemainders.get(first)!
+  const b = discRemainders.get(second)!
   if (a === b) return true
 
-  function compareRemainder(project: CapturedDiscProject, identity: DiscRemainderIdentity) {
+  function compareRemainder(project: CommittedDiscProject, identity: DiscRemainderIdentity) {
     if (identity.comparison !== undefined) return identity.comparison
     const projection = cloneRecord(project as unknown as JsonObject)
     delete projection.savedAt
     delete projection.background
     return identity.comparison = JSON.stringify(projection)
   }
-  return compareRemainder(firstDisc, a) === compareRemainder(secondDisc, b)
+  return compareRemainder(first, a) === compareRemainder(second, b)
 }
 
-export function capturedDiscBackgroundsAreExactlyEqual(
-  first: CapturedDiscBackground,
-  second: CapturedDiscBackground,
+function committedDiscBackgroundsAreExactlyEqual(
+  first: CommittedDiscBackground,
+  second: CommittedDiscBackground,
 ): boolean {
-  return sameJsonValue(first as unknown as JsonValue, second as unknown as JsonValue)
+  if (first === second) return true
+  if (Object.keys(first).length !== Object.keys(second).length ||
+      !discBackgroundAssetsExactlyEqual(first.asset, second.asset)) return false
+  return Object.entries(first).every(([key,value]) =>
+    key === 'asset' || Object.hasOwn(second,key) &&
+      sameJsonValue(value as JsonValue, Reflect.get(second,key) as JsonValue))
 }
 
-/** Retain the already owned domain object on a legacy-only acceptance. */
+export function savedDiscBackgroundMatches(
+  saved: CapturedSavedDiscBackground,
+  committed: CommittedDiscBackground,
+): boolean {
+  const { imageDataUrl, ...rest } = saved
+  return committedDiscBackgroundsAreExactlyEqual({ ...rest, asset: legacyDiscBackgroundAsset(imageDataUrl) }, committed)
+}
+
+/** The full compatibility input can carry the same background, not replace it. */
 export function preserveCapturedDiscBackground(
-  project: CapturedDiscProject,
-  current: CapturedDiscProject,
-): CapturedDiscProject {
+  project: CommittedDiscProject,
+  current: CommittedDiscProject,
+): CommittedDiscProject {
   if (project.background === current.background) return project
   const remainder = discRemainders.get(project)
-  if (!remainder || !discRemainders.has(current)) {
-    throw new TypeError('Captured Disc snapshots are required.')
-  }
-  if (!capturedDiscBackgroundsAreExactlyEqual(project.background, current.background)) {
+  if (!remainder || !discRemainders.has(current)) throw new TypeError('Committed Disc snapshots are required.')
+  if (!committedDiscBackgroundsAreExactlyEqual(project.background, current.background)) {
     throw new TypeError('A legacy projection cannot change Disc background.')
   }
   const next = Object.freeze({ ...project, background: current.background })
-  capturedProjectSnapshots.add(next)
   discRemainders.set(next, remainder)
   return next
 }
 
-/** Scoped fast path from a validated snapshot. The existing immutable data URL
- * is the temporary compatibility handle: staged inputs, current snapshots and
- * in-flight Save R naturally pin the string without a permanent registry. A
- * geometry edit never rereads, copies or re-encodes its bytes. #364 can replace
- * this handle at the persistence adapter, not at the geometry call sites. */
+/** Validate disjoint sibling data, then rejoin the already-captured owner.
+ * Sorting root keys preserves the existing canonical saved projection order. */
+export function captureDiscRemainderWithOwnedBackground(
+  remainder: unknown,
+  owned: CommittedDiscProject,
+): CommittedDiscProject {
+  if (!discRemainders.has(owned)) {
+    throw new TypeError('A captured Disc project is required.')
+  }
+  if (typeof remainder === 'object' && remainder !== null &&
+      Object.hasOwn(remainder, 'background')) {
+    throw new TypeError('A Disc remainder cannot write Background.')
+  }
+  const normalized = toJsonValue(remainder, 'project')
+  if (normalized === OMIT_VALUE || !isJsonObject(normalized)) {
+    throw new TypeError('A Disc remainder must be a JSON object.')
+  }
+  validateNormalizedDiscProjectRemainder(normalized)
+  deepFreezeJson(normalized)
+  const ordered = Object.fromEntries(
+    Object.entries({ ...normalized, background: owned.background })
+      .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0),
+  )
+  const captured = Object.freeze({ ...ordered, ...normalized, background: owned.background })
+  discRemainders.set(captured, {})
+  return captured
+}
+
+/** Scoped fast path: geometry changes reuse the existing owned asset handle. */
 export function replaceCapturedDiscBackground(
-  project: CapturedDiscProject,
-  background: CapturedDiscBackground,
-): CapturedDiscProject {
+  project: CommittedDiscProject,
+  background: CommittedDiscBackground,
+): CommittedDiscProject {
   const remainder = discRemainders.get(project)
   if (!remainder) throw new TypeError('A captured Disc project is required.')
   const current = project.background
+  const { x, y } = background.offset
   if (!Number.isFinite(background.scale) ||
-      !Number.isFinite(background.offset.x) ||
-      !Number.isFinite(background.offset.y) ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(y) ||
       (background.enabled !== undefined && typeof background.enabled !== 'boolean') ||
-      (background.imageDataUrl !== null && typeof background.imageDataUrl !== 'string')) {
+      !isDiscBackgroundAsset(background.asset)) {
     throw new TypeError('Invalid Disc background fields.')
   }
   function captureChangedMetadata<T>(candidate: T, previous: T, path: string): T {
@@ -399,23 +509,21 @@ export function replaceCapturedDiscBackground(
   }
   const imageSize = captureChangedMetadata(background.imageSize, current.imageSize, 'background.imageSize')
   const imageSource = captureChangedMetadata(background.imageSource, current.imageSource, 'background.imageSource')
-  const updatedBackground: CapturedDiscBackground = {
+  const updatedBackground: CommittedDiscBackground = {
     ...current,
     ...(background.enabled === undefined ? {} : { enabled: background.enabled }),
     scale: background.scale,
     offset: background.offset === current.offset ? current.offset :
-      Object.freeze({ x: background.offset.x, y: background.offset.y }),
-    imageDataUrl: background.imageDataUrl,
+      Object.freeze({ x, y }),
+    asset: reuseDiscBackgroundAsset(background.asset, current.asset),
     ...(imageSource === undefined ? {} : { imageSource }),
     ...(imageSize === undefined ? {} : { imageSize }),
   }
-  if (capturedDiscBackgroundsAreExactlyEqual(current, updatedBackground)) return project
+  if (committedDiscBackgroundsAreExactlyEqual(current, updatedBackground)) return project
   // Keep the captured snapshot's canonical key order even when upgrading an
   // older input which lacked one of these optional fields.
-  const backgroundEntries = Object.entries(updatedBackground).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
-  const nextBackground = Object.freeze(Object.fromEntries(backgroundEntries)) as CapturedDiscBackground
+  const nextBackground = sortedFrozen(updatedBackground)
   const next = Object.freeze({ ...project, background: nextBackground })
-  capturedProjectSnapshots.add(next)
   discRemainders.set(next, remainder)
   return next
 }
