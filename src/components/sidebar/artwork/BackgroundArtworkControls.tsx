@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react'
+import type { ReactNode, Ref, RefCallback } from 'react'
 import {
   BACKGROUND_SCALE_MAX,
   BACKGROUND_SCALE_MIN,
@@ -22,7 +22,7 @@ import type { ArtworkPanelProps } from './types'
 type BackgroundArtworkControlsProps = ArtworkPanelProps & {
   enableControlRef?: Ref<HTMLInputElement>
   localFilePanelOpen?: boolean
-  localUploadControlRef?: Ref<HTMLInputElement>
+  localUploadControlRef?: RefCallback<HTMLInputElement | HTMLButtonElement>
   onLocalFilePanelOpenChange?: (open: boolean) => void
 }
 import { WebArtworkCandidateControls } from './WebArtworkCandidateControls'
