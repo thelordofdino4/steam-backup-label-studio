@@ -32,6 +32,7 @@ fn application_invoke_handler(
         commands::local_steam::find_steam_screenshots,
         commands::local_steam::find_steam_library_cache_assets,
         commands::local_images::read_local_image_file,
+        commands::disc_background_picker::pick_disc_background_image,
         commands::image_import::validate_imported_image_asset,
         platform::open_folder::open_local_folder,
         commands::steam::download_steam_artwork,
