@@ -169,12 +169,12 @@ test('real Disc App: deferred Steam edit fence, one complete revision, Save and 
 
     const subtitle = 'Keep this separate, deliberate edit'
     await start(page, retiredAppId)
-    await page.getByLabel('Subtitle / edition', { exact: true }).fill(subtitle)
+    await page.getByRole('textbox', { name: 'Subtitle / edition', exact: true }).fill(subtitle)
     await page.waitForFunction(value => window.readDiscSteamReceipt().revisions.at(-1)?.metadata.subtitle === value, subtitle)
     const editRevision = (await receipt(page)).revisions.at(-1).revision
     await rejectLogo(page, retiredAppId)
     await drain(page)
-    assert.equal(await page.getByLabel('Subtitle / edition', { exact: true }).inputValue(), subtitle)
+    assert.equal(await page.getByRole('textbox', { name: 'Subtitle / edition', exact: true }).inputValue(), subtitle)
     assert.equal((await receipt(page)).revisions.at(-1).revision, editRevision)
 
     await start(page, incomingAppId)
