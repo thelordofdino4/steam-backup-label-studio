@@ -66,8 +66,9 @@ jobs:
       - name: Verify complete test discovery
         run: npm run test:discovery
 
-      - name: Run all discovered Node tests
-        run: npm run test:node
+      # The four sandbox-required cases run in the existing Windows check below.
+      - name: Run the Linux Node test lane
+        run: npm run test:node -- --exclude-disc-background-lifetime
 
   tauri-check:
     name: Tauri Rust check
@@ -77,6 +78,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -96,3 +99,13 @@ jobs:
 
       - name: Test application and package codec on Windows
         run: npm run test:rust
+
+      # Keep the pinned Chromium sandbox on without changing host security.
+      - name: Install frontend test dependencies
+        run: npm ci
+
+      - name: Install pinned Chromium headless shell
+        run: npx --no-install playwright install --only-shell chromium
+
+      - name: Verify sandboxed Disc Background lifetime cases
+        run: npm run test:node -- --disc-background-lifetime-only
