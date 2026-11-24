@@ -41,6 +41,7 @@ export async function createBackgroundImageImportFromDataUrl(
 ): Promise<BackgroundImageImportResult> {
   const importedImage = await createImportedImageAssetFromDataUrl(imageDataUrl)
 
+  // Image preparation already validated and canonicalized these exact bytes.
   const stagedAsset = await DiscBackgroundRaster.stageAcceptedSource(importedImage.imageDataUrl)
 
   return {

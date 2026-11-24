@@ -1,5 +1,5 @@
 import {
-  DiscBackgroundRaster, discBackgroundAssetsExactlyEqual, isDiscBackgroundAsset, legacyDiscBackgroundAsset,
+  discBackgroundAssetsExactlyEqual, isDiscBackgroundAsset, legacyDiscBackgroundAsset,
   readDiscBackgroundAsset, reuseDiscBackgroundAsset, type DiscBackgroundAsset,
 } from '../image/discBackgroundAsset.ts'
 import type { EditorProjectType } from '../editor/editorTypes.ts'
@@ -33,6 +33,7 @@ export type NormalizedPersistableProject =
 
 declare const canonicalProjectComparisonBrand: unique symbol
 
+/** For committed Disc state, matching projections require exact snapshot equality. */
 export type CanonicalProjectComparisonValue = string & {
   readonly [canonicalProjectComparisonBrand]: true
 }
@@ -260,9 +261,11 @@ function createComparisonProjection(
 
   if (isCommittedDiscProject(project)) {
     const { asset, ...background } = project.background
-    const leaf = DiscBackgroundRaster.owns(asset)
-      ? { assetId: asset.id } : { imageDataUrl: readDiscBackgroundAsset(asset) }
-    projection.background = sortedFrozen({ ...background, ...leaf }) as unknown as JsonValue
+    // This internal comparison hint only rejects unequal lengths. It is
+    // representation-neutral so equivalent reference and compatibility
+    // sources match, and exact snapshot equality always checks the source.
+    const assetEncodedLength = readDiscBackgroundAsset(asset)?.length ?? null
+    projection.background = sortedFrozen({ ...background, assetEncodedLength }) as unknown as JsonValue
   }
 
   if (kind === 'caseInsert') {

@@ -256,6 +256,7 @@ async function stageDiscProject(
   selectedPath: string,
   project: SavedDiscProject,
   params: StageProjectOpenContentsParams,
+  fromNativePackageDecoder: boolean,
 ): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
   let restoredProject: RestoredProjectState
 
@@ -351,12 +352,12 @@ async function stageDiscProject(
       }),
       savedAt: project.savedAt,
     })
-    // Native package decode has already validated the exact embedded raster.
-    // Legacy JSON retains its existing compatibility policy; do not silently
-    // promote unverified or unsupported legacy strings to validated handles.
+    // The native decoder rejects any non-null Disc Background that is not
+    // bound to validated raster bytes, and hydrates only canonical data URLs.
+    // Neither legacy JSON nor generic caller-supplied contents has this proof.
     const restoredSource = isCapturedSavedDiscProject(normalizedProject)
       ? normalizedProject.background.imageDataUrl : null
-    const stagedDiscBackground = params.persistenceFormat === 'sbls-package-v1' && restoredSource
+    const stagedDiscBackground = fromNativePackageDecoder && restoredSource
       ? await DiscBackgroundRaster.stageAcceptedSource(restoredSource) : undefined
     return commandSucceeded(captureCandidate({
       projectType: 'disc',
@@ -444,8 +445,15 @@ function stageCaseInsertProject(
  * Runs the one shared parse, migrate, normalize, route, restore, and immutable
  * candidate-capture path after a transport has produced project JSON text.
  */
-export async function stageProjectOpenContents(
+export function stageProjectOpenContents(
   params: StageProjectOpenContentsParams,
+): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
+  return stageProjectOpenContentsInternal(params, false)
+}
+
+async function stageProjectOpenContentsInternal(
+  params: StageProjectOpenContentsParams,
+  fromNativePackageDecoder: boolean,
 ): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
   let project: SavedDiscProject | SavedCaseInsertProject
   try {
@@ -481,6 +489,7 @@ export async function stageProjectOpenContents(
         params.selectedPath,
         project as SavedDiscProject,
         params,
+        fromNativePackageDecoder,
       )
 }
 
@@ -526,11 +535,11 @@ export async function stageProjectPackageOpen(
     ))
   }
 
-  return stageProjectOpenContents({
+  return stageProjectOpenContentsInternal({
     ...params,
     contents,
     persistenceFormat: 'sbls-package-v1',
-  })
+  }, true)
 }
 
 /**

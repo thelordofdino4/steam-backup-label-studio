@@ -1,20 +1,20 @@
 import assert from 'node:assert/strict'
-import { inflateSync } from 'node:zlib'
+import { crc32, inflateSync } from 'node:zlib'
 import test from 'node:test'
-import { DiscBackgroundRaster, readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
+import { DiscBackgroundRaster, discBackgroundAssetsExactlyEqual, readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { findImageDataContentBounds, getImageContentSourceRect } from '../image/imageContentBounds.ts'
 import { getBackgroundDrawSize } from '../image/backgroundImage.ts'
 import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
 import { createProjectPackageCapturePlan } from '../package/projectPackageCapturePlan.ts'
 import { createProjectPackageWriteRequest } from '../tauri/projectPackageWrite.ts'
 import { createBrandingSources } from '../caseInsert/brandingMarkTargetSourcesFixtures.ts'
-import { stageProjectPackageOpen } from '../app/appProjectLoad.ts'
+import { stageProjectOpenContents, stageProjectPackageOpen } from '../app/appProjectLoad.ts'
 import {
   captureDiscBackgroundExportInput, captureNormalizedProjectSnapshot, materializeDiscProject,
 } from './canonicalProject.ts'
 import { createApplicationLifecycleCompositionRoot } from './applicationLifecycleCompositionRoot.ts'
 import {
-  adoptPinnedDiscSave, createLoadedProjectSession, pinDiscSaveRevision, projectPinnedDiscSave, selectIsActiveProjectDirty,
+  adoptPinnedDiscSave, applicationLifecycleStatesAreSemanticallyEqual, createLoadedProjectSession, pinDiscSaveRevision, projectPinnedDiscSave, selectIsActiveProjectDirty,
 } from './projectSession.ts'
 import { createProjectAsyncWork } from './projectAsyncWork.ts'
 
@@ -89,7 +89,8 @@ test('package Open stages the opaque exact asset and geometry revisions share it
   assert.notDeepEqual(exportAtR.backgroundOffset,r1.project.background.offset)
   const equivalent=await DiscBackgroundRaster.stageAcceptedSource(png)
   assert.notEqual(equivalent,handle)
-  assert.equal(DiscBackgroundRaster.owns(equivalent) && equivalent.id,handle.id)
+  assert.ok(DiscBackgroundRaster.owns(equivalent))
+  assert.ok(discBackgroundAssetsExactlyEqual(equivalent, handle))
   assert.equal(root.commitDiscBackground({sessionId:r1.id,expectedRevision:r1.revision,
     operation:{kind:'asset',stagedAsset:equivalent,background:materializeDiscProject(r1.project).background}}),'no-op')
   assert.equal(read(root).project.background.asset,handle)
@@ -137,7 +138,7 @@ test('only internally backed assets enter committed state, and an unused getter 
     assert.throws(()=>load(saved,stagedAsset),/Invalid staged Disc background/)
   }
   assert.equal(sourceAccessed,false)
-  assert.throws(()=>Reflect.construct(DiscBackgroundRaster,[undefined,'forged-id',png]),/constructor/)
+  assert.throws(()=>Reflect.construct(DiscBackgroundRaster,[undefined,png]),/constructor/)
   let accessed=false
   const background={...saved.background,get unused(){ accessed=true;return 'unexpected' }}
   assert.equal(root.commitDiscBackground({sessionId:before.id,expectedRevision:0,
@@ -159,4 +160,119 @@ test('only internally backed assets enter committed state, and an unused getter 
     operation:{kind:'asset',background:reentrant}}),'stale')
   assert.equal(read(root).revision,1)
   assert.equal(read(root).project.background.scale,1.5)
+})
+
+function pngWithComment(value: 'a' | 'b'): string {
+  const file = Buffer.from(png.split(',')[1]!, 'base64')
+  const text = Buffer.from('tEXtComment\0' + value)
+  const chunk = Buffer.alloc(text.length + 8)
+  chunk.writeUInt32BE(text.length - 4)
+  chunk.set(text, 4)
+  chunk.writeUInt32BE(crc32(text), chunk.length - 4)
+  return 'data:image/png;base64,' + Buffer.concat([
+    file.subarray(0, -12), chunk, file.subarray(-12),
+  ]).toString('base64')
+}
+
+test('validated raster staging reads neither crypto nor any source characters', async () => {
+  const originalCrypto = Object.getOwnPropertyDescriptor(globalThis, 'crypto')
+  const originalSlice = String.prototype.slice
+  const originalIndexOf = String.prototype.indexOf
+  const length = 100_000
+  const input = 'data:image/jpeg;base64,' + 'A'.repeat(length - 23)
+  let cryptoReads = 0
+  let characterSearches = 0
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    get() { cryptoReads++; throw new Error('Crypto is unavailable.') },
+  })
+  String.prototype.slice = function(start, end) {
+    if (this.length === length) characterSearches++
+    return originalSlice.call(this, start, end)
+  }
+  String.prototype.indexOf = function(searchString, position) {
+    if (this.length === length) characterSearches++
+    return originalIndexOf.call(this, searchString, position)
+  }
+  try {
+    const accepted = await DiscBackgroundRaster.stageAcceptedSource(input)
+    assert.ok(DiscBackgroundRaster.owns(accepted))
+    assert.equal(readDiscBackgroundAsset(accepted), input)
+    assert.equal(cryptoReads, 0)
+    assert.equal(characterSearches, 0)
+  } finally {
+    String.prototype.slice = originalSlice
+    String.prototype.indexOf = originalIndexOf
+    if (originalCrypto) Object.defineProperty(globalThis, 'crypto', originalCrypto)
+    else Reflect.deleteProperty(globalThis, 'crypto')
+  }
+})
+
+test('raw contents and legacy Open never manufacture native raster evidence', async () => {
+  const saved = fixture()
+  const contents = JSON.stringify(saved)
+  for (const persistenceFormat of ['legacy-json', 'sbls-package-v1'] as const) {
+    const staged = await stageProjectOpenContents({
+      selectedPath: 'fixture.sbls', contents, persistenceFormat,
+      caseInsertBrandingSources: createBrandingSources(),
+    })
+    assert.equal(staged.status, 'success')
+    if (staged.status !== 'success' || staged.value.projectType !== 'disc') throw Error('Expected staged Disc.')
+    assert.equal(staged.value.stagedDiscBackground, undefined)
+    const active = load(saved).activeSession
+    assert.ok(active?.kind === 'disc')
+    assert.equal(DiscBackgroundRaster.owns(active.project.background.asset), false)
+    assert.equal(readDiscBackgroundAsset(active.project.background.asset), png)
+  }
+})
+
+test('same-length raster collisions and ref/compatibility aliases use exact lifecycle equality', async () => {
+  const first = pngWithComment('a')
+  const second = pngWithComment('b')
+  assert.equal(first.length, second.length)
+  assert.notEqual(first, second)
+  const saved = fixture()
+  saved.background.imageDataUrl = first
+  const changed = { ...saved, background: { ...saved.background, imageDataUrl: second } }
+  const brandA = await DiscBackgroundRaster.stageAcceptedSource(first)
+  const brandB = await DiscBackgroundRaster.stageAcceptedSource(second)
+  const copyA = await DiscBackgroundRaster.stageAcceptedSource(first)
+  assert.ok(DiscBackgroundRaster.owns(brandA))
+  assert.ok(DiscBackgroundRaster.owns(brandB))
+  assert.notEqual(copyA, brandA)
+  assert.equal(discBackgroundAssetsExactlyEqual(copyA, brandA), true)
+  assert.equal(discBackgroundAssetsExactlyEqual(brandB, brandA), false)
+
+  const a = load(saved, brandA)
+  const b = load(changed, brandB)
+  const fallbackA = load(saved)
+  const aSession = a.activeSession!
+  const bSession = b.activeSession!
+  const aComparison = aSession.cleanBaseline!.comparisonValue
+  assert.ok(aComparison === bSession.cleanBaseline!.comparisonValue, 'Deliberate compact-hint collision.')
+  assert.equal(aComparison, fallbackA.activeSession!.cleanBaseline!.comparisonValue, 'Same source is cheap across representations.')
+  assert.ok(!aComparison.includes(first))
+  assert.equal(applicationLifecycleStatesAreSemanticallyEqual(a, fallbackA), true)
+  assert.equal(applicationLifecycleStatesAreSemanticallyEqual(a, b), false)
+  assert.equal(applicationLifecycleStatesAreSemanticallyEqual(a, {
+    ...a, activeSession: { ...aSession, cleanBaseline: bSession.cleanBaseline },
+  }), false, 'A colliding clean hint must not alias a different clean snapshot.')
+
+  const root = createApplicationLifecycleCompositionRoot({ initialState: a })
+  const r0 = read(root)
+  const pin = pinDiscSaveRevision(r0)
+  const submit = (source: string, stage: typeof brandA, revision: number) => root.commitDiscBackground({
+    sessionId: r0.id, expectedRevision: revision,
+    operation: { kind: 'asset', stagedAsset: stage, background: { ...saved.background, imageDataUrl: source } },
+  })
+  assert.equal(submit(first, copyA, 0), 'no-op')
+  assert.equal(read(root).project.background.asset, brandA)
+  assert.equal(submit(second, brandB, 0), 'committed')
+  assert.equal(selectIsActiveProjectDirty(root.getLifecycleState()), true)
+  assert.equal(captureDiscBackgroundExportInput(read(root).project.background).backgroundImageUrl, second)
+  assert.equal(projectPinnedDiscSave(pin).background.imageDataUrl, first)
+  assert.notDeepEqual(frame(projectPinnedDiscSave(pin)), frame(projectPinnedDiscSave(pinDiscSaveRevision(read(root)))))
+  assert.equal(submit(first, copyA, 1), 'committed')
+  assert.equal(selectIsActiveProjectDirty(root.getLifecycleState()), false, 'Restoring exact bytes is clean across handles.')
+  root.dispose()
 })
