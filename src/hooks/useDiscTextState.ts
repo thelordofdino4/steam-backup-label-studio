@@ -372,20 +372,15 @@ export function useDiscTextState({
     setDiscTextStyles(restoredDiscTextStyles)
   }
 
-  function clampDiscTextLayoutToTemplate(template: DiscTemplate) {
-    setDiscTextLayout((currentLayout) => {
-      const nextLayout = clampDiscTextLayoutSettingsForCurrentContent(
-        currentLayout,
-        template,
-      )
-      const didChange = DISC_TEXT_KEYS.some(
-        (key) =>
-          nextLayout[key].x !== currentLayout[key].x ||
-          nextLayout[key].y !== currentLayout[key].y,
-      )
+  function planDiscTextLayoutClamp(currentLayout: DiscTextLayoutSettings, template: DiscTemplate) {
+    const nextLayout = clampDiscTextLayoutSettingsForCurrentContent(currentLayout, template)
+    const didChange = DISC_TEXT_KEYS.some((key) =>
+      nextLayout[key].x !== currentLayout[key].x || nextLayout[key].y !== currentLayout[key].y)
+    return didChange ? nextLayout : currentLayout
+  }
 
-      return didChange ? nextLayout : currentLayout
-    })
+  function clampDiscTextLayoutToTemplate(template: DiscTemplate) {
+    setDiscTextLayout(currentLayout => planDiscTextLayoutClamp(currentLayout, template))
   }
 
   function repositionDiscTextForSteamLogoPlacement(
@@ -1362,6 +1357,8 @@ export function useDiscTextState({
     resetDiscTextState,
     restoreDiscTextState,
     clampDiscTextLayoutToTemplate,
+    planDiscTextLayoutClamp,
+    setDiscTextSettings,
     repositionDiscTextForSteamLogoPlacement,
     clampDiscTextLayoutForContent,
     clampMetadataBoundDiscTextLayoutsForContent,

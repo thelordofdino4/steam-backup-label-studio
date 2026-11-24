@@ -1,3 +1,4 @@
+import { finishApplicationCaseInsertContinuousEdit, type GetApplicationCaseInsertContinuousEditPort } from './applicationCaseInsertContinuousEditPort.ts'
 import type {
   ApplicationCommandCapability,
   ApplicationCommandOperationToken,
@@ -158,6 +159,7 @@ function snapshotFailure(error: unknown): ApplicationCommandResult<never> {
 
 export function createApplicationPngExportCommandOwner(
   getDependencies: () => ApplicationPngExportRuntimeDependencies | null,
+  getDiscBackgroundEdit: GetApplicationCaseInsertContinuousEditPort = () => null,
 ): ApplicationPngExportCommandOwner {
   return Object.freeze({
     availability: 'implemented',
@@ -168,6 +170,8 @@ export function createApplicationPngExportCommandOwner(
       context: ApplicationLifecycleCommandContext,
       operation: ApplicationCommandOperationToken,
     ): Promise<ApplicationCommandResult<ApplicationPngExportSuccess>> {
+      const finished = finishApplicationCaseInsertContinuousEdit(getDiscBackgroundEdit())
+      if (finished.status !== 'success') return finished
       const current = context.getCurrentStateSnapshot()
       const capabilityContext = Object.freeze({
         stateSnapshot: current,

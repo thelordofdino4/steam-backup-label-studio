@@ -41,6 +41,14 @@ const canonicalComparisonValues = new WeakMap<
   CanonicalProjectComparisonValue
 >()
 
+type CapturedDiscProject = DeepReadonly<SavedDiscProject>
+type CapturedDiscBackground = CapturedDiscProject['background']
+
+// An identity for the already validated unmigrated fields, shared by successive
+// background-only revisions. Weak keys give it the lifetime of pinned snapshots.
+type DiscRemainderIdentity = { comparison?: string }
+const discRemainders = new WeakMap<CapturedDiscProject, DiscRemainderIdentity>()
+
 const FORBIDDEN_ROOT_PROJECT_KEYS = new Set([
   'caseInsertPresetApplication',
   'applicationRevision',
@@ -224,6 +232,15 @@ function sameJsonValue(first: JsonValue, second: JsonValue): boolean {
       sameJsonValue(first[key]!, second[key]!))
 }
 
+/** Cold, scoped comparison for accepted compound mirror values. The candidate
+ * may still contain omitted optional properties in its presentation shape. */
+export function normalizedProjectValueMatches(candidate: unknown, captured: unknown): boolean {
+  const a = toJsonValue(candidate, 'candidate')
+  const b = toJsonValue(captured, 'captured')
+  if (a === OMIT_VALUE || b === OMIT_VALUE) return a === b
+  return sameJsonValue(a, b)
+}
+
 function createComparisonProjection(
   project: NormalizedPersistableProject,
   kind: EditorProjectType,
@@ -262,6 +279,9 @@ export function captureNormalizedProjectSnapshot(
     clone,
   ) as unknown as NormalizedPersistableProject
   capturedProjectSnapshots.add(captured as object)
+  if (getNormalizedProjectKind(captured) === 'disc') {
+    discRemainders.set(captured as CapturedDiscProject, {})
+  }
   return captured
 }
 
@@ -296,4 +316,106 @@ export function normalizedProjectSnapshotsAreExactlyEqual(
     first as unknown as JsonValue,
     second as unknown as JsonValue,
   )
+}
+
+/** Compare exact semantic content without serializing unchanged Disc artwork. */
+export function projectContentsAreSemanticallyEqual(
+  first: NormalizedPersistableProject,
+  second: NormalizedPersistableProject,
+): boolean {
+  if (first === second) return true
+  const a = discRemainders.get(first as CapturedDiscProject)
+  const b = discRemainders.get(second as CapturedDiscProject)
+  if (!a || !b) {
+    return createCanonicalProjectComparisonValue(first) ===
+      createCanonicalProjectComparisonValue(second)
+  }
+  const firstDisc = first as CapturedDiscProject
+  const secondDisc = second as CapturedDiscProject
+  if (!sameJsonValue(firstDisc.background as unknown as JsonValue,
+    secondDisc.background as unknown as JsonValue)) return false
+  if (a === b) return true
+
+  function compareRemainder(project: CapturedDiscProject, identity: DiscRemainderIdentity) {
+    if (identity.comparison !== undefined) return identity.comparison
+    const projection = cloneRecord(project as unknown as JsonObject)
+    delete projection.savedAt
+    delete projection.background
+    return identity.comparison = JSON.stringify(projection)
+  }
+  return compareRemainder(firstDisc, a) === compareRemainder(secondDisc, b)
+}
+
+export function capturedDiscBackgroundsAreExactlyEqual(
+  first: CapturedDiscBackground,
+  second: CapturedDiscBackground,
+): boolean {
+  return sameJsonValue(first as unknown as JsonValue, second as unknown as JsonValue)
+}
+
+/** Retain the already owned domain object on a legacy-only acceptance. */
+export function preserveCapturedDiscBackground(
+  project: CapturedDiscProject,
+  current: CapturedDiscProject,
+): CapturedDiscProject {
+  if (project.background === current.background) return project
+  const remainder = discRemainders.get(project)
+  if (!remainder || !discRemainders.has(current)) {
+    throw new TypeError('Captured Disc snapshots are required.')
+  }
+  if (!capturedDiscBackgroundsAreExactlyEqual(project.background, current.background)) {
+    throw new TypeError('A legacy projection cannot change Disc background.')
+  }
+  const next = Object.freeze({ ...project, background: current.background })
+  capturedProjectSnapshots.add(next)
+  discRemainders.set(next, remainder)
+  return next
+}
+
+/** Scoped fast path from a validated snapshot. The existing immutable data URL
+ * is the temporary compatibility handle: staged inputs, current snapshots and
+ * in-flight Save R naturally pin the string without a permanent registry. A
+ * geometry edit never rereads, copies or re-encodes its bytes. #364 can replace
+ * this handle at the persistence adapter, not at the geometry call sites. */
+export function replaceCapturedDiscBackground(
+  project: CapturedDiscProject,
+  background: CapturedDiscBackground,
+): CapturedDiscProject {
+  const remainder = discRemainders.get(project)
+  if (!remainder) throw new TypeError('A captured Disc project is required.')
+  const current = project.background
+  if (!Number.isFinite(background.scale) ||
+      !Number.isFinite(background.offset.x) ||
+      !Number.isFinite(background.offset.y) ||
+      (background.enabled !== undefined && typeof background.enabled !== 'boolean') ||
+      (background.imageDataUrl !== null && typeof background.imageDataUrl !== 'string')) {
+    throw new TypeError('Invalid Disc background fields.')
+  }
+  function captureChangedMetadata<T>(candidate: T, previous: T, path: string): T {
+    if (candidate === previous) return previous
+    const normalized = toJsonValue(candidate ?? null, path) as JsonValue
+    if (previous !== undefined && sameJsonValue(previous as JsonValue, normalized)) return previous
+    return deepFreezeJson(normalized) as T
+  }
+  const imageSize = captureChangedMetadata(background.imageSize, current.imageSize, 'background.imageSize')
+  const imageSource = captureChangedMetadata(background.imageSource, current.imageSource, 'background.imageSource')
+  const updatedBackground: CapturedDiscBackground = {
+    ...current,
+    ...(background.enabled === undefined ? {} : { enabled: background.enabled }),
+    scale: background.scale,
+    offset: background.offset === current.offset ? current.offset :
+      Object.freeze({ x: background.offset.x, y: background.offset.y }),
+    imageDataUrl: background.imageDataUrl,
+    ...(imageSource === undefined ? {} : { imageSource }),
+    ...(imageSize === undefined ? {} : { imageSize }),
+  }
+  if (capturedDiscBackgroundsAreExactlyEqual(current, updatedBackground)) return project
+  // Keep the captured snapshot's canonical key order even when upgrading an
+  // older input which lacked one of these optional fields.
+  const backgroundEntries = Object.entries(updatedBackground).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+  const nextBackground = Object.freeze(Object.fromEntries(backgroundEntries)) as CapturedDiscBackground
+  const next = Object.freeze({ ...project, background: nextBackground })
+  capturedProjectSnapshots.add(next)
+  discRemainders.set(next, remainder)
+  return next
 }

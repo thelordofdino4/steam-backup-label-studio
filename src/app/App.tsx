@@ -118,7 +118,7 @@ import {
   completeDiscGuidedSlotsForMetadataAction,
 } from '../guidedPresets/discGuidedCompletion'
 import type { DiscGuidedSlotState } from '../guidedPresets/discGuidedSlots'
-import { useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
+import { getNextDiscGuidedWorkflowForPresetApplication, useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
 import { useActiveDiscPreset } from '../hooks/useActiveDiscPreset'
 import {
   applyActiveDiscPresetToBackgroundState,
@@ -238,7 +238,7 @@ import {
   shouldApplySteamPlatformMarksEligibilityChange,
 } from './appSteamDiscVisualImport'
 import {
-  createSavedProjectForWorkspace,
+  createLegacyProjectForWorkspace,
 } from './appProjectSave'
 import {
   stageAppProjectOpen,
@@ -260,9 +260,12 @@ import {
 } from './applicationDocumentSelectionOwnership'
 import { useApplicationModalPresence } from './useApplicationModalPresence'
 import {
-  applyDiscRolePresetToOwners,
+  type DiscRolePresetBackgroundRestoreState,
 } from './appDiscRolePresetApplication'
 import { createBlankDiscSavedProject } from '../project/blankDiscProject'
+import { planDiscPresetDocument } from './appDiscPresetDocumentPlan.ts'
+import { commitPreparedDiscBackgroundCompound, projectDiscPresetSiblingFields } from './appDiscBackgroundCompoundCommand.ts'
+import { createSavedDiscGuidedLayout, restoreSavedDiscGuidedWorkflow } from '../project/projectGuidedWorkflow.ts'
 import {
   prepareNewProjectEditorApply,
 } from './appProjectNewEditorApply'
@@ -415,10 +418,10 @@ function App() {
       selectedDiscTemplate,
       background,
     })
-    activeDiscPreset.recordTargetedPresetApplication(result.application)
-    return isActiveDiscPresetBackgroundFitImpossible(result.application)
-      ? null
-      : result.background
+    return {
+      background: isActiveDiscPresetBackgroundFitImpossible(result.application) ? null : result.background,
+      acceptPlacement: () => activeDiscPreset.recordTargetedPresetApplication(result.application),
+    }
   }
   const {
     backgroundImageUrl,
@@ -426,7 +429,11 @@ function App() {
     backgroundImageSize,
     backgroundScale,
     backgroundOffset,
-    setBackgroundOffset,
+    beginBackgroundDrag,
+    updateBackgroundDragOffset,
+    finishBackgroundDrag,
+    cancelBackgroundDrag,
+    backgroundRangeGesture,
     isBackgroundArtworkEnabled,
     selectedArtworkId,
     setSelectedArtworkId,
@@ -436,7 +443,6 @@ function App() {
     effectiveBackgroundImageUrl,
     effectiveBackgroundImageSize,
     applyBackgroundImageImport,
-    resetBackgroundArtwork,
     clearSelectedArtwork,
     handleBackgroundUpload,
     handlePickNativeBackgroundFile,
@@ -446,13 +452,21 @@ function App() {
     handleBackgroundScaleChange,
     handleBackgroundOffsetChange,
     handleFitBackgroundToSteamBannerOpenArea,
-    restoreBackgroundImageState,
+    invalidateBackgroundWorkAfterPreset,
+    getDiscSession,
   } = useBackgroundImage({
     discPreviewSize,
     steamLogoPlacement,
     announceStatus,
     applyActivePresetPlacement: applyActiveBackgroundPresetPlacement,
-    onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
+    prepareGuidedCompletion(slotId, session) {
+      const committed = restoreSavedDiscGuidedWorkflow(session.project.editor)
+      const next = completeDiscGuidedSlot(committed, slotId)
+      if (next.outcome !== 'completed') return null
+      const guidedLayout = createSavedDiscGuidedLayout(next.state)
+      if (!guidedLayout) return null
+      return { guidedLayout, mirror: () => setDiscGuidedWorkflow(next.state) }
+    },
   })
   const {
     localSteamScreenshots,
@@ -567,6 +581,8 @@ function App() {
     resetDiscTextState,
     restoreDiscTextState,
     clampDiscTextLayoutToTemplate,
+    planDiscTextLayoutClamp,
+    setDiscTextSettings,
     repositionDiscTextForSteamLogoPlacement,
     clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
     handleDiscTextToggle,
@@ -889,7 +905,10 @@ function App() {
       imageSize: backgroundImageSize,
       scale: backgroundScale,
       offset: backgroundOffset,
-      setOffset: setBackgroundOffset,
+      begin: beginBackgroundDrag,
+      updateOffset: updateBackgroundDragOffset,
+      finish: finishBackgroundDrag,
+      cancel: cancelBackgroundDrag,
     },
     discText: {
       layout: discTextLayout,
@@ -1021,92 +1040,114 @@ function App() {
   }
 
   function handleApplyDiscRolePreset(presetId: string) {
-    const result = applyDiscRolePresetToOwners({
-      presetId,
-      currentState: {
-        background: {
-          enabled: isBackgroundArtworkEnabled,
-          scale: backgroundScale,
-          offset: backgroundOffset,
-          imageDataUrl: backgroundImageUrl,
-          imageSource: backgroundImageSource,
-          imageSize: backgroundImageSize,
-        },
-        titleArtwork: projectTitleArtwork,
-        projectDiscNumberArtwork,
-        discTextSettings,
-        discTextValues,
-        discTextValueSources,
-        discTextTitleValue,
-        discTextHtmlSources,
-        discTextLayout,
-        discTextStyles,
-        logoAssets: projectLogoAssets,
-        ratingBadge: projectRatingBadge,
-        mediaMark: projectMediaMark,
-        platformMarks: projectPlatformMarks,
-        technicalMarks: projectTechnicalMarks,
-        additionalArtwork: projectAdditionalArtwork,
-        metadata: projectMetadata,
+    if (finishBackgroundDrag().status !== 'success') return false
+    const session = getDiscSession()
+    if (!session || !applicationLifecycleRoot.canCommitDiscBackground()) return false
+    const background = session.project.background
+    const currentState = {
+      background: {
+        enabled: background.enabled ?? true,
+        scale: background.scale,
+        offset: background.offset,
+        imageDataUrl: background.imageDataUrl,
+        imageSource: background.imageSource ?? null,
+        imageSize: background.imageSize ?? null,
       },
-      selectedDiscTemplate,
-      actions: {
-        restoreBackgroundImageState,
-        setProjectTitleArtwork,
-        clampProjectTitleArtworkToTemplate,
-        restoreDiscTextState,
-        setDiscTextLayout,
-        clampDiscTextLayoutToTemplate,
-        setProjectLogoAssets,
-        clampProjectLogoAssetsToTemplate,
-        setProjectRatingBadge,
-        clampProjectRatingBadgeToTemplate,
-        setProjectMediaMark,
-        clampProjectMediaMarkToTemplate,
-        setProjectPlatformMarks,
-        clampProjectPlatformMarksToTemplate,
-        setProjectTechnicalMarks,
-        clampProjectTechnicalMarksToTemplate,
-      },
+      titleArtwork: projectTitleArtwork,
+      projectDiscNumberArtwork,
+      discTextSettings,
+      discTextValues,
+      discTextValueSources,
+      discTextTitleValue,
+      discTextHtmlSources,
+      discTextLayout,
+      discTextStyles,
+      logoAssets: projectLogoAssets,
+      ratingBadge: projectRatingBadge,
+      mediaMark: projectMediaMark,
+      platformMarks: projectPlatformMarks,
+      technicalMarks: projectTechnicalMarks,
+      additionalArtwork: projectAdditionalArtwork,
+      metadata: projectMetadata,
+    }
+    const plan = planDiscPresetDocument({
+      presetId, currentState, selectedDiscTemplate, clampDiscTextLayout: planDiscTextLayoutClamp,
     })
+    const { result } = plan
 
     if (!result.applied) {
       activeDiscPreset.recordPresetApplication(null, null, false)
-      discGuidedPlaceholderPreview.recordPresetApplication(presetId, false)
       announceStatus('Layout preset is unavailable. Choose another preset.')
       return false
     }
 
-    activeDiscPreset.recordPresetApplication(
-      result.activePresetRef,
-      result.activeResolvedPreset,
-      true,
-    )
-    discGuidedPlaceholderPreview.recordPresetApplication(
-      result.canonicalPresetId ?? result.preset.id,
-      true,
-    )
+    const preparedBackground: DiscRolePresetBackgroundRestoreState | null = plan.background
+    const fields = projectDiscPresetSiblingFields(currentState, plan.owners, result.dispatchedOwners)
+    const guided = getNextDiscGuidedWorkflowForPresetApplication({
+      currentWorkflow: restoreSavedDiscGuidedWorkflow(session.project.editor),
+      presetId: result.canonicalPresetId ?? result.preset.id,
+      applied: true,
+      ownerState: discGuidedSlotState,
+    })
+    const outcome = unstable_batchedUpdates(() => commitPreparedDiscBackgroundCompound(applicationLifecycleRoot, {
+      sessionId: session.id, expectedRevision: session.revision,
+      operation: { kind: 'asset', background: preparedBackground ? {
+        note: background.note,
+        enabled: preparedBackground.isBackgroundArtworkEnabled,
+        scale: preparedBackground.backgroundScale,
+        offset: preparedBackground.backgroundOffset,
+        imageDataUrl: preparedBackground.backgroundImageUrl,
+        imageSource: preparedBackground.backgroundImageSource,
+        imageSize: preparedBackground.backgroundImageSize,
+      } : background },
+    }, { kind: 'preset', fields, guidedLayout: createSavedDiscGuidedLayout(guided) }, mirror => {
+      const owners = plan.owners
+      for (const owner of result.dispatchedOwners) {
+        switch (owner) {
+          case 'titleArtwork': if (mirror.presetField('titleArtwork')) setProjectTitleArtwork(owners.titleArtwork); break
+          case 'logoAssets': if (mirror.presetField('logoAssets')) setProjectLogoAssets(owners.logoAssets); break
+          case 'ratingBadge': if (mirror.presetField('ratingBadge')) setProjectRatingBadge(owners.ratingBadge); break
+          case 'mediaMark': if (mirror.presetField('mediaMark')) setProjectMediaMark(owners.mediaMark); break
+          case 'platformMarks': if (mirror.presetField('platformMarks')) setProjectPlatformMarks(owners.platformMarks); break
+          case 'technicalMarks': if (mirror.presetField('technicalMarks')) setProjectTechnicalMarks(owners.technicalMarks); break
+          case 'discText':
+            if (mirror.discTextSettings && currentState.discTextSettings !== owners.discTextSettings) {
+              setDiscTextSettings(owners.discTextSettings)
+            }
+            if (mirror.discTextLayout) setDiscTextLayout(owners.discTextLayout)
+            break
+        }
+      }
+      if (mirror.guided) setDiscGuidedWorkflow(guided)
+      if (!mirror.currentInteraction) return
+      if (preparedBackground) invalidateBackgroundWorkAfterPreset()
+      activeDiscPreset.recordPresetApplication(
+        result.activePresetRef,
+        result.activeResolvedPreset,
+        true,
+      )
 
-    let announcedFitIssue = false
-    if (hasDiscPresetTitleFitImpossibleWarning(result.warnings)) {
-      lastAnnouncedImpossibleTitlePresetRef.current =
-        result.activePresetRef
-      announceStatus(ACTIVE_DISC_PRESET_TITLE_FIT_IMPOSSIBLE_MESSAGE)
-      announcedFitIssue = true
+      let announcedFitIssue = false
+      if (hasDiscPresetTitleFitImpossibleWarning(result.warnings)) {
+        lastAnnouncedImpossibleTitlePresetRef.current =
+          result.activePresetRef
+        announceStatus(ACTIVE_DISC_PRESET_TITLE_FIT_IMPOSSIBLE_MESSAGE)
+        announcedFitIssue = true
+      }
+
+      if (hasDiscPresetLegalFitImpossibleWarning(result.warnings)) {
+        lastAnnouncedImpossibleLegalPresetRef.current =
+          result.activePresetRef
+        announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
+        announcedFitIssue = true
+      }
+
+      if (!announcedFitIssue) announceStatus(`Applied ${result.preset.label} layout preset.`)
+    }))
+    if (outcome !== 'committed' && outcome !== 'no-op') {
+      announceStatus('The Disc preset could not be applied safely.')
+      return false
     }
-
-    if (hasDiscPresetLegalFitImpossibleWarning(result.warnings)) {
-      lastAnnouncedImpossibleLegalPresetRef.current =
-        result.activePresetRef
-      announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
-      announcedFitIssue = true
-    }
-
-    if (announcedFitIssue) {
-      return true
-    }
-
-    announceStatus(`Applied ${result.preset.label} layout preset.`)
     return true
   }
 
@@ -1433,7 +1474,7 @@ function App() {
     setSteamLogoPlacement('top')
     resetSteamBannerState()
     resetExportGuides()
-    resetBackgroundArtwork()
+    clearSelectedArtwork()
     setManualGameTitle(blank?.game.manualTitle ?? 'Untitled Steam Backup Label')
     setProjectMetadata(blank?.metadata ?? createDefaultProjectMetadata())
     resetProjectLogoAssets(defaultDiscTemplate)
@@ -1678,8 +1719,8 @@ function App() {
     })
   }
 
-  const captureCurrentSavedProject = useCallback(
-    () => createSavedProjectForWorkspace({
+  const captureCurrentLegacyProject = useCallback(
+    () => createLegacyProjectForWorkspace({
       activeWorkspace,
       caseInsertProject: {
         manualGameTitle,
@@ -1712,12 +1753,6 @@ function App() {
         steamBannerUseTextFallback,
         steamBannerFallbackText,
         exportGuides,
-        backgroundScale,
-        backgroundOffset,
-        backgroundImageUrl,
-        backgroundImageSource,
-        backgroundImageSize,
-        isBackgroundArtworkEnabled,
         discTextSettings,
         discTextValues,
         discTextValueSources,
@@ -1730,11 +1765,6 @@ function App() {
     [
       activeCaseInsertTemplatePane,
       activeWorkspace,
-      backgroundImageSize,
-      backgroundImageSource,
-      backgroundImageUrl,
-      backgroundOffset,
-      backgroundScale,
       customDiscTemplate,
       discGuidedWorkflow,
       discTextHtmlSources,
@@ -1745,7 +1775,6 @@ function App() {
       discTextValueSources,
       discTextValues,
       exportGuides,
-      isBackgroundArtworkEnabled,
       manualGameTitle,
       projectAdditionalArtwork,
       projectDiscNumberArtwork,
@@ -1829,7 +1858,6 @@ function App() {
           setSteamBannerFallbackText,
           restoreExportGuides,
           restoreDiscTextState,
-          restoreBackgroundImageState,
         },
         caseInsertProject: {
           setProjectJewelCase,
@@ -1921,51 +1949,56 @@ function App() {
         ? Object.freeze({
           kind: 'disc',
           physicalTarget: 'disc-label',
-          captureInvocation: () => ({
-            ...createDiscPngExportInput({
-              selectedDiscTemplateId,
-              selectedDiscTemplate,
-              backgroundImageUrl: effectiveBackgroundImageUrl,
-              backgroundImageSize: effectiveBackgroundImageSize,
-              selectedSteamGame,
-              manualGameTitle,
-              steamLogoPlacement,
-              steamBannerUseTextFallback,
-              steamBannerFallbackText,
-              steamBannerLockupImageUrl,
-              discTextSettings,
-              projectLogoAssets,
-              projectTitleArtwork,
-              projectMetadata,
-              projectRatingBadge,
-              projectMediaMark,
-              projectPlatformMarks,
-              projectTechnicalMarks,
-              exportGuides,
-              resolvedDiscTextTitle,
-              backgroundScale,
-              backgroundOffset,
-              steamBannerColors,
-              steamBannerLockupImageSize,
-              steamBannerLockupLayout,
-              projectDiscNumberArtwork,
-              projectAdditionalArtwork,
-              discTextValues,
-              discTextValueSources,
-              discTextHtmlSources,
-              discTextStyles,
-              discTextLayout,
-            }),
-            getPreviewSize: () => getDiscPngExportPreviewWidth(
-              discPreviewRef.current,
-              discExportPreviewFallbackSize,
-            ),
-            saveDialog: save,
-            confirmDialog: confirm,
-            writePngFileCommand: writePngFile,
-            buildPreflightSummary: buildExportPreflightSummary,
-            exportPngBytes: exportDiscLabelPngBytes,
-          }),
+          captureInvocation: () => {
+            const ownedBackground = getDiscSession()?.project.background
+            if (!ownedBackground) throw new Error('The Disc background owner changed before export.')
+            const enabled = ownedBackground.enabled ?? true
+            return {
+              ...createDiscPngExportInput({
+                selectedDiscTemplateId,
+                selectedDiscTemplate,
+                backgroundImageUrl: enabled ? ownedBackground.imageDataUrl ?? null : null,
+                backgroundImageSize: enabled ? ownedBackground.imageSize ?? null : null,
+                selectedSteamGame,
+                manualGameTitle,
+                steamLogoPlacement,
+                steamBannerUseTextFallback,
+                steamBannerFallbackText,
+                steamBannerLockupImageUrl,
+                discTextSettings,
+                projectLogoAssets,
+                projectTitleArtwork,
+                projectMetadata,
+                projectRatingBadge,
+                projectMediaMark,
+                projectPlatformMarks,
+                projectTechnicalMarks,
+                exportGuides,
+                resolvedDiscTextTitle,
+                backgroundScale: ownedBackground.scale,
+                backgroundOffset: ownedBackground.offset,
+                steamBannerColors,
+                steamBannerLockupImageSize,
+                steamBannerLockupLayout,
+                projectDiscNumberArtwork,
+                projectAdditionalArtwork,
+                discTextValues,
+                discTextValueSources,
+                discTextHtmlSources,
+                discTextStyles,
+                discTextLayout,
+              }),
+              getPreviewSize: () => getDiscPngExportPreviewWidth(
+                discPreviewRef.current,
+                discExportPreviewFallbackSize,
+              ),
+              saveDialog: save,
+              confirmDialog: confirm,
+              writePngFileCommand: writePngFile,
+              buildPreflightSummary: buildExportPreflightSummary,
+              exportPngBytes: exportDiscLabelPngBytes,
+            }
+          },
         })
         : null,
     },
@@ -2039,11 +2072,16 @@ function App() {
     const session = applicationLifecycleRoot.getLifecycleState().activeSession
     if (!session || session.kind !== activeWorkspace) return
 
-    applicationLifecycleRoot.synchronizeCurrentProject({
-      sessionId: session.id,
-      kind: activeWorkspace,
-      project: captureCurrentSavedProject(),
-    })
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind === 'disc') {
+      applicationLifecycleRoot.synchronizeDiscLegacyProject({
+        sessionId: session.id, legacy: captured.project,
+      })
+    } else {
+      applicationLifecycleRoot.synchronizeCurrentProject({
+        sessionId: session.id, kind: 'caseInsert', project: captured.project,
+      })
+    }
     applicationLifecycleRoot.synchronizeCurrentEditorRoute({
       sessionId: session.id,
       kind: activeWorkspace,
@@ -2058,7 +2096,7 @@ function App() {
     activeCaseInsertNavigationSurface,
     activeWorkspace,
     applicationLifecycleRoot,
-    captureCurrentSavedProject,
+    captureCurrentLegacyProject,
   ])
 
   useLayoutEffect(() => {
@@ -2150,6 +2188,7 @@ function App() {
     backgroundOffsetSliderRanges,
     handleBackgroundScaleChange,
     handleBackgroundOffsetChange,
+    backgroundRangeGesture,
     backgroundImageUrl,
     backgroundImageSource,
     handleResetBackground,

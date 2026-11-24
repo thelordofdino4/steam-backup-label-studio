@@ -8,6 +8,9 @@ import {
   createCanonicalProjectComparisonValue,
   getNormalizedProjectKind,
   normalizedProjectSnapshotsAreExactlyEqual,
+  projectContentsAreSemanticallyEqual,
+  preserveCapturedDiscBackground,
+  replaceCapturedDiscBackground,
   type CanonicalProjectComparisonValue,
   type NormalizedPersistableProject,
 } from './canonicalProject.ts'
@@ -731,8 +734,7 @@ export function replaceActiveProjectContent(
   const project = captureNormalizedProjectSnapshot(replacement)
   assertSameProjectKind(session.kind, project)
 
-  if (createCanonicalProjectComparisonValue(project) ===
-      createCanonicalProjectComparisonValue(session.project)) {
+  if (projectContentsAreSemanticallyEqual(project, session.project)) {
     return state
   }
 
@@ -740,6 +742,49 @@ export function replaceActiveProjectContent(
     ...state,
     activeSession: replaceSessionProject(session, project),
   })
+}
+
+/** Disc-only typed transition; binds against the current session and content
+ * revision, not React render timing or project route. */
+export type DiscBackgroundOperation =
+  | Readonly<{ kind: 'transform'; scale: number; offset: DiscProjectSession['project']['background']['offset'] }>
+  | Readonly<{ kind: 'visibility'; enabled: boolean; scale: number; offset: DiscProjectSession['project']['background']['offset'] }>
+  | Readonly<{ kind: 'placement'; scale: number; offset: DiscProjectSession['project']['background']['offset'] }>
+  | Readonly<{ kind: 'asset'; background: DiscProjectSession['project']['background'] }>
+
+export type DiscBackgroundEdit = Readonly<{
+  sessionId: ProjectSessionId
+  expectedRevision: number
+  operation: DiscBackgroundOperation
+}>
+
+export function editDiscBackground(
+  state: ApplicationLifecycleState,
+  edit: DiscBackgroundEdit,
+): ApplicationLifecycleState {
+  const session = state.activeSession
+  if (!session || session.kind !== 'disc' || state.visibleWorkspace !== 'disc' ||
+      session.id !== edit.sessionId || session.revision !== edit.expectedRevision) return state
+  const current = session.project.background
+  const { operation } = edit
+  let background: typeof current
+  switch (operation.kind) {
+    case 'asset':
+      background = operation.background
+      break
+    case 'visibility':
+      background = { ...current, enabled: operation.enabled, scale: operation.scale, offset: operation.offset }
+      break
+    case 'placement':
+    case 'transform':
+      background = { ...current, scale: operation.scale, offset: operation.offset }
+      break
+    default:
+      throw new TypeError('Unknown Disc background operation.')
+  }
+  const project = replaceCapturedDiscBackground(session.project, background)
+  if (project === session.project) return state
+  return Object.freeze({ ...state, activeSession: replaceSessionProject(session, project) })
 }
 
 /**
@@ -774,6 +819,13 @@ export function synchronizeActiveProjectContent(
     return state
   }
   if (getNormalizedProjectKind(project) !== captured.kind) return state
+  if (session.kind === 'disc') {
+    try {
+      project = preserveCapturedDiscBackground(project as NormalizedDiscProject, session.project)
+    } catch {
+      return state
+    }
+  }
   return replaceActiveProjectContent(state, project as unknown as SavedProject)
 }
 
@@ -832,8 +884,7 @@ export function adoptSavedProjectBaseline(
     ? captureNormalizedProjectSnapshot(input.currentProject)
     : session.project
   assertSameProjectKind(session.kind, currentProject)
-  const contentAdvanced = createCanonicalProjectComparisonValue(currentProject) !==
-    createCanonicalProjectComparisonValue(session.project)
+  const contentAdvanced = !projectContentsAreSemanticallyEqual(currentProject, session.project)
   const contentSession = contentAdvanced
     ? replaceSessionProject(session, currentProject)
     : session
@@ -863,8 +914,7 @@ export function closeProjectSession(
 
 export function isProjectSessionDirty(session: ProjectSession): boolean {
   return session.cleanBaseline === null ||
-    createCanonicalProjectComparisonValue(session.project) !==
-      session.cleanBaseline.comparisonValue
+    !projectContentsAreSemanticallyEqual(session.project, session.cleanBaseline.exactSnapshot)
 }
 
 export function hasEligibleSblsPath(path: string | null): path is string {

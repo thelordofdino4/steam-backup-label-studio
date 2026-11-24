@@ -1,6 +1,10 @@
+import { commitPreparedDiscBackgroundCompound } from '../app/appDiscBackgroundCompoundCommand.ts'
+import { useDiscBackgroundDraft } from './useDiscBackgroundDraft.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
-import { useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useContext, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react'
+import { ApplicationLifecycleRuntimeContext } from '../app/applicationLifecycleRuntimeContext.ts'
+import type { DiscBackgroundOperation, DiscProjectSession } from '../lifecycle/projectSession.ts'
 import { ImportedImagePolicyError } from '../image/importedImagePolicy'
 import {
   BackgroundImageLoadError,
@@ -12,7 +16,6 @@ import {
   DEFAULT_BACKGROUND_SCALE,
   clampBackgroundOffsetToImageBounds,
   createDefaultBackgroundOffset,
-  createEmptyBackgroundImageState,
   getBackgroundOffsetSliderRanges,
   getBackgroundPreviewSize,
   updateBackgroundOffsetField,
@@ -22,9 +25,8 @@ import {
 import type { SteamLogoPlacement } from '../discText/index'
 import { getBackgroundFitToSteamBannerOpenArea } from '../layout/backgroundArtworkFit'
 import type {
-  BackgroundImageSize,
   BackgroundOffset,
-  ProjectImageAssetProvenance,
+  SavedDiscGuidedLayoutState,
 } from '../project/projectTypes'
 import type {
   DiscBackgroundPresetOwnerState,
@@ -46,17 +48,25 @@ type UseBackgroundImageOptions = {
   announceStatus: (message: string) => void
   applyActivePresetPlacement?: (
     background: DiscBackgroundPresetOwnerState,
-  ) => DiscBackgroundPresetOwnerState | null
+  ) => { background: DiscBackgroundPresetOwnerState | null; acceptPlacement(): void }
   onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
+  prepareGuidedCompletion?: (
+    slotId: Parameters<DiscGuidedSlotCompletionHandler>[0],
+    session: DiscProjectSession,
+  ) => { guidedLayout: SavedDiscGuidedLayoutState; mirror(): void } | null
 }
 
-type RestorableBackgroundImageState = {
-  backgroundScale: number
-  backgroundOffset: BackgroundOffset
-  backgroundImageUrl: string | null
-  backgroundImageSource: ProjectImageAssetProvenance | null
-  backgroundImageSize: BackgroundImageSize | null
-  isBackgroundArtworkEnabled: boolean
+const emptyBackground = Object.freeze({
+  enabled: true,
+  scale: DEFAULT_BACKGROUND_SCALE,
+  offset: Object.freeze(createDefaultBackgroundOffset()),
+  imageDataUrl: null,
+  imageSource: null,
+  imageSize: null,
+})
+
+export function selectDiscBackground(session: DiscProjectSession | undefined) {
+  return session?.project.background ?? emptyBackground
 }
 
 export function useBackgroundImage({
@@ -65,23 +75,58 @@ export function useBackgroundImage({
   announceStatus,
   applyActivePresetPlacement,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
+  prepareGuidedCompletion,
 }: UseBackgroundImageOptions) {
   const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
   const asyncWork = useProjectAsyncWork()
   const [pendingArtwork, setPendingArtwork] = useState<ProjectAsyncRequest | null>(null)
   const nativePickerInFlight = useRef(false)
   const isArtworkLoading = pendingArtwork !== null && asyncWork.isCurrent(pendingArtwork)
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
-  const [backgroundImageSource, setBackgroundImageSource] =
-    useState<ProjectImageAssetProvenance | null>(null)
-  const [backgroundImageSize, setBackgroundImageSize] =
-    useState<BackgroundImageSize | null>(null)
-  const [backgroundScale, setBackgroundScale] = useState(DEFAULT_BACKGROUND_SCALE)
-  const [backgroundOffset, setBackgroundOffset] = useState<BackgroundOffset>({
-    x: 0,
-    y: 0,
-  })
-  const [isBackgroundArtworkEnabled, setIsBackgroundArtworkEnabled] = useState(true)
+  const runtime = useContext(ApplicationLifecycleRuntimeContext)
+  if (!runtime) throw new Error('ApplicationLifecycleBoundary is required.')
+  const root = runtime.root
+  const { binding: draft, transform } = useDiscBackgroundDraft(runtime)
+  function getDiscSession() {
+    const session = root.getLifecycleState().activeSession
+    return session?.kind === 'disc' ? session : undefined
+  }
+  const getBackground = () => selectDiscBackground(getDiscSession())
+  const committed = useSyncExternalStore(root.subscribe, getBackground, getBackground)
+  const backgroundImageUrl = committed.imageDataUrl
+  const backgroundImageSource = committed.imageSource ?? null
+  const backgroundImageSize = committed.imageSize ?? null
+  const { scale: backgroundScale, offset: backgroundOffset } = transform ?? committed
+  const isBackgroundArtworkEnabled = committed.enabled ?? true
+
+  function submit(operation: DiscBackgroundOperation, session = getDiscSession()) {
+    if (!session) return false
+    const result = root.commitDiscBackground({ sessionId: session.id, expectedRevision: session.revision, operation })
+    return result === 'committed' || result === 'no-op'
+  }
+
+  function updateBackgroundDragOffset(key: string, offset: BackgroundOffset) {
+    draft.update(key, current => ({ ...current, offset }))
+  }
+
+  const backgroundRangeGesture = {
+    begin: (key: string) => draft.begin(key),
+    finish: draft.finish,
+    cancel: draft.cancel,
+    scale(key: string, value: number) {
+      draft.update(key, current => {
+        const scale = updateBackgroundScale(value, current.scale)
+        return { scale, offset: clampBackgroundOffsetToImageBounds(current.offset,
+          backgroundImageSize, scale, discPreviewSize) }
+      })
+    },
+    offset(key: string, field: BackgroundOffsetField, value: number) {
+      draft.update(key, current => ({
+        ...current,
+        offset: updateBackgroundOffsetField(current.offset, field, value,
+          backgroundImageSize, current.scale, discPreviewSize),
+      }))
+    },
+  }
 
   const backgroundPreviewSize = useMemo(
     () => getBackgroundPreviewSize(backgroundImageSize),
@@ -105,39 +150,66 @@ export function useBackgroundImage({
 
   function applySemanticBackgroundChange(
     background: DiscBackgroundPresetOwnerState,
+    committed: DiscProjectSession['project']['background'],
   ) {
-    if (!applyActivePresetPlacement) return background
-
-    return applyActivePresetPlacement(background) ?? {
-      ...background,
-      scale: backgroundScale,
-      offset: { ...backgroundOffset },
+    if (!applyActivePresetPlacement) return { next: background }
+    const planned = applyActivePresetPlacement(background)
+    const { scale: backgroundScale, offset: backgroundOffset } = committed
+    return {
+      next: planned.background ?? {
+        ...background, scale: backgroundScale, offset: { ...backgroundOffset },
+      },
+      acceptPlacement: planned.acceptPlacement,
     }
   }
 
   function applyBackgroundImageImport(importedBackground: BackgroundImageImportResult) {
-    const nextBackground = applySemanticBackgroundChange({
+    const session = getDiscSession()
+    if (!session || !root.canCommitDiscBackground()) return
+    const { next: nextBackground, acceptPlacement } = applySemanticBackgroundChange({
       enabled: true,
       imageDataUrl: importedBackground.background.imageUrl,
       imageSource: importedBackground.imageSource,
       imageSize: importedBackground.background.imageSize,
       scale: importedBackground.background.scale,
       offset: importedBackground.background.offset,
-    })
+    }, session.project.background)
 
-    setBackgroundImageUrl(nextBackground.imageDataUrl)
-    setBackgroundImageSource(nextBackground.imageSource)
-    setBackgroundImageSize(nextBackground.imageSize)
-    setBackgroundScale(nextBackground.scale)
-    setBackgroundOffset({ ...nextBackground.offset })
-    setIsBackgroundArtworkEnabled(nextBackground.enabled)
-    setSelectedArtworkId(importedBackground.selectedArtworkId)
-    completeDiscGuidedSlotWhenSatisfied(
-      onDiscGuidedSlotCompleted,
-      DISC_GUIDED_COMPLETION_SLOT_IDS.backgroundImage,
-      isDiscGuidedBackgroundOwnerSatisfied(nextBackground),
-    )
-    announceStatus(importedBackground.statusMessage)
+    const operation: DiscBackgroundOperation = { kind: 'asset', background: {
+      ...nextBackground, note: session.project.background.note,
+    } }
+    const accepted = () => {
+      acceptPlacement?.()
+      setSelectedArtworkId(importedBackground.selectedArtworkId)
+      announceStatus(importedBackground.statusMessage)
+    }
+    submitWithGuidedCompanion(session, operation,
+      isDiscGuidedBackgroundOwnerSatisfied(nextBackground), accepted)
+  }
+
+  function submitWithGuidedCompanion(
+    session: DiscProjectSession,
+    operation: DiscBackgroundOperation,
+    satisfied: boolean,
+    accepted?: () => void,
+  ) {
+    const guided = satisfied ? prepareGuidedCompletion?.(
+      DISC_GUIDED_COMPLETION_SLOT_IDS.backgroundImage, session) : null
+    if (guided) {
+      commitPreparedDiscBackgroundCompound(root, {
+        sessionId: session.id, expectedRevision: session.revision, operation,
+      }, { kind: 'guided', guidedLayout: guided.guidedLayout }, scope => {
+        if (scope.guided) guided.mirror()
+        if (scope.currentInteraction) accepted?.()
+      })
+      return
+    }
+
+    if (submit(operation, session)) {
+      if (!prepareGuidedCompletion) completeDiscGuidedSlotWhenSatisfied(
+        onDiscGuidedSlotCompleted, DISC_GUIDED_COMPLETION_SLOT_IDS.backgroundImage, satisfied)
+      accepted?.()
+    }
   }
 
   function clearSelectedArtwork() {
@@ -146,34 +218,13 @@ export function useBackgroundImage({
     setPendingArtwork(null)
   }
 
-  function restoreBackgroundImageState(restoredState: RestorableBackgroundImageState) {
-    asyncWork.invalidateAll()
-    setBackgroundScale(restoredState.backgroundScale)
-    setBackgroundOffset(restoredState.backgroundOffset)
-    setBackgroundImageUrl(restoredState.backgroundImageUrl)
-    setBackgroundImageSource(restoredState.backgroundImageSource)
-    setBackgroundImageSize(restoredState.backgroundImageSize)
-    setIsBackgroundArtworkEnabled(restoredState.isBackgroundArtworkEnabled)
-  }
-
-  function resetBackgroundArtwork() {
-    const emptyBackground = createEmptyBackgroundImageState()
-    setBackgroundImageUrl(emptyBackground.imageUrl)
-    setBackgroundImageSource(null)
-    setBackgroundImageSize(emptyBackground.imageSize)
-    setBackgroundScale(emptyBackground.scale)
-    setBackgroundOffset(emptyBackground.offset)
-    setIsBackgroundArtworkEnabled(true)
-    clearSelectedArtwork()
-  }
-
   async function handleBackgroundUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (file) await importBackgroundUpload(file)
   }
 
   async function handlePickNativeBackgroundFile() {
-    if (nativePickerInFlight.current) return
+    if (nativePickerInFlight.current || !getDiscSession()) return
     nativePickerInFlight.current = true
     try {
       await selectNativeBackgroundFile(asyncWork, pickDiscBackgroundFile,
@@ -208,8 +259,9 @@ export function useBackgroundImage({
 
   function handleResetBackground() {
     asyncWork.invalidateAll()
-    setBackgroundScale(DEFAULT_BACKGROUND_SCALE)
-    setBackgroundOffset(createDefaultBackgroundOffset())
+    submit({
+      kind: 'transform', scale: DEFAULT_BACKGROUND_SCALE, offset: createDefaultBackgroundOffset(),
+    })
   }
 
   async function handleUseSteamArtwork(asset: SteamArtworkAsset) {
@@ -228,66 +280,39 @@ export function useBackgroundImage({
   }
 
   function handleBackgroundArtworkEnabledChange(enabled: boolean) {
-    const nextBackground = enabled
-      ? applySemanticBackgroundChange({
-          enabled,
-          imageDataUrl: backgroundImageUrl,
-          imageSource: backgroundImageSource,
-          imageSize: backgroundImageSize,
-          scale: backgroundScale,
-          offset: backgroundOffset,
-        })
-      : {
-          enabled,
-          imageDataUrl: backgroundImageUrl,
-          imageSource: backgroundImageSource,
-          imageSize: backgroundImageSize,
-          scale: backgroundScale,
-          offset: backgroundOffset,
-        }
+    const session = getDiscSession()
+    if (!session || !root.canCommitDiscBackground()) return
+    const current = session.project.background
+    const proposed: DiscBackgroundPresetOwnerState = {
+      enabled, imageDataUrl: current.imageDataUrl,
+      imageSource: current.imageSource ?? null, imageSize: current.imageSize ?? null,
+      scale: current.scale, offset: current.offset,
+    }
+    const placement = enabled ? applySemanticBackgroundChange(proposed, current) : null
+    const nextBackground = placement?.next ?? proposed
 
-    setIsBackgroundArtworkEnabled(nextBackground.enabled)
-    setBackgroundScale(nextBackground.scale)
-    setBackgroundOffset({ ...nextBackground.offset })
-    completeDiscGuidedSlotWhenSatisfied(
-      onDiscGuidedSlotCompleted,
-      DISC_GUIDED_COMPLETION_SLOT_IDS.backgroundImage,
-      isDiscGuidedBackgroundOwnerSatisfied({
-        enabled: nextBackground.enabled,
-        imageDataUrl: nextBackground.imageDataUrl,
-        imageSize: nextBackground.imageSize,
-      }),
-    )
+    submitWithGuidedCompanion(session, { kind: 'visibility', enabled: nextBackground.enabled,
+      scale: nextBackground.scale, offset: nextBackground.offset },
+    isDiscGuidedBackgroundOwnerSatisfied(nextBackground), placement?.acceptPlacement)
   }
 
   function handleBackgroundScaleChange(value: number) {
-    const nextScale = updateBackgroundScale(value, backgroundScale)
-
-    setBackgroundScale(nextScale)
-    setBackgroundOffset((currentOffset) =>
-      clampBackgroundOffsetToImageBounds(
-        currentOffset,
-        backgroundImageSize,
-        nextScale,
-        discPreviewSize,
-      ),
-    )
+    const session = getDiscSession()
+    if (!session) return
+    const current = session.project.background
+    const scale = updateBackgroundScale(value, current.scale)
+    const offset = clampBackgroundOffsetToImageBounds(current.offset, current.imageSize ?? null,
+      scale, discPreviewSize)
+    submit({ kind: 'transform', scale, offset }, session)
   }
 
-  function handleBackgroundOffsetChange(
-    field: BackgroundOffsetField,
-    value: number,
-  ) {
-    setBackgroundOffset((currentOffset) =>
-      updateBackgroundOffsetField(
-        currentOffset,
-        field,
-        value,
-        backgroundImageSize,
-        backgroundScale,
-        discPreviewSize,
-      ),
-    )
+  function handleBackgroundOffsetChange(field: BackgroundOffsetField, value: number) {
+    const session = getDiscSession()
+    if (!session) return
+    const current = session.project.background
+    const offset = updateBackgroundOffsetField(current.offset, field, value,
+      current.imageSize ?? null, current.scale, discPreviewSize)
+    submit({ kind: 'transform', scale: current.scale, offset }, session)
   }
 
   function handleFitBackgroundToSteamBannerOpenArea() {
@@ -302,8 +327,7 @@ export function useBackgroundImage({
       return
     }
 
-    setBackgroundScale(updateBackgroundScale(fit.scale))
-    setBackgroundOffset(fit.offset)
+    if (!submit({ kind: 'placement', scale: updateBackgroundScale(fit.scale), offset: fit.offset })) return
     announceStatus(
       steamLogoPlacement === 'none'
         ? 'Fit background edge to edge.'
@@ -317,7 +341,11 @@ export function useBackgroundImage({
     backgroundImageSize,
     backgroundScale,
     backgroundOffset,
-    setBackgroundOffset,
+    beginBackgroundDrag: (key: string) => draft.begin(key),
+    updateBackgroundDragOffset,
+    finishBackgroundDrag: draft.finish,
+    cancelBackgroundDrag: draft.cancel,
+    backgroundRangeGesture,
     isBackgroundArtworkEnabled,
     selectedArtworkId,
     setSelectedArtworkId,
@@ -327,8 +355,8 @@ export function useBackgroundImage({
     effectiveBackgroundImageUrl,
     effectiveBackgroundImageSize,
     applyBackgroundImageImport,
-    restoreBackgroundImageState,
-    resetBackgroundArtwork,
+    getDiscSession,
+    invalidateBackgroundWorkAfterPreset: asyncWork.invalidateAll,
     clearSelectedArtwork,
     handleBackgroundUpload,
     handlePickNativeBackgroundFile,
