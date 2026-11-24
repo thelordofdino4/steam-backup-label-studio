@@ -13,6 +13,30 @@ const route = '/__disc-steam-366'
 const entryURL = '/__disc-steam-366-entry.mjs'
 const entryModule = '\0sbls-366-mounted-entry'
 const steamModule = '\0sbls-366-steam-transport'
+const pngProbeModule = '\0sbls-366-observe-png'
+const saveProbeModule = '\0sbls-366-observe-save'
+const pngProbe = `
+export * from '/src/app/appPngExportInputs.ts'
+import { createDiscPngExportInput as real } from '/src/app/appPngExportInputs.ts'
+export function createDiscPngExportInput(input) {
+  const captured = real(input)
+  window.noteDiscCommandCapture('export.png', {
+    title: captured.exportInput.discTextLayout?.title,
+    legal: captured.exportInput.discTextLayout?.copyright,
+    rating: captured.exportInput.projectRatingBadge?.layout,
+  })
+  return captured
+}`
+const saveProbe = `
+export * from '/src/lifecycle/projectSession.ts'
+import { projectPinnedDiscSave as real } from '/src/lifecycle/projectSession.ts'
+export function projectPinnedDiscSave(pin) {
+  const p = real(pin)
+  window.noteDiscCommandCapture('project.save', {
+    title: p.discText?.layout?.title, legal: p.discText?.layout?.copyright, rating: p.ratingBadge?.layout,
+  }, pin.revision)
+  return p
+}`
 const entry = await readFile(new URL('./testing/discSteamMountedFixture.mjs', import.meta.url), 'utf8')
 const retiredAppId = 920010001
 const incomingAppId = 920010002
@@ -95,12 +119,16 @@ test.before(async () => {
       },
       resolveId(id, importer) {
         if (id === entryURL) return entryModule
-        const fromSteam = importer?.replaceAll('\\', '/').endsWith('/src/steam/steamApi.ts')
-        if (id === '@tauri-apps/api/core' && fromSteam) return steamModule
+        const caller = importer?.replaceAll('\\', '/')
+        if (id === '@tauri-apps/api/core' && caller?.endsWith('/src/steam/steamApi.ts')) return steamModule
+        if (id === './appPngExportInputs' && caller?.endsWith('/src/app/App.tsx')) return pngProbeModule
+        if (id === '../lifecycle/projectSession.ts' && caller?.endsWith('/src/app/appProjectSaveCommand.ts')) return saveProbeModule
       },
       load(id) {
         if (id === entryModule) return entry
         if (id === steamModule) return syntheticTransport
+        if (id === pngProbeModule) return pngProbe
+        if (id === saveProbeModule) return saveProbe
       },
     }],
   })
@@ -233,3 +261,38 @@ test('real Disc App: deferred Steam edit fence, one complete revision, Save and 
     throw error
   } finally { await page.close() }
 })
+
+
+// Reentry is a deterministic stress of the same registered commands, not a
+// physical interaction or a claim that an ordinary user click runs in this stack.
+for (const command of ['project.save', 'export.png']) {
+  test('Disc preset accepted revision: reentrant ' + command + ' should capture matching persisted layout', { timeout: 60_000 }, async () => {
+    const page = await browser.newPage()
+    try {
+      await page.route('**/*', request => {
+        const url = request.request().url()
+        return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+          ? request.continue() : request.abort('blockedbyclient')
+      })
+      await page.goto(origin + route)
+      await page.locator('[data-smoke-id="home-new-disc"]').click()
+      await reveal(page, 'Layout Presets')
+      await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+      await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+      await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.guided.id ===
+        'disc:guided-layout:classic-top-title')
+      await drain(page)
+      await page.getByLabel('Preset', { exact: true }).selectOption('centered-logo-archive')
+      await page.evaluate(name => window.armDiscPresetReadback(name), command)
+      await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+      await page.waitForFunction(() => Boolean(window.readDiscPresetReadback()?.terminal))
+      const trial = await page.evaluate(() => window.readDiscPresetReadback())
+      assert.equal(trial.synchronousCapture, true, 'readout must happen within the document publication stack')
+      assert.notDeepEqual(trial.accepted, trial.previous, 'actual preset must change inherited renderer input applicable to the race')
+      assert.notEqual(trial.terminal, 'not-executed')
+      assert.notEqual(trial.terminal, 'success', 'browser does not support native output')
+      if (command === 'project.save') assert.equal(trial.capture.revision, trial.revision)
+      assert.deepEqual(trial.capture.input, trial.accepted, command + ' must use accepted R, not previous mirrored layout')
+    } finally { await page.close() }
+  })
+}
