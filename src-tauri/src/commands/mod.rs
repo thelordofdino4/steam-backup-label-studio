@@ -1,3 +1,4 @@
+pub(crate) mod disc_background_picker;
 pub(crate) mod files;
 pub(crate) mod image_import;
 pub(crate) mod local_images;

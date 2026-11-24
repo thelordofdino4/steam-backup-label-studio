@@ -2,7 +2,7 @@ import { commitPreparedDiscBackgroundCompound } from '../app/appDiscBackgroundCo
 import { useDiscBackgroundDraft } from './useDiscBackgroundDraft.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
-import { useContext, useMemo, useState, useSyncExternalStore, type ChangeEvent } from 'react'
+import { useContext, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react'
 import { ApplicationLifecycleRuntimeContext } from '../app/applicationLifecycleRuntimeContext.ts'
 import type { DiscBackgroundOperation, DiscProjectSession } from '../lifecycle/projectSession.ts'
 import { ImportedImagePolicyError } from '../image/importedImagePolicy'
@@ -39,6 +39,8 @@ import {
   type DiscGuidedSlotCompletionHandler,
 } from '../guidedPresets/discGuidedCompletion.ts'
 import type { SteamArtworkAsset } from '../steam/steamApi'
+import { pickDiscBackgroundFile } from '../tauri/discBackgroundPicker.ts'
+import { selectNativeBackgroundFile } from '../image/backgroundNativeFileSelection.ts'
 
 type UseBackgroundImageOptions = {
   discPreviewSize: number
@@ -78,6 +80,7 @@ export function useBackgroundImage({
   const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
   const asyncWork = useProjectAsyncWork()
   const [pendingArtwork, setPendingArtwork] = useState<ProjectAsyncRequest | null>(null)
+  const nativePickerInFlight = useRef(false)
   const isArtworkLoading = pendingArtwork !== null && asyncWork.isCurrent(pendingArtwork)
   const runtime = useContext(ApplicationLifecycleRuntimeContext)
   if (!runtime) throw new Error('ApplicationLifecycleBoundary is required.')
@@ -217,11 +220,31 @@ export function useBackgroundImage({
 
   async function handleBackgroundUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
+    if (file) await importBackgroundUpload(file)
+  }
 
-    if (!file) {
-      return
+  async function handlePickNativeBackgroundFile() {
+    if (nativePickerInFlight.current || !getDiscSession()) return
+    nativePickerInFlight.current = true
+    try {
+      await selectNativeBackgroundFile(asyncWork, pickDiscBackgroundFile,
+        file => { void importBackgroundUpload(file) }, reportBackgroundUploadFailure)
+    } finally {
+      nativePickerInFlight.current = false
     }
+  }
 
+  function reportBackgroundUploadFailure(error: unknown) {
+    announceStatus(
+      error instanceof ImportedImagePolicyError
+        ? error.message
+        : error instanceof BackgroundImageLoadError
+        ? 'Background image could not be loaded.'
+        : 'Background image could not be read.',
+    )
+  }
+
+  async function importBackgroundUpload(file: File) {
     const request = asyncWork.begin('background-artwork')
     setPendingArtwork(request)
     try {
@@ -229,13 +252,7 @@ export function useBackgroundImage({
       asyncWork.commit(request, () => { applyBackgroundImageImport(imported) })
     } catch (error) {
       asyncWork.publish(request, () => {
-        announceStatus(
-          error instanceof ImportedImagePolicyError
-            ? error.message
-            : error instanceof BackgroundImageLoadError
-            ? 'Background image could not be loaded.'
-            : 'Background image could not be read.',
-        )
+        reportBackgroundUploadFailure(error)
       })
     }
   }
@@ -342,6 +359,7 @@ export function useBackgroundImage({
     invalidateBackgroundWorkAfterPreset: asyncWork.invalidateAll,
     clearSelectedArtwork,
     handleBackgroundUpload,
+    handlePickNativeBackgroundFile,
     handleResetBackground,
     handleUseSteamArtwork,
     handleBackgroundArtworkEnabledChange,

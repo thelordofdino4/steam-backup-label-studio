@@ -38,6 +38,7 @@ export type ArtworkPanelProps = {
     asset: LocalSteamScreenshotAsset,
   ) => void | Promise<void>
   handleBackgroundUpload: (event: ChangeEvent<HTMLInputElement>) => void
+  handlePickNativeBackgroundFile: () => Promise<void>
   isBackgroundArtworkEnabled: boolean
   handleBackgroundArtworkEnabledChange: (enabled: boolean) => void
   backgroundScale: number
