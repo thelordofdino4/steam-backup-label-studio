@@ -4,6 +4,7 @@ import { createApplicationLifecycleCompositionRoot } from '../lifecycle/applicat
 import { createLoadedProjectSession, type DiscProjectSession } from '../lifecycle/projectSession.ts'
 import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
 import { commitPreparedDiscBackgroundCompound, projectDiscPresetSiblingFields } from './appDiscBackgroundCompoundCommand.ts'
+import { captureDiscRatingLayoutBasis } from '../lifecycle/discRatingLayoutSync.ts'
 import type { DiscRolePresetCurrentState } from './appDiscRolePresetApplication.ts'
 
 function setup() {
@@ -138,6 +139,9 @@ test('preset applies both rating layouts without replaying the old rendered rati
   assert.equal(root.synchronizeDiscLegacyProject({
     sessionId: 'disc', legacy: { ...legacy, ratingBadge: currentBadge },
   }), 'synchronized')
+  assert.equal(root.commitDiscSupplementalUsk({
+    sessionId: 'disc', expectedGeneration: root.getStateSnapshot().generation, ratingValue: '16',
+  }), 'committed')
   const before = read()
   const plannedBadge = {
     ...oldBadge,
@@ -180,12 +184,15 @@ test('newer primary rating geometry reentry does not disable the independent USK
     const next = accepted.project.ratingBadge!
     assert.equal(root.synchronizeDiscLegacyProject({
       sessionId: 'disc',
+      ratingBasis: captureDiscRatingLayoutBasis(next),
       legacy: { ...legacy, ratingBadge: {
         ...next,
         layout: { ...next.layout, x: 34 },
-        uskBadge: { ...next.uskBadge, ratingValue: '18' },
       } },
     }), 'synchronized')
+    assert.equal(root.commitDiscSupplementalUsk({
+      sessionId: 'disc', expectedGeneration: root.getStateSnapshot().generation, ratingValue: '18',
+    }), 'committed')
   })
   assert.equal(commitPreparedDiscBackgroundCompound(root, edit, { kind: 'preset', fields: {
     ratingBadge: preset,
@@ -194,8 +201,57 @@ test('newer primary rating geometry reentry does not disable the independent USK
     assert.equal(scope.primaryRatingLayout, false)
     assert.equal(scope.supplementalRatingLayout, true)
   }), 'committed')
-  assert.equal(read().revision, 2)
+  assert.equal(read().revision, 3)
   assert.equal(read().project.ratingBadge?.layout.x, 34)
   assert.equal(read().project.ratingBadge?.uskBadge.ratingValue, '18')
   assert.equal(read().project.ratingBadge?.uskBadge.layout.x, 24)
+})
+
+test('placement-only preset preserves accepted visibility even from an already old rendered basis', () => {
+  const { root, read, edit, project } = setup()
+  const { background, ...legacy } = project
+  const oldBadge = project.ratingBadge!
+  const currentBadge = {
+    ...oldBadge,
+    source: 'custom' as const,
+    customImageDataUrl: 'data:image/png;base64,AAAA',
+    customImageSize: { width: 60, height: 100 },
+    layout: { ...oldBadge.layout, enabled: true },
+    uskBadge: {
+      ...oldBadge.uskBadge, ratingValue: '16',
+      layout: { ...oldBadge.uskBadge.layout, enabled: true },
+    },
+  }
+  assert.equal(background.scale, read().project.background.scale)
+  assert.equal(root.synchronizeDiscLegacyProject({
+    sessionId: 'disc', legacy: { ...legacy, ratingBadge: currentBadge },
+  }), 'synchronized')
+  assert.equal(root.commitDiscSupplementalUsk({
+    sessionId: 'disc', expectedGeneration: root.getStateSnapshot().generation, ratingValue: '16',
+    placement: { layout: currentBadge.layout, uskLayout: currentBadge.uskBadge.layout },
+  }), 'committed')
+  const acceptedRevision = read().revision
+  const plannedBadge = {
+    ...oldBadge,
+    layout: { ...oldBadge.layout, x: 21 },
+    uskBadge: { ...oldBadge.uskBadge, layout: { ...oldBadge.uskBadge.layout, x: 8 } },
+  }
+  const fields = projectDiscPresetSiblingFields(
+    { ratingBadge: oldBadge } as DiscRolePresetCurrentState,
+    { ratingBadge: plannedBadge } as DiscRolePresetCurrentState,
+    ['ratingBadge'], 'preserve',
+  )
+  assert.equal(Object.hasOwn(fields.ratingBadge!.layout, 'enabled'), false)
+  assert.equal(Object.hasOwn(fields.ratingBadge!.uskLayout, 'enabled'), false)
+  assert.equal(commitPreparedDiscBackgroundCompound(root, { ...edit, expectedRevision: acceptedRevision },
+    { kind: 'preset', fields }, scope => {
+      assert.equal(scope.primaryRatingLayout, true)
+      assert.equal(scope.supplementalRatingLayout, true)
+    }), 'committed')
+  assert.equal(read().revision, acceptedRevision + 1)
+  assert.deepEqual(read().project.ratingBadge, {
+    ...currentBadge,
+    layout: { ...currentBadge.layout, x: 21 },
+    uskBadge: { ...currentBadge.uskBadge, layout: { ...currentBadge.uskBadge.layout, x: 8 } },
+  })
 })

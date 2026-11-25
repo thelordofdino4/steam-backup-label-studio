@@ -15,7 +15,7 @@ import '/src/styles/layoutFix.css'
 
 const max = 160
 const revisions = [], scopes = []
-let armed, trial
+let armed, trial, staleRatingTrial
 const readLayout = ({ discTextLayout, discTextSettings, projectRatingBadge }) => ({
   title: discTextLayout?.title,
   legal: discTextLayout?.copyright,
@@ -90,6 +90,20 @@ const lifecycleRuntime = createApplicationLifecycleRuntime({
         })
         current.synchronousCapture = Boolean(current.capture)
       }
+      if (staleRatingTrial?.armed && session.id === staleRatingTrial.sessionId &&
+          session.revision === staleRatingTrial.revision + 1 &&
+          session.project.ratingBadge?.uskBadge.ratingValue === '16') {
+        staleRatingTrial.armed = false
+        const accepted = materializeDiscProject(session.project)
+        const { background, ...legacy } = accepted
+        staleRatingTrial.projected = root.synchronizeDiscLegacyProject({
+          sessionId: session.id, legacy: { ...legacy, ratingBadge: staleRatingTrial.oldBadge },
+        })
+        staleRatingTrial.full = root.synchronizeCurrentProject({
+          sessionId: session.id, kind: 'disc',
+          project: { ...legacy, background, ratingBadge: staleRatingTrial.oldBadge },
+        })
+      }
       const key = session.id + ':' + session.revision
       if (key !== lastRevision) {
         lastRevision = key
@@ -104,6 +118,16 @@ const lifecycleRuntime = createApplicationLifecycleRuntime({
     })
     return root
   },
+})
+window.armDiscStaleRatingReplay = () => {
+  const session = lifecycleRuntime.root.getLifecycleState().activeSession
+  if (session?.kind !== 'disc' || staleRatingTrial) throw Error('Expected active Disc and no prior replay')
+  const oldBadge = materializeDiscProject(session.project).ratingBadge
+  if (!oldBadge || oldBadge.uskBadge.layout.enabled) throw Error('Expected a disabled supplemental rating')
+  staleRatingTrial = { armed: true, sessionId: session.id, revision: session.revision, oldBadge }
+}
+window.readDiscStaleRatingReplay = () => ({
+  projected: staleRatingTrial?.projected, full: staleRatingTrial?.full,
 })
 window.armDiscPresetReadback = command => {
   if (!['project.save', 'export.png'].includes(command) || armed || trial) throw Error('Invalid probe arm')
