@@ -1114,7 +1114,17 @@ function App() {
         switch (owner) {
           case 'titleArtwork': if (mirror.presetField('titleArtwork')) setProjectTitleArtwork(owners.titleArtwork); break
           case 'logoAssets': if (mirror.presetField('logoAssets')) setProjectLogoAssets(owners.logoAssets); break
-          case 'ratingBadge': if (mirror.presetField('ratingBadge')) setProjectRatingBadge(owners.ratingBadge); break
+          case 'ratingBadge':
+            if (mirror.primaryRatingLayout || mirror.supplementalRatingLayout) {
+              setProjectRatingBadge(current => ({
+                ...current,
+                layout: mirror.primaryRatingLayout ? owners.ratingBadge.layout : current.layout,
+                uskBadge: mirror.supplementalRatingLayout
+                  ? { ...current.uskBadge, layout: owners.ratingBadge.uskBadge.layout }
+                  : current.uskBadge,
+              }))
+            }
+            break
           case 'mediaMark': if (mirror.presetField('mediaMark')) setProjectMediaMark(owners.mediaMark); break
           case 'platformMarks': if (mirror.presetField('platformMarks')) setProjectPlatformMarks(owners.platformMarks); break
           case 'technicalMarks': if (mirror.presetField('technicalMarks')) setProjectTechnicalMarks(owners.technicalMarks); break

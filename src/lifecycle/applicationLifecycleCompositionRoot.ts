@@ -41,7 +41,8 @@ import {
   type ApplicationTerminationCapabilities,
 } from './lifecycleCommandCapabilities.ts'
 import type { DiscLegacyProjectProjection } from '../project/createProjectSnapshot.ts'
-import type { SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
+import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
+import type { RatingBadgeLayout, SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
 import {
   synchronizeActiveProjectContent,
   editDiscBackground,
@@ -124,14 +125,29 @@ const guidedCompanionKeys = new Set(['kind', 'guidedLayout'])
 const optionalGuidedKey = new Set(['guidedLayout'])
 const presetSiblingFootprint = new Set<string>(discPresetSiblingKeys)
 const presetTextFootprint = new Set(['layout', 'settings'])
+const presetRatingFootprint = new Set(['layout', 'uskLayout'])
+const ratingLayoutFootprint = new Set(['enabled', 'scale', 'x', 'y'])
+
+function readPresetRatingLayout(input: unknown): RatingBadgeLayout | null {
+  const layout = readClosedDataFootprint(input, ratingLayoutFootprint)
+  if (!layout || typeof layout.enabled !== 'boolean' ||
+      typeof layout.scale !== 'number' || !Number.isFinite(layout.scale) || layout.scale <= 0 ||
+      typeof layout.x !== 'number' || !Number.isFinite(layout.x) ||
+      typeof layout.y !== 'number' || !Number.isFinite(layout.y)) return null
+  return { enabled: layout.enabled, scale: layout.scale, x: layout.x, y: layout.y }
+}
 
 function discRemainderOf(project: DiscProjectSession['project']): Record<string, unknown> {
   return Object.fromEntries(Object.entries(project).filter(([key]) => key !== 'background'))
 }
 
 type DiscPresetTextFields = Pick<NonNullable<SavedDiscProject['discText']>, 'layout' | 'settings'>
+type DiscPresetRatingFields = Readonly<{ layout: RatingBadgeLayout; uskLayout: RatingBadgeLayout }>
 export type DiscPresetSiblingFields = Partial<Pick<SavedDiscProject,
-  Exclude<typeof discPresetSiblingKeys[number], 'discText'>>> & { discText?: DiscPresetTextFields }
+  Exclude<typeof discPresetSiblingKeys[number], 'discText' | 'ratingBadge'>>> & {
+    discText?: DiscPresetTextFields
+    ratingBadge?: DiscPresetRatingFields
+  }
 export type DiscBackgroundCompoundCompanion =
   | Readonly<{ kind: 'preset'; fields: DiscPresetSiblingFields; guidedLayout?: SavedDiscGuidedLayoutState | null }>
   | Readonly<{ kind: 'guided'; guidedLayout: SavedDiscGuidedLayoutState }>
@@ -524,11 +540,25 @@ export function createApplicationLifecycleCompositionRoot(
         if (envelope.kind === 'preset') {
           const fields = readClosedDataFootprint(envelope.fields, presetSiblingFootprint)
           if (!fields) return 'invalid'
-          const { discText, ...directFields } = fields
+          const { discText, ratingBadge, ...directFields } = fields
           if (Object.hasOwn(fields, 'discText')) {
             const text = readClosedDataFootprint(discText, presetTextFootprint)
             if (!text) return 'invalid'
             Object.assign(remainder, { discText: { ...session.project.discText, ...text } })
+          }
+          if (Object.hasOwn(fields, 'ratingBadge')) {
+            const rating = readClosedDataFootprint(ratingBadge, presetRatingFootprint)
+            const layout = readPresetRatingLayout(rating?.layout)
+            const uskLayout = readPresetRatingLayout(rating?.uskLayout)
+            if (!layout || !uskLayout) return 'invalid'
+            const defaults = createDefaultProjectRatingBadge()
+            const accepted = session.project.ratingBadge
+            Object.assign(remainder, { ratingBadge: {
+              ...defaults,
+              ...accepted,
+              layout,
+              uskBadge: { ...defaults.uskBadge, ...accepted?.uskBadge, layout: uskLayout },
+            } })
           }
           Object.assign(remainder, directFields)
         } else if (Object.keys(envelope).some(key => !guidedCompanionKeys.has(key)) ||

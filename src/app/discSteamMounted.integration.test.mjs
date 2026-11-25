@@ -217,6 +217,43 @@ async function start(page, id) {
 const rejectLogo = (page, id) => page.evaluate(
   appId => window.discSteamTransportFixture.rejectLogo(appId), id)
 
+test('real Disc preset applies layout without changing a selected PEGI/USK rating', { timeout: 60_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Game Info Logos')
+    await reveal(page, 'Rating badge')
+    await page.getByLabel('Show rating badge', { exact: true }).check()
+    await page.getByLabel('Rating system', { exact: true }).selectOption('PEGI')
+    await page.getByLabel('Rating value', { exact: true }).selectOption('12')
+    await page.getByLabel('Show additional USK badge', { exact: true }).check()
+    const uskValue = page.getByLabel('USK rating value', { exact: true })
+    await uskValue.selectOption('16')
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk?.value === '16')
+    await reveal(page, 'Layout Presets')
+    await page.getByLabel('Preset', { exact: true }).selectOption('centered-logo-archive')
+    const before = (await receipt(page)).revisions.at(-1)
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(revision => window.readDiscSteamReceipt().revisions.at(-1)?.revision > revision, before.revision)
+    await drain(page)
+    const after = (await receipt(page)).revisions.at(-1)
+    assert.equal(after.revision, before.revision + 1)
+    assert.equal(after.metadata.ratingSystem, 'PEGI')
+    assert.equal(after.metadata.ratingValue, '12')
+    assert.deepEqual(after.usk, { enabled: true, value: '16' })
+    assert.notDeepEqual(after.ratingLayout, before.ratingLayout)
+    await reveal(page, 'Game Info Logos')
+    await reveal(page, 'Rating badge')
+    assert.equal(await uskValue.inputValue(), '16')
+  } finally { await page.close() }
+})
+
 test('real Disc App: deferred Steam edit fence, one complete revision, Save and PNG requests', { timeout: 90_000 }, async () => {
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
   const pageErrors = [], unexpectedOrigins = []
