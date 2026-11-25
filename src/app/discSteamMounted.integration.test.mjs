@@ -640,3 +640,57 @@ test('mounted Disc history restores the real USK controls and acknowledges the c
     assert.equal(await page.getByLabel('USK rating value', { exact: true }).inputValue(), '16')
   } finally { await page.close() }
 })
+
+test('mounted Guided Classic history restores fitted placeholder geometry and slot identity', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    const preset = page.getByLabel('Preset', { exact: true })
+    await preset.selectOption('classic-top-title')
+    await drain(page)
+    const before = (await receipt(page)).revisions.at(-1)
+    const slots = page.locator('g[data-guided-slot-id] > foreignObject')
+    const geometry = () => slots.evaluateAll(items => items.map(node => ({
+      id: node.parentElement.getAttribute('data-guided-slot-id'),
+      x: node.getAttribute('x'), y: node.getAttribute('y'),
+      width: node.getAttribute('width'), height: node.getAttribute('height'),
+      rotation: node.getAttribute('transform'),
+    })))
+    assert.deepEqual(await geometry(), [])
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.guided.id ===
+      'disc:guided-layout:classic-top-title')
+    await slots.first().waitFor({ state: 'attached' })
+    await drain(page)
+    const applied = (await receipt(page)).revisions.at(-1)
+    const appliedGeometry = await geometry()
+    assert.ok(appliedGeometry.some(slot => slot.id === 'disc:guided:game-title:primary'))
+    const step = async (direction, revision) => {
+      assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return state.revision === revision && !state.pending
+      }, revision)
+      return (await receipt(page)).revisions.at(-1)
+    }
+    const undone = await step('undo', applied.revision + 1)
+    assert.deepEqual(undone.guided, before.guided)
+    assert.deepEqual(undone.ratingLayout, before.ratingLayout)
+    assert.deepEqual(await geometry(), [])
+    // The local preset picker is UI state, not history content.
+    assert.equal(await preset.inputValue(), 'classic-top-title')
+
+    const redone = await step('redo', applied.revision + 2)
+    assert.deepEqual(redone.guided, applied.guided)
+    assert.deepEqual(redone.ratingLayout, applied.ratingLayout)
+    assert.deepEqual(await geometry(), appliedGeometry)
+    assert.equal(await preset.inputValue(), 'classic-top-title')
+  } finally { await page.close() }
+})

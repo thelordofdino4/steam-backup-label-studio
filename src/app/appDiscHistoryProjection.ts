@@ -1,3 +1,10 @@
+import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
+import type { DiscTemplate } from '../types/template.ts'
+import type { DiscLegacyProjectProjection } from '../project/createProjectSnapshot.ts'
+import {
+  reconstructActiveDiscPresetState, type RegisteredDiscPresetApplicationState,
+} from './appRegisteredDiscPresetApplication.ts'
+import type { ActiveDiscPresetState } from '../presets/discPresetTargetedApplication.ts'
 import type { ApplicationLifecycleCompositionRoot } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
 import { isCommittedDiscProject, normalizedProjectValueMatches, type DeepReadonly } from '../lifecycle/canonicalProject.ts'
 import type { DiscProjectSession } from '../lifecycle/projectSession.ts'
@@ -226,6 +233,50 @@ function cloneImageSize(size: BackgroundImageSize | null): BackgroundImageSize |
   }
 }
 
+/** Rebuild the fitted Guided attachment from accepted owner values, not Open.
+ * Unchanged needed owners may come from the mounted editor only if its captured
+ * projection still matches the source revision. A blank destination clears the
+ * attachment; missing exact registry resolution rejects the step in preflight. */
+export function prepareDiscHistoryGuidedAttachment({
+  workflow, current, target, plan, renderProjection, rendered, template,
+}: Readonly<{
+  workflow: DiscGuidedWorkflowState
+  current: DiscProjectSession['project']
+  target: DiscProjectSession['project']
+  plan: DiscHistoryProjection
+  renderProjection: DiscLegacyProjectProjection
+  rendered: Omit<RegisteredDiscPresetApplicationState, 'background'>
+  template: DiscTemplate
+}>): Readonly<{ workflow: DiscGuidedWorkflowState; attachment: ActiveDiscPresetState | null }> | null {
+  if (!workflow.activeLayout) return Object.freeze({ workflow, attachment: null })
+  const verifiedRenderKeys = [
+    'template', 'titleArtwork', 'discText', 'logoAssets', 'ratingBadge', 'mediaMark', 'platformMarks', 'metadata',
+  ] as const
+  if (!verifiedRenderKeys.every(key => normalizedProjectValueMatches(renderProjection[key], current[key]))) return null
+  const attachment = reconstructActiveDiscPresetState({
+    workflow, selectedDiscTemplate: template,
+    currentState: {
+      ...rendered,
+      titleArtwork: plan.titleArtwork ?? rendered.titleArtwork,
+      ratingBadge: plan.ratingBadge ?? rendered.ratingBadge,
+      mediaMark: plan.mediaMark ?? rendered.mediaMark,
+      platformMarks: plan.platformMarks ?? rendered.platformMarks,
+      logoAssets: plan.logoAssets ?? rendered.logoAssets,
+      discTextSettings: plan.discTextSettings ?? rendered.discTextSettings,
+      discTextLayout: plan.discTextLayout ?? rendered.discTextLayout,
+      background: {
+        enabled: target.background.enabled ?? true,
+        imageDataUrl: readDiscBackgroundAsset(target.background.asset),
+        imageSource: target.background.imageSource ?? null,
+        imageSize: target.background.imageSize ?? null,
+        scale: target.background.scale,
+        offset: target.background.offset,
+      },
+    },
+  })
+  return attachment ? Object.freeze({ workflow, attachment }) : null
+}
+
 /** Stages a lossless mirror before the exact-generation transition, then writes
  * it only if a synchronous lifecycle subscriber has not replaced the session.
  * A later committed editor render still has to acknowledge the pending fence. */
@@ -241,7 +292,10 @@ export function stepProjectedDiscHistory(
     setLogoAssets(value: ProjectLogoAssets): void
     setTechnicalMarks(value: ProjectTechnicalMarks): void
     /** Prepare both persisted slots and their runtime attachment from target. */
-    prepareGuidedAttachment?(workflow: DiscGuidedWorkflowState, target: DiscProjectSession['project']): (() => void) | null
+    prepareGuidedAttachment?(
+      workflow: DiscGuidedWorkflowState, target: DiscProjectSession['project'],
+      plan: DiscHistoryProjection, current: DiscProjectSession['project'],
+    ): (() => void) | null
     setDiscTextSettings(value: DiscTextSettings): void
     setDiscTextLayout(value: DiscTextLayoutSettings): void
   }>,
@@ -256,7 +310,7 @@ export function stepProjectedDiscHistory(
       !isCommittedDiscProject(target)) return 'stale'
   const plan = prepareDiscHistoryProjection(current, target)
   if (!plan) return 'unavailable'
-  const applyGuided = plan.guidedWorkflow ? editor.prepareGuidedAttachment?.(plan.guidedWorkflow, target) : undefined
+  const applyGuided = plan.guidedWorkflow ? editor.prepareGuidedAttachment?.(plan.guidedWorkflow, target, plan, current.project) : undefined
   if (plan.guidedWorkflow && !applyGuided) return 'unavailable'
   let result: ReturnType<ApplicationLifecycleCompositionRoot['stepDiscDocumentHistory']> | undefined
   editor.batch(() => {

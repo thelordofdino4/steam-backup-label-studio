@@ -1,4 +1,4 @@
-import { stepProjectedDiscHistory } from './appDiscHistoryProjection.ts'
+import { prepareDiscHistoryGuidedAttachment, stepProjectedDiscHistory } from './appDiscHistoryProjection.ts'
 import { captureDiscBackgroundExportInput } from '../lifecycle/canonicalProject.ts'
 import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
@@ -2192,6 +2192,33 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
       setTechnicalMarks: setProjectTechnicalMarks,
       setDiscTextSettings,
       setDiscTextLayout,
+      prepareGuidedAttachment(workflow, target, plan, current) {
+        const projection = captureCurrentLegacyProject()
+        if (projection.kind !== 'disc') return null
+        const prepared = prepareDiscHistoryGuidedAttachment({
+          workflow, target, plan, current, template: selectedDiscTemplate,
+          renderProjection: projection.project,
+          rendered: {
+            titleArtwork: projectTitleArtwork,
+            ratingBadge: projectRatingBadge,
+            mediaMark: projectMediaMark,
+            platformMarks: projectPlatformMarks,
+            logoAssets: projectLogoAssets,
+            discTextSettings,
+            discTextLayout,
+            discTextValues,
+            discTextValueSources,
+            discTextTitleValue,
+            discTextHtmlSources,
+            discTextStyles,
+            metadata: projectMetadata,
+          },
+        })
+        return prepared ? () => {
+          setDiscGuidedWorkflow(prepared.workflow)
+          activeDiscPreset.restoreActivePresetState(prepared.attachment)
+        } : null
+      },
     })),
   )
 
