@@ -90,6 +90,25 @@ test('a completed Save of background R adopts its baseline without replacing lat
   assert.equal(selectIsActiveProjectDirty(state), true)
 })
 
+test('compound preset rating footprint rejects out-of-scope content and malformed layout atomically', () => {
+  const { root, read, project } = setup()
+  assert.ok(project.ratingBadge)
+  const before = read()
+  const edit = { sessionId: 'fixture', expectedRevision: 0,
+    operation: { kind: 'asset' as const, background: { ...project.background, scale: 1.5 } } }
+  const layout = project.ratingBadge.layout
+  const uskLayout = project.ratingBadge.uskBadge.layout
+  for (const ratingBadge of [
+    { layout, uskLayout, ratingValue: '16' },
+    { layout: { ...layout, x: Infinity }, uskLayout },
+    { layout },
+    { layout, uskLayout: { ...uskLayout, ratingValue: '16' } },
+  ]) {
+    assert.equal(root.commitDiscBackgroundCompound(edit, { kind: 'preset', fields: { ratingBadge } }), 'invalid')
+    assert.equal(read(), before)
+  }
+})
+
 test('compound preset accepts only its owner footprint together or neither', () => {
   const { root, read, project } = setup()
   const original = read()

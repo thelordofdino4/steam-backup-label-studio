@@ -6,12 +6,14 @@ import type { DiscRolePresetFeatureOwner } from '../layout/discRolePresets.ts'
 import type { DiscBackgroundEdit } from '../lifecycle/projectSession.ts'
 import { normalizedProjectValueMatches } from '../lifecycle/canonicalProject.ts'
 
-type DirectPresetMirrorField = Exclude<keyof DiscPresetSiblingFields, 'discText'>
+type DirectPresetMirrorField = Exclude<keyof DiscPresetSiblingFields, 'discText' | 'ratingBadge'>
 export type DiscBackgroundCompoundMirrorScope = Readonly<{
   currentInteraction: boolean
   presetField(field: DirectPresetMirrorField): boolean
   discTextLayout: boolean
   discTextSettings: boolean
+  primaryRatingLayout: boolean
+  supplementalRatingLayout: boolean
   guided: boolean
 }>
 
@@ -43,6 +45,10 @@ export function commitPreparedDiscBackgroundCompound(
         matches(fields.discText.layout, current.project.discText?.layout),
       discTextSettings: fields?.discText?.settings !== undefined &&
         matches(fields.discText.settings, current.project.discText?.settings),
+      primaryRatingLayout: fields?.ratingBadge !== undefined &&
+        matches(fields.ratingBadge.layout, current.project.ratingBadge?.layout),
+      supplementalRatingLayout: fields?.ratingBadge !== undefined &&
+        matches(fields.ratingBadge.uskLayout, current.project.ratingBadge?.uskBadge?.layout),
       guided: companion.guidedLayout !== undefined &&
         matches(companion.guidedLayout ?? undefined, current.project.editor?.guidedLayout),
     })
@@ -50,8 +56,8 @@ export function commitPreparedDiscBackgroundCompound(
   return result
 }
 
-/** Only planned owner writes are projected; text controls do not own values,
- * sources, styles, or disc-number assets in a layout-preset transaction. */
+/** Project only planned writes; text content and rating badge content are
+ * not layout-preset targets. */
 export function projectDiscPresetSiblingFields(
   before: DiscRolePresetCurrentState,
   planned: DiscRolePresetCurrentState,
@@ -62,7 +68,9 @@ export function projectDiscPresetSiblingFields(
     switch (owner) {
       case 'titleArtwork': fields.titleArtwork = planned.titleArtwork; break
       case 'logoAssets': fields.logoAssets = planned.logoAssets; break
-      case 'ratingBadge': fields.ratingBadge = planned.ratingBadge; break
+      case 'ratingBadge':
+        fields.ratingBadge = { layout: planned.ratingBadge.layout, uskLayout: planned.ratingBadge.uskBadge.layout }
+        break
       case 'mediaMark': fields.mediaMark = planned.mediaMark; break
       case 'platformMarks': fields.platformMarks = planned.platformMarks; break
       case 'technicalMarks': fields.technicalMarks = planned.technicalMarks; break

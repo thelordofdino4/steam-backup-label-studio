@@ -3,7 +3,8 @@ import test from 'node:test'
 import { createApplicationLifecycleCompositionRoot } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
 import { createLoadedProjectSession, type DiscProjectSession } from '../lifecycle/projectSession.ts'
 import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
-import { commitPreparedDiscBackgroundCompound } from './appDiscBackgroundCompoundCommand.ts'
+import { commitPreparedDiscBackgroundCompound, projectDiscPresetSiblingFields } from './appDiscBackgroundCompoundCommand.ts'
+import type { DiscRolePresetCurrentState } from './appDiscRolePresetApplication.ts'
 
 function setup() {
   const project = createBlankDiscSavedProject()
@@ -120,4 +121,81 @@ test('preset nested text patch rejects content replacement without a publication
     kind:'preset',fields:{discText:{values:{customNote:'Must not write'}}},
   },()=>{ assert.fail('invalid text must never mirror') }),'invalid')
   assert.equal(read(),before)
+})
+
+test('preset applies both rating layouts without replaying the old rendered rating or image', () => {
+  const { root, read, edit, project } = setup()
+  const { background, ...legacy } = project
+  assert.equal(background.scale, read().project.background.scale)
+  const oldBadge = project.ratingBadge!
+  const currentBadge = {
+    ...oldBadge,
+    source: 'custom' as const,
+    customImageDataUrl: 'data:image/png;base64,AAAA',
+    customImageSize: { width: 60, height: 100 },
+    uskBadge: { ...oldBadge.uskBadge, ratingValue: '16' },
+  }
+  assert.equal(root.synchronizeDiscLegacyProject({
+    sessionId: 'disc', legacy: { ...legacy, ratingBadge: currentBadge },
+  }), 'synchronized')
+  const before = read()
+  const plannedBadge = {
+    ...oldBadge,
+    layout: { ...oldBadge.layout, x: 21 },
+    uskBadge: { ...oldBadge.uskBadge, layout: { ...oldBadge.uskBadge.layout, x: 8 } },
+  }
+  const fields = projectDiscPresetSiblingFields(
+    { ratingBadge: oldBadge } as DiscRolePresetCurrentState,
+    { ratingBadge: plannedBadge } as DiscRolePresetCurrentState,
+    ['ratingBadge'],
+  )
+  const revisions: number[] = []
+  const layoutMirrors: (readonly [boolean, boolean])[] = []
+  root.subscribe(() => { revisions.push(read().revision) })
+  assert.equal(commitPreparedDiscBackgroundCompound(root, { ...edit, expectedRevision: before.revision },
+    { kind: 'preset', fields }, scope => {
+      layoutMirrors.push([scope.primaryRatingLayout, scope.supplementalRatingLayout])
+    }), 'committed')
+  assert.deepEqual(read().project.ratingBadge, {
+    ...currentBadge,
+    layout: plannedBadge.layout,
+    uskBadge: { ...currentBadge.uskBadge, layout: plannedBadge.uskBadge.layout },
+  })
+  assert.deepEqual(revisions, [before.revision + 1])
+  assert.deepEqual(layoutMirrors, [[true, true]])
+})
+
+test('newer primary rating geometry reentry does not disable the independent USK layout mirror', () => {
+  const { root, read, edit, project } = setup()
+  const { background, ...legacy } = project
+  assert.equal(background.scale, read().project.background.scale)
+  const current = project.ratingBadge!
+  const preset = {
+    layout: { ...current.layout, x: 29 },
+    uskLayout: { ...current.uskBadge.layout, x: 24 },
+  }
+  root.subscribe(() => {
+    const accepted = read()
+    if (accepted.revision !== 1) return
+    const next = accepted.project.ratingBadge!
+    assert.equal(root.synchronizeDiscLegacyProject({
+      sessionId: 'disc',
+      legacy: { ...legacy, ratingBadge: {
+        ...next,
+        layout: { ...next.layout, x: 34 },
+        uskBadge: { ...next.uskBadge, ratingValue: '18' },
+      } },
+    }), 'synchronized')
+  })
+  assert.equal(commitPreparedDiscBackgroundCompound(root, edit, { kind: 'preset', fields: {
+    ratingBadge: preset,
+  } }, scope => {
+    assert.equal(scope.currentInteraction, false)
+    assert.equal(scope.primaryRatingLayout, false)
+    assert.equal(scope.supplementalRatingLayout, true)
+  }), 'committed')
+  assert.equal(read().revision, 2)
+  assert.equal(read().project.ratingBadge?.layout.x, 34)
+  assert.equal(read().project.ratingBadge?.uskBadge.ratingValue, '18')
+  assert.equal(read().project.ratingBadge?.uskBadge.layout.x, 24)
 })

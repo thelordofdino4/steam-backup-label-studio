@@ -63,6 +63,8 @@ function summarize(session) {
         p.titleArtwork?.defaultSteamLogo?.steamArtworkAssetId),
     },
     rating: Boolean(p.ratingBadge?.layout.enabled),
+    ratingLayout: p.ratingBadge?.layout,
+    usk: { enabled: p.ratingBadge?.uskBadge?.layout.enabled, value: p.ratingBadge?.uskBadge?.ratingValue },
     platform: { source: p.platformMarks?.inference?.source, values: p.platformMarks?.values ?? [] },
     text: { appId: p.discText?.values?.appId, legal: p.discText?.values?.copyright,
       copyrightSource: p.discText?.valueSources?.copyright, legalEnabled: p.discText?.settings?.copyright },
