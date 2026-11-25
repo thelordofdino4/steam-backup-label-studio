@@ -142,6 +142,24 @@ window.discSteamTransportFixture = Object.freeze({
   },
 })
 `
+const fixtureOutputCoreModule = '\0sbls-history-output-core'
+const fixtureOutputDialogModule = '\0sbls-history-output-dialog'
+const fixtureOutputCore = `
+import { invoke as realInvoke } from '@tauri-apps/api/core'
+export function invoke(command, body, options) {
+  return window.captureDiscHistoryOutput(command, body) ?? realInvoke(command, body, options)
+}
+`
+const fixtureOutputDialog = `
+import { save as realSave, confirm as realConfirm, open } from '@tauri-apps/plugin-dialog'
+export { open }
+export async function save(options) {
+  return window.discHistoryFixtureDialog(options) ?? realSave(options)
+}
+export async function confirm(...args) {
+  return window.discHistoryFixtureMayConfirm() ? true : realConfirm(...args)
+}
+`
 const fixtureHtml = `<!doctype html><html><head></head><body><div id="root"></div><script type="module" src="${entryURL}"></script></body></html>`
 
 let server, browser, cacheDir, origin
@@ -169,6 +187,9 @@ test.before(async () => {
       resolveId(id, importer) {
         if (id === entryURL) return entryModule
         const caller = importer?.replaceAll('\\', '/')
+        if (id === '@tauri-apps/api/core' && (caller?.endsWith('/src/tauri/projectPackageWrite.ts') ||
+            caller?.endsWith('/src/tauri/pngFile.ts'))) return fixtureOutputCoreModule
+        if (id === '@tauri-apps/plugin-dialog' && caller?.endsWith('/src/app/App.tsx')) return fixtureOutputDialogModule
         if (id === '@tauri-apps/api/core' && caller?.endsWith('/src/steam/steamApi.ts')) return steamModule
         if (id === '@tauri-apps/api/core' && caller?.endsWith('/src/tauri/importedImageValidation.ts')) return imageValidationModule
         if (id === '../steam/steamTitleArtworkImport' && caller?.endsWith('/src/hooks/useTitleArtwork.ts')) return titleArtworkProbeModule
@@ -176,6 +197,8 @@ test.before(async () => {
         if (id === '../lifecycle/projectSession.ts' && caller?.endsWith('/src/app/appProjectSaveCommand.ts')) return saveProbeModule
       },
       load(id) {
+        if (id === fixtureOutputCoreModule) return fixtureOutputCore
+        if (id === fixtureOutputDialogModule) return fixtureOutputDialog
         if (id === entryModule) return entry
         if (id === steamModule) return syntheticTransport
         if (id === imageValidationModule) return imageValidationProbe
@@ -672,6 +695,9 @@ test('mounted Guided Classic history restores fitted placeholder geometry and sl
     const applied = (await receipt(page)).revisions.at(-1)
     const appliedGeometry = await geometry()
     assert.ok(appliedGeometry.some(slot => slot.id === 'disc:guided:game-title:primary'))
+    assert.equal(await preset.inputValue(), '', 'successful Apply clears the picker')
+    await preset.selectOption('centered-logo-archive')
+    assert.equal(await page.evaluate(() => window.readDiscHistoryDiagnostic().revision), applied.revision)
     const step = async (direction, revision) => {
       assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
       await page.waitForFunction(revision => {
@@ -685,12 +711,76 @@ test('mounted Guided Classic history restores fitted placeholder geometry and sl
     assert.deepEqual(undone.ratingLayout, before.ratingLayout)
     assert.deepEqual(await geometry(), [])
     // The local preset picker is UI state, not history content.
-    assert.equal(await preset.inputValue(), 'classic-top-title')
+    assert.equal(await preset.inputValue(), 'centered-logo-archive')
 
     const redone = await step('redo', applied.revision + 2)
     assert.deepEqual(redone.guided, applied.guided)
     assert.deepEqual(redone.ratingLayout, applied.ratingLayout)
     assert.deepEqual(await geometry(), appliedGeometry)
-    assert.equal(await preset.inputValue(), 'classic-top-title')
+    assert.equal(await preset.inputValue(), 'centered-logo-archive')
+  } finally { await page.close() }
+})
+
+test('authored Classic preset output matches Undo and Redo at the real Save and PNG seams', { timeout: 120_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Game')
+    await reveal(page, 'Additional metadata')
+    const title = 'Artwork Backup Test'
+    await page.getByRole('textbox', { name: 'Label title', exact: true }).fill(title)
+    await reveal(page, 'Game Title')
+    await page.locator('[data-smoke-id="disc-sidebar-text-title"] input[type="checkbox"]').check()
+    await reveal(page, 'Layout Presets')
+    await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+    await reveal(page, 'Project File')
+    await drain(page)
+    const capture = async label => {
+      const past = (await receipt(page)).commands.samples
+        .filter(sample => sample.boundary === 'export.png' && sample.outcome === 'success').length
+      await page.evaluate(label => window.armDiscHistoryOutput(label), label)
+      await page.getByRole('button', { name: 'Save Project', exact: true }).click()
+      await page.waitForFunction(label => window.readDiscHistoryOutput(label)?.project, label)
+      await page.getByRole('button', { name: 'Export PNG', exact: true }).click()
+      await page.waitForFunction(label => window.readDiscHistoryOutput(label)?.png, label)
+      await page.waitForFunction(past => window.readDiscSteamReceipt().commands.samples
+        .filter(sample => sample.boundary === 'export.png' && sample.outcome === 'success').length === past + 1, past)
+      await page.evaluate(label => window.finishDiscHistoryOutput(label), label)
+      const result = await page.evaluate(label => window.readDiscHistoryOutput(label), label)
+      assert.equal(result.project.project.game.manualTitle, title)
+      assert.equal(result.project.project.discText.settings.title, true)
+      assert.ok(result.png.width > 100 && result.png.height > 100 && result.png.bytes > 1000)
+      return result
+    }
+    const before = await capture('before')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.guided.id ===
+      'disc:guided-layout:classic-top-title')
+    await drain(page)
+    const applied = await capture('applied')
+    assert.notDeepEqual(before.project, applied.project, 'preset must produce a distinct project')
+    assert.notEqual(before.png.pixels, applied.png.pixels, 'authored title layout must produce different rendered pixels')
+    const step = async direction => {
+      const previous = await page.evaluate(() => window.readDiscHistoryDiagnostic().revision)
+      assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return state.revision === revision && !state.pending
+      }, previous + 1)
+    }
+    await step('undo')
+    const undone = await capture('undo')
+    assert.deepEqual(undone.project, before.project)
+    assert.equal(undone.png.pixels, before.png.pixels)
+    await step('redo')
+    const redone = await capture('redo')
+    assert.deepEqual(redone.project, applied.project)
+    assert.equal(redone.png.pixels, applied.png.pixels)
   } finally { await page.close() }
 })

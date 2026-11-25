@@ -10,6 +10,7 @@ import { createApplicationLifecycleCompositionRoot } from '/src/lifecycle/applic
 import { createLifecyclePerformanceObserver } from '/src/lifecycle/lifecyclePerformanceObserver.ts'
 import { materializeDiscProject } from '/src/lifecycle/canonicalProject.ts'
 import { InteractionPerformanceContext } from '/src/diagnostics/InteractionPerformanceContext.ts'
+import '/src/app/testing/discHistoryOutputFixture.mjs'
 import '/src/styles/index.css'
 import '/src/styles/layoutFix.css'
 
