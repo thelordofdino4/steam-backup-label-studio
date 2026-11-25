@@ -45,6 +45,7 @@ export function projectPinnedDiscSave(pin) {
 const entry = await readFile(new URL('./testing/discSteamMountedFixture.mjs', import.meta.url), 'utf8')
 const retiredAppId = 920010001
 const incomingAppId = 920010002
+const uskAppId = 920010003
 const legal = 'Fixture Game © Fixture Studio. Fixture Game is a trademark of Fixture Studio. All rights reserved.'
 const { older, newer } = makeDiscSteamPngFixtures(retiredAppId, incomingAppId)
 const imageValidationModule = '\0sbls-366-fixture-image-validation'
@@ -81,7 +82,7 @@ export function createSteamTitleArtworkImport(game, ...args) {
   return pending
 }`
 const syntheticTransport = `
-const testGames = new Map(${JSON.stringify([[retiredAppId, 'Retired Fixture Game'], [incomingAppId, 'Incoming Fixture Game']])})
+const testGames = new Map(${JSON.stringify([[retiredAppId, 'Retired Fixture Game'], [incomingAppId, 'Incoming Fixture Game'], [uskAppId, 'USK Fixture Game']])})
 const fixturePngBytes = new Map(${JSON.stringify([older, newer].map(({ id, bytes }) => [id, bytes]))})
 const pending = new Map()
 let requested = 0
@@ -102,7 +103,8 @@ export async function invoke(command, args) {
         name, developers:['Fixture Studio'], publishers:['Fixture Publisher'],
         release_date:{ date:'2001-02-03' },
         platforms:{ windows:true, linux:true, mac:false },
-        ratings:{ esrb:{ rating:'m', descriptors:'Violence' } }, legal_notice:legal,
+        ratings:args.appid === ${uskAppId} ? { usk:{ rating:'16' } } : { esrb:{ rating:'m', descriptors:'Violence' } },
+        legal_notice:legal,
       } } })
     }
     case 'fetch_steam_store_items': expectApp(args.appid); return '{"response":{"store_items":[]}}'
@@ -251,6 +253,51 @@ test('real Disc preset applies layout without changing a selected PEGI/USK ratin
     await reveal(page, 'Game Info Logos')
     await reveal(page, 'Rating badge')
     assert.equal(await uskValue.inputValue(), '16')
+  } finally { await page.close() }
+})
+
+test('real Disc suggested USK and manual USK edits retain PEGI and publish whole revisions', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Game')
+    await start(page, uskAppId)
+    await rejectLogo(page, uskAppId)
+    await page.waitForFunction(appId => window.readDiscSteamReceipt().revisions.at(-1)?.game.appId === appId, uskAppId)
+    await reveal(page, 'Additional metadata')
+    await page.locator('#game-metadata-rating-system').selectOption('PEGI')
+    await page.getByRole('button', { name: 'Find rating/legal candidates' }).click()
+    const suggested = page.getByRole('button', { name: 'Use USK 16', exact: true })
+    await suggested.waitFor()
+    await drain(page)
+    const before = (await receipt(page)).revisions.at(-1)
+    assert.equal(before.metadata.ratingSystem, 'PEGI')
+    assert.equal(before.rating, false)
+    assert.equal(before.usk.enabled, false)
+    await suggested.click()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '16')
+    await drain(page)
+    const accepted = (await receipt(page)).revisions.at(-1)
+    assert.equal(accepted.revision, before.revision + 1)
+    assert.equal(accepted.metadata.ratingValue, before.metadata.ratingValue)
+    assert.equal(accepted.metadata.ratingSystem, 'PEGI')
+    assert.equal(accepted.rating, true)
+    assert.deepEqual(accepted.usk, { enabled: true, value: '16' })
+    await reveal(page, 'Game Info Logos')
+    await reveal(page, 'Rating badge')
+    await page.getByLabel('USK rating value', { exact: true }).selectOption('0')
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '0')
+    await drain(page)
+    const edited = (await receipt(page)).revisions.at(-1)
+    assert.equal(edited.revision, accepted.revision + 1)
+    assert.deepEqual(edited.ratingLayout, accepted.ratingLayout)
+    assert.deepEqual(edited.usk, { enabled: true, value: '0' })
   } finally { await page.close() }
 })
 
