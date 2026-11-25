@@ -1,4 +1,4 @@
-// Full-App Playwright fixture. Only Steam's transport is substituted.
+// Full-App Playwright fixture. Native transport substitutes live in the test server.
 import { StrictMode, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from '/src/app/App.tsx'
@@ -35,6 +35,10 @@ const add = (list, record) => {
   list.push(record)
 }
 const observer = createLifecyclePerformanceObserver()
+const imageEvidence = (dataUrl, size, id) => ({
+  dataUrl: dataUrl ?? null, width: size?.width, height: size?.height, bounds: size?.contentBounds, id,
+})
+
 function summarize(session) {
   const p = materializeDiscProject(session.project)
   return {
@@ -50,6 +54,13 @@ function summarize(session) {
     artwork: {
       hasActive: Boolean(p.titleArtwork?.imageDataUrl),
       hasDefault: Boolean(p.titleArtwork?.defaultSteamLogo),
+    },
+    artworkData: {
+      source: p.titleArtwork?.source,
+      enabled: p.titleArtwork?.layout?.enabled,
+      active: imageEvidence(p.titleArtwork?.imageDataUrl, p.titleArtwork?.imageSize, p.titleArtwork?.steamArtworkAssetId),
+      remembered: imageEvidence(p.titleArtwork?.defaultSteamLogo?.imageDataUrl, p.titleArtwork?.defaultSteamLogo?.imageSize,
+        p.titleArtwork?.defaultSteamLogo?.steamArtworkAssetId),
     },
     rating: Boolean(p.ratingBadge?.layout.enabled),
     platform: { source: p.platformMarks?.inference?.source, values: p.platformMarks?.values ?? [] },

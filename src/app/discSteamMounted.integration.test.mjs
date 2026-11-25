@@ -1,4 +1,5 @@
-// Actual Disc App and controls in sandboxed Chromium. No native mocks outside Steam.
+// Actual Disc App and controls in sandboxed Chromium. Native substitutes are limited
+// to fixture Steam transport and validation of the two generated PNGs.
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -7,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 import { chromium } from 'playwright'
 import { createServer } from 'vite'
+import { makeDiscSteamPngFixtures } from './testing/discSteamPngFixtures.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const route = '/__disc-steam-366'
@@ -44,8 +46,43 @@ const entry = await readFile(new URL('./testing/discSteamMountedFixture.mjs', im
 const retiredAppId = 920010001
 const incomingAppId = 920010002
 const legal = 'Fixture Game © Fixture Studio. Fixture Game is a trademark of Fixture Studio. All rights reserved.'
+const { older, newer } = makeDiscSteamPngFixtures(retiredAppId, incomingAppId)
+const imageValidationModule = '\0sbls-366-fixture-image-validation'
+const titleArtworkProbeModule = '\0sbls-366-observe-title-artwork'
+const imageValidationProbe = `
+const fixtures = ${JSON.stringify([older, newer].map(({ id, width, height, dataUrl }) => ({ id, width, height, dataUrl })))}
+const calls = []
+window.readDiscSteamImageValidation = () => [...calls]
+export async function invoke(command, data) {
+  if (command !== 'validate_imported_image_asset' || !(data instanceof Uint8Array))
+    throw Error('Unexpected fixture image validation request')
+  const fixture = fixtures.find(candidate => {
+    const expected = new TextEncoder().encode(candidate.dataUrl)
+    return data.length === expected.length && data.every((byte, i) => byte === expected[i])
+  })
+  if (!fixture || calls.includes(fixture.id))
+    throw Error('Unknown or duplicate canonical fixture PNG')
+  calls.push(fixture.id)
+  return { status: 'success', mimeType: 'image/png', width: fixture.width, height: fixture.height }
+}`
+const titleArtworkProbe = `
+export * from '/src/steam/steamTitleArtworkImport.ts'
+import { createSteamTitleArtworkImport as real } from '/src/steam/steamTitleArtworkImport.ts'
+const completed = []
+window.readDiscSteamArtworkPreparation = () => [...completed]
+export function createSteamTitleArtworkImport(game, ...args) {
+  const pending = real(game, ...args)
+  // Observe the existing decode/bounds result; return the same Promise.
+  void pending.then(result => {
+    const size = result.titleArtwork.imageSize
+    completed.push({ id: game.appId, status: result.status, width: size?.width,
+      height: size?.height, bounds: size?.contentBounds })
+  }, () => completed.push({ id: game.appId, status: 'rejected' }))
+  return pending
+}`
 const syntheticTransport = `
 const testGames = new Map(${JSON.stringify([[retiredAppId, 'Retired Fixture Game'], [incomingAppId, 'Incoming Fixture Game']])})
+const fixturePngBytes = new Map(${JSON.stringify([older, newer].map(({ id, bytes }) => [id, bytes]))})
 const pending = new Map()
 let requested = 0
 const legal = ${JSON.stringify(legal)}
@@ -80,7 +117,7 @@ export async function invoke(command, args) {
       expectApp(id)
       if (pending.has(id)) throw Error('Duplicate synthetic logo request')
       requested++
-      return new Promise((resolve,reject) => pending.set(id,reject))
+      return new Promise((resolve,reject) => pending.set(id,{ resolve, reject }))
     }
     default: throw Error('Unexpected Steam fixture transport command')
   }
@@ -89,10 +126,17 @@ window.discSteamTransportFixture = Object.freeze({
   pending: id => pending.has(id),
   requested: () => requested,
   rejectLogo(id) {
-    const reject = pending.get(id)
-    if (!reject) throw Error('Expected a requested synthetic logo')
+    const request = pending.get(id)
+    if (!request) throw Error('Expected a requested synthetic logo')
     pending.delete(id)
-    reject(new Error('Synthetic logo unavailable'))
+    request.reject(new Error('Synthetic logo unavailable'))
+  },
+  resolveLogo(id) {
+    const request = pending.get(id)
+    const bytes = fixturePngBytes.get(id)
+    if (!request || !bytes) throw Error('Expected a requested fixture PNG')
+    pending.delete(id)
+    request.resolve({ bytes, content_type: 'image/png' })
   },
 })
 `
@@ -124,12 +168,16 @@ test.before(async () => {
         if (id === entryURL) return entryModule
         const caller = importer?.replaceAll('\\', '/')
         if (id === '@tauri-apps/api/core' && caller?.endsWith('/src/steam/steamApi.ts')) return steamModule
+        if (id === '@tauri-apps/api/core' && caller?.endsWith('/src/tauri/importedImageValidation.ts')) return imageValidationModule
+        if (id === '../steam/steamTitleArtworkImport' && caller?.endsWith('/src/hooks/useTitleArtwork.ts')) return titleArtworkProbeModule
         if (id === './appPngExportInputs' && caller?.endsWith('/src/app/App.tsx')) return pngProbeModule
         if (id === '../lifecycle/projectSession.ts' && caller?.endsWith('/src/app/appProjectSaveCommand.ts')) return saveProbeModule
       },
       load(id) {
         if (id === entryModule) return entry
         if (id === steamModule) return syntheticTransport
+        if (id === imageValidationModule) return imageValidationProbe
+        if (id === titleArtworkProbeModule) return titleArtworkProbe
         if (id === pngProbeModule) return pngProbe
         if (id === saveProbeModule) return saveProbe
       },
@@ -265,6 +313,122 @@ test('real Disc App: deferred Steam edit fence, one complete revision, Save and 
   } finally { await page.close() }
 })
 
+
+test('real Disc App: newer Steam PNG publishes active and remembered artwork; older successful PNG stays retired', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  const pageErrors = []
+  page.on('pageerror', error => pageErrors.push(error.message))
+  await page.route('**/*', request => {
+    const url = request.request().url()
+    return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+      ? request.continue() : request.abort('blockedbyclient')
+  })
+  const resolveLogo = id => page.evaluate(appId => window.discSteamTransportFixture.resolveLogo(appId), id)
+  const prepared = id => page.waitForFunction(appId =>
+    window.readDiscSteamArtworkPreparation().some(result => result.id === appId), id)
+  const requireDecoded = async fixture => {
+    const outputs = await page.evaluate(() => window.readDiscSteamArtworkPreparation())
+    assert.deepEqual(outputs.filter(result => result.id === fixture.id), [{
+      id: fixture.id, status: 'seeded', width: fixture.width, height: fixture.height, bounds: fixture.bounds,
+    }], 'actual Chromium decode and alpha inspection must succeed for the fixture')
+  }
+  try {
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.guided.id ===
+      'disc:guided-layout:classic-top-title')
+    await reveal(page, 'Game')
+    await reveal(page, 'Additional metadata')
+
+    const subtitle = 'Keep this edit while Steam artwork is pending'
+    const subtitleInput = page.getByRole('textbox', { name: 'Subtitle / edition', exact: true })
+    await start(page, older.id)
+    await subtitleInput.fill(subtitle)
+    await page.waitForFunction(value => window.readDiscSteamReceipt().revisions.at(-1)?.metadata.subtitle === value,
+      subtitle)
+    const authored = (await receipt(page)).revisions.at(-1)
+    await start(page, newer.id)
+    assert.equal(await page.evaluate(id => window.discSteamTransportFixture.pending(id), older.id), true)
+    await resolveLogo(newer.id)
+    await prepared(newer.id)
+    await requireDecoded(newer)
+    await page.waitForFunction(id => window.readDiscSteamReceipt().revisions.at(-1)?.game.appId === id, newer.id)
+    const accepted = (await receipt(page)).revisions.filter(event => event.revision > authored.revision)
+    assert.equal(accepted.length, 1, 'fresh game and both art roles publish on one revision')
+    const [r] = accepted
+    assert.equal(r.revision, authored.revision + 1)
+    assert.equal(r.title, 'Incoming Fixture Game')
+    assert.deepEqual(r.game, { manualTitle: 'Incoming Fixture Game', appId: newer.id })
+    assert.equal(r.metadata.subtitle, subtitle)
+    assert.equal(r.metadata.legacyAppId, String(newer.id))
+    assert.equal(r.metadata.legal, legal)
+    assert.equal(r.metadata.ratingSystem, 'ESRB')
+    assert.equal(r.metadata.ratingValue, 'M')
+    assert.equal(r.rating, true)
+    assert.deepEqual(r.platform, { source: 'steam-appdetails', values: ['windows','linux'] })
+    assert.equal(r.text.appId, String(newer.id))
+    assert.equal(r.text.copyrightSource, 'metadata')
+    assert.ok(r.guided.completed.includes('disc:guided:game-title:primary'))
+    assert.ok(r.guided.completed.includes('disc:guided:rating-badge:primary'))
+    assert.ok(r.guided.completed.includes('disc:guided:legal-text:copyright'))
+    assert.ok(r.guided.completed.includes('disc:guided:operating-system-marks:group'))
+    const art = r.artworkData
+    assert.equal(art.source, 'steam')
+    assert.equal(art.enabled, true)
+    const expectedLogo = {
+      dataUrl: newer.dataUrl, width: newer.width, height: newer.height, bounds: newer.bounds, id: 'cdn-logo',
+    }
+    assert.deepEqual(art.active, expectedLogo)
+    assert.deepEqual(art.remembered, expectedLogo)
+    assert.deepEqual(await page.evaluate(() => window.readDiscSteamImageValidation()), [newer.id])
+
+    await reveal(page, 'Project File')
+    const save = page.getByRole('button', { name: 'Save Project', exact: true })
+    const status = save.locator('xpath=../..').locator('p.hint')
+    const acceptedStatus = await status.innerText()
+    assert.match(acceptedStatus, /^Auto-applied .+ rating badge and curved copyright\/legal text\.$/, 'current import must reach visible success feedback')
+    await resolveLogo(older.id)
+    await prepared(older.id)
+    await requireDecoded(older)
+    // The observer only fires after real decode; the remaining import flow
+    // is synchronous bookkeeping before its stale request check.
+    await drain(page)
+    const afterOlder = await receipt(page)
+    assert.deepEqual(await page.evaluate(() => window.readDiscSteamImageValidation()), [newer.id, older.id])
+    assert.equal(await page.evaluate(() => window.discSteamTransportFixture.requested()), 2)
+    assert.equal(afterOlder.overflow, false)
+    assert.ok(!afterOlder.revisions.some(event => event.game.appId === older.id ||
+      event.artworkData.active.dataUrl === older.dataUrl || event.artworkData.remembered.dataUrl === older.dataUrl))
+    assert.deepEqual(afterOlder.revisions.at(-1), r)
+    assert.equal(await subtitleInput.inputValue(), subtitle)
+    assert.equal(await status.innerText(), acceptedStatus, 'stale successful artwork cannot replace later feedback')
+
+    for (const [button, command] of [[save, 'project.save'],
+      [page.getByRole('button', { name: 'Export PNG', exact: true }), 'export.png']]) {
+      await button.click()
+      await page.waitForFunction(boundary => window.readDiscSteamReceipt().commands.samples.some(sample =>
+        sample.boundary === boundary), command)
+      const observed = await receipt(page)
+      const terminal = observed.commands.samples.filter(sample => sample.boundary === command)
+      assert.equal(terminal.length, 1)
+      assert.notEqual(terminal[0].outcome, 'not-executed')
+      assert.notEqual(terminal[0].outcome, 'success', 'no native output in browser')
+      assert.deepEqual(observed.revisions.at(-1), r, 'request must not change accepted artwork or revision')
+    }
+    const final = await receipt(page)
+    assert.ok(final.scopes.some(event => event.revision === r.revision &&
+      event.activeScopes.includes('dialog.project-file')))
+    assert.ok(final.scopes.some(event => event.revision === r.revision &&
+      event.activeScopes.some(scope => scope === 'dialog.export-warning' || scope === 'dialog.export-destination')))
+    assert.deepEqual(pageErrors, [])
+  } catch (error) {
+    if (pageErrors.length) throw new Error('Full App artwork case failed: ' + pageErrors.join('; '), { cause:error })
+    throw error
+  } finally { await page.close() }
+})
 
 // Reentry is a deterministic stress of the same registered commands, not a
 // physical interaction or a claim that an ordinary user click runs in this stack.
