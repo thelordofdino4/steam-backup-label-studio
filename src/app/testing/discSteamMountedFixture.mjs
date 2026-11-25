@@ -74,7 +74,7 @@ function summarize(session) {
 const lifecycleRuntime = createApplicationLifecycleRuntime({
   performanceObserver: observer,
   createRoot(options) {
-    const root = createApplicationLifecycleCompositionRoot(options)
+    const root = createApplicationLifecycleCompositionRoot({ ...options, discHistoryLimit: 4 })
     root.subscribe(snapshot => {
       const session = snapshot.lifecycle.activeSession
       if (!session || session.kind !== 'disc') return
@@ -144,10 +144,23 @@ window.observeOrdinaryDiscExport = () => {
 }
 const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
 const appNode = document.getElementById('root')
+let stepHistory
+const connectDiscHistoryDiagnostic = step => {
+  stepHistory = step
+  return () => { if (stepHistory === step) stepHistory = undefined }
+}
+window.stepDiscHistoryDiagnostic = direction => {
+  if (direction !== 'undo' && direction !== 'redo') throw Error('Expected Undo or Redo')
+  return stepHistory?.(direction)
+}
+window.readDiscHistoryDiagnostic = () => {
+  const { state, discHistoryProjectionPending } = lifecycleRuntime.root.getStateSnapshot()
+  return { revision: state.activeSession?.revision, pending: Boolean(discHistoryProjectionPending) }
+}
 createRoot(appNode).render(createElement(ApplicationLifecycleBoundary, { runtime: lifecycleRuntime },
   createElement(ApplicationMenuBoundary, { runtime: menuRuntime },
     createElement(StrictMode, null, createElement(InteractionPerformanceContext.Provider,
-      { value: undefined }, createElement(App))))))
+      { value: undefined }, createElement(App, { connectDiscHistoryDiagnostic }))))))
 window.readDiscSteamReceipt = () => ({
   overflow,
   revisions: structuredClone(revisions),

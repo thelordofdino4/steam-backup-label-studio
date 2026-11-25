@@ -87,6 +87,7 @@ export type ApplicationLifecycleCompositionSubscriber = (
 export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   performanceObserver?: LifecyclePerformanceObserver
   initialState?: ApplicationLifecycleState
+  discHistoryLimit?: number
   ports?: ApplicationLifecycleCommandPorts
   exportPng?: ApplicationPngExportCommandOwner
   termination?: ApplicationTerminationCapabilities
@@ -215,12 +216,22 @@ export interface ApplicationLifecycleCompositionRoot {
     input?: unknown,
   ): Promise<ApplicationCommandDispatchResult<Value>>
   commitDiscSupplementalUsk(edit: DiscSupplementalUskEdit): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
+  stepDiscDocumentHistory(input: Readonly<{
+    sessionId: ProjectSessionId
+    expectedGeneration: number
+    direction: 'undo' | 'redo'
+  }>): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
   canCommitDiscBackground(): boolean
   commitDiscBackground(edit: DiscBackgroundEdit): 'committed' | 'no-op' | 'stale' | 'unavailable' | 'invalid'
   commitDiscBackgroundCompound(
     edit: DiscBackgroundEdit,
     companion: DiscBackgroundCompoundCompanion,
   ): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
+  acknowledgeDiscHistoryProjection(input: Readonly<{
+    sessionId: ProjectSessionId
+    expectedGeneration: number
+    projection: DiscLegacyProjectProjection
+  }>): 'committed' | 'no-op' | 'stale' | 'invalid'
   synchronizeDiscLegacyProject(input: Readonly<{
     sessionId: ProjectSessionId
     legacy: DiscLegacyProjectProjection
@@ -274,6 +285,7 @@ export function createApplicationLifecycleCompositionRoot(
     createDefaultIdGenerator('project-session')
   const stateStore = createApplicationLifecycleStateStore({
     ...(options.initialState ? { initialState: options.initialState } : {}),
+    ...(options.discHistoryLimit === undefined ? {} : { discHistoryLimit: options.discHistoryLimit }),
     ...(options.onSubscriberError
       ? { onSubscriberError: options.onSubscriberError }
       : {}),
@@ -434,20 +446,44 @@ export function createApplicationLifecycleCompositionRoot(
     'technicalMarks', 'template', 'steamBackupLogo', 'export', 'discText',
   ])
 
+  function prepareDiscLegacyRemainder(session: DiscProjectSession, legacy: Record<string, unknown>) {
+    const remainder = discRemainderOf(session.project)
+    for (const key of discLegacyKeys) Reflect.deleteProperty(remainder, key)
+    return Object.assign(remainder, legacy)
+  }
+
+  function acknowledgeDiscHistoryProjection(
+    input: Parameters<ApplicationLifecycleCompositionRoot['acknowledgeDiscHistoryProjection']>[0],
+  ) {
+    if (disposed) return 'invalid'
+    const snapshot = stateStore.getSnapshot()
+    const current = snapshot.state.activeSession
+    if (!current || current.kind !== 'disc' || snapshot.state.visibleWorkspace !== 'disc' ||
+        input.sessionId !== current.id || input.expectedGeneration !== snapshot.generation) return 'stale'
+    if (!snapshot.discHistoryProjectionPending) return 'no-op'
+    try {
+      const legacy = readClosedDataFootprint(input.projection, discLegacyKeys, discLegacyKeys)
+      if (!legacy || replaceActiveDiscRemainder(snapshot.state, current,
+        prepareDiscLegacyRemainder(current, legacy)) !== snapshot.state) return 'invalid'
+      return stateStore.acknowledgeDiscHistoryProjection(snapshot.generation).status
+    } catch {
+      return 'invalid'
+    }
+  }
+
   function synchronizeDiscLegacyProject(input: Parameters<ApplicationLifecycleCompositionRoot['synchronizeDiscLegacyProject']>[0]): SyncResult {
     if (disposed) return 'invalid'
     const snapshot = stateStore.getSnapshot()
     const session = snapshot.state.activeSession
     if (!session || session.id !== input.sessionId) return 'stale-session'
     if (session.kind !== 'disc') return 'wrong-kind'
+    if (snapshot.discHistoryProjectionPending) return 'stale-session'
     try {
       const legacy = readClosedDataFootprint(input.legacy, discLegacyKeys, discLegacyKeys)
       if (!legacy) return 'invalid'
       // The editor controls the presence of its known optional fields, but
       // neither Background nor unknown retained fields belong to this writer.
-      const remainder = discRemainderOf(session.project)
-      for (const key of discLegacyKeys) Reflect.deleteProperty(remainder, key)
-      Object.assign(remainder, legacy)
+      const remainder = prepareDiscLegacyRemainder(session, legacy)
       // Reflection/validation may run nested proxy traps. Prepare before the
       // generation check so a reentrant acceptance cannot be overwritten.
       const prepared = replaceActiveDiscRemainder(snapshot.state, session,
@@ -472,6 +508,7 @@ export function createApplicationLifecycleCompositionRoot(
     const session = snapshot.state.activeSession
     if (!session || session.id !== input.sessionId) return 'stale-session'
     if (session.kind !== input.kind) return 'wrong-kind'
+    if (session.kind === 'disc' && snapshot.discHistoryProjectionPending) return 'stale-session'
 
     let result
     try {
@@ -496,8 +533,8 @@ export function createApplicationLifecycleCompositionRoot(
   }
 
   function canCommitDiscBackground() {
-    const { state } = stateStore.getSnapshot()
-    return !disposed && options.canAcceptCommands?.() !== false &&
+    const { state, discHistoryProjectionPending } = stateStore.getSnapshot()
+    return !discHistoryProjectionPending && !disposed && options.canAcceptCommands?.() !== false &&
       !busyCoordinator.getState().occupiedScopes.includes('project.mutation') &&
       state.visibleWorkspace === 'disc' && state.activeSession?.kind === 'disc'
   }
@@ -558,6 +595,16 @@ export function createApplicationLifecycleCompositionRoot(
       }
       return pending
     },
+    stepDiscDocumentHistory(input: Readonly<{
+      sessionId: ProjectSessionId; expectedGeneration: number; direction: 'undo' | 'redo'
+    }>) {
+      if (options.discHistoryLimit === undefined || !canCommitDiscBackground()) return 'unavailable'
+      const snapshot = stateStore.getSnapshot()
+      if (input.sessionId !== snapshot.state.activeSession?.id ||
+          input.expectedGeneration !== snapshot.generation) return 'stale'
+      if (input.direction !== 'undo' && input.direction !== 'redo') return 'invalid'
+      return stateStore.stepDiscHistory(snapshot.generation, input.direction).status
+    },
     canCommitDiscBackground,
     commitDiscSupplementalUsk(edit: DiscSupplementalUskEdit) {
       if (!canCommitDiscBackground()) return 'unavailable'
@@ -591,7 +638,7 @@ export function createApplicationLifecycleCompositionRoot(
           uskBadge: { ...defaults.uskBadge, ...current?.uskBadge, layout: supplemental, ratingValue },
         } })
         const prepared = replaceActiveDiscRemainder(snapshot.state, session, remainder)
-        return stateStore.commitTransition(snapshot.generation, () => prepared).status
+        return stateStore.commitTransition(snapshot.generation, () => prepared, 'record-disc-transaction').status
       } catch {
         return 'invalid'
       }
@@ -604,7 +651,7 @@ export function createApplicationLifecycleCompositionRoot(
       if (session.id !== edit.sessionId || session.revision !== edit.expectedRevision) return 'stale'
       try {
         const prepared = editDiscBackground(snapshot.state, edit)
-        return stateStore.commitTransition(snapshot.generation, () => prepared).status
+        return stateStore.commitTransition(snapshot.generation, () => prepared, 'record-disc-transaction').status
       } catch {
         return 'invalid'
       }
@@ -662,11 +709,12 @@ export function createApplicationLifecycleCompositionRoot(
           }
         }
         const prepared = replaceActiveDiscRemainder(snapshot.state, session, remainder, edit)
-        return stateStore.commitTransition(snapshot.generation, () => prepared).status
+        return stateStore.commitTransition(snapshot.generation, () => prepared, 'record-disc-transaction').status
       } catch {
         return 'invalid'
       }
     },
+    acknowledgeDiscHistoryProjection,
     synchronizeDiscLegacyProject,
     synchronizeCurrentProject(input: Parameters<ApplicationLifecycleCompositionRoot['synchronizeCurrentProject']>[0]) {
       const observer = options.performanceObserver

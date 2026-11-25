@@ -301,7 +301,7 @@ export function captureNormalizedProjectSnapshot(
   return captured
 }
 
-function isCommittedDiscProject(value: unknown): value is CommittedDiscProject {
+export function isCommittedDiscProject(value: unknown): value is CommittedDiscProject {
   return typeof value === 'object' && value !== null && discRemainders.has(value)
 }
 

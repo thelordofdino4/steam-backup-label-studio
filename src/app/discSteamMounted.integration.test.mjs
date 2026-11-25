@@ -594,3 +594,49 @@ for (const command of ['project.save', 'export.png']) {
     } finally { await page.close() }
   })
 }
+
+test('mounted Disc history restores the real USK controls and acknowledges the committed render', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Game')
+    await start(page, uskAppId)
+    await rejectLogo(page, uskAppId)
+    await page.waitForFunction(appId => window.readDiscSteamReceipt().revisions.at(-1)?.game.appId === appId, uskAppId)
+    await reveal(page, 'Additional metadata')
+    await page.locator('#game-metadata-rating-system').selectOption('PEGI')
+    await page.getByRole('button', { name: 'Find rating/legal candidates' }).click()
+    const useUsk = page.getByRole('button', { name: 'Use USK 16', exact: true })
+    await useUsk.waitFor()
+    await drain(page)
+    const before = (await receipt(page)).revisions.at(-1)
+    await useUsk.click()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '16')
+    await drain(page)
+    const edited = (await receipt(page)).revisions.at(-1)
+    await reveal(page, 'Game Info Logos')
+    await reveal(page, 'Rating badge')
+    assert.equal(await page.getByLabel('USK rating value', { exact: true }).inputValue(), '16')
+    const accepted = async (direction, revision) => {
+      assert.equal(await page.evaluate(step => window.stepDiscHistoryDiagnostic(step), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return state.revision === revision && !state.pending
+      }, revision)
+      return (await receipt(page)).revisions.at(-1)
+    }
+    const undone = await accepted('undo', edited.revision + 1)
+    assert.deepEqual(undone.usk, before.usk)
+    assert.deepEqual(undone.ratingLayout, before.ratingLayout)
+    const redone = await accepted('redo', edited.revision + 2)
+    assert.deepEqual(redone.usk, edited.usk)
+    assert.deepEqual(redone.ratingLayout, edited.ratingLayout)
+    assert.equal(await page.getByLabel('USK rating value', { exact: true }).inputValue(), '16')
+  } finally { await page.close() }
+})

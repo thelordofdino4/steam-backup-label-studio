@@ -417,6 +417,21 @@ function replaceSessionProject(
   })
 }
 
+/** Restore the already captured Disc content chosen by the history owner.
+ * Navigation and Save metadata belong to the current session, not to history.
+ * The successor is a new revision, never a rollback of the revision counter. */
+export function restoreHistoryDiscProject(
+  state: ApplicationLifecycleState,
+  expected: DiscProjectSession,
+  target: CommittedDiscProject,
+): ApplicationLifecycleState {
+  if (state.activeSession !== expected || state.visibleWorkspace !== 'disc' ||
+      target === expected.project) return state
+  const captured = captureLifecycleProjectSnapshot(target)
+  if (captured !== target || getNormalizedProjectKind(captured) !== 'disc') return state
+  return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
+}
+
 function routesAreEqual(
   first: ProjectSessionEditorRoute,
   second: ProjectSessionEditorRoute,

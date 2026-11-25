@@ -1,3 +1,4 @@
+import { stepProjectedDiscHistory } from './appDiscHistoryProjection.ts'
 import { captureDiscBackgroundExportInput } from '../lifecycle/canonicalProject.ts'
 import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
@@ -294,7 +295,11 @@ type SteamImportOptions = {
   applyCaseInsertBackCoverDefaults?: boolean
 }
 
-function App() {
+type DiscHistoryDiagnostic = (
+  step: (direction: 'undo' | 'redo') => ReturnType<typeof stepProjectedDiscHistory>,
+) => () => void
+
+function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: DiscHistoryDiagnostic } = {}) {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
   const [discGuidedWorkflow, setDiscGuidedWorkflow] =
@@ -2117,14 +2122,28 @@ function App() {
   useApplicationDocumentSelectionOwnership()
 
   const renderedSessionId = applicationCommandSnapshot.lifecycle.activeSession?.id
+  const historyProjectionPending =
+    applicationLifecycleRoot.getStateSnapshot().discHistoryProjectionPending === true
   const discRatingProjectionBasis = useRef<{ sessionId: string; basis: DiscRatingLayoutSyncBasis } | null>(null)
   useLayoutEffect(() => {
     if (activeWorkspace === 'home') return
-    const session = applicationLifecycleRoot.getLifecycleState().activeSession
+    const lifecycle = applicationLifecycleRoot.getStateSnapshot()
+    const session = lifecycle.state.activeSession
     if (!session || session.id !== renderedSessionId || session.kind !== activeWorkspace) return
 
     const captured = captureCurrentLegacyProject()
     if (captured.kind === 'disc') {
+      if (lifecycle.discHistoryProjectionPending) {
+        const outcome = applicationLifecycleRoot.acknowledgeDiscHistoryProjection({
+          sessionId: session.id, expectedGeneration: lifecycle.generation, projection: captured.project,
+        })
+        if (outcome === 'committed') {
+          discRatingProjectionBasis.current = {
+            sessionId: session.id, basis: captureDiscRatingLayoutBasis(captured.project.ratingBadge ?? projectRatingBadge),
+          }
+        }
+        return
+      }
       const previous = discRatingProjectionBasis.current
       const outcome = applicationLifecycleRoot.synchronizeDiscLegacyProject({
         sessionId: session.id, legacy: captured.project,
@@ -2155,9 +2174,26 @@ function App() {
     activeWorkspace,
     applicationLifecycleRoot,
     captureCurrentLegacyProject,
+    historyProjectionPending,
     projectRatingBadge,
     renderedSessionId,
   ])
+
+  // Intentionally not a public menu/shortcut and not present in production
+  // composition. The mounted fixture can exercise the real editor batch.
+  useLayoutEffect(() => connectDiscHistoryDiagnostic?.(direction =>
+    stepProjectedDiscHistory(applicationLifecycleRoot, direction, {
+      batch: unstable_batchedUpdates,
+      setRatingBadge: setProjectRatingBadge,
+      setMediaMark: setProjectMediaMark,
+      setPlatformMarks: setProjectPlatformMarks,
+      setTitleArtwork: setProjectTitleArtwork,
+      setLogoAssets: setProjectLogoAssets,
+      setTechnicalMarks: setProjectTechnicalMarks,
+      setDiscTextSettings,
+      setDiscTextLayout,
+    })),
+  )
 
   useLayoutEffect(() => {
     const destination = workspaceFocusRequestRef.current

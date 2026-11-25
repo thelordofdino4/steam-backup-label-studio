@@ -61,6 +61,15 @@ export function getApplicationPngExportCapability(
   owner: ApplicationPngExportCommandOwner | undefined,
   context: ApplicationPngExportCapabilityContext,
 ): ApplicationCommandCapability {
+  // The renderer consumes some mirrored Disc owners until the editor has
+  // committed its exact projection. Do not capture a mixed revision.
+  if (context.stateSnapshot.discHistoryProjectionPending) {
+    return Object.freeze({
+      canExecute: false,
+      reasonCode: 'export.disc-history-projection-pending',
+      userMessage: 'Wait for the editor to finish restoring this change before exporting.',
+    })
+  }
   if (owner?.availability !== 'implemented') {
     return ownerUnavailableCapability(owner)
   }
