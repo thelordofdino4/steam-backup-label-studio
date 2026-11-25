@@ -8,9 +8,6 @@ import {
   isDiscGuidedTextOwnerSatisfied,
   type DiscGuidedSlotCompletionHandler,
 } from '../guidedPresets/discGuidedCompletion.ts'
-import {
-  applySteamGameImportToDiscTextValues,
-} from '../steam/steamGameImport'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 import {
@@ -102,6 +99,7 @@ import {
   type DiscTextRichTextCommandState,
 } from '../discText/textStateTransitions'
 import {
+  planSteamImportedDiscTextValues,
   resolveDiscTextMetadataState,
   restoreDiscTextMetadataValueTransition,
   type DiscTextMetadataResolution,
@@ -1302,37 +1300,18 @@ export function useDiscTextState({
     metadata: ProjectMetadata,
     options: { useMetadataCopyright: boolean },
   ) {
-    const nextDiscTextValueSources = options.useMetadataCopyright
-      ? {
-          ...discTextValueSources,
-          copyright: 'metadata' as const,
-        }
-      : discTextValueSources
-    const nextDiscTextValuesBase = applySteamGameImportToDiscTextValues(
-      importedGame,
-      discTextValues,
-      nextDiscTextValueSources,
-    )
-    const nextDiscTextValues = options.useMetadataCopyright
-      ? {
-          ...nextDiscTextValuesBase,
-          copyright: '',
-        }
-      : nextDiscTextValuesBase
-    const nextResolution = resolveDiscTextForMetadata(metadata, {
-      discTextValues: nextDiscTextValues,
-      discTextValueSources: nextDiscTextValueSources,
-      discTextTitleValue,
-    })
+    const nextResolution = planSteamImportedDiscTextValues(importedGame.appId, metadata, {
+      discTextValues, discTextValueSources, discTextTitleValue,
+    }, options.useMetadataCopyright)
 
-    setDiscTextValues(nextDiscTextValues)
+    setDiscTextValues(nextResolution.discTextValues)
     if (options.useMetadataCopyright) {
-      setDiscTextValueSources(nextDiscTextValueSources)
+      setDiscTextValueSources(nextResolution.discTextValueSources)
     }
     completeDiscGuidedTextIfSatisfied('title', {
       metadata,
-      values: nextDiscTextValues,
-      valueSources: nextDiscTextValueSources,
+      values: nextResolution.discTextValues,
+      valueSources: nextResolution.discTextValueSources,
     })
 
     return nextResolution

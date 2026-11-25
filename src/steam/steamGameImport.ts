@@ -1,5 +1,3 @@
-import type { DiscTextValues } from '../discText/index'
-import type { DiscTextValueSources } from '../project/metadataDiscText'
 import { createProjectMetadataFromSteamGame } from '../project/projectMetadata'
 import type { ProjectMetadata } from '../project/projectTypes'
 import { importSteamApp, type SteamImportedGame } from './steamApi'
@@ -35,19 +33,4 @@ export function applySteamGameImportToProjectMetadata(
   currentMetadata: ProjectMetadata,
 ): ProjectMetadata {
   return createProjectMetadataFromSteamGame(importedGame, currentMetadata)
-}
-
-export function applySteamGameImportToDiscTextValues(
-  importedGame: SteamImportedGame,
-  currentDiscTextValues: DiscTextValues,
-  discTextValueSources?: DiscTextValueSources,
-): DiscTextValues {
-  if (discTextValueSources?.appId === 'manual') {
-    return currentDiscTextValues
-  }
-
-  return {
-    ...currentDiscTextValues,
-    appId: String(importedGame.appId),
-  }
 }

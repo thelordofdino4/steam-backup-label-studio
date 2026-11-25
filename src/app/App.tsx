@@ -237,6 +237,7 @@ import {
   getAutoAppliedMetadataCandidateStatusMessage,
 } from './appSteamImportPlan'
 import {
+  applyPreparedSteamDiscVisualDefaultImport,
   prepareSteamDiscVisualDefaultImport,
   shouldApplySteamPlatformMarksEligibilityChange,
 } from './appSteamDiscVisualImport'
@@ -1609,7 +1610,7 @@ function App() {
         projectMetadata,
         metadataCandidateResult,
       })
-      const applyDiscVisualImport = applyDiscVisualDefaults
+      const preparedDiscVisualImport = applyDiscVisualDefaults
         ? await prepareSteamDiscVisualDefaultImport({
           importedGame: importedState.importedGame,
           nextProjectMetadata,
@@ -1617,9 +1618,7 @@ function App() {
           projectPlatformMarks,
           selectedDiscTemplate,
           selectedSteamGame,
-          applySteamImportedDiscTextValues,
           prepareSteamTitleArtworkImport,
-          applySteamTitleArtworkImport,
         })
         : null
       const caseInsertTitleArtworkSeed = options.applyCaseInsertBackCoverDefaults
@@ -1641,7 +1640,12 @@ function App() {
 
       return () => {
         loadImportedSteamMetadataCandidates(importedState.importedGame)
-        const discVisualImport = applyDiscVisualImport?.() ?? null
+        const discVisualImport = preparedDiscVisualImport
+          ? applyPreparedSteamDiscVisualDefaultImport(preparedDiscVisualImport, {
+            applySteamImportedDiscTextValues,
+            applySteamTitleArtworkImport,
+          })
+          : null
         setSelectedSteamGame(importedState.importedGame)
         clearSteamSearchResults()
         setManualGameTitle(importedState.manualGameTitle)
