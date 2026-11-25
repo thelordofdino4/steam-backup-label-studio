@@ -280,11 +280,15 @@ test('real Disc suggested USK and manual USK edits retain PEGI and publish whole
     assert.equal(before.metadata.ratingSystem, 'PEGI')
     assert.equal(before.rating, false)
     assert.equal(before.usk.enabled, false)
+    await page.evaluate(() => window.armDiscStaleRatingReplay())
     await suggested.click()
     await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '16')
     await drain(page)
     const accepted = (await receipt(page)).revisions.at(-1)
     assert.equal(accepted.revision, before.revision + 1)
+    assert.deepEqual(await page.evaluate(() => window.readDiscStaleRatingReplay()), {
+      projected: 'no-op', full: 'no-op',
+    }, 'neither old projection may publish after the genuine Apply')
     assert.equal(accepted.metadata.ratingValue, before.metadata.ratingValue)
     assert.equal(accepted.metadata.ratingSystem, 'PEGI')
     assert.equal(accepted.rating, true)
@@ -298,6 +302,21 @@ test('real Disc suggested USK and manual USK edits retain PEGI and publish whole
     assert.equal(edited.revision, accepted.revision + 1)
     assert.deepEqual(edited.ratingLayout, accepted.ratingLayout)
     assert.deepEqual(edited.usk, { enabled: true, value: '0' })
+    const toggle = page.getByRole('checkbox', { name: 'Show additional USK badge', exact: true })
+    await toggle.uncheck()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.enabled === false)
+    await drain(page)
+    const disabled = (await receipt(page)).revisions.at(-1)
+    assert.equal(disabled.revision, edited.revision + 1)
+    assert.deepEqual(disabled.usk, { enabled: false, value: '0' })
+    assert.equal(disabled.rating, true, 'supplemental toggle leaves primary rating enabled')
+    await toggle.check()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.enabled === true)
+    await drain(page)
+    const restored = (await receipt(page)).revisions.at(-1)
+    assert.equal(restored.revision, disabled.revision + 1)
+    assert.deepEqual(restored.usk, edited.usk, 'toggle restores the deliberately chosen value')
+
   } finally { await page.close() }
 })
 

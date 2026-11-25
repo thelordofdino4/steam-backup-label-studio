@@ -140,6 +140,7 @@ import {
 import {
   planDiscSupplementalUskEdit,
 } from './appSupplementalUskRatingCandidate'
+import { captureDiscRatingLayoutBasis, type DiscRatingLayoutSyncBasis } from '../lifecycle/discRatingLayoutSync'
 import {
   ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
   applyActiveDiscPresetToLegalTextState,
@@ -1086,7 +1087,9 @@ function App() {
     }
 
     const preparedBackground: DiscRolePresetBackgroundRestoreState | null = plan.background
-    const fields = projectDiscPresetSiblingFields(currentState, plan.owners, result.dispatchedOwners)
+    const fields = projectDiscPresetSiblingFields(
+      currentState, plan.owners, result.dispatchedOwners, result.activePresetRef ? 'preserve' : 'explicit',
+    )
     const guided = getNextDiscGuidedWorkflowForPresetApplication({
       currentWorkflow: restoreSavedDiscGuidedWorkflow(session.project.editor),
       presetId: result.canonicalPresetId ?? result.preset.id,
@@ -1115,12 +1118,13 @@ function App() {
           case 'titleArtwork': if (mirror.presetField('titleArtwork')) setProjectTitleArtwork(owners.titleArtwork); break
           case 'logoAssets': if (mirror.presetField('logoAssets')) setProjectLogoAssets(owners.logoAssets); break
           case 'ratingBadge':
-            if (mirror.primaryRatingLayout || mirror.supplementalRatingLayout) {
+            if (fields.ratingBadge && (mirror.primaryRatingLayout || mirror.supplementalRatingLayout)) {
+              const { layout, uskLayout } = fields.ratingBadge
               setProjectRatingBadge(current => ({
                 ...current,
-                layout: mirror.primaryRatingLayout ? owners.ratingBadge.layout : current.layout,
+                layout: mirror.primaryRatingLayout ? { ...current.layout, ...layout } : current.layout,
                 uskBadge: mirror.supplementalRatingLayout
-                  ? { ...current.uskBadge, layout: owners.ratingBadge.uskBadge.layout }
+                  ? { ...current.uskBadge, layout: { ...current.uskBadge.layout, ...uskLayout } }
                   : current.uskBadge,
               }))
             }
@@ -1321,17 +1325,8 @@ function App() {
       projectMetadata.ratingSystem === 'PEGI'
 
     if (shouldApplyAsSupplementalUsk) {
-      const planned = planDiscSupplementalUskEdit(projectRatingBadge, {
-        kind: 'apply-suggestion',
-        metadata: projectMetadata,
-        ratingValue: candidate.ratingValue,
-        selectedDiscTemplate,
-        presetState: activeDiscPreset.getActivePresetState(),
-      })
-      if (planned.placementApplication) {
-        activeDiscPreset.recordTargetedPresetApplication(planned.placementApplication)
-      }
-      setProjectRatingBadge(planned.badge)
+      const accepted = applyDiscSupplementalUskAction(candidate.ratingValue, true)
+      if (!accepted) return
 
       if (options.announce ?? true) {
         announceStatus(
@@ -1438,10 +1433,46 @@ function App() {
     applyRatingCandidateToProject(candidate, options)
   }
 
+  function applyDiscSupplementalUskAction(ratingValue: string, applySuggestion: boolean) {
+    const basis = applicationLifecycleRoot.getStateSnapshot()
+    const disc = basis.state.activeSession
+    if (disc?.kind !== 'disc' || basis.state.visibleWorkspace !== 'disc') return false
+    const planned = planDiscSupplementalUskEdit(disc.project.ratingBadge ?? projectRatingBadge,
+      applySuggestion ? {
+        kind: 'apply-suggestion', metadata: disc.project.metadata ?? projectMetadata, ratingValue,
+        selectedDiscTemplate, presetState: activeDiscPreset.getActivePresetState(),
+      } : { kind: 'choose-value', ratingValue })
+    let accepted = false
+    unstable_batchedUpdates(() => {
+      const result = applicationLifecycleRoot.commitDiscSupplementalUsk({
+        sessionId: disc.id, expectedGeneration: basis.generation, ratingValue: planned.badge.uskBadge.ratingValue,
+        ...(applySuggestion ? { placement: { layout: planned.badge.layout, uskLayout: planned.badge.uskBadge.layout } } : {}),
+      })
+      const now = applicationLifecycleRoot.getStateSnapshot()
+      const current = now.state.activeSession
+      if ((result !== 'committed' && result !== 'no-op') || current?.kind !== 'disc' ||
+          current.id !== disc.id || now.state.visibleWorkspace !== 'disc') return
+      const badge = current.project.ratingBadge
+      if (!badge) return
+      accepted = (result === 'committed' ? basis.generation + 1 : basis.generation) === now.generation
+      setProjectRatingBadge(local => ({
+        ...local,
+        layout: applySuggestion ? badge.layout : local.layout,
+        uskBadge: {
+          ...local.uskBadge,
+          layout: applySuggestion ? badge.uskBadge.layout : local.uskBadge.layout,
+          ratingValue: badge.uskBadge.ratingValue,
+        },
+      }))
+      if (accepted && planned.placementApplication) {
+        activeDiscPreset.recordTargetedPresetApplication(planned.placementApplication)
+      }
+    })
+    return accepted
+  }
+
   function handleDiscSupplementalUskValueChange(ratingValue: string) {
-    setProjectRatingBadge(current => planDiscSupplementalUskEdit(current, {
-      kind: 'choose-value', ratingValue,
-    }).badge)
+    applyDiscSupplementalUskAction(ratingValue, false)
   }
 
   function handleApplyCaseInsertRatingCandidate(
@@ -2085,16 +2116,25 @@ function App() {
   })
   useApplicationDocumentSelectionOwnership()
 
+  const renderedSessionId = applicationCommandSnapshot.lifecycle.activeSession?.id
+  const discRatingProjectionBasis = useRef<{ sessionId: string; basis: DiscRatingLayoutSyncBasis } | null>(null)
   useLayoutEffect(() => {
     if (activeWorkspace === 'home') return
     const session = applicationLifecycleRoot.getLifecycleState().activeSession
-    if (!session || session.kind !== activeWorkspace) return
+    if (!session || session.id !== renderedSessionId || session.kind !== activeWorkspace) return
 
     const captured = captureCurrentLegacyProject()
     if (captured.kind === 'disc') {
-      applicationLifecycleRoot.synchronizeDiscLegacyProject({
+      const previous = discRatingProjectionBasis.current
+      const outcome = applicationLifecycleRoot.synchronizeDiscLegacyProject({
         sessionId: session.id, legacy: captured.project,
+        ...(previous?.sessionId === session.id ? { ratingBasis: previous.basis } : {}),
       })
+      if (outcome === 'synchronized' || outcome === 'no-op') {
+        discRatingProjectionBasis.current = {
+          sessionId: session.id, basis: captureDiscRatingLayoutBasis(captured.project.ratingBadge ?? projectRatingBadge),
+        }
+      }
     } else {
       applicationLifecycleRoot.synchronizeCurrentProject({
         sessionId: session.id, kind: 'caseInsert', project: captured.project,
@@ -2115,6 +2155,8 @@ function App() {
     activeWorkspace,
     applicationLifecycleRoot,
     captureCurrentLegacyProject,
+    projectRatingBadge,
+    renderedSessionId,
   ])
 
   useLayoutEffect(() => {

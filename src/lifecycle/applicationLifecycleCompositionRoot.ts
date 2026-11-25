@@ -41,6 +41,7 @@ import {
   type ApplicationTerminationCapabilities,
 } from './lifecycleCommandCapabilities.ts'
 import type { DiscLegacyProjectProjection } from '../project/createProjectSnapshot.ts'
+import { normalizeUskRatingValue } from '../project/projectMetadata.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
 import type { RatingBadgeLayout, SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
 import {
@@ -54,6 +55,7 @@ import {
   type ProjectSessionEditorRoute,
   type ProjectSessionId,
 } from './projectSession.ts'
+import { reconcileDiscRatingLayouts, type DiscRatingLayoutSyncBasis } from './discRatingLayoutSync.ts'
 import type { EditorProjectType } from '../editor/editorTypes.ts'
 import {
   captureNormalizedProjectSnapshot,
@@ -128,21 +130,60 @@ const presetTextFootprint = new Set(['layout', 'settings'])
 const presetRatingFootprint = new Set(['layout', 'uskLayout'])
 const ratingLayoutFootprint = new Set(['enabled', 'scale', 'x', 'y'])
 
-function readPresetRatingLayout(input: unknown): RatingBadgeLayout | null {
+function readPresetRatingLayout(input: unknown): DiscPresetRatingLayoutPatch | null {
   const layout = readClosedDataFootprint(input, ratingLayoutFootprint)
-  if (!layout || typeof layout.enabled !== 'boolean' ||
+  if (!layout || (Object.hasOwn(layout, 'enabled') && typeof layout.enabled !== 'boolean') ||
       typeof layout.scale !== 'number' || !Number.isFinite(layout.scale) || layout.scale <= 0 ||
       typeof layout.x !== 'number' || !Number.isFinite(layout.x) ||
       typeof layout.y !== 'number' || !Number.isFinite(layout.y)) return null
-  return { enabled: layout.enabled, scale: layout.scale, x: layout.x, y: layout.y }
+  return {
+    scale: layout.scale, x: layout.x, y: layout.y,
+    ...(typeof layout.enabled === 'boolean' ? { enabled: layout.enabled } : {}),
+  }
 }
 
-function discRemainderOf(project: DiscProjectSession['project']): Record<string, unknown> {
+function discRemainderOf(project: object): Record<string, unknown> {
   return Object.fromEntries(Object.entries(project).filter(([key]) => key !== 'background'))
 }
 
 type DiscPresetTextFields = Pick<NonNullable<SavedDiscProject['discText']>, 'layout' | 'settings'>
-type DiscPresetRatingFields = Readonly<{ layout: RatingBadgeLayout; uskLayout: RatingBadgeLayout }>
+type DiscPresetRatingLayoutPatch = Omit<RatingBadgeLayout, 'enabled'> & Partial<Pick<RatingBadgeLayout, 'enabled'>>
+type DiscPresetRatingFields = Readonly<{ layout: DiscPresetRatingLayoutPatch; uskLayout: DiscPresetRatingLayoutPatch }>
+type DiscSupplementalUskEdit = Readonly<{
+  sessionId: ProjectSessionId
+  expectedGeneration: number
+  ratingValue: string
+  placement?: Readonly<{ layout: RatingBadgeLayout; uskLayout: RatingBadgeLayout }>
+}>
+const discSupplementalUskEditKeys = new Set(['sessionId', 'expectedGeneration', 'ratingValue', 'placement'])
+
+function prepareDiscRatingProjection(
+  accepted: DiscProjectSession['project']['ratingBadge'],
+  draft: Record<string, unknown>,
+  basis?: DiscRatingLayoutSyncBasis,
+) {
+  if (draft.ratingBadge === undefined && !accepted?.uskBadge?.ratingValue) return draft
+  if (draft.ratingBadge !== undefined && (!draft.ratingBadge ||
+      typeof draft.ratingBadge !== 'object' || Array.isArray(draft.ratingBadge))) {
+    throw new TypeError('Invalid Disc rating projection.')
+  }
+  const defaults = createDefaultProjectRatingBadge()
+  const badge = (draft.ratingBadge ?? accepted ?? defaults) as NonNullable<SavedDiscProject['ratingBadge']>
+  const withValue = {
+    ...badge, uskBadge: {
+      ...defaults.uskBadge, ...badge.uskBadge,
+      ratingValue: accepted?.uskBadge?.ratingValue ?? defaults.uskBadge.ratingValue,
+    },
+  }
+  if (!accepted?.layout || !accepted.uskBadge?.layout) return { ...draft, ratingBadge: withValue }
+  if (basis) return { ...draft, ratingBadge: reconcileDiscRatingLayouts(basis, withValue, accepted) }
+  // An unversioned compatibility projection can still update unrelated
+  // content, but cannot claim that an older layout is a deliberate edit.
+  return { ...draft, ratingBadge: {
+    ...withValue, layout: accepted.layout,
+    uskBadge: { ...withValue.uskBadge, layout: accepted.uskBadge.layout },
+  } }
+}
 export type DiscPresetSiblingFields = Partial<Pick<SavedDiscProject,
   Exclude<typeof discPresetSiblingKeys[number], 'discText' | 'ratingBadge'>>> & {
     discText?: DiscPresetTextFields
@@ -173,6 +214,7 @@ export interface ApplicationLifecycleCompositionRoot {
     commandId: string,
     input?: unknown,
   ): Promise<ApplicationCommandDispatchResult<Value>>
+  commitDiscSupplementalUsk(edit: DiscSupplementalUskEdit): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
   canCommitDiscBackground(): boolean
   commitDiscBackground(edit: DiscBackgroundEdit): 'committed' | 'no-op' | 'stale' | 'unavailable' | 'invalid'
   commitDiscBackgroundCompound(
@@ -182,11 +224,13 @@ export interface ApplicationLifecycleCompositionRoot {
   synchronizeDiscLegacyProject(input: Readonly<{
     sessionId: ProjectSessionId
     legacy: DiscLegacyProjectProjection
+    ratingBasis?: DiscRatingLayoutSyncBasis
   }>): ReturnType<ApplicationLifecycleCompositionRoot['synchronizeCurrentProject']>
   synchronizeCurrentProject(input: Readonly<{
     sessionId: ProjectSessionId
     kind: EditorProjectType
     project: SavedProject
+    ratingBasis?: DiscRatingLayoutSyncBasis
   }>): 'synchronized' | 'no-op' | 'stale-session' | 'wrong-kind' | 'invalid'
   synchronizeCurrentEditorRoute(input: Readonly<{
     sessionId: ProjectSessionId
@@ -406,7 +450,8 @@ export function createApplicationLifecycleCompositionRoot(
       Object.assign(remainder, legacy)
       // Reflection/validation may run nested proxy traps. Prepare before the
       // generation check so a reentrant acceptance cannot be overwritten.
-      const prepared = replaceActiveDiscRemainder(snapshot.state, session, remainder)
+      const prepared = replaceActiveDiscRemainder(snapshot.state, session,
+        prepareDiscRatingProjection(session.project.ratingBadge, remainder, input.ratingBasis))
       const result = stateStore.commitTransition(snapshot.generation, () => prepared)
       return result.status === 'committed' ? 'synchronized' :
         result.status === 'no-op' ? 'no-op' : 'stale-session'
@@ -419,6 +464,7 @@ export function createApplicationLifecycleCompositionRoot(
     sessionId: ProjectSessionId
     kind: EditorProjectType
     project: SavedProject
+    ratingBasis?: DiscRatingLayoutSyncBasis
   }>) {
     if (disposed) return 'invalid'
 
@@ -435,11 +481,11 @@ export function createApplicationLifecycleCompositionRoot(
       // not gain a second background writer through the old ingress.
       if (session.kind === 'disc' && (!isCapturedSavedDiscProject(project) ||
         !savedDiscBackgroundMatches(project.background, session.project.background))) return 'invalid'
-      result = stateStore.commitTransition(snapshot.generation, (state) =>
-        synchronizeActiveProjectContent(state, {
-          ...input,
-          project: project as unknown as SavedProject,
-        }))
+      const prepared = session.kind === 'disc' && isCapturedSavedDiscProject(project)
+        ? replaceActiveDiscRemainder(snapshot.state, session,
+          prepareDiscRatingProjection(session.project.ratingBadge, discRemainderOf(project), input.ratingBasis))
+        : synchronizeActiveProjectContent(snapshot.state, { sessionId: input.sessionId, kind: input.kind, project: project as unknown as SavedProject })
+      result = stateStore.commitTransition(snapshot.generation, () => prepared)
     } catch {
       return 'invalid'
     }
@@ -513,6 +559,43 @@ export function createApplicationLifecycleCompositionRoot(
       return pending
     },
     canCommitDiscBackground,
+    commitDiscSupplementalUsk(edit: DiscSupplementalUskEdit) {
+      if (!canCommitDiscBackground()) return 'unavailable'
+      const snapshot = stateStore.getSnapshot()
+      const session = snapshot.state.activeSession
+      if (session?.kind !== 'disc') return 'unavailable'
+      try {
+        const fields = readClosedDataFootprint(edit, discSupplementalUskEditKeys)
+        if (!fields || typeof fields.sessionId !== 'string' || typeof fields.expectedGeneration !== 'number' ||
+            typeof fields.ratingValue !== 'string') return 'invalid'
+        if (fields.sessionId !== session.id || fields.expectedGeneration !== snapshot.generation) return 'stale'
+        const ratingValue = normalizeUskRatingValue(fields.ratingValue)
+        if (ratingValue === null) return 'invalid'
+        const defaults = createDefaultProjectRatingBadge()
+        const current = session.project.ratingBadge
+        if (ratingValue === (current?.uskBadge?.ratingValue ?? defaults.uskBadge.ratingValue) &&
+            !Object.hasOwn(fields, 'placement')) return 'no-op'
+        let primary = current?.layout ?? defaults.layout
+        let supplemental = current?.uskBadge?.layout ?? defaults.uskBadge.layout
+        if (Object.hasOwn(fields, 'placement')) {
+          const patch = readClosedDataFootprint(fields.placement, presetRatingFootprint)
+          const layout = readPresetRatingLayout(patch?.layout)
+          const uskLayout = readPresetRatingLayout(patch?.uskLayout)
+          if (!layout || !uskLayout || !layout.enabled || !uskLayout.enabled) return 'invalid'
+          primary = { ...layout, enabled: true }
+          supplemental = { ...uskLayout, enabled: true }
+        }
+        const remainder = discRemainderOf(session.project)
+        Object.assign(remainder, { ratingBadge: {
+          ...defaults, ...current, layout: primary,
+          uskBadge: { ...defaults.uskBadge, ...current?.uskBadge, layout: supplemental, ratingValue },
+        } })
+        const prepared = replaceActiveDiscRemainder(snapshot.state, session, remainder)
+        return stateStore.commitTransition(snapshot.generation, () => prepared).status
+      } catch {
+        return 'invalid'
+      }
+    },
     commitDiscBackground(edit: DiscBackgroundEdit) {
       if (!canCommitDiscBackground()) return 'unavailable'
       const snapshot = stateStore.getSnapshot()
@@ -556,8 +639,11 @@ export function createApplicationLifecycleCompositionRoot(
             Object.assign(remainder, { ratingBadge: {
               ...defaults,
               ...accepted,
-              layout,
-              uskBadge: { ...defaults.uskBadge, ...accepted?.uskBadge, layout: uskLayout },
+              layout: { ...(accepted?.layout ?? defaults.layout), ...layout },
+              uskBadge: {
+                ...defaults.uskBadge, ...accepted?.uskBadge,
+                layout: { ...(accepted?.uskBadge?.layout ?? defaults.uskBadge.layout), ...uskLayout },
+              },
             } })
           }
           Object.assign(remainder, directFields)

@@ -4,6 +4,7 @@ import type {
 import type { DiscRolePresetCurrentState } from './appDiscRolePresetApplication.ts'
 import type { DiscRolePresetFeatureOwner } from '../layout/discRolePresets.ts'
 import type { DiscBackgroundEdit } from '../lifecycle/projectSession.ts'
+import type { RatingBadgeLayout } from '../project/projectTypes.ts'
 import { normalizedProjectValueMatches } from '../lifecycle/canonicalProject.ts'
 
 type DirectPresetMirrorField = Exclude<keyof DiscPresetSiblingFields, 'discText' | 'ratingBadge'>
@@ -37,6 +38,11 @@ export function commitPreparedDiscBackgroundCompound(
     const fields = companion.kind === 'preset' ? companion.fields : undefined
     const matches = (candidate: unknown, actual: unknown) =>
       currentInteraction || normalizedProjectValueMatches(candidate, actual)
+    const matchesRating = (
+      patch: NonNullable<DiscPresetSiblingFields['ratingBadge']>['layout'],
+      actual: RatingBadgeLayout | undefined,
+    ) => currentInteraction || !!actual && Object.entries(patch).every(([field, value]) =>
+      value === actual[field as keyof RatingBadgeLayout])
     mirror({
       currentInteraction,
       presetField: field => !!fields && Object.hasOwn(fields, field) &&
@@ -46,9 +52,9 @@ export function commitPreparedDiscBackgroundCompound(
       discTextSettings: fields?.discText?.settings !== undefined &&
         matches(fields.discText.settings, current.project.discText?.settings),
       primaryRatingLayout: fields?.ratingBadge !== undefined &&
-        matches(fields.ratingBadge.layout, current.project.ratingBadge?.layout),
+        matchesRating(fields.ratingBadge.layout, current.project.ratingBadge?.layout),
       supplementalRatingLayout: fields?.ratingBadge !== undefined &&
-        matches(fields.ratingBadge.uskLayout, current.project.ratingBadge?.uskBadge?.layout),
+        matchesRating(fields.ratingBadge.uskLayout, current.project.ratingBadge?.uskBadge?.layout),
       guided: companion.guidedLayout !== undefined &&
         matches(companion.guidedLayout ?? undefined, current.project.editor?.guidedLayout),
     })
@@ -62,15 +68,21 @@ export function projectDiscPresetSiblingFields(
   before: DiscRolePresetCurrentState,
   planned: DiscRolePresetCurrentState,
   touchedOwners: readonly DiscRolePresetFeatureOwner[],
+  ratingVisibility: 'preserve' | 'explicit' = 'explicit',
 ): DiscPresetSiblingFields {
   const fields: DiscPresetSiblingFields = {}
   for (const owner of touchedOwners) {
     switch (owner) {
       case 'titleArtwork': fields.titleArtwork = planned.titleArtwork; break
       case 'logoAssets': fields.logoAssets = planned.logoAssets; break
-      case 'ratingBadge':
-        fields.ratingBadge = { layout: planned.ratingBadge.layout, uskLayout: planned.ratingBadge.uskBadge.layout }
+      case 'ratingBadge': {
+        const placement = ({ x, y, scale }: RatingBadgeLayout) => ({ x, y, scale })
+        const { layout, uskBadge } = planned.ratingBadge
+        fields.ratingBadge = ratingVisibility === 'preserve'
+          ? { layout: placement(layout), uskLayout: placement(uskBadge.layout) }
+          : { layout, uskLayout: uskBadge.layout }
         break
+      }
       case 'mediaMark': fields.mediaMark = planned.mediaMark; break
       case 'platformMarks': fields.platformMarks = planned.platformMarks; break
       case 'technicalMarks': fields.technicalMarks = planned.technicalMarks; break
