@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { createDiscDimensionEditingState, getDiscDimensionFieldViews, updateDiscDimensionDraft } from '../templates/discDimensionEditing'
-import type { DiscTemplate } from '../types/template'
 import type { DiscTemplateGeometryGuardrailState } from '../layout/discTemplateGeometryGuardrail'
 import {
   CUSTOM_OUTER_DIAMETER_MAX_MM,
@@ -13,19 +12,20 @@ import {
   getIsCustomDiscTemplate,
   getSelectedDiscTemplate,
   restoreDiscTemplateRuntimeState,
+  type DiscTemplateState,
   type CustomDiscDimensionKey,
   type RestorableDiscTemplateState,
 } from '../templates/discTemplateStateModel'
 
 export type UseDiscTemplateOptions = {
   announceStatus: (message: string) => void
-  clampForegroundElementLayoutsToTemplate: (template: DiscTemplate) => void
+  commitTemplateChange: (state: DiscTemplateState, project: () => void) => boolean
   getGeometryGuardrailState: () => DiscTemplateGeometryGuardrailState
 }
 
 export function useDiscTemplate({
   announceStatus,
-  clampForegroundElementLayoutsToTemplate,
+  commitTemplateChange,
   getGeometryGuardrailState,
 }: UseDiscTemplateOptions) {
   const [dimensionEditing, setDimensionEditing] = useState(() =>
@@ -60,9 +60,10 @@ export function useDiscTemplate({
       templateId,
     )
 
-    setDimensionEditing(createDiscDimensionEditingState(templateChange.state))
-    clampForegroundElementLayoutsToTemplate(templateChange.selectedTemplate)
-    announceStatus(templateChange.statusMessage)
+    if (commitTemplateChange(templateChange.state, () =>
+      setDimensionEditing(createDiscDimensionEditingState(templateChange.state)))) {
+      announceStatus(templateChange.statusMessage)
+    }
   }
 
   function handleCustomDimensionChange(
@@ -71,21 +72,12 @@ export function useDiscTemplate({
   ) {
     const dimensionChange = updateDiscDimensionDraft(
       dimensionEditing, field, value, getGeometryGuardrailState())
-    setDimensionEditing(dimensionChange.state)
-
-    if (dimensionChange.statusMessage) {
-      announceStatus(dimensionChange.statusMessage)
+    if (dimensionChange.changed && dimensionChange.selectedTemplateToClamp) {
+      commitTemplateChange(dimensionChange.state.templateState, () => setDimensionEditing(dimensionChange.state))
+    } else {
+      setDimensionEditing(dimensionChange.state)
     }
-
-    if (!dimensionChange.changed) {
-      return
-    }
-
-    if (dimensionChange.selectedTemplateToClamp) {
-      clampForegroundElementLayoutsToTemplate(
-        dimensionChange.selectedTemplateToClamp,
-      )
-    }
+    if (dimensionChange.statusMessage) announceStatus(dimensionChange.statusMessage)
   }
 
   return {

@@ -29,7 +29,7 @@ export interface ApplicationLifecycleStateStore {
   getSnapshot(): ApplicationLifecycleStateSnapshot
   commitTransition(
     expectedGeneration: number, transition: ApplicationLifecycleStateTransition,
-    historyPolicy?: 'record-disc-transaction',
+    historyPolicy?: 'record-disc-transaction' | 'record-disc-transaction-with-projection',
   ): ApplicationLifecycleStateCommitResult
   stepDiscHistory(expectedGeneration: number, direction: 'undo' | 'redo'): ApplicationLifecycleStateCommitResult
   acknowledgeDiscHistoryProjection(expectedGeneration: number): ApplicationLifecycleStateCommitResult
@@ -98,7 +98,7 @@ export function createApplicationLifecycleStateStore(
         const old = basis.discHistory
         if (old && prior?.kind === 'disc' && prior.id === current.id) {
           if (prior.revision === current.revision && prior.project === current.project) history = old
-          else if (historyPolicy === 'record-disc-transaction' && current.revision === prior.revision + 1) {
+          else if (historyPolicy !== undefined && current.revision === prior.revision + 1) {
             const recorded = recordDocumentTransition(old, current.id, prior.project, current.project)
             if (recorded !== old) history = recorded
           }
@@ -107,8 +107,10 @@ export function createApplicationLifecycleStateStore(
         history ??= createDocumentHistory(current.id, current.project, limit)
       }
       return publish(basis, next, history,
-        !!basis.discHistoryProjectionPending && prior?.id === current?.id &&
-        prior?.revision === current?.revision && prior?.project === current?.project)
+        (historyPolicy === 'record-disc-transaction-with-projection' && prior?.kind === 'disc' &&
+          current?.kind === 'disc' && prior.id === current.id && current.revision === prior.revision + 1) ||
+        (!!basis.discHistoryProjectionPending && prior?.id === current?.id &&
+          prior?.revision === current?.revision && prior?.project === current?.project))
     },
     stepDiscHistory(expectedGeneration, direction) {
       if (disposed) throw new Error('The application lifecycle state store is disposed.')

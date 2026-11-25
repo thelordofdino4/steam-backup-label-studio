@@ -20,7 +20,7 @@ export function Harness() {
   const template = discTemplates.standardPrintableDisc
   const model = useDiscTemplate({
     announceStatus: setStatus,
-    clampForegroundElementLayoutsToTemplate: () => setClamps(value => value + 1),
+    commitTemplateChange: (_next, project) => { project(); setClamps(value => value + 1); return true },
     getGeometryGuardrailState: () => ({
       discTextSettings: { ...DEFAULT_DISC_TEXT_SETTINGS, title: false },
       discTextValues: createDefaultDiscTextValues(), discTextTitle: '',

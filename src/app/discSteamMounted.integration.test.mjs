@@ -784,3 +784,76 @@ test('authored Classic preset output matches Undo and Redo at the real Save and 
     assert.equal(redone.png.pixels, applied.png.pixels)
   } finally { await page.close() }
 })
+
+test('template and reset keep every earlier Disc operation reachable in the mounted editor', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    await reveal(page, 'Template')
+    const template = page.getByLabel('Disc type', { exact: true })
+    const titleId = 'disc:guided:game-title:primary'
+    const titleSlot = page.locator(`[data-guided-slot-id="${titleId}"]`).last()
+    const selectablePreset = page.getByLabel('Preset', { exact: true })
+    const capture = async () => page.evaluate(() => ({
+      history: window.readDiscHistoryDiagnostic(), project: window.readDiscHistoryProject(),
+    }))
+    const settle = async (previous, past, future = 0) => {
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return state.revision === revision && !state.pending
+      }, previous.history.revision + 1, { timeout: 8_000 })
+      await drain(page)
+      const observed = await capture()
+      assert.equal(observed.history.revision, previous.history.revision + 1)
+      assert.equal(observed.history.past, past)
+      assert.equal(observed.history.future, future)
+      return observed
+    }
+    await selectablePreset.selectOption('classic-top-title')
+    await drain(page)
+    const blank = await capture()
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    const applied = await settle(blank, 1)
+    assert.equal(applied.project.template.variant, 'standardPrintableDisc')
+    await titleSlot.waitFor()
+    await template.selectOption('stickyLabelDisc')
+    const switched = await settle(applied, 2)
+    assert.equal(switched.project.template.variant, 'stickyLabelDisc')
+    assert.deepEqual(switched.project.editor, applied.project.editor)
+    assert.equal(await template.inputValue(), 'stickyLabelDisc')
+    await titleSlot.click()
+    await page.getByRole('menuitem', { name: 'Remove Game Title from layout', exact: true }).click()
+    const omitted = await settle(switched, 3)
+    assert.deepEqual(omitted.project.editor.guidedLayout.omittedSlotIds, [titleId])
+    await titleSlot.waitFor({ state: 'detached' })
+    const resetControl = page.getByRole('button', { name: 'Reset guided progress', exact: true })
+    await resetControl.click()
+    const reset = await settle(omitted, 4)
+    assert.deepEqual(reset.project, switched.project)
+    await titleSlot.waitFor()
+    await resetControl.click()
+    await drain(page)
+    assert.deepEqual(await capture(), reset, 'already-reset progress is a no-op')
+
+    const step = async (previous, expected, direction, past, future) => {
+      assert.equal(await page.evaluate(step => window.stepDiscHistoryDiagnostic(step), direction), 'committed')
+      const result = await settle(previous, past, future)
+      assert.deepEqual(result.project, expected.project)
+      assert.equal(await template.inputValue(), expected.project.template.variant)
+      const workflow = expected.project.editor?.guidedLayout
+      await titleSlot.waitFor({ state: workflow && !workflow.omittedSlotIds.includes(titleId) ? 'visible' : 'detached' })
+      return result
+    }
+    let current = reset
+    const entries = [blank, applied, switched, omitted, reset]
+    for (let past = 3; past >= 0; past--) current = await step(current, entries[past], 'undo', past, 4 - past)
+    for (let past = 1; past <= 4; past++) current = await step(current, entries[past], 'redo', past, 4 - past)
+  } finally { await page.close() }
+})

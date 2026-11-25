@@ -1,4 +1,7 @@
-import { prepareDiscHistoryGuidedAttachment, stepProjectedDiscHistory } from './appDiscHistoryProjection.ts'
+import { readDiscEditorDocumentBasis, applyDiscEditorDocumentEdit, type DiscEditorDocumentOperation } from './appDiscEditorDocumentCommand.ts'
+import { planDiscTemplateDocumentEdit } from './appDiscTemplateDocumentPlan.ts'
+import type { DiscTemplateState } from '../templates/discTemplateStateModel.ts'
+import { prepareDiscHistoryGuidedAttachment, readDiscHistoryTemplate, stepProjectedDiscHistory } from './appDiscHistoryProjection.ts'
 import { captureDiscBackgroundExportInput } from '../lifecycle/canonicalProject.ts'
 import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
@@ -17,7 +20,6 @@ import {
   normalizeCaseInsertNavigationSurfaceForPane,
   type CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces'
-import type { DiscTemplate } from '../types/template'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import '../styles/App.css'
 import '../styles/layoutFix.css'
@@ -340,7 +342,7 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
     handleCustomDimensionChange,
   } = useDiscTemplate({
     announceStatus,
-    clampForegroundElementLayoutsToTemplate,
+    commitTemplateChange: handleDiscTemplateDocumentEdit,
     getGeometryGuardrailState,
   })
   const [steamLogoPlacement, setSteamLogoPlacement] =
@@ -590,7 +592,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
     setDiscTextLayout,
     resetDiscTextState,
     restoreDiscTextState,
-    clampDiscTextLayoutToTemplate,
     planDiscTextLayoutClamp,
     setDiscTextSettings,
     repositionDiscTextForSteamLogoPlacement,
@@ -683,7 +684,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
     projectLogoAssets,
     setProjectLogoAssets,
     applyLogoAssetImport,
-    clampProjectLogoAssetsToTemplate,
     resetProjectLogoAssets,
     handleLogoAssetUpload,
     handleLogoAssetLayoutChange,
@@ -701,7 +701,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   const {
     projectRatingBadge,
     setProjectRatingBadge,
-    clampProjectRatingBadgeToTemplate,
     resetProjectRatingBadge,
     setRatingBadgeEnabled,
     setRatingBadgeEnabledForAppliedCandidate,
@@ -724,7 +723,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   const {
     projectMediaMark,
     setProjectMediaMark,
-    clampProjectMediaMarkToTemplate,
     resetProjectMediaMark,
     handleMediaMarkUpload,
     handleMediaMarkValueChange,
@@ -742,7 +740,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   const {
     projectPlatformMarks,
     setProjectPlatformMarks,
-    clampProjectPlatformMarksToTemplate,
     resetProjectPlatformMarks,
     handlePlatformMarkToggle,
     handlePlatformMarkUpload,
@@ -772,7 +769,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   const {
     projectTechnicalMarks,
     setProjectTechnicalMarks,
-    clampProjectTechnicalMarksToTemplate,
     resetProjectTechnicalMarks,
     handleTechnicalMarkToggle,
     handleTechnicalMarkUpload,
@@ -790,7 +786,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   const {
     projectTitleArtwork,
     setProjectTitleArtwork,
-    clampProjectTitleArtworkToTemplate,
     resetProjectTitleArtwork,
     resetTitleArtworkLayoutForPlacement,
     handleTitleArtworkLayoutChange,
@@ -809,7 +804,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   const {
     projectAdditionalArtwork,
     setProjectAdditionalArtwork,
-    clampProjectAdditionalArtworkToTemplate,
     resetProjectAdditionalArtwork,
     handleAdditionalArtworkEnabledChange,
     handleAddAdditionalArtworkElement,
@@ -1020,18 +1014,64 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
     workflow: discGuidedWorkflow,
     updateWorkflow: setDiscGuidedWorkflow,
     activePresetState: activeDiscPreset.activePresetState,
+    resetProgress: () => handleDiscGuidedDocumentEdit({ kind: 'reset-guided-progress' }),
+    editSlot: (action, slotId) => handleDiscGuidedDocumentEdit({ kind: 'edit-guided-slot', action, slotId }),
   })
 
-  function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
-    clampProjectLogoAssetsToTemplate(template)
-    clampProjectTitleArtworkToTemplate(template)
-    clampProjectAdditionalArtworkToTemplate(template)
-    clampProjectRatingBadgeToTemplate(template)
-    clampProjectMediaMarkToTemplate(template)
-    clampProjectPlatformMarksToTemplate(template)
-    clampProjectTechnicalMarksToTemplate(template)
+  function getDiscDocumentRenderedOwners() {
+    return {
+      titleArtwork: projectTitleArtwork, additionalArtwork: projectAdditionalArtwork,
+      ratingBadge: projectRatingBadge, mediaMark: projectMediaMark, platformMarks: projectPlatformMarks,
+      logoAssets: projectLogoAssets, technicalMarks: projectTechnicalMarks, metadata: projectMetadata,
+      discTextSettings, discTextLayout, discTextValues, discTextValueSources,
+      discTextTitleValue, discTextHtmlSources, discTextStyles,
+    }
+  }
 
-    clampDiscTextLayoutToTemplate(template)
+  function handleDiscTemplateDocumentEdit(next: DiscTemplateState, projectTemplate: () => void) {
+    if (finishBackgroundDrag().status !== 'success') return false
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return false
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return false
+    const rendered = getDiscDocumentRenderedOwners()
+    const { fields, template } = planDiscTemplateDocumentEdit(next, rendered, planDiscTextLayoutClamp)
+    const { template: savedTemplate, ...mirrorOwners } = fields
+    void savedTemplate
+    const workflow = discGuidedWorkflow
+    const guided = workflow.activeLayout ? prepareDiscHistoryGuidedAttachment({
+      workflow, current: basis.current.project, target: basis.current.project,
+      plan: mirrorOwners, renderProjection: captured.project, rendered, template,
+    }) : null
+    if (workflow.activeLayout && !guided) return false
+    return applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, { kind: 'template', fields },
+      unstable_batchedUpdates, (accepted) => {
+        projectTemplate()
+        if (accepted.revision === basis.current.revision) return
+        setProjectTitleArtwork(fields.titleArtwork)
+        setProjectAdditionalArtwork(fields.additionalArtwork)
+        setProjectLogoAssets(fields.logoAssets)
+        setProjectRatingBadge(fields.ratingBadge)
+        setProjectMediaMark(fields.mediaMark)
+        setProjectPlatformMarks(fields.platformMarks)
+        setProjectTechnicalMarks(fields.technicalMarks)
+        setDiscTextLayout(fields.discTextLayout)
+        if (guided) activeDiscPreset.restoreActivePresetState(guided.attachment)
+      })
+  }
+
+  function handleDiscGuidedDocumentEdit(operation: Exclude<DiscEditorDocumentOperation, { kind: 'template' }>) {
+    if (finishBackgroundDrag().status !== 'success') return
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return
+    applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, operation,
+      unstable_batchedUpdates, (accepted) => {
+        if (accepted.revision !== basis.current.revision) {
+          setDiscGuidedWorkflow(restoreSavedDiscGuidedWorkflow(accepted.project.editor))
+        }
+      })
   }
 
   function getGeometryGuardrailState() {
@@ -2184,6 +2224,8 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   useLayoutEffect(() => connectDiscHistoryDiagnostic?.(direction =>
     stepProjectedDiscHistory(applicationLifecycleRoot, direction, {
       batch: unstable_batchedUpdates,
+      setTemplate: restoreDiscTemplateState,
+      setAdditionalArtwork: setProjectAdditionalArtwork,
       setRatingBadge: setProjectRatingBadge,
       setMediaMark: setProjectMediaMark,
       setPlatformMarks: setProjectPlatformMarks,
@@ -2195,24 +2237,11 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
       prepareGuidedAttachment(workflow, target, plan, current) {
         const projection = captureCurrentLegacyProject()
         if (projection.kind !== 'disc') return null
+        const template = plan.template ? readDiscHistoryTemplate(plan.template) : selectedDiscTemplate
+        if (!template) return null
         const prepared = prepareDiscHistoryGuidedAttachment({
-          workflow, target, plan, current, template: selectedDiscTemplate,
-          renderProjection: projection.project,
-          rendered: {
-            titleArtwork: projectTitleArtwork,
-            ratingBadge: projectRatingBadge,
-            mediaMark: projectMediaMark,
-            platformMarks: projectPlatformMarks,
-            logoAssets: projectLogoAssets,
-            discTextSettings,
-            discTextLayout,
-            discTextValues,
-            discTextValueSources,
-            discTextTitleValue,
-            discTextHtmlSources,
-            discTextStyles,
-            metadata: projectMetadata,
-          },
+          workflow, target, plan, current, template,
+          renderProjection: projection.project, rendered: getDiscDocumentRenderedOwners(),
         })
         return prepared ? () => {
           setDiscGuidedWorkflow(prepared.workflow)

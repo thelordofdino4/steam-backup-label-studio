@@ -155,8 +155,15 @@ window.stepDiscHistoryDiagnostic = direction => {
   return stepHistory?.(direction)
 }
 window.readDiscHistoryDiagnostic = () => {
-  const { state, discHistoryProjectionPending } = lifecycleRuntime.root.getStateSnapshot()
-  return { revision: state.activeSession?.revision, pending: Boolean(discHistoryProjectionPending) }
+  const { state, discHistory, discHistoryProjectionPending } = lifecycleRuntime.root.getStateSnapshot()
+  return { revision: state.activeSession?.revision, pending: Boolean(discHistoryProjectionPending),
+    past: discHistory?.past.length, future: discHistory?.future.length }
+}
+window.readDiscHistoryProject = () => {
+  const session = lifecycleRuntime.root.getStateSnapshot().state.activeSession
+  if (session?.kind !== 'disc') throw new Error('Expected active Disc')
+  const { savedAt, ...document } = materializeDiscProject(session.project)
+  return document
 }
 createRoot(appNode).render(createElement(ApplicationLifecycleBoundary, { runtime: lifecycleRuntime },
   createElement(ApplicationMenuBoundary, { runtime: menuRuntime },

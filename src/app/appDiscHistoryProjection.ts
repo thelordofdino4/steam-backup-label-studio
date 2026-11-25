@@ -1,4 +1,5 @@
 import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
+import { discTemplates, type RestorableDiscTemplateState } from '../templates/discTemplateStateModel.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import type { DiscLegacyProjectProjection } from '../project/createProjectSnapshot.ts'
 import {
@@ -13,13 +14,15 @@ import type { DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings } from '.
 import { createSavedDiscGuidedLayout, restoreSavedDiscGuidedWorkflow } from '../project/projectGuidedWorkflow.ts'
 import type { DiscGuidedWorkflowState } from '../guidedPresets/discGuidedWorkflow.ts'
 import type {
-  BackgroundImageSize, ProjectAdditionalLogoAsset, ProjectLogoAssets, ProjectLogoAssetsInput,
+  BackgroundImageSize, ProjectAdditionalArtwork, ProjectAdditionalLogoAsset, ProjectLogoAssets, ProjectLogoAssetsInput,
   ProjectMediaMark, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarkAsset,
   ProjectTechnicalMarks, ProjectTechnicalMarksInput, ProjectTitleArtwork,
 } from '../project/projectTypes.ts'
 
 type DiscHistoryProjection = Readonly<{
   /** Background already renders directly from the accepted lifecycle snapshot. */
+  template?: RestorableDiscTemplateState
+  additionalArtwork?: ProjectAdditionalArtwork
   ratingBadge?: ProjectRatingBadge
   mediaMark?: ProjectMediaMark
   platformMarks?: ProjectPlatformMarks
@@ -50,6 +53,27 @@ export function prepareDiscHistoryProjection(
     const after = Reflect.get(target, key)
     if (before === after || normalizedProjectValueMatches(before, after)) continue
     switch (key) {
+      case 'template': {
+        const template = target.template
+        const variant = template.variant
+        if (variant === 'custom') {
+          if (template.customDimensions?.id !== 'custom') return null
+          plan.template = { selectedDiscTemplateId: variant, customDiscTemplate: structuredClone(template.customDimensions) as DiscTemplate }
+        } else {
+          if (!Object.hasOwn(discTemplates, variant) || template.customDimensions != null) return null
+          plan.template = { selectedDiscTemplateId: variant }
+        }
+        break
+      }
+      case 'additionalArtwork': {
+        const artwork = target.additionalArtwork
+        if (!artwork || typeof artwork.enabled !== 'boolean' || !Array.isArray(artwork.elements) ||
+          !artwork.elements.every(item => typeof item.id === 'string' && typeof item.label === 'string' &&
+            typeof item.source === 'string' && isNullableString(item.sourceId) && typeof item.sourceLabel === 'string' &&
+            isNullableString(item.imageDataUrl) && isImageSize(item.imageSize) && isPositioned(item.layout) && !!item.frame)) return null
+        plan.additionalArtwork = structuredClone(artwork) as ProjectAdditionalArtwork
+        break
+      }
       case 'ratingBadge': {
         const badge = target.ratingBadge
         if (!badge?.layout || !badge.uskBadge?.layout) return null
@@ -118,15 +142,7 @@ export function prepareDiscHistoryProjection(
         plan.technicalMarks = structuredClone(marks)
         break
       }
-      case 'editor': {
-        // An exact round trip is required; file migration may silently normalize
-        // invalid identities/slot lists, which is not what Undo means.
-        const workflow = restoreSavedDiscGuidedWorkflow(target.editor)
-        const saved = createSavedDiscGuidedLayout(workflow)
-        if (!normalizedProjectValueMatches(target.editor, saved ? { guidedLayout: saved } : undefined)) return null
-        plan.guidedWorkflow = workflow
-        break
-      }
+      case 'editor': break
       case 'discText': {
         const previous = current.project.discText
         const next = target.discText
@@ -161,7 +177,21 @@ export function prepareDiscHistoryProjection(
         return null
     }
   }
+  if (plan.template || !normalizedProjectValueMatches(current.project.editor, target.editor)) {
+    // Even with unchanged slot IDs, a new template invalidates the attachment.
+    const workflow = restoreSavedDiscGuidedWorkflow(target.editor)
+    const saved = createSavedDiscGuidedLayout(workflow)
+    if (!normalizedProjectValueMatches(target.editor, saved ? { guidedLayout: saved } : undefined)) return null
+    if (saved || !normalizedProjectValueMatches(current.project.editor, target.editor)) plan.guidedWorkflow = workflow
+  }
   return Object.freeze(plan)
+}
+
+export function readDiscHistoryTemplate(
+  template: RestorableDiscTemplateState,
+): DiscTemplate | undefined {
+  return template.selectedDiscTemplateId === 'custom' ? template.customDiscTemplate :
+    discTemplates[template.selectedDiscTemplateId]
 }
 
 function isNullableString(value: unknown): value is string | null {
@@ -285,6 +315,8 @@ export function stepProjectedDiscHistory(
   direction: 'undo' | 'redo',
   editor: Readonly<{
     batch(apply: () => void): void
+    setTemplate?(value: RestorableDiscTemplateState): void
+    setAdditionalArtwork?(value: ProjectAdditionalArtwork): void
     setRatingBadge(value: ProjectRatingBadge): void
     setMediaMark(value: ProjectMediaMark): void
     setPlatformMarks(value: ProjectPlatformMarks): void
@@ -309,7 +341,8 @@ export function stepProjectedDiscHistory(
   if (history.sessionId !== current.id || history.current !== current.project ||
       !isCommittedDiscProject(target)) return 'stale'
   const plan = prepareDiscHistoryProjection(current, target)
-  if (!plan) return 'unavailable'
+  if (!plan || (plan.template && !editor.setTemplate) ||
+      (plan.additionalArtwork && !editor.setAdditionalArtwork)) return 'unavailable'
   const applyGuided = plan.guidedWorkflow ? editor.prepareGuidedAttachment?.(plan.guidedWorkflow, target, plan, current.project) : undefined
   if (plan.guidedWorkflow && !applyGuided) return 'unavailable'
   let result: ReturnType<ApplicationLifecycleCompositionRoot['stepDiscDocumentHistory']> | undefined
@@ -321,6 +354,8 @@ export function stepProjectedDiscHistory(
     if (session?.kind !== 'disc' || session.id !== current.id ||
         session.revision !== current.revision + 1 || session.project !== target ||
         !accepted.discHistoryProjectionPending) return
+    if (plan.template) editor.setTemplate?.(plan.template)
+    if (plan.additionalArtwork) editor.setAdditionalArtwork?.(plan.additionalArtwork)
     if (plan.ratingBadge) editor.setRatingBadge(plan.ratingBadge)
     if (plan.mediaMark) editor.setMediaMark(plan.mediaMark)
     if (plan.platformMarks) editor.setPlatformMarks(plan.platformMarks)

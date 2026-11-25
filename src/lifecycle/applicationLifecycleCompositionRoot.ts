@@ -41,6 +41,10 @@ import {
   type ApplicationTerminationCapabilities,
 } from './lifecycleCommandCapabilities.ts'
 import type { DiscLegacyProjectProjection } from '../project/createProjectSnapshot.ts'
+import type { DiscGuidedSlotId } from '../guidedPresets/discGuidedSlots.ts'
+import { omitDiscGuidedSlot, resetDiscGuidedProgress, restoreCompletedDiscGuidedSlot, restoreDiscGuidedSlot } from '../guidedPresets/discGuidedWorkflow.ts'
+import { createSavedDiscGuidedLayout, restoreSavedDiscGuidedWorkflow } from '../project/projectGuidedWorkflow.ts'
+import type { DiscTextLayoutSettings } from '../discText/types.ts'
 import { normalizeUskRatingValue } from '../project/projectMetadata.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
 import type { RatingBadgeLayout, SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
@@ -62,6 +66,7 @@ import {
   isCapturedSavedDiscProject,
   savedDiscBackgroundMatches,
   getNormalizedProjectKind,
+  normalizedProjectValueMatches,
 } from './canonicalProject.ts'
 
 const UNIMPLEMENTED_TERMINATION = Object.freeze({
@@ -194,6 +199,18 @@ export type DiscBackgroundCompoundCompanion =
   | Readonly<{ kind: 'preset'; fields: DiscPresetSiblingFields; guidedLayout?: SavedDiscGuidedLayoutState | null }>
   | Readonly<{ kind: 'guided'; guidedLayout: SavedDiscGuidedLayoutState }>
 
+type DiscTemplateDocumentFields = Required<Pick<SavedDiscProject,
+  'template' | 'titleArtwork' | 'additionalArtwork' | 'logoAssets' | 'ratingBadge' |
+  'mediaMark' | 'platformMarks' | 'technicalMarks'>> & { discTextLayout: DiscTextLayoutSettings }
+const discTemplateDocumentKeys = new Set([
+  'template', 'titleArtwork', 'additionalArtwork', 'logoAssets', 'ratingBadge',
+  'mediaMark', 'platformMarks', 'technicalMarks', 'discTextLayout',
+])
+type DiscEditorDocumentEdit = Readonly<{ sessionId: ProjectSessionId; expectedGeneration: number }> &
+  (Readonly<{ kind: 'template'; fields: DiscTemplateDocumentFields }> |
+   Readonly<{ kind: 'reset-guided-progress' }> |
+   Readonly<{ kind: 'edit-guided-slot'; action: 'omit' | 'include' | 'show-again'; slotId: DiscGuidedSlotId }>)
+
 export interface ApplicationLifecycleCompositionRoot {
   getLifecycleState(): ApplicationLifecycleState
   getStateSnapshot(): ApplicationLifecycleStateSnapshot
@@ -216,6 +233,7 @@ export interface ApplicationLifecycleCompositionRoot {
     input?: unknown,
   ): Promise<ApplicationCommandDispatchResult<Value>>
   commitDiscSupplementalUsk(edit: DiscSupplementalUskEdit): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
+  commitDiscEditorDocumentEdit(edit: DiscEditorDocumentEdit): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
   stepDiscDocumentHistory(input: Readonly<{
     sessionId: ProjectSessionId
     expectedGeneration: number
@@ -606,6 +624,38 @@ export function createApplicationLifecycleCompositionRoot(
       return stateStore.stepDiscHistory(snapshot.generation, input.direction).status
     },
     canCommitDiscBackground,
+    commitDiscEditorDocumentEdit(edit: DiscEditorDocumentEdit) {
+      if (!canCommitDiscBackground()) return 'unavailable'
+      const snapshot = stateStore.getSnapshot()
+      const session = snapshot.state.activeSession
+      if (session?.kind !== 'disc') return 'unavailable'
+      try {
+        if (edit.sessionId !== session.id || edit.expectedGeneration !== snapshot.generation) return 'stale'
+        const remainder = discRemainderOf(session.project)
+        if (edit.kind === 'template') {
+          const fields = readClosedDataFootprint(edit.fields, discTemplateDocumentKeys)
+          if (!fields || Object.keys(fields).length !== discTemplateDocumentKeys.size || !session.project.discText) return 'invalid'
+          if (normalizedProjectValueMatches(session.project.template, fields.template)) return 'no-op'
+          const { discTextLayout, ...owners } = fields
+          Object.assign(remainder, owners, { discText: { ...session.project.discText, layout: discTextLayout } })
+        } else if (edit.kind === 'reset-guided-progress' || edit.kind === 'edit-guided-slot') {
+          const workflow = restoreSavedDiscGuidedWorkflow(session.project.editor)
+          const result = edit.kind === 'reset-guided-progress' ? resetDiscGuidedProgress(workflow) :
+            edit.action === 'omit' ? omitDiscGuidedSlot(workflow, edit.slotId) :
+            edit.action === 'include' ? restoreDiscGuidedSlot(workflow, edit.slotId) :
+            edit.action === 'show-again' ? restoreCompletedDiscGuidedSlot(workflow, edit.slotId) : null
+          if (!result) return 'invalid'
+          if (result.state === workflow) return 'no-op'
+          const guidedLayout = createSavedDiscGuidedLayout(result.state)
+          if (!guidedLayout) return 'invalid'
+          Object.assign(remainder, { editor: { ...session.project.editor, guidedLayout } })
+        } else return 'invalid'
+        const prepared = replaceActiveDiscRemainder(snapshot.state, session, remainder)
+        return stateStore.commitTransition(snapshot.generation, () => prepared, 'record-disc-transaction-with-projection').status
+      } catch {
+        return 'invalid'
+      }
+    },
     commitDiscSupplementalUsk(edit: DiscSupplementalUskEdit) {
       if (!canCommitDiscBackground()) return 'unavailable'
       const snapshot = stateStore.getSnapshot()
