@@ -172,3 +172,28 @@ test('Disc PNG retains absent legacy defaults and matches an already mirrored re
     ratingBadge: rendered.projectRatingBadge,
   }, rendered), rendered)
 })
+
+test('Disc PNG reads the supplemental USK value from the same revision as its placement', () => {
+  const badge = createDefaultProjectRatingBadge()
+  const rendered = {
+    discTextSettings: { ...DEFAULT_DISC_TEXT_SETTINGS },
+    discTextLayout: createDefaultDiscTextLayout('top'),
+    projectRatingBadge: {
+      ...badge,
+      uskBadge: { ...badge.uskBadge, ratingValue: '6' },
+    },
+  }
+  for (const ratingValue of ['16', '0', '']) {
+    const uskBadge = { ratingValue, layout: { enabled: ratingValue !== '', x: 0, y: 55, scale: 1 } }
+    const accepted = { ...badge, uskBadge }
+    const captured = captureDiscPngLayout({ ratingBadge: accepted }, rendered)
+    assert.deepEqual(captured.projectRatingBadge.uskBadge, uskBadge)
+    assert.equal(rendered.projectRatingBadge.uskBadge.ratingValue, '6')
+  }
+  // Older documents may have an absent supplemental owner. This differs
+  // from an accepted empty value, which deliberately clears the old rating.
+  const absentUsk = { ...badge }
+  Reflect.deleteProperty(absentUsk, 'uskBadge')
+  assert.deepEqual(captureDiscPngLayout({ ratingBadge: absentUsk }, rendered).projectRatingBadge.uskBadge,
+    rendered.projectRatingBadge.uskBadge)
+})

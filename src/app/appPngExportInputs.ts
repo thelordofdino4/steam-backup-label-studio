@@ -109,8 +109,8 @@ function projectBadgeLayout(
   } : fallback
 }
 
-/** A preset is published before React mirrors it. Project its accepted geometry
- * and visibility once, without re-running Open normalization or clamping.
+/** A Disc change can be published before React mirrors it. Project its accepted
+ * geometry, visibility, and supplemental rating without Open normalization.
  * Absent optional legacy leaves keep their existing rendered defaults.
  */
 export function captureDiscPngLayout(
@@ -133,7 +133,7 @@ export function captureDiscPngLayout(
       ...rendered.projectRatingBadge,
       layout: projectBadgeLayout(project.ratingBadge?.layout, rendered.projectRatingBadge.layout),
       uskBadge: {
-        ...rendered.projectRatingBadge.uskBadge,
+        ratingValue: project.ratingBadge?.uskBadge?.ratingValue ?? rendered.projectRatingBadge.uskBadge.ratingValue,
         layout: projectBadgeLayout(project.ratingBadge?.uskBadge?.layout, rendered.projectRatingBadge.uskBadge.layout),
       },
     },
