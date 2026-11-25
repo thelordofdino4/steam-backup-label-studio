@@ -270,6 +270,7 @@ test('real Disc suggested USK and manual USK edits retain PEGI and publish whole
     await start(page, uskAppId)
     await rejectLogo(page, uskAppId)
     await page.waitForFunction(appId => window.readDiscSteamReceipt().revisions.at(-1)?.game.appId === appId, uskAppId)
+    await reveal(page, 'Additional metadata')
     await page.locator('#game-metadata-rating-system').selectOption('PEGI')
     await page.getByRole('button', { name: 'Find rating/legal candidates' }).click()
     const suggested = page.getByRole('button', { name: 'Use USK 16', exact: true })
