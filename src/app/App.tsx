@@ -138,7 +138,7 @@ import {
   isActiveDiscPresetPointFitImpossible,
 } from './appActiveDiscPresetPointOwners'
 import {
-  applySupplementalUskRatingCandidate,
+  planDiscSupplementalUskEdit,
 } from './appSupplementalUskRatingCandidate'
 import {
   ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
@@ -1321,18 +1321,17 @@ function App() {
       projectMetadata.ratingSystem === 'PEGI'
 
     if (shouldApplyAsSupplementalUsk) {
-      const nextRatingBadge = applySupplementalUskRatingCandidate({
-        ratingBadge: projectRatingBadge,
+      const planned = planDiscSupplementalUskEdit(projectRatingBadge, {
+        kind: 'apply-suggestion',
         metadata: projectMetadata,
-        supplementalRatingValue: candidate.ratingValue,
+        ratingValue: candidate.ratingValue,
         selectedDiscTemplate,
-        applyActivePrimaryRatingPlacement: (ratingBadge) =>
-          applyActiveRatingBadgePresetPlacement(
-            ratingBadge,
-            projectMetadata,
-          ),
+        presetState: activeDiscPreset.getActivePresetState(),
       })
-      setProjectRatingBadge(nextRatingBadge)
+      if (planned.placementApplication) {
+        activeDiscPreset.recordTargetedPresetApplication(planned.placementApplication)
+      }
+      setProjectRatingBadge(planned.badge)
 
       if (options.announce ?? true) {
         announceStatus(
@@ -1437,6 +1436,12 @@ function App() {
     options?: { mode?: 'primary' | 'supplemental-usk' },
   ) {
     applyRatingCandidateToProject(candidate, options)
+  }
+
+  function handleDiscSupplementalUskValueChange(ratingValue: string) {
+    setProjectRatingBadge(current => planDiscSupplementalUskEdit(current, {
+      kind: 'choose-value', ratingValue,
+    }).badge)
   }
 
   function handleApplyCaseInsertRatingCandidate(
@@ -2275,7 +2280,7 @@ function App() {
     handleRatingBadgeEnabledChange,
     handleRatingBadgeLayoutChange,
     handleSupplementalUskRatingBadgeEnabledChange,
-    handleSupplementalUskRatingBadgeValueChange,
+    handleSupplementalUskRatingBadgeValueChange: handleDiscSupplementalUskValueChange,
     handleSupplementalUskRatingBadgeLayoutChange,
     handleClearRatingBadgeImage,
     handleResetRatingBadgeLayout,

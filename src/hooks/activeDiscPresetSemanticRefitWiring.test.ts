@@ -510,8 +510,13 @@ test('App passes targeted fitters into every semantic owner hook', () => {
   )
   assert.match(
     ratingCandidateHandler,
-    /shouldApplyAsSupplementalUsk[\s\S]*?applySupplementalUskRatingCandidate\(\{[\s\S]*?applyActivePrimaryRatingPlacement:[\s\S]*?applyActiveRatingBadgePresetPlacement\(/,
+    /shouldApplyAsSupplementalUsk[\s\S]*?planDiscSupplementalUskEdit\(projectRatingBadge, \{[\s\S]*?kind: 'apply-suggestion'[\s\S]*?getActivePresetState\(\)[\s\S]*?recordTargetedPresetApplication\(planned\.placementApplication\)[\s\S]*?setProjectRatingBadge\(planned\.badge\)/,
   )
+  assert.match(
+    getFunctionSource(appSource, 'handleDiscSupplementalUskValueChange'),
+    /planDiscSupplementalUskEdit\(current, \{\s*kind: 'choose-value'/,
+  )
+  assert.match(appSource, /handleSupplementalUskRatingBadgeValueChange: handleDiscSupplementalUskValueChange/)
   assert.doesNotMatch(
     ratingCandidateHandler,
     /shouldApplyAsSupplementalUsk[\s\S]*?setProjectRatingBadge\(\(currentBadge\)/,
