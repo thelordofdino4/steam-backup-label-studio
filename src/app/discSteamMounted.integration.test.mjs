@@ -838,9 +838,9 @@ test('template and reset keep every earlier Disc operation reachable in the moun
     const reset = await settle(omitted, 4)
     assert.deepEqual(reset.project, switched.project)
     await titleSlot.waitFor()
-    await resetControl.click()
+    await resetControl.waitFor({ state: 'detached', timeout: 8_000 })
     await drain(page)
-    assert.deepEqual(await capture(), reset, 'already-reset progress is a no-op')
+    assert.deepEqual(await capture(), reset, 'clearing the progress controls publishes no additional edit')
 
     const step = async (previous, expected, direction, past, future) => {
       assert.equal(await page.evaluate(step => window.stepDiscHistoryDiagnostic(step), direction), 'committed')
