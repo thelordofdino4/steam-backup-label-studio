@@ -1,0 +1,651 @@
+{
+  "project": {
+    "schemaVersion": "0.4.0",
+    "projectType": "disc",
+    "title": "Untitled Steam Backup Label",
+    "savedAt": "2026-11-01T00:00:00.000Z",
+    "game": {
+      "manualTitle": "Untitled Steam Backup Label",
+      "selectedSteamGame": null
+    },
+    "metadata": {
+      "title": "Untitled Steam Backup Label",
+      "subtitle": "",
+      "steamAppId": "",
+      "developer": "",
+      "publisher": "",
+      "releaseDate": "",
+      "backupDate": "2026-11-01",
+      "discNumber": "",
+      "discTotal": "",
+      "installNotes": "",
+      "copyrightText": "",
+      "ratingSystem": "ESRB",
+      "ratingValue": "T"
+    },
+    "logoAssets": {
+      "developerLogoDataUrl": null,
+      "developerLogoSource": null,
+      "developerLogoSize": null,
+      "developerLogoLayout": {
+        "enabled": false,
+        "scale": 1,
+        "x": 21.999999999999996,
+        "y": 62
+      },
+      "additionalDeveloperLogos": [],
+      "publisherLogoDataUrl": null,
+      "publisherLogoSource": null,
+      "publisherLogoSize": null,
+      "publisherLogoLayout": {
+        "enabled": false,
+        "scale": 1,
+        "x": 22.000000000000004,
+        "y": 72
+      },
+      "additionalPublisherLogos": []
+    },
+    "titleArtwork": {
+      "source": "custom",
+      "steamArtworkAssetId": null,
+      "sourceLabel": "Capacity fixture",
+      "imageDataUrl": "data:image/bmp;base64,SBLS_CAPACITY_BITMAP",
+      "imageSize": {
+        "width": 1024,
+        "height": 1024
+      },
+      "defaultSteamLogo": {
+        "imageDataUrl": "data:image/bmp;base64,SBLS_CAPACITY_BITMAP",
+        "imageSize": {
+          "width": 1024,
+          "height": 1024
+        },
+        "steamArtworkAssetId": "capacity-default",
+        "sourceLabel": "Capacity fixture"
+      },
+      "layout": {
+        "enabled": false,
+        "scale": 1,
+        "x": 50,
+        "y": 19.5
+      }
+    },
+    "discNumberArtwork": {
+      "mode": "text",
+      "badgeSet": "starterRing"
+    },
+    "additionalArtwork": {
+      "enabled": false,
+      "elements": [
+        {
+          "id": "capacity-artwork",
+          "label": "Artwork 1",
+          "source": "custom",
+          "sourceId": "capacity.bmp",
+          "sourceLabel": "Capacity fixture",
+          "imageDataUrl": "data:image/bmp;base64,SBLS_CAPACITY_BITMAP",
+          "imageSize": {
+            "width": 1024,
+            "height": 1024
+          },
+          "layout": {
+            "enabled": true,
+            "scale": 1,
+            "x": 68,
+            "y": 42
+          },
+          "frame": {
+            "enabled": false,
+            "color": "#f9fafb",
+            "width": 2,
+            "shape": "rectangle",
+            "style": "solid",
+            "lumpiness": 50,
+            "jaggedness": 50,
+            "roughnessOffset": 0
+          }
+        }
+      ]
+    },
+    "ratingBadge": {
+      "source": "placeholder",
+      "customImageDataUrl": null,
+      "customImageSize": null,
+      "layout": {
+        "enabled": false,
+        "scale": 1,
+        "x": 78,
+        "y": 50
+      },
+      "uskBadge": {
+        "ratingValue": "0",
+        "layout": {
+          "enabled": false,
+          "scale": 1.2,
+          "x": 67,
+          "y": 50
+        }
+      }
+    },
+    "mediaMark": {
+      "value": "dataDisc",
+      "source": "placeholder",
+      "theme": "light",
+      "customImageDataUrl": null,
+      "customImageSize": null,
+      "layout": {
+        "enabled": false,
+        "scale": 1,
+        "x": 74,
+        "y": 72
+      }
+    },
+    "platformMarks": {
+      "values": [],
+      "assets": {},
+      "inference": {
+        "source": "none",
+        "status": "not-applied",
+        "steamAppId": null,
+        "values": [],
+        "message": "No Steam platform metadata has been applied."
+      }
+    },
+    "technicalMarks": {
+      "values": [],
+      "assets": {},
+      "additionalAssets": {}
+    },
+    "template": {
+      "type": "disc",
+      "variant": "standardPrintableDisc",
+      "customDimensions": null
+    },
+    "steamBackupLogo": {
+      "placement": "top",
+      "bannerColors": {
+        "gradientStart": "#2b475e",
+        "gradientEnd": "#1b2838",
+        "accent": "#2aabe1"
+      },
+      "lockupImageDataUrl": null,
+      "lockupImageSource": {
+        "source": "built-in",
+        "sourceId": null,
+        "sourceLabel": "Default Steam banner lockup",
+        "sourceUrl": null
+      },
+      "lockupImageSize": null,
+      "lockupLayout": {
+        "scale": 1,
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      "useTextFallback": false,
+      "fallbackText": "STEAM"
+    },
+    "export": {
+      "guides": {
+        "centerHole": false,
+        "outerEdge": false,
+        "printableArea": false,
+        "safeZone": false
+      }
+    },
+    "background": {
+      "enabled": true,
+      "scale": 1,
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "imageDataUrl": "data:image/bmp;base64,SBLS_CAPACITY_BITMAP",
+      "imageSource": {
+        "source": "uploaded",
+        "sourceId": "capacity.bmp",
+        "sourceLabel": "Capacity fixture"
+      },
+      "imageSize": {
+        "width": 1024,
+        "height": 1024
+      },
+      "note": "MVP save state embeds the background image as a data URL. A more efficient .sbls package format can replace this later."
+    },
+    "discText": {
+      "settings": {
+        "title": false,
+        "subtitle": false,
+        "discNumber": false,
+        "backupDate": false,
+        "appId": false,
+        "developer": false,
+        "publisher": false,
+        "installNotes": false,
+        "customNote": false,
+        "copyright": false
+      },
+      "values": {
+        "subtitle": "",
+        "discNumber": "Disc 1",
+        "backupDate": "2026-11-01",
+        "appId": "",
+        "developer": "",
+        "publisher": "",
+        "installNotes": "",
+        "customNote": "",
+        "copyright": ""
+      },
+      "valueSources": {
+        "title": "metadata",
+        "subtitle": "metadata",
+        "discNumber": "metadata",
+        "backupDate": "metadata",
+        "appId": "metadata",
+        "developer": "metadata",
+        "publisher": "metadata",
+        "installNotes": "metadata",
+        "copyright": "metadata"
+      },
+      "titleValue": "",
+      "htmlSources": {},
+      "layout": {
+        "title": {
+          "width": 58,
+          "scale": 1,
+          "fontSizePt": 12.245669291338585,
+          "align": "center",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": 0,
+          "y": 19.5
+        },
+        "subtitle": {
+          "width": 54,
+          "scale": 0.92,
+          "fontSizePt": 6.884787401574806,
+          "align": "center",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": 0,
+          "y": 24
+        },
+        "discNumber": {
+          "width": 42,
+          "scale": 1,
+          "fontSizePt": 6.462992125984253,
+          "align": "center",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": 0,
+          "y": 63.5
+        },
+        "backupDate": {
+          "width": 48,
+          "scale": 1,
+          "fontSizePt": 5.2724409448818905,
+          "align": "center",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": 0,
+          "y": 68
+        },
+        "appId": {
+          "width": 48,
+          "scale": 1,
+          "fontSizePt": 4.932283464566928,
+          "align": "center",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": 0,
+          "y": 72
+        },
+        "developer": {
+          "width": 48,
+          "scale": 0.86,
+          "fontSizePt": 4.241763779527559,
+          "align": "left",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": -18,
+          "y": 56
+        },
+        "publisher": {
+          "width": 48,
+          "scale": 0.86,
+          "fontSizePt": 4.241763779527559,
+          "align": "left",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": -18.000000000000004,
+          "y": 60
+        },
+        "installNotes": {
+          "width": 58,
+          "scale": 0.86,
+          "fontSizePt": 4.241763779527559,
+          "align": "center",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": 0,
+          "y": 76
+        },
+        "customNote": {
+          "width": 58,
+          "scale": 1,
+          "fontSizePt": 4.932283464566928,
+          "align": "center",
+          "mode": "straight",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false,
+          "x": 0,
+          "y": 78
+        },
+        "copyright": {
+          "x": 0,
+          "y": 0,
+          "width": 68,
+          "scale": 1,
+          "fontSizePt": 5.2724409448818905,
+          "align": "center",
+          "mode": "curved",
+          "arcDegrees": 210,
+          "arcSide": "bottom",
+          "avoidVisualElements": false
+        }
+      },
+      "styles": {
+        "title": {
+          "fontFamily": "arial",
+          "color": "#f9fafb",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "subtitle": {
+          "fontFamily": "arial",
+          "color": "#f9fafb",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "discNumber": {
+          "fontFamily": "arial",
+          "color": "#f9fafb",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "backupDate": {
+          "fontFamily": "arial",
+          "color": "#e5e7eb",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "appId": {
+          "fontFamily": "arial",
+          "color": "#d1d5db",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "developer": {
+          "fontFamily": "arial",
+          "color": "#e5e7eb",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "publisher": {
+          "fontFamily": "arial",
+          "color": "#e5e7eb",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "installNotes": {
+          "fontFamily": "arial",
+          "color": "#f9fafb",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "customNote": {
+          "fontFamily": "arial",
+          "color": "#f9fafb",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        },
+        "copyright": {
+          "fontFamily": "arial",
+          "color": "#d1d5db",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "contrast": "strokeShadow",
+          "backgroundEnabled": false,
+          "backgroundColor": "#111827",
+          "backgroundOpacity": 0.68,
+          "backgroundPadding": 0.8,
+          "borderEnabled": false,
+          "borderColor": "#f9fafb",
+          "borderRadius": 0.6
+        }
+      }
+    }
+  },
+  "plan": {
+    "version": 1,
+    "captures": [
+      {
+        "ownerId": "disc.background",
+        "decision": {
+          "kind": "project-owned-data-url"
+        }
+      },
+      {
+        "ownerId": "disc.steam-banner",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "steam-banner:banner-lockup"
+        }
+      },
+      {
+        "ownerId": "disc.logo.developer",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "logo:developer"
+        }
+      },
+      {
+        "ownerId": "disc.logo.publisher",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "logo:publisher"
+        }
+      },
+      {
+        "ownerId": "disc.title.current",
+        "decision": {
+          "kind": "project-owned-data-url"
+        }
+      },
+      {
+        "ownerId": "disc.title.default",
+        "decision": {
+          "kind": "project-owned-data-url"
+        }
+      },
+      {
+        "ownerId": "disc.artwork.additional.0",
+        "decision": {
+          "kind": "project-owned-data-url"
+        }
+      },
+      {
+        "ownerId": "disc.rating.custom",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "rating:ESRB:T"
+        }
+      },
+      {
+        "ownerId": "disc.media.custom",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "media:dataDisc:light"
+        }
+      },
+      {
+        "ownerId": "disc.platform.pc",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.platform.windows",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.platform.linux",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.platform.steamDeck",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.platform.macos",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.technical.audio",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.technical.surround",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.technical.codec",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.technical.middleware",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "disc.technical.technology",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      }
+    ]
+  }
+}

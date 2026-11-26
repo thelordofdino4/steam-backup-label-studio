@@ -4,7 +4,7 @@
 > Purpose: Separate CSS diagnostics from physical display, OS text scaling and monitor-change acceptance.
 > Read when: Changing native minimum sizes, sidebar/ribbon containment or desktop scaling policy.
 > Authority: The SDD and text-editor contract retain geometry/layout authority; #382 owns final platform support claims.
-> Source baseline: `923f7b7fcbfa6569439e26ba049c265816a1db65` plus this focused contrast-value repair.
+> Source baseline: `2832fb92e3ebc8117c0cc74b5c04f4392788741c` plus this focused contrast-value repair.
 
 ## Current limits and required native evidence
 

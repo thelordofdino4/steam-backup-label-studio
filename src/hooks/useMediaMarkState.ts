@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampMediaMarkLayoutToSafeZone } from '../layout/discElementSafeZone'
 import {
@@ -56,6 +58,7 @@ export function useMediaMarkState({
   applyActivePresetPlacement = (mediaMark) => mediaMark,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseMediaMarkStateOptions) {
+  const asyncWork = useProjectAsyncWork()
   const [projectMediaMark, setProjectMediaMark] = useState<ProjectMediaMark>(() =>
     createDefaultProjectMediaMark(selectedDiscTemplate),
   )
@@ -97,6 +100,7 @@ export function useMediaMarkState({
   }
 
   function resetProjectMediaMark(template: DiscTemplate = selectedDiscTemplate) {
+    asyncWork.invalidateAll()
     setProjectMediaMark(createDefaultProjectMediaMark(template))
   }
 
@@ -108,7 +112,10 @@ export function useMediaMarkState({
     )
   }
 
-  async function handleMediaMarkUpload(event: ChangeEvent<HTMLInputElement>) {
+  async function handleMediaMarkUpload(
+    event: ChangeEvent<HTMLInputElement>,
+    onImported?: (state: ProjectMediaMark) => void,
+  ) {
     const file = event.target.files?.[0]
     event.target.value = ''
 
@@ -121,21 +128,27 @@ export function useMediaMarkState({
       return
     }
 
+    const request = asyncWork.begin('image:media-mark')
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-      const nextMark = applyImportedMediaMark(
-        projectMediaMarkRef.current,
-        importedImage,
-        selectedDiscTemplate,
-      )
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        const nextMark = applyImportedMediaMark(
+          projectMediaMarkRef.current,
+          importedImage,
+          selectedDiscTemplate,
+        )
 
-      const finalMark = applySemanticMediaMarkChange(nextMark)
-      completeMediaMarkIfSatisfied(finalMark)
+        const finalMark = applySemanticMediaMarkChange(nextMark)
+        completeMediaMarkIfSatisfied(finalMark)
 
-      announceStatus(`Using ${file.name} as the media mark.`)
-      return finalMark
+        announceStatus(`Using ${file.name} as the media mark.`)
+        onImported?.(finalMark)
+        return finalMark
+      })
     } catch (error) {
-      announceStatus(`Media mark import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Media mark import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -186,6 +199,7 @@ export function useMediaMarkState({
   }
 
   function handleClearMediaMarkImage() {
+    asyncWork.invalidateAll()
     applySemanticMediaMarkChange(
       clampMediaMarkToTemplate(
         clearMediaMarkImage(projectMediaMarkRef.current),
@@ -197,6 +211,7 @@ export function useMediaMarkState({
   }
 
   function handleResetMediaMarkLayout() {
+    asyncWork.invalidateAll()
     setProjectMediaMark((currentMark) =>
       clampMediaMarkToTemplate(
         resetProjectMediaMarkLayout(

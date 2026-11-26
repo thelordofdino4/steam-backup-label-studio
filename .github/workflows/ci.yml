@@ -43,7 +43,8 @@ jobs:
 
   node-tests:
     name: Node behavioral and boundary tests
-    runs-on: ubuntu-latest
+    # Keep the locked Playwright browser on a supported distribution.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -65,8 +66,9 @@ jobs:
       - name: Verify complete test discovery
         run: npm run test:discovery
 
-      - name: Run all discovered Node tests
-        run: npm run test:node
+      # Sandbox-required browser cases run in the existing Windows check below.
+      - name: Run the Linux Node test lane
+        run: npm run test:node -- --exclude-sandboxed-browser
 
   tauri-check:
     name: Tauri Rust check
@@ -76,6 +78,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -95,3 +99,24 @@ jobs:
 
       - name: Test application and package codec on Windows
         run: npm run test:rust
+
+      # Keep the pinned Chromium sandbox on without changing host security.
+      - name: Install frontend test dependencies
+        run: npm ci
+
+      - name: Install pinned Chromium headless shell
+        run: npx --no-install playwright install --only-shell chromium
+
+      - name: Verify sandboxed browser cases
+        run: |
+          $env:SBLS_DISC_HISTORY_PACKAGE_RELAY = Join-Path $env:RUNNER_TEMP 'disc-history-package-relay'
+          New-Item -Path $env:SBLS_DISC_HISTORY_PACKAGE_RELAY -ItemType Directory -ErrorAction Stop | Out-Null
+          npm run test:node -- --sandboxed-browser-only
+
+      - name: Reopen packages emitted by the mounted Disc history fixture
+        run: |
+          $env:SBLS_DISC_HISTORY_PACKAGE_RELAY = Join-Path $env:RUNNER_TEMP 'disc-history-package-relay'
+          $result = cargo test --manifest-path src-tauri/Cargo.toml --locked --lib commands::project_packages::tests::mounted_disc_history_packages_reopen_with_exact_committed_content -- --ignored --exact | Tee-Object -Variable report
+          $result
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not ($report -match 'test result: ok\. 1 passed;')) { throw 'The mounted package reopen test did not run exactly once.' }

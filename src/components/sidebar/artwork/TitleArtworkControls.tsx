@@ -1,3 +1,4 @@
+import { IMPORTED_IMAGE_ACCEPT } from '../../../image/importedImagePolicy'
 import type { Ref } from 'react'
 import { DISC_LAYOUT_CENTER_PERCENT } from '../../../disc/geometry'
 import { getDiscPresetScaleControlRange } from '../../../editor/discPresetScaleControlRange'
@@ -91,7 +92,7 @@ export function TitleArtworkControls({
         id="title-artwork-upload"
         className="logo-file-input"
         type="file"
-        accept="image/*"
+        accept={IMPORTED_IMAGE_ACCEPT}
         onChange={handleTitleArtworkUpload}
       />
 
