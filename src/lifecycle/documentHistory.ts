@@ -1,8 +1,7 @@
 import type { CapturedLifecycleProject } from './canonicalProject.ts'
-import type { CaseInsertPresetSessionApplication } from './caseInsertPresetSessionApplication.ts'
+import type { CasePresetHistorySemantics } from './caseInsertPresetSessionApplication.ts'
 import type { ProjectSessionId } from './projectSession.ts'
 
-export type CasePresetHistorySemantics = Pick<CaseInsertPresetSessionApplication, 'attachment' | 'recoveryStatus'>
 export type CasePresetHistoryEdge = Readonly<{
   before: CasePresetHistorySemantics
   after: CasePresetHistorySemantics

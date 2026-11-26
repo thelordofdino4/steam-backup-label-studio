@@ -1,4 +1,3 @@
-import type { CasePresetHistorySemantics } from './documentHistory.ts'
 import { isDiscBackgroundAsset, legacyDiscBackgroundAsset, readDiscBackgroundAsset, reuseDiscBackgroundAsset, type DiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import type {
   EditorProjectType,
@@ -27,6 +26,7 @@ import {
   createRecoveredCaseInsertPresetSessionApplication,
   synchronizeCaseInsertPresetSessionApplication,
   rebindCasePresetHistoryApplication,
+  type CasePresetHistorySemantics,
   type CaseInsertPresetSessionApplication,
 } from './caseInsertPresetSessionApplication.ts'
 import {

@@ -47,6 +47,8 @@ export type CaseInsertPresetSessionApplication = Readonly<{
   applicationStateIdentity: string
 }>
 
+export type CasePresetHistorySemantics = Pick<CaseInsertPresetSessionApplication, 'attachment' | 'recoveryStatus'>
+
 export type CaseInsertPresetSessionApplicationFailureCode =
   | 'invalid-input'
   | 'unsupported-version'
