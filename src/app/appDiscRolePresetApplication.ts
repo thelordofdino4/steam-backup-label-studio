@@ -221,6 +221,13 @@ export function applyDiscRolePresetToOwners({
   }
 }
 
+function projectPresetBackground(nextState: DiscRolePresetApplicationState): DiscRolePresetBackgroundRestoreState {
+  const { scale, offset, imageDataUrl, imageSource, imageSize, enabled } = nextState.background
+  return { backgroundScale: scale, backgroundOffset: offset, backgroundImageUrl: imageDataUrl,
+    backgroundImageSource: imageSource ?? null, backgroundImageSize: imageSize ?? null,
+    isBackgroundArtworkEnabled: enabled }
+}
+
 function dispatchRegisteredDiscPresetOwner(
   owner: RegisteredDiscPresetFeatureOwner,
   nextState: DiscRolePresetApplicationState,
@@ -228,14 +235,7 @@ function dispatchRegisteredDiscPresetOwner(
 ) {
   switch (owner) {
     case 'backgroundImage':
-      actions.restoreBackgroundImageState({
-        backgroundScale: nextState.background.scale,
-        backgroundOffset: nextState.background.offset,
-        backgroundImageUrl: nextState.background.imageDataUrl,
-        backgroundImageSource: nextState.background.imageSource ?? null,
-        backgroundImageSize: nextState.background.imageSize ?? null,
-        isBackgroundArtworkEnabled: nextState.background.enabled,
-      })
+      actions.restoreBackgroundImageState(projectPresetBackground(nextState))
       return
     case 'titleArtwork':
       actions.setProjectTitleArtwork(nextState.titleArtwork)
@@ -273,14 +273,7 @@ function dispatchDiscRolePresetOwner(
 ): boolean {
   switch (owner) {
     case 'backgroundImage':
-      actions.restoreBackgroundImageState({
-        backgroundScale: nextState.background.scale,
-        backgroundOffset: nextState.background.offset,
-        backgroundImageUrl: nextState.background.imageDataUrl,
-        backgroundImageSource: nextState.background.imageSource ?? null,
-        backgroundImageSize: nextState.background.imageSize ?? null,
-        isBackgroundArtworkEnabled: nextState.background.enabled,
-      })
+      actions.restoreBackgroundImageState(projectPresetBackground(nextState))
       return true
     case 'titleArtwork':
       actions.setProjectTitleArtwork(nextState.titleArtwork)

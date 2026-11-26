@@ -26,9 +26,11 @@ const expectedMappings = Object.freeze([
   ['menu.file.export-png', 'export.png'],
   ['menu.file.return-home', 'workspace.return-home'],
   ['menu.file.resume-project', 'project.resume'],
+  ['menu.file.close-window', 'application.close-window'],
+  ['menu.file.quit', 'application.quit'],
 ] as const satisfies readonly (readonly [ApplicationMenuItemId, ApplicationCommandId])[])
 
-test('descriptor semantic targets resolve the eight connected File application commands', () => {
+test('descriptor semantic targets resolve the ten connected File application commands', () => {
   assert.deepEqual(
     expectedMappings.map(([itemId]) =>
       resolveApplicationMenuCommand(itemId)),
@@ -43,8 +45,6 @@ test('descriptor semantic targets resolve the eight connected File application c
 test('routing rejects excluded, non-File, unknown, and reserved presentation IDs', () => {
   const rejected = [
     ['menu.file.close-project', 'lifecycle-command-not-connected'],
-    ['menu.file.close-window', 'lifecycle-command-not-connected'],
-    ['menu.file.quit', 'lifecycle-command-not-connected'],
     ['menu.edit.cut', 'non-file-item'],
     ['menu.tools.game', 'non-file-item'],
     ['menu.window.minimize', 'non-file-item'],

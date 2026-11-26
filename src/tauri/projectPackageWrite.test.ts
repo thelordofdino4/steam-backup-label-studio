@@ -26,11 +26,11 @@ function decodeRequest(bytes: Uint8Array) {
   const decoder = new TextDecoder('utf-8', { fatal: true })
   return {
     magic: decoder.decode(bytes.subarray(0, 8)),
-    plan: JSON.parse(decoder.decode(bytes.subarray(16, 16 + planLength))),
+    plan: JSON.parse(decoder.decode(bytes.subarray(20, 20 + planLength))),
     project: JSON.parse(decoder.decode(
-      bytes.subarray(16 + planLength, 16 + planLength + projectLength),
+      bytes.subarray(20 + planLength, 20 + planLength + projectLength),
     )),
-    total: 16 + planLength + projectLength,
+    total: 20 + planLength + projectLength,
   }
 }
 
@@ -44,7 +44,7 @@ test('raw package-write framing carries one exact plan and one exact project pay
   const decoded = decodeRequest(bytes)
 
   assert.equal(decoded.magic, PROJECT_PACKAGE_WRITE_REQUEST_MAGIC)
-  assert.deepEqual(decoded.plan, plan)
+  assert.deepEqual(decoded.plan, { ...plan, version: 2 })
   assert.deepEqual(decoded.project, JSON.parse(JSON.stringify(project)))
   assert.equal(decoded.total, bytes.byteLength)
 })

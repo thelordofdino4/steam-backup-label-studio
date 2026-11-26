@@ -1,3 +1,4 @@
+import { ImportedImagePolicyError } from '../image/importedImagePolicy.ts'
 import type { SteamLogoPlacement } from '../discText/index.ts'
 import { clampTitleArtworkLayoutToSafeZone } from '../layout/discElementSafeZone.ts'
 import {
@@ -129,7 +130,15 @@ export async function createSteamTitleArtworkImport(
       status: 'seeded',
       statusMessage: `Using ${steamLogoAsset.label} as the disc title artwork.`,
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof ImportedImagePolicyError) {
+      return {
+        titleArtwork: currentTitleArtwork,
+        placementRefitRequired: false,
+        status: 'failed',
+        statusMessage: error.message,
+      }
+    }
     const titleArtworkWithoutDefault =
       clearTitleArtworkDefaultSteamLogo(currentTitleArtwork)
 

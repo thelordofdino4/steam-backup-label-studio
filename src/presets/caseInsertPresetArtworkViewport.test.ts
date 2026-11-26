@@ -1466,5 +1466,5 @@ test('keeps action and plan versions separate from definition, catalog, schema, 
   ))
   assert.equal(CURRENT_PROJECT_SCHEMA_VERSION, '0.4.0')
   assert.equal(CASE_INSERT_LAYOUT_PRESET_PROJECT_STATE_VERSION, 1)
-  assert.equal(PROJECT_PACKAGE_WRITE_REQUEST_MAGIC, 'SBLSPSV1')
+  assert.equal(PROJECT_PACKAGE_WRITE_REQUEST_MAGIC, 'SBLSPSV2')
 })

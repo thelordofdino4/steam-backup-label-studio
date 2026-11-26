@@ -9,10 +9,12 @@ export async function applyLoadedCaseInsertImageSlotSource({
   announceStatus,
   applyImage,
   importedImagePromise,
+  commitPrepared,
 }: {
   announceStatus: (message: string) => void
   applyImage: (image: CaseInsertImageSlotImageInput) => void
   importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>
+  commitPrepared: (apply: () => undefined) => boolean
 }) {
   const importedImage = await importedImagePromise
 
@@ -20,7 +22,8 @@ export async function applyLoadedCaseInsertImageSlotSource({
     return false
   }
 
-  applyImage(importedImage.image)
-  announceStatus(importedImage.successStatus)
-  return true
+  return commitPrepared(() => {
+    applyImage(importedImage.image)
+    announceStatus(importedImage.successStatus)
+  })
 }

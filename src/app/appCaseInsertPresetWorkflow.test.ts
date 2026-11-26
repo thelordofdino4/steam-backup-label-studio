@@ -648,7 +648,7 @@ test('the production catalog remains exact, schema stays 0.4.0, and App injects 
     'src/app/appCaseInsertPresetWorkflow.ts',
     'utf8',
   )
-  assert.doesNotMatch(workflowSource, /invoke\(|write_binary_file|saveProject|Tauri/)
+  assert.doesNotMatch(workflowSource, /invoke\(|write_(?:binary_file|export_png)|saveProject|Tauri/)
   assert.match(workflowSource, /case\.layoutPreset\.apply/)
   assert.match(workflowSource, /case\.layoutPreset\.reapply/)
   assert.match(workflowSource, /case\.layoutPreset\.detach/)

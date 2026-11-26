@@ -1,7 +1,7 @@
 # Product Metadata And Capability Copy
 
 > Status: CURRENT / AS-BUILT AUTHORITY for established source identity; TARGET CONTRACT for packaged acceptance under #381/#376.
-> Baseline: `923f7b7fcbfa6569439e26ba049c265816a1db65` plus the focused #381 metadata/copy correction. No new release version, publisher, licensing policy, or lifecycle behavior is introduced.
+> Baseline: `2832fb92e3ebc8117c0cc74b5c04f4392788741c` plus the focused #381 metadata/copy correction. No new release version, publisher, licensing policy, or lifecycle behavior is introduced.
 
 ## Established Identity
 
