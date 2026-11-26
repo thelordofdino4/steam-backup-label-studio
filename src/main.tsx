@@ -1,41 +1,60 @@
+import { createInteractionPerformanceObserver, isInteractionTimingEnabled } from './diagnostics/interactionPerformanceObserver.ts'
+import { InteractionPerformanceContext } from './diagnostics/InteractionPerformanceContext.ts'
+import { InteractionPerformanceReport } from './diagnostics/InteractionPerformanceReport.tsx'
+import { bindInteractionSession } from './diagnostics/interactionPerformanceSession.ts'
+import { createLifecyclePerformanceObserver, isLifecycleTimingEnabled } from './lifecycle/lifecyclePerformanceObserver.ts'
+import { LifecyclePerformanceReport } from './diagnostics/LifecyclePerformanceReport.tsx'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import {
+  ApplicationLifecycleBoundary,
+} from './app/ApplicationLifecycleBoundary.tsx'
+import { ApplicationMenuBoundary } from './app/ApplicationMenuBoundary.tsx'
+import {
+  createApplicationLifecycleRuntime,
+} from './app/applicationLifecycleRuntime.ts'
+import {
+  createApplicationMenuRuntime,
+} from './applicationMenu/applicationMenuRuntime.ts'
 import './styles/index.css'
 import './styles/layoutFix.css'
-import { createApplicationCommandDiagnostics } from './diagnostics/applicationCommandDiagnostics.ts'
-import { createApplicationStartupAttempt, type ApplicationStartupStage } from './app/applicationStartup.ts'
-import { showApplicationStartupFailure } from './app/applicationStartupFallback.ts'
+import App from './app/App.tsx'
 
-const diagnostics = createApplicationCommandDiagnostics()
-const startup = createApplicationStartupAttempt(diagnostics.observeApplicationStartup)
-let cleanup: (() => void) | undefined
-let failed = false
-let disposed = false
-function fail(stage: ApplicationStartupStage, cause: unknown) {
-  if (failed || disposed) return
-  failed = true
-  startup.fail(stage, cause)
-  // Capture the safe report before disposal clears the in-memory collector.
-  const report = diagnostics.toJson()
-  queueMicrotask(() => {
-    if (disposed) return
-    try { cleanup?.() } catch { /* Keep the captured safe fallback accessible. */ }
-    showApplicationStartupFailure(document, stage, report)
+function mountApplication() {
+  const performanceObserver = isLifecycleTimingEnabled(
+    import.meta.env.DEV, import.meta.env.VITE_SBLS_LIFECYCLE_TIMING,
+  )
+    ? createLifecyclePerformanceObserver() : undefined
+  const interactionObserver = isInteractionTimingEnabled(
+    import.meta.env.DEV, import.meta.env.VITE_SBLS_INTERACTION_TIMING,
+  ) ? createInteractionPerformanceObserver() : undefined
+  const lifecycleRuntime = createApplicationLifecycleRuntime({
+    performanceObserver, casePresetProjection: true, documentHistoryLimit: 16,
   })
+  const unbindInteractionSession = bindInteractionSession(interactionObserver, lifecycleRuntime.root)
+  const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
+
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      unbindInteractionSession()
+      void menuRuntime.dispose()
+      void lifecycleRuntime.dispose()
+    })
+  }
+
+  createRoot(document.getElementById('root')!).render(
+    <ApplicationLifecycleBoundary runtime={lifecycleRuntime}>
+      <ApplicationMenuBoundary runtime={menuRuntime}>
+        <StrictMode>
+          <InteractionPerformanceContext.Provider value={interactionObserver}>
+            <App />
+          </InteractionPerformanceContext.Provider>
+          {interactionObserver && <InteractionPerformanceReport observer={interactionObserver} />}
+          {performanceObserver && <LifecyclePerformanceReport observer={performanceObserver} />}
+        </StrictMode>
+      </ApplicationMenuBoundary>
+    </ApplicationLifecycleBoundary>,
+  )
 }
-async function start() {
-  try {
-    const element = document.getElementById('root')
-    if (!element) throw new Error('Application mount point unavailable')
-    startup.stage('module-load')
-    const { mountApplication } = await import('./app/bootstrapApplication.tsx')
-    if (disposed) return
-    cleanup = mountApplication({ element, diagnostics, startup, onFailure: fail })
-  } catch (cause) { fail(startup.getStage(), cause) }
-}
-if (import.meta.hot) {
-  import.meta.hot.dispose(() => {
-    disposed = true
-    cleanup?.()
-    diagnostics.dispose()
-  })
-}
-void start()
+
+mountApplication()

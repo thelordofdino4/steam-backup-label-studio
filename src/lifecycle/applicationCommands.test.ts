@@ -1,4 +1,3 @@
-import { createApplicationCommandDiagnostics } from '../diagnostics/applicationCommandDiagnostics.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createCaseInsertProjectSnapshot } from '../project/caseInsertProjectAdapters.ts'
@@ -458,81 +457,4 @@ test('capability projection covers the exact catalog across Home, Disc, busy, an
     ).canExecute,
     true,
   )
-})
-
-
-test('diagnostic observation follows actual execution once across joined dispatches', async () => {
-  const registry = new ApplicationCommandRegistry<object>()
-  const pending = deferred()
-  const terminal = commandSucceeded('opened')
-  registry.register(definition('project.open', async () => { await pending.promise; return terminal }, { repeatPolicy: 'join-identical' }))
-  const events: unknown[] = []
-  const dispatcher = new ApplicationCommandDispatcher(registry, { observeExecution(operation) {
-    events.push(operation)
-    return result => events.push(result)
-  } })
-  const first = dispatcher.dispatch('project.open', {}, null)
-  const second = dispatcher.dispatch('project.open', {}, null)
-  assert.deepEqual(events, [{ commandId: 'project.open', operationId: 'application-command-1' }])
-  pending.resolve()
-  const [a, b] = await Promise.all([first, second])
-  assert.equal(a, b)
-  assert.equal(events.length, 2)
-  assert.equal(events[1], terminal)
-})
-
-test('throwing diagnostic observers cannot replace command results or retain busy scopes', async () => {
-  for (const atStart of [true, false]) {
-    const registry = new ApplicationCommandRegistry<object>()
-    registry.register(definition('project.open', () => commandSucceeded('opened'), { acquireScopes: () => ['lifecycle.transition'] }))
-    const dispatcher = new ApplicationCommandDispatcher(registry, { observeExecution() {
-      if (atStart) throw new Error('observer failed')
-      return () => { throw new Error('observer failed') }
-    } })
-    for (let count = 0; count < 2; count += 1) {
-      const result = await dispatcher.dispatch('project.open', {}, null)
-      assert.equal(result.disposition, 'executed')
-      if (result.disposition === 'executed') assert.equal(result.result.status, 'success')
-    }
-  }
-})
-
-for (const stage of ['capability', 'repeat-key', 'busy-acquire'] as const) {
-  test(`admission diagnostics retain ${stage} failure without invoking the command`, async () => {
-    const diagnostics = createApplicationCommandDiagnostics()
-    const registry = new ApplicationCommandRegistry<object>()
-    const fail = () => { throw Error('private-cause') }
-    registry.register(definition('project.open', () => { assert.fail('not admitted') }, {
-      ...(stage === 'capability' ? { canExecute: fail } : {}),
-      ...(stage === 'repeat-key' ? { getRepeatKey: fail } : {}),
-      ...(stage === 'busy-acquire' ? { acquireScopes: fail } : {}),
-    }))
-    const dispatcher = new ApplicationCommandDispatcher(registry, { observeAdmission: diagnostics.observeAdmission })
-    const result = await dispatcher.dispatch('project.open', {}, 'private-input')
-    assert.equal(result.disposition, 'executed') // Existing result vocabulary is preserved.
-    const record = diagnostics.snapshot().records[0]
-    assert.equal(record.stage, stage)
-    assert.equal(record.status, 'failure')
-    assert.doesNotMatch(diagnostics.toJson(), /private/)
-  })
-}
-
-test('unknown, disabled and busy admission records omit messages and preserve refusal results', async () => {
-  const diagnostics = createApplicationCommandDiagnostics()
-  const registry = new ApplicationCommandRegistry<object>()
-  const pending = deferred()
-  registry.register(definition('project.open', async () => { await pending.promise; return commandSucceeded('ok') }))
-  registry.register(definition('project.save', () => commandSucceeded('never'), { canExecute: () => ({ canExecute: false, reasonCode: 'private-reason', userMessage: 'private-copy' }) }))
-  const dispatcher = new ApplicationCommandDispatcher(registry, { observeAdmission: diagnostics.observeAdmission })
-  await dispatcher.dispatch('private-command', {}, null)
-  await dispatcher.dispatch('project.save', {}, null)
-  const first = dispatcher.dispatch('project.open', {}, null)
-  const blocked = await dispatcher.dispatch('project.open', {}, null)
-  pending.resolve()
-  await first
-  assert.equal(blocked.disposition, 'not-executed')
-  assert.deepEqual(diagnostics.snapshot().records.map(record => record.reason), ['unknown-command','disabled','busy'])
-  assert.doesNotMatch(diagnostics.toJson(), /private/)
-  const throwing = new ApplicationCommandDispatcher(registry, { observeAdmission() { throw Error('observer') } })
-  assert.equal((await throwing.dispatch('missing', {}, null)).disposition, 'not-executed')
 })

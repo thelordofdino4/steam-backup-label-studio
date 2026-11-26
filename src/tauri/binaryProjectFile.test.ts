@@ -261,13 +261,14 @@ test('type guard accepts every valid code and rejects malformed objects', () => 
   }
 })
 
-test('raw binary ports stay dormant and do not replace legacy JSON or PNG ports', async () => {
+test('generic project raw ports stay dormant and separate from legacy JSON and PNG', async () => {
   const files = [
     'src/app/App.tsx',
     'src/app/appProjectLoad.ts',
     'src/app/appProjectSave.ts',
     'src/app/appPngExport.ts',
     'src/tauri/fileSystem.ts',
+    'src/tauri/pngFile.ts',
   ]
   for (const file of files) {
     const source = await readFile(file, 'utf8')
@@ -277,7 +278,7 @@ test('raw binary ports stay dormant and do not replace legacy JSON or PNG ports'
   const legacyPort = await readFile('src/tauri/fileSystem.ts', 'utf8')
   assert.match(legacyPort, /invoke<string>\('read_project_file', \{ path \}\)/)
   assert.match(legacyPort, /invoke\('write_project_file', \{ path, contents \}\)/)
-  assert.match(legacyPort, /invoke\('write_binary_file', \{ path, bytes \}\)/)
+  assert.doesNotMatch(legacyPort, /write_binary_file|write_export_png/)
 })
 
 test('port implementation contains no archive byte-array or base64 conversion path', async () => {

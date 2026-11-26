@@ -34,6 +34,10 @@ function commandLabel(commandId: string): string {
       return 'Resume Project'
     case 'export.png':
       return 'Export PNG'
+    case 'application.close-window':
+      return 'Close Window'
+    case 'application.quit':
+      return 'Quit'
     default:
       return 'The command'
   }
@@ -48,7 +52,9 @@ function declineMessage(commandId: string): string {
   if (
     commandId === 'project.open' ||
     commandId === 'project.new-disc' ||
-    commandId === 'project.new-case'
+    commandId === 'project.new-case' ||
+    commandId === 'application.close-window' ||
+    commandId === 'application.quit'
   ) {
     return `${commandLabel(commandId)} cancelled. The current project was kept.`
   }
@@ -109,8 +115,9 @@ function statusToastKind(
 
 /**
  * Publishes one command result to the shared toast/status owner and mirrors the
- * accepted message to Home. Active deduplication keys are owned by that shared
- * status owner, so duplicate adapters cannot double-publish.
+ * accepted persistent message to Home. Case Apply success is toast-only.
+ * Active deduplication keys are owned by that shared status owner, so duplicate
+ * adapters cannot double-publish.
  */
 export function publishApplicationCommandFeedback(
   dispatch: ApplicationCommandDispatchResult<unknown>,
@@ -119,18 +126,17 @@ export function publishApplicationCommandFeedback(
   const feedback = selectApplicationCommandFeedback(dispatch)
   if (!feedback) return null
 
-  return publishApplicationFeedbackIntent(feedback, dependencies)
-}
-
-/** Shared presentation owner for informational and command feedback. */
-export function publishApplicationFeedbackIntent(
-  feedback: ApplicationCommandFeedbackIntent,
-  dependencies: ApplicationCommandFeedbackPublicationDependencies,
-): ApplicationCommandFeedbackIntent | null {
+  const toastOnly = dispatch.commandId === 'case.layoutPreset.apply' &&
+    dispatch.disposition === 'executed' &&
+    dispatch.result.status === 'success' &&
+    feedback.kind === 'success'
   const published = dependencies.announceStatus(feedback.message, {
     kind: statusToastKind(feedback.kind),
     deduplicationKey: feedback.deduplicationKey,
+    ...(toastOnly ? { toastOnly: true } : {}),
   })
-  if (published) dependencies.setHomeStatusMessage(feedback.message)
+  if (published) {
+    dependencies.setHomeStatusMessage(toastOnly ? '' : feedback.message)
+  }
   return published ? feedback : null
 }

@@ -1,6 +1,6 @@
 # Image asset acceptance policy
 
-Status: Implemented source policy for issue #358; native interaction acceptance remains required.
+Status: Implemented source policy for issue #358 with representative Windows native acceptance and verified package artifacts.
 Related: roadmap #355, baseline #356, package save transport #357.
 
 ## Policy and ownership
@@ -83,7 +83,7 @@ Default Disc no-rating settings also classify as no accepted image, matching the
 Rust registry. A settings object alone is not evidence of a missing custom image;
 retained custom data or custom dimensions still require the normal asset path.
 
-## Validation and remaining native acceptance
+## Validation and native acceptance scope
 
 Behavioral tests cover import rejection before decode/adoption, original-image
 preservation, exact MIME alias/byte handling, active-pixel inspection ownership,
@@ -94,7 +94,50 @@ both import validation and complete Disc/Case package round trips for all five
 families. Rejected vector/unknown types, spoofed PNG, truncated rasters and
 unsupported JPEG/BMP profiles use the same stable codec failures.
 
-Native GUI testing remains required to verify actual file pickers, upload errors,
-Steam/web/local adoption, disabled-state preservation, preview/export appearance
-and package Save/Open through WebView IPC. Headless tests and builds do not prove
-native interaction acceptance or process-memory behavior.
+Automated isolated integration checks passed 2446 Node tests, 329 Rust tests
+(84 application and 245 codec), focused import/capture/save/load checks (67),
+build, lint, dependency-cycle checks, and test discovery. Primary integration,
+preserving separate local Case work, passed 2529 Node tests and build/lint/cycle/
+discovery checks. All 90 tracked Rust paths were identical to the tested isolated
+source, apart from line endings in 14 paths. These are source-check results, not
+substitutes for native interaction acceptance.
+
+Representative Windows native testing on primary `9c061231` accepted PNG,
+JPEG, WebP, GIF, and BMP through real file pickers. It preserved accepted assets
+through rejected truncated, spoofed, vector, and unsupported-profile replacement
+attempts. Save/Open retained all five exact raster payloads and disabled JPEG
+state; the rejection-final Disc package was byte-identical to its baseline.
+Native Disc PNG export retained the expected visible assets and omitted the
+hidden JPEG. The output was 1423 x 1423 RGBA with valid CRCs; the UI reported
+300 DPI, but the file contained no pHYs metadata.
+
+Case testing verified transparent-PNG content bounds, rejection preservation,
+disabled cover Save/Open, and re-enabled appearance. Steam Portal import and
+automatic title artwork, Steam background adoption, an Official Open Graph web
+candidate, and a local Baldur's Gate 3 screenshot were adopted through native
+flows and saved/reopened. Final independent inspection of the local-screenshot
+artifact passed, including exact JPEG bytes, BG3 provenance without filesystem
+paths, retained backgrounds/title bindings, CRCs, and manifest checks. The earlier Case packages independently retained exact
+image bytes, dimensions, owner bindings, placement, and disabled state.
+
+Legacy full-branding Open retained compatibility with visible conversion guidance
+and rendered built-ins. Conversion Save As failed with actionable PNG replacement
+guidance, left no destination file, and preserved the original fixture hash and
+visible session. Internal path/baseline invariants were not directly observed.
+A dirty prompt was independently reproduced on pre-#358 source: restore changes
+defaults/provenance/notes and clamps a PC-mark position after the clean Open
+baseline. This existing lifecycle mismatch belongs to
+[issue #308](https://github.com/thelordofdino4/steam-backup-label-studio/issues/308),
+not an image-policy regression; the replacement guard remains intact.
+
+Full navigation, failure/recovery evidence, artifact hashes, and bounded receipts
+are in [Software Navigation](SOFTWARE_NAVIGATION.md). Library-cache adoption was
+not separately native-tested; shared importer/source tests do not establish that
+native result. This run does not establish every owner/platform/profile, animated
+frame determinism, embedded print-resolution metadata, physical print calibration,
+or broader process-memory behavior. Tiny catalog rasters establish admission
+and exact-byte preservation, not realistic print-quality acceptance.
+
+Independent review found no additional mandatory native gate and recommends
+closing #358 after successful CI for the exact published head and merge. This
+is a readiness assessment, not a claim that publication or closure has occurred.

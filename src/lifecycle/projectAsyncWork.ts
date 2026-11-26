@@ -1,4 +1,3 @@
-import { commandFailed, commandSucceeded, type ApplicationCommandError, type ApplicationCommandResult } from './applicationCommandTypes.ts'
 import type { ApplicationLifecycleStateSnapshot } from './applicationLifecycleStateStore.ts'
 import type { ProjectSessionId } from './projectSession.ts'
 
@@ -25,12 +24,6 @@ export type ProjectAsyncRequest = Readonly<{
 /** Only for reconciliation of current committed owner values after a render. */
 export type ProjectSessionContinuation = Readonly<{ sessionId: ProjectSessionId | null }>
 
-export type ProjectAsyncObservation = Readonly<{
-  stage(stage: 'prepare' | 'apply' | 'publish'): void
-  complete(result: ApplicationCommandResult<unknown>): void
-}>
-export type ProjectAsyncObserver = (request: ProjectAsyncRequest) => ProjectAsyncObservation | void
-
 export interface ProjectAsyncWork {
   getCurrentSessionId(): ProjectSessionId | null
   captureSessionContinuation(): ProjectSessionContinuation
@@ -40,11 +33,9 @@ export interface ProjectAsyncWork {
   invalidate(lane: ProjectAsyncLane): void
   invalidateAll(): void
   /** Consume authority before a synchronous, prepared application. */
-  commit(request: ProjectAsyncRequest, apply: () => undefined, outcome?: ApplicationCommandResult<unknown>): boolean
+  commit(request: ProjectAsyncRequest, apply: () => undefined): boolean
   /** Consume a proposal/feedback completion without changing document authority. */
-  publish(request: ProjectAsyncRequest, apply: () => undefined, outcome?: ApplicationCommandResult<unknown>): boolean
-  /** Report a typed failure using the same exact-once feedback authority. */
-  fail(request: ProjectAsyncRequest, error: ApplicationCommandError, apply: (failure: ApplicationCommandError) => undefined): boolean
+  publish(request: ProjectAsyncRequest, apply: () => undefined): boolean
   getSnapshot(): number
   subscribe(listener: () => void): () => void
   observeLifecycle(): void
@@ -59,31 +50,21 @@ export interface ProjectAsyncWork {
  */
 export function createProjectAsyncWork(
   getState: () => ApplicationLifecycleStateSnapshot,
-  observe?: ProjectAsyncObserver,
+  options: Readonly<{ canAcceptWork?: () => boolean }> = {},
 ): ProjectAsyncWork {
+  const canAcceptWork = options.canAcceptWork ?? (() => true)
   let sequence = 0
   let mutationGeneration = 0
   let version = 0
   let observedStateGeneration = getState().generation
   let disposed = false
   const latest = new Map<ProjectAsyncLane, ProjectAsyncRequest>()
+  const failureOwners = new Map<ProjectAsyncLane, ProjectAsyncRequest>()
   const requestSessions = new WeakMap<ProjectAsyncRequest, ProjectSessionContinuation>()
   const failedApplications = new WeakMap<ProjectAsyncRequest, Readonly<{
     mutationGeneration: number
     stateGeneration: number
   }>>()
-  const observations = new WeakMap<ProjectAsyncRequest, ProjectAsyncObservation>()
-  function stage(request: ProjectAsyncRequest, value: 'prepare' | 'apply' | 'publish') {
-    try { observations.get(request)?.stage(value) } catch { /* Observation only. */ }
-  }
-  function finish(request: ProjectAsyncRequest, result: ApplicationCommandResult<unknown>) {
-    const observation = observations.get(request)
-    observations.delete(request)
-    try { observation?.complete(result) } catch { /* Observation only. */ }
-  }
-  function cancel(request: ProjectAsyncRequest) {
-    finish(request, { status: 'cancelled', reason: 'operation-cancelled' })
-  }
   const listeners = new Set<() => void>()
   let sessionRoute = ''
   let continuation: ProjectSessionContinuation = Object.freeze({ sessionId: null })
@@ -108,7 +89,7 @@ export function createProjectAsyncWork(
     observeSessionRoute()
     const snapshot = getState()
     const session = snapshot.state.activeSession
-    return !disposed && latest.get(request.lane) === request &&
+    return !disposed && canAcceptWork() && latest.get(request.lane) === request &&
       session !== null && snapshot.state.visibleWorkspace !== 'home' &&
       request.sessionId === session.id &&
       request.contentRevision === session.revision &&
@@ -120,33 +101,35 @@ export function createProjectAsyncWork(
     request: ProjectAsyncRequest,
     apply: () => undefined,
     mutates: boolean,
-    result: ApplicationCommandResult<unknown> = commandSucceeded(undefined),
   ) {
     const current = isCurrent(request)
     const failed = failedApplications.get(request)
     // A synchronous owner failure may report once, but never regain mutation
     // authority. New requests, navigation, edits, or disposal retire it.
-    const mayReportFailure = !mutates && !disposed && failed !== undefined &&
-      !latest.has(request.lane) && requestSessions.get(request) === continuation &&
+    const mayReportFailure = !mutates && !disposed && canAcceptWork() && failed !== undefined &&
+      failureOwners.get(request.lane) === request && requestSessions.get(request) === continuation &&
       failed.mutationGeneration === mutationGeneration &&
       failed.stateGeneration === getState().generation
-    if (!current && !mayReportFailure) { cancel(request); return false }
+    if (!current && !mayReportFailure) return false
     failedApplications.delete(request)
+    failureOwners.delete(request.lane)
     latest.delete(request.lane)
-    if (mutates) mutationGeneration += 1
-    stage(request, mutates ? 'apply' : 'publish')
+    if (mutates) {
+      mutationGeneration += 1
+      failureOwners.clear()
+      // Reserve the one failure report before applying. Reentrant newer work
+      // or invalidation can retire it even if this synchronous apply throws.
+      failureOwners.set(request.lane, request)
+    }
     try {
       apply()
-      finish(request, result)
+      if (failureOwners.get(request.lane) === request) failureOwners.delete(request.lane)
     } catch (error) {
-      finish(request, commandFailed({ code: 'project.async-apply-failed',
-        userMessage: 'The prepared result could not be applied. Try again.', recoverable: true, cause: error }))
       if (mutates) failedApplications.set(request, {
         mutationGeneration, stateGeneration: getState().generation,
       })
       throw error
     } finally {
-      for (const pending of latest.values()) { if (!isCurrent(pending)) cancel(pending) }
       notify()
     }
     return true
@@ -156,11 +139,13 @@ export function createProjectAsyncWork(
     getCurrentSessionId: () => getState().state.activeSession?.id ?? null,
     captureSessionContinuation() {
       observeSessionRoute()
-      return continuation
+      // Work captured while final native handoff owns admission cannot revive
+      // if that handoff fails and the application becomes interactive again.
+      return !disposed && canAcceptWork() ? continuation : Object.freeze({ sessionId: null })
     },
     isSessionContinuationCurrent(candidate) {
       observeSessionRoute()
-      return !disposed && candidate === continuation && candidate.sessionId !== null &&
+      return !disposed && canAcceptWork() && candidate === continuation && candidate.sessionId !== null &&
         getState().state.visibleWorkspace !== 'home'
     },
     begin(lane: ProjectAsyncLane) {
@@ -179,33 +164,29 @@ export function createProjectAsyncWork(
         stateGeneration: snapshot.generation,
         mutationGeneration,
       })
-      const previous = latest.get(lane)
-      if (previous) cancel(previous)
-      latest.set(lane, request)
-      requestSessions.set(request, continuation)
-      try {
-        const observation = observe?.(request)
-        if (observation) observations.set(request, observation)
-      } catch { /* Observation cannot acquire or revoke authority. */ }
-      stage(request, 'prepare')
+      failureOwners.delete(lane)
+      if (canAcceptWork()) {
+        latest.set(lane, request)
+        requestSessions.set(request, continuation)
+      } else {
+        latest.delete(lane)
+      }
       notify()
       return request
     },
     isCurrent,
     invalidate(lane: ProjectAsyncLane) {
-      const request = latest.get(lane)
-      if (request) cancel(request)
-      if (latest.delete(lane)) notify()
+      const hadFailure = failureOwners.delete(lane)
+      if (latest.delete(lane) || hadFailure) notify()
     },
     invalidateAll() {
-      for (const request of latest.values()) cancel(request)
       latest.clear()
+      failureOwners.clear()
       continuation = Object.freeze({ sessionId: getState().state.activeSession?.id ?? null })
       notify()
     },
-    commit: (request, apply, outcome) => complete(request, apply, true, outcome),
-    publish: (request, apply, outcome) => complete(request, apply, false, outcome),
-    fail: (request, error, apply) => complete(request, () => apply(error), false, commandFailed(error)),
+    commit: (request, apply) => complete(request, apply, true),
+    publish: (request, apply) => complete(request, apply, false),
     getSnapshot: () => version,
     subscribe(listener) {
       listeners.add(listener)
@@ -217,14 +198,14 @@ export function createProjectAsyncWork(
       if (generation === observedStateGeneration) return
       observedStateGeneration = generation
       for (const [lane, request] of latest) {
-        if (!isCurrent(request)) { cancel(request); latest.delete(lane) }
+        if (!isCurrent(request)) latest.delete(lane)
       }
       notify()
     },
     dispose() {
       disposed = true
-      for (const request of latest.values()) cancel(request)
       latest.clear()
+      failureOwners.clear()
       notify()
       listeners.clear()
     },

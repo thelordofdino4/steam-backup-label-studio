@@ -1,3 +1,4 @@
+import { DiscBackgroundRaster, type DiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { legacyImageFormatWarning } from '../package/legacyImageFormatWarning.ts'
 import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
@@ -11,6 +12,7 @@ import type {
 } from '../caseInsert/brandingSlotSources.ts'
 import {
   captureNormalizedProjectSnapshot,
+  isCapturedSavedDiscProject,
   getNormalizedProjectKind,
   type DeepReadonly,
   type NormalizedPersistableProject,
@@ -21,6 +23,7 @@ import {
   normalizeSavedCaseInsertProject,
   restoreCaseInsertProjectState,
 } from '../project/caseInsertProjectAdapters.ts'
+import { createProjectSnapshot } from '../project/createProjectSnapshot.ts'
 import {
   parseSavedProjectContents,
   ProjectSchemaError,
@@ -88,6 +91,7 @@ export type StagedDiscProjectOpenCandidate = Readonly<{
   selectedPath: string
   persistenceFormat: ProjectPersistenceFormat
   normalizedProject: NormalizedPersistableProject
+  stagedDiscBackground?: DiscBackgroundAsset
   editorRoute: Readonly<{ workspace: 'disc' }>
   restoredProject: DeepReadonly<RestoredProjectState>
   activeDiscPresetState: DeepReadonly<ActiveDiscPresetState> | null
@@ -175,6 +179,11 @@ function deepFreeze<Value>(value: Value): Value {
 function captureCandidate(
   candidate: StagedProjectOpenCandidate,
 ): StagedProjectOpenCandidate {
+  if (candidate.projectType === 'disc') {
+    const { stagedDiscBackground, ...persistedAndRestore } = candidate
+    const frozen = deepFreeze(structuredClone(persistedAndRestore))
+    return Object.freeze({ ...frozen, ...(stagedDiscBackground === undefined ? {} : { stagedDiscBackground }) })
+  }
   return deepFreeze(structuredClone(candidate))
 }
 
@@ -247,8 +256,8 @@ async function stageDiscProject(
   selectedPath: string,
   project: SavedDiscProject,
   params: StageProjectOpenContentsParams,
+  fromNativePackageDecoder: boolean,
 ): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
-  const normalizedProject = captureNormalizedProjectSnapshot(project)
   let restoredProject: RestoredProjectState
 
   try {
@@ -331,11 +340,31 @@ async function stageDiscProject(
   }
 
   try {
+    // Open accepts the fully prepared editor aggregate, including restore-time
+    // defaults/clamps and preset fallback. Use the editor's persistence owner so
+    // its first synchronization compares equal without hiding real later edits.
+    const normalizedProject = captureNormalizedProjectSnapshot({
+      ...createProjectSnapshot({
+        ...restoredProject,
+        selectedDiscTemplateId: restoredProject.template.selectedDiscTemplateId,
+        customDiscTemplate: restoredProject.template.customDiscTemplate ??
+          restoredProject.template.selectedDiscTemplate,
+      }),
+      savedAt: project.savedAt,
+    })
+    // The native decoder rejects any non-null Disc Background that is not
+    // bound to validated raster bytes, and hydrates only canonical data URLs.
+    // Neither legacy JSON nor generic caller-supplied contents has this proof.
+    const restoredSource = isCapturedSavedDiscProject(normalizedProject)
+      ? normalizedProject.background.imageDataUrl : null
+    const stagedDiscBackground = fromNativePackageDecoder && restoredSource
+      ? await DiscBackgroundRaster.stageAcceptedSource(restoredSource) : undefined
     return commandSucceeded(captureCandidate({
       projectType: 'disc',
       selectedPath,
       persistenceFormat: params.persistenceFormat,
       normalizedProject,
+      stagedDiscBackground,
       editorRoute: Object.freeze({ workspace: 'disc' }),
       restoredProject,
       activeDiscPresetState,
@@ -416,8 +445,15 @@ function stageCaseInsertProject(
  * Runs the one shared parse, migrate, normalize, route, restore, and immutable
  * candidate-capture path after a transport has produced project JSON text.
  */
-export async function stageProjectOpenContents(
+export function stageProjectOpenContents(
   params: StageProjectOpenContentsParams,
+): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
+  return stageProjectOpenContentsInternal(params, false)
+}
+
+async function stageProjectOpenContentsInternal(
+  params: StageProjectOpenContentsParams,
+  fromNativePackageDecoder: boolean,
 ): Promise<ApplicationCommandResult<StagedProjectOpenCandidate>> {
   let project: SavedDiscProject | SavedCaseInsertProject
   try {
@@ -453,6 +489,7 @@ export async function stageProjectOpenContents(
         params.selectedPath,
         project as SavedDiscProject,
         params,
+        fromNativePackageDecoder,
       )
 }
 
@@ -498,11 +535,11 @@ export async function stageProjectPackageOpen(
     ))
   }
 
-  return stageProjectOpenContents({
+  return stageProjectOpenContentsInternal({
     ...params,
     contents,
     persistenceFormat: 'sbls-package-v1',
-  })
+  }, true)
 }
 
 /**

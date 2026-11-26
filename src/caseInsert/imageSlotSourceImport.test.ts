@@ -144,7 +144,7 @@ test('case insert uploaded image loader preserves failure status copy', async ()
 
   assert.equal(result, null)
   assert.deepEqual(statuses, [
-    'The image could not be imported. Check the source or connection and try again.',
+    'The tray artwork image could not be read.',
   ])
 })
 
@@ -183,7 +183,7 @@ test('case insert Steam artwork loader preserves failure status copy', async () 
   assert.equal(result, null)
   assert.deepEqual(statuses, [
     'Downloading Steam Capsule for tray artwork...',
-    'The image could not be imported. Check the source or connection and try again.',
+    'Steam artwork import failed for tray artwork: Error: timeout',
   ])
 })
 
@@ -222,7 +222,7 @@ test('case insert local screenshot loader preserves failure status copy', async 
   assert.equal(result, null)
   assert.deepEqual(statuses, [
     'Loading Local Shot for tray screenshot...',
-    'The image could not be imported. Check the source or connection and try again.',
+    'Local screenshot import failed for tray screenshot: Error: no file',
   ])
 })
 
@@ -261,7 +261,7 @@ test('case insert web artwork loader preserves failure status copy', async () =>
   assert.equal(result, null)
   assert.deepEqual(statuses, [
     'Downloading Web Art for additional artwork...',
-    'The image could not be imported. Check the source or connection and try again.',
+    'Web artwork import failed for additional artwork: Error: offline',
   ])
 })
 

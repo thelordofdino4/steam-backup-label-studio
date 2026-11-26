@@ -44,8 +44,60 @@ Focused coverage includes real lifecycle New/Open/content/navigation transitions
 
 Integration with #357/#358/#359/#360/#362 requires reconciliation and revalidation against the existing lifecycle and continuous-edit contracts. Native Steam/discovery, image control, preview/export, and lifecycle smoke remain required for acceptance. This document does not close #367 or claim that #363/#365/#366 document migration is implemented.
 
-## Diagnostic observation
+## Current-main reconciliation checkpoint, 2026-11-15
 
-The reconciled source stack lets Steam search/import report bounded timing and typed outcomes to the existing application runtime collector. Observation is outside request authorization: it cannot acquire, renew, commit or publish a request. Import success still requires `commit` to return true; current failure copy still uses `publish`; retired completions record cancellation without changing current UI feedback. See [RELEASE_DIAGNOSTICS.md](RELEASE_DIAGNOSTICS.md) for the allowlisted fields and coarse stages. Diagnostic observation does not establish native acceptance or implement #366 transactions.
+The isolated candidate reuses both #392 implementation/correction commits on
+current main `e3a55625`, with the separately reconciled #304 prerequisite
+`183ff4d5`. The four overlapping image hooks preserve #358's actionable image
+policy errors and accepted background selection while applying the same checked
+request boundary. The existing title-upload fixture now supplies the lifecycle
+owner, and the async image fixture stubs only native validation transport while
+retaining real file reading, image decoding, and request ownership. No #411
+diagnostics, native termination, schema, package, or Rust changes are included.
 
-Image and discovery observations use the same request owner. `fail` consumes ordinary feedback authority with an existing typed application failure; it does not advance mutation authority. Completion observations cannot change request/session authority. Partial provider outcomes preserve usable candidates. `ImageImportError` implements the existing application error shape and preserves image-policy guidance. Accepted discovery results retain their original session/input identity; a different identity starts with empty results. Native package capacity/memory and image acceptance remain separate gates.
+This candidate does not include the primary checkout's unpublished Case
+continuous-edit and preset changes. That later integration must retain the
+existing Case finish/flush port and source/framing owners. A painted or unpainted
+continuous edit may be newer than the published lifecycle revision; async
+application must not treat the older revision as current. Explicit completion
+and deferred branding reconciliation need a safe finish/defer boundary, not a
+side effect in render-time authority queries. Preserve the primary cover/tray
+source-only helper and each spine owner's existing per-surface behavior inside
+checked callbacks. Tests must cover this combined boundary before primary
+integration; this current-main candidate does not establish that acceptance.
+
+Headless hook fixtures are isolated behavioral diagnostics, not native or
+visual acceptance. Windows native import/discovery, navigation/reset, Case
+companion behavior, and preview/export acceptance remain outstanding.
+
+Independent reconciliation review exposed a same-session screenshot race:
+while importing game B, game A remains selected and can finish screenshot
+discovery. Accepted arrays, thumbnails, checked state, and retained actions now
+belong to the session plus numeric Steam App ID, including input changes that
+do not publish a lifecycle revision. They hide on the first render for a new
+identity. Starting a different-identity search cannot relabel retained results;
+same-identity refresh preserves them while pending. App no longer clears these
+results merely when an import starts, so a failed or cancelled game B import
+does not discard still-current game A results. Late image/folder feedback and
+thumbnail completions also check their originating identity.
+
+Failure-report authority is explicit and one-use after a throwing synchronous
+application. A newer same-lane request or lane invalidation retires it
+permanently, even after the newer proposal completes or when replacement is
+reentrant inside the failing application. Unrelated proposal completion still
+preserves current failure feedback. Focused regressions reproduce the former
+failures and retain positive current-owner controls.
+
+## Native termination admission boundary
+
+The #360 adapter starts its handoff barrier only after the preservation guard
+succeeds, before retirement notifications and final interaction/Case finish.
+`canAcceptWork` gates request registration, mutation, proposal/failure publication
+and derived continuations. Existing and during-handoff authority stays retired
+after a failed/stale attempt; only fresh work may begin after proven-safe
+rejection. Guard Cancel preserves unrelated current work. Unknown post-dispatch
+outcomes retain the barrier because a queued native close may still execute.
+The composition root also gates all semantic commands, including native menu,
+export and Case ingress, after the original termination busy scope is released.
+See [Native termination acceptance](NATIVE_TERMINATION_ACCEPTANCE.md) for the
+protocol, primary continuous-edit integration boundary and native gates.

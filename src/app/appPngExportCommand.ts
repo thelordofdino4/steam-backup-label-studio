@@ -1,3 +1,4 @@
+import { finishApplicationCaseInsertContinuousEdit, type GetApplicationCaseInsertContinuousEditPort } from './applicationCaseInsertContinuousEditPort.ts'
 import type {
   ApplicationCommandCapability,
   ApplicationCommandOperationToken,
@@ -7,6 +8,7 @@ import type {
   ApplicationPngExportCommandOwner,
   ApplicationPngExportCapabilityContext,
 } from '../lifecycle/applicationPngExportCommand.ts'
+import type { DiscProjectSession } from '../lifecycle/projectSession.ts'
 import { hasBusyScopeConflict } from '../lifecycle/commandBusyScopes.ts'
 import type {
   ApplicationLifecycleCommandContext,
@@ -32,7 +34,7 @@ type CaseExportInvocation = Omit<
 export type ApplicationDiscPngExportAdapter = Readonly<{
       kind: 'disc'
       physicalTarget: 'disc-label'
-      captureInvocation(): DiscExportInvocation
+      captureInvocation(session: DiscProjectSession): DiscExportInvocation
     }>
 
 export type ApplicationCasePngExportAdapter = Readonly<{
@@ -143,14 +145,14 @@ function snapshotFailure(error: unknown): ApplicationCommandResult<never> {
     status: 'failure',
     error: Object.freeze({
       code: 'export.snapshot-failed',
-      userMessage: 'The export snapshot could not be prepared. Check the project and try again.',
+      userMessage: `Export failed: ${String(error)}`,
       diagnosticMessage: error instanceof Error ? error.message : String(error),
       cause: error,
       recoverable: true,
     }),
     feedback: Object.freeze({
       kind: 'error',
-      message: 'The export snapshot could not be prepared. Check the project and try again.',
+      message: `Export failed: ${String(error)}`,
       deduplicationKey: 'export.png:failure:snapshot',
     }),
   })
@@ -158,6 +160,7 @@ function snapshotFailure(error: unknown): ApplicationCommandResult<never> {
 
 export function createApplicationPngExportCommandOwner(
   getDependencies: () => ApplicationPngExportRuntimeDependencies | null,
+  getDiscBackgroundEdit: GetApplicationCaseInsertContinuousEditPort = () => null,
 ): ApplicationPngExportCommandOwner {
   return Object.freeze({
     availability: 'implemented',
@@ -168,6 +171,8 @@ export function createApplicationPngExportCommandOwner(
       context: ApplicationLifecycleCommandContext,
       operation: ApplicationCommandOperationToken,
     ): Promise<ApplicationCommandResult<ApplicationPngExportSuccess>> {
+      const finished = finishApplicationCaseInsertContinuousEdit(getDiscBackgroundEdit())
+      if (finished.status !== 'success') return finished
       const current = context.getCurrentStateSnapshot()
       const capabilityContext = Object.freeze({
         stateSnapshot: current,
@@ -182,12 +187,14 @@ export function createApplicationPngExportCommandOwner(
       }
 
       try {
-        return adapter.kind === 'disc'
-          ? runDiscPngExport({ ...adapter.captureInvocation(), operation })
-          : runCaseInsertPngExport({
-              ...adapter.captureInvocation(),
-              operation,
-            })
+        if (adapter.kind === 'disc') {
+          const session = current.state.activeSession
+          if (session?.kind !== 'disc') {
+            return snapshotFailure(new Error('The active Disc revision changed before capture.'))
+          }
+          return runDiscPngExport({ ...adapter.captureInvocation(session), operation })
+        }
+        return runCaseInsertPngExport({ ...adapter.captureInvocation(), operation })
       } catch (error) {
         return snapshotFailure(error)
       }

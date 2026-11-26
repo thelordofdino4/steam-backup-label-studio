@@ -1,4 +1,3 @@
-import { createApplicationMenuDiagnosticReporter, type ApplicationMenuStartupStage } from './applicationMenuDiagnostics.ts'
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -52,7 +51,6 @@ export type NativeApplicationMenuPortDependencies = Readonly<{
   getWindowLabel?: () => string
   createBridgeInstanceId?: () => string
   onDiagnostic?: (diagnostic: NativeApplicationMenuDiagnostic) => void
-  onStartupStage?: (stage: ApplicationMenuStartupStage) => void
 }>
 
 export type NativeApplicationMenuPort = Readonly<{
@@ -140,13 +138,8 @@ export async function createNativeApplicationMenuPort(
   onInvocation: (invocation: ApplicationMenuInvocation) => void,
   dependencies: NativeApplicationMenuPortDependencies = {},
 ): Promise<NativeApplicationMenuPort> {
-  const onDiagnostic = createApplicationMenuDiagnosticReporter(dependencies.onDiagnostic)
-  function startupStage(stage: ApplicationMenuStartupStage) {
-    try { dependencies.onStartupStage?.(stage) } catch { /* Observation only. */ }
-  }
   const invokeCommand = dependencies.invokeCommand ?? invoke
   const listenEvent = dependencies.listenEvent ?? defaultListen
-  startupStage('native-window-identity')
   const windowLabel = requireIdentity(
     (dependencies.getWindowLabel ?? (() => getCurrentWindow().label))(),
     'Application-menu window label',
@@ -155,7 +148,6 @@ export async function createNativeApplicationMenuPort(
     (dependencies.createBridgeInstanceId ?? defaultBridgeInstanceId)(),
     'Application-menu bridge instance ID',
   )
-  startupStage('native-platform')
   const platform = parseApplicationMenuPlatform(
     await invokeCommand<unknown>(APPLICATION_MENU_NATIVE_COMMANDS.platform),
   )
@@ -165,7 +157,6 @@ export async function createNativeApplicationMenuPort(
   const invocationOrder: string[] = []
   let disposed = false
 
-  startupStage('native-event-subscription')
   const unlisten = await listenEvent(APPLICATION_MENU_NATIVE_EVENT, (payload) => {
     let invocation: ApplicationMenuInvocation
     try {
@@ -174,7 +165,7 @@ export async function createNativeApplicationMenuPort(
         windowLabel,
       })
     } catch (error) {
-      onDiagnostic({
+      dependencies.onDiagnostic?.({
         code: 'application-menu.invocation-invalid',
         detail: error instanceof Error ? error.message : undefined,
       })
@@ -185,7 +176,7 @@ export async function createNativeApplicationMenuPort(
       rememberedInvocations,
       invocationOrder,
     )) {
-      onDiagnostic({
+      dependencies.onDiagnostic?.({
         code: 'application-menu.invocation-duplicate',
       })
       return
@@ -199,7 +190,6 @@ export async function createNativeApplicationMenuPort(
     descriptor,
   }
   let installResult: NativeApplicationMenuInstallResult
-  startupStage('native-install')
   try {
     installResult = parseNativeApplicationMenuInstallResult(
       await invokeCommand<unknown>(APPLICATION_MENU_NATIVE_COMMANDS.install, {
@@ -263,7 +253,7 @@ export async function createNativeApplicationMenuPort(
           windowLabel,
         )
       } catch (error) {
-        onDiagnostic({
+        dependencies.onDiagnostic?.({
           code: 'application-menu.dispose-failed',
           detail: error instanceof Error ? error.message : undefined,
         })

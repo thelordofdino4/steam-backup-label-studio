@@ -1367,6 +1367,52 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires write requests emitted by the mounted Disc history diagnostic"]
+    fn mounted_disc_history_packages_reopen_with_exact_committed_content() {
+        let relay = PathBuf::from(std::env::var_os("SBLS_DISC_HISTORY_PACKAGE_RELAY").unwrap());
+        let directory = TestDirectory::new();
+        let reopen = |label: &str, expected_asset_count: usize| {
+            let request = fs::read(relay.join(format!("{label}.request"))).unwrap();
+            assert!(request.starts_with(WRITE_REQUEST_V2_MAGIC));
+            let destination = directory.join(&format!("{label}.sbls"));
+            let result = encode_and_write_request(
+                &write_headers(&destination, None),
+                &InvokeBody::Raw(request),
+            )
+            .unwrap();
+            assert_eq!(result.status, "success");
+            let response = decode_request_with(
+                &headers_for(destination.to_str().unwrap()),
+                &InvokeBody::Raw(Vec::new()),
+                |path| project_binary_io::read(path),
+                |bytes| {
+                    let (hydrated, metadata) = decode_project_package(bytes)?.into_parts();
+                    assert_eq!(metadata.asset_count(), expected_asset_count);
+                    assert_eq!(metadata.binding_count(), 2 * expected_asset_count);
+                    Ok(hydrated)
+                },
+            )
+            .unwrap();
+            let mut hydrated: serde_json::Value = serde_json::from_slice(&raw_body(response)).unwrap();
+            hydrated.as_object_mut().unwrap().remove("savedAt");
+            hydrated
+        };
+        let before = reopen("before", 0);
+        let imported = reopen("applied", 1);
+        assert_eq!(before, reopen("undo", 0));
+        assert_eq!(imported, reopen("redo", 1));
+        assert_ne!(before, imported);
+        assert_eq!(
+            imported["game"]["selectedSteamGame"]["appId"].as_u64(),
+            Some(920010002),
+        );
+        let artwork = &imported["titleArtwork"];
+        let active_png = artwork["imageDataUrl"].as_str().unwrap();
+        assert!(active_png.starts_with("data:image/png;base64,"));
+        assert_eq!(artwork["defaultSteamLogo"]["imageDataUrl"].as_str(), Some(active_png));
+    }
+
+    #[test]
     fn native_write_command_preserves_default_built_ins_without_asset_entries() {
         let directory = TestDirectory::new();
         for (name, project, captures) in [
@@ -1509,3 +1555,7 @@ mod tests {
         include!("project_package_capacity_tests.rs");
     }
 }
+
+#[cfg(test)]
+#[path = "project_package_performance.rs"]
+mod performance;

@@ -1,3 +1,4 @@
+import { DiscBackgroundRaster, type DiscBackgroundAsset } from './discBackgroundAsset.ts'
 import {
   createSelectedBackgroundImageState,
   type BackgroundImageState,
@@ -8,24 +9,25 @@ import {
   createImportedImageAssetFromDataUrl,
 } from '../utils/importedImageAsset'
 import { readImageFileAsDataUrl } from '../utils/imageFile'
-import { ImageImportError } from './imageImportFailure.ts'
+import { ImportedImagePolicyError } from './importedImagePolicy'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type { ProjectImageAssetProvenance } from '../project/projectTypes'
 
-export class BackgroundImageReadError extends ImageImportError {
-  constructor(cause?: unknown) {
-    super('image.read-failed', cause)
+export class BackgroundImageReadError extends Error {
+  constructor() {
+    super('Background image could not be read.')
   }
 }
 
-export class BackgroundImageLoadError extends ImageImportError {
-  constructor(cause?: unknown) {
-    super('image.decode-failed', cause)
+export class BackgroundImageLoadError extends Error {
+  constructor() {
+    super('Background image could not be loaded.')
   }
 }
 
 export type BackgroundImageImportResult = {
   background: BackgroundImageState
+  stagedAsset: DiscBackgroundAsset
   imageSource: ProjectImageAssetProvenance
   selectedArtworkId: string | null
   statusMessage: string
@@ -39,7 +41,11 @@ export async function createBackgroundImageImportFromDataUrl(
 ): Promise<BackgroundImageImportResult> {
   const importedImage = await createImportedImageAssetFromDataUrl(imageDataUrl)
 
+  // Image preparation already validated and canonicalized these exact bytes.
+  const stagedAsset = await DiscBackgroundRaster.stageAcceptedSource(importedImage.imageDataUrl)
+
   return {
+    stagedAsset,
     background: createSelectedBackgroundImageState(
       importedImage.imageDataUrl,
       importedImage.imageSize,
@@ -58,8 +64,8 @@ export async function createUploadedBackgroundImageImport(
   try {
     imageDataUrl = await readImageFileAsDataUrl(file)
   } catch (error) {
-    if (error instanceof ImageImportError) throw error
-    throw new BackgroundImageReadError(error)
+    if (error instanceof ImportedImagePolicyError) throw error
+    throw new BackgroundImageReadError()
   }
 
   try {
@@ -72,8 +78,8 @@ export async function createUploadedBackgroundImageImport(
       }),
     )
   } catch (error) {
-    if (error instanceof ImageImportError) throw error
-    throw new BackgroundImageLoadError(error)
+    if (error instanceof ImportedImagePolicyError) throw error
+    throw new BackgroundImageLoadError()
   }
 }
 

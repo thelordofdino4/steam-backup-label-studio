@@ -1,5 +1,4 @@
-import { imageImportFailure } from '../image/imageImportFailure.ts'
-import type { ApplicationCommandError } from '../lifecycle/applicationCommandTypes.ts'
+import { ImportedImagePolicyError } from '../image/importedImagePolicy.ts'
 import {
   readLocalImageAsDataUrl,
   type LocalSteamScreenshotAsset,
@@ -98,12 +97,10 @@ export async function createUploadedCaseInsertImageSlotImage(
 
 export async function loadUploadedCaseInsertImageSlotImage({
   announceStatus,
-  onFailure,
   createImage = createUploadedCaseInsertImageSlotImage,
   uploadFile,
 }: {
   announceStatus: (message: string) => void
-  onFailure?: (failure: ApplicationCommandError) => void
   createImage?: (
     file: File,
     fallbackLabel: string,
@@ -113,9 +110,9 @@ export async function loadUploadedCaseInsertImageSlotImage({
   try {
     return await createImage(uploadFile.file, uploadFile.statusLabel)
   } catch (error) {
-    const failure = imageImportFailure(error)
-    if (onFailure) onFailure(failure)
-    else announceStatus(failure.userMessage)
+    announceStatus(error instanceof ImportedImagePolicyError
+      ? error.message
+      : `The ${uploadFile.statusLabel} image could not be read.`)
     return null
   }
 }
@@ -140,13 +137,11 @@ export async function createSteamArtworkCaseInsertImageSlotImage(
 
 export async function loadSteamArtworkCaseInsertImageSlotImage({
   announceStatus,
-  onFailure,
   asset,
   createImage = createSteamArtworkCaseInsertImageSlotImage,
   label,
 }: {
   announceStatus: (message: string) => void
-  onFailure?: (failure: ApplicationCommandError) => void
   asset: SteamArtworkAsset
   createImage?: (
     asset: SteamArtworkAsset,
@@ -162,9 +157,7 @@ export async function loadSteamArtworkCaseInsertImageSlotImage({
       successStatus: `Using ${asset.label} as the ${statusLabel}.`,
     }
   } catch (error) {
-    const failure = imageImportFailure(error)
-    if (onFailure) onFailure(failure)
-    else announceStatus(failure.userMessage)
+    announceStatus(`Steam artwork import failed for ${statusLabel}: ${String(error)}`)
     return null
   }
 }
@@ -188,13 +181,11 @@ export async function createLocalSteamScreenshotCaseInsertImageSlotImage(
 
 export async function loadLocalSteamScreenshotCaseInsertImageSlotImage({
   announceStatus,
-  onFailure,
   asset,
   createImage = createLocalSteamScreenshotCaseInsertImageSlotImage,
   label,
 }: {
   announceStatus: (message: string) => void
-  onFailure?: (failure: ApplicationCommandError) => void
   asset: LocalSteamScreenshotAsset
   createImage?: (
     asset: LocalSteamScreenshotAsset,
@@ -210,9 +201,7 @@ export async function loadLocalSteamScreenshotCaseInsertImageSlotImage({
       successStatus: `Using ${asset.label} as the ${statusLabel}.`,
     }
   } catch (error) {
-    const failure = imageImportFailure(error)
-    if (onFailure) onFailure(failure)
-    else announceStatus(failure.userMessage)
+    announceStatus(`Local screenshot import failed for ${statusLabel}: ${String(error)}`)
     return null
   }
 }
@@ -238,13 +227,11 @@ export async function createWebArtworkCaseInsertImageSlotImage(
 
 export async function loadWebArtworkCaseInsertImageSlotImage({
   announceStatus,
-  onFailure,
   candidate,
   createImage = createWebArtworkCaseInsertImageSlotImage,
   label,
 }: {
   announceStatus: (message: string) => void
-  onFailure?: (failure: ApplicationCommandError) => void
   candidate: RemoteLogoCandidate
   createImage?: (
     candidate: RemoteLogoCandidate,
@@ -260,9 +247,7 @@ export async function loadWebArtworkCaseInsertImageSlotImage({
       successStatus: `Using ${candidate.label} as the ${statusLabel}.`,
     }
   } catch (error) {
-    const failure = imageImportFailure(error)
-    if (onFailure) onFailure(failure)
-    else announceStatus(failure.userMessage)
+    announceStatus(`Web artwork import failed for ${statusLabel}: ${String(error)}`)
     return null
   }
 }

@@ -1,4 +1,3 @@
-import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import type {
@@ -83,7 +82,6 @@ export function useCaseInsertTemplateLogoEditor({
     const request = asyncWork.begin(`image:case:${paneId}:logo:${logoKey}`)
     const image = await loadUploadedCaseInsertImageSlotImage({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
-      onFailure: (failure) => { asyncWork.fail(request, failure, () => { announceStatus(failure.userMessage) }) },
       uploadFile,
     })
     if (!image) {
@@ -185,8 +183,8 @@ export function useCaseInsertTemplateLogoEditor({
         announceStatus(`Added ${candidate.label} as the ${normalizeCaseInsertLabel(label)}.`)
       })
     } catch (error) {
-      asyncWork.fail(request, imageImportFailure(error), (failure) => {
-        announceStatus(`Logo candidate import failed for ${normalizeCaseInsertLabel(label)}: ${failure.userMessage}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Logo candidate import failed for ${normalizeCaseInsertLabel(label)}: ${String(error)}`)
       })
     }
   }

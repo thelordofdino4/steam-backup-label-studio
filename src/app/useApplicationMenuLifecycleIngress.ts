@@ -1,4 +1,3 @@
-import type { ApplicationMenuInformationalPort } from '../applicationMenu/applicationMenuInformationalPort.ts'
 import { useContext, useLayoutEffect } from 'react'
 
 import type {
@@ -18,7 +17,6 @@ import type {
 type ApplicationMenuIngressDependencies =
   ApplicationCommandFeedbackPublicationDependencies & Readonly<{
     workflowNavigation: EditorWorkflowNavigationPort
-    informational?: ApplicationMenuInformationalPort
   }>
 
 export function connectApplicationMenuCommandIngress(
@@ -27,7 +25,6 @@ export function connectApplicationMenuCommandIngress(
 ): () => void {
   return runtime.connectCommandIngress({
     workflowNavigation: dependencies.workflowNavigation,
-    informational: dependencies.informational,
     publishFeedback(dispatch) {
       publishApplicationCommandFeedback(dispatch, dependencies)
     },
@@ -50,17 +47,14 @@ export function useApplicationMenuCommandIngress(
     announceStatus,
     setHomeStatusMessage,
     workflowNavigation,
-    informational,
   } = dependencies
 
   useLayoutEffect(() => connectApplicationMenuCommandIngress(runtime, {
     announceStatus,
     setHomeStatusMessage,
     workflowNavigation,
-    informational,
   }), [
     announceStatus,
-    informational,
     runtime,
     setHomeStatusMessage,
     workflowNavigation,

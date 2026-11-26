@@ -89,7 +89,6 @@ function imageFile(name) {
  return new File([bytes],name,{type:'image/png'})
 }
 window.importHarness = {
- diagnostics: () => runtime.diagnostics.snapshot(),
  async start(kind,name) {
   const event={target:{files:[name==='malformed.png' ? new File(['invalid PNG'],name,{type:'image/png'}) : imageFile(name)],value:name}}
   await act(async()=>{
@@ -109,7 +108,16 @@ window.importHarness = {
   })
  },
  async settle(index,fail) { await act(async()=>{ if(fail)readers[index].reject();else readers[index].resume();await completions[index] }) },
- async edit() {await act(async()=>{const session=runtime.root.getLifecycleState().activeSession;runtime.root.synchronizeCurrentProject({sessionId:session.id,kind:session.kind,project:{...session.project,title:session.project.title+' changed'}})})},
+ async edit() {
+  await act(async()=>{
+   const session=runtime.root.getLifecycleState().activeSession
+   if(session?.kind!=='disc')throw new Error('Expected the Disc fixture to be active')
+   const legacy={...session.project,title:session.project.title+' changed'}
+   delete legacy.background
+   const outcome=runtime.root.synchronizeDiscLegacyProject({sessionId:session.id,legacy})
+   if(outcome!=='synchronized')throw new Error('Fixture edit failed to advance the Disc revision: '+outcome)
+  })
+ },
  async newProject() {await act(async()=>{const result=await runtime.root.dispatch('project.new-disc');if(result.result?.status==='failed')throw new Error(JSON.stringify(result))})},
  async reset() {await act(async()=>{runtime.projectAsyncWork.invalidateAll()})},
  async metadataStart(id,apply=true) {
@@ -187,16 +195,3 @@ for(const kind of ['cover','tray','left','right','cover-group','left-group','cov
   assert.doesNotMatch(accepted.statuses.at(-1), /could not|failed|Unable|invalid/i)
  })
 }
-
-for (const kind of ['background','title','logo','media','rating','cover','tray','left','right']) test(`${kind}: current read failure is typed, consumes authority and retains accepted image`, async()=>{
- await start(kind,'accepted.png'); await settle(0)
- const before = await snapshot()
- await start(kind,'private-replacement.png'); await settle(1,true)
- const after = await snapshot()
- assert.equal(JSON.stringify({...after,statuses:[]}), JSON.stringify({...before,statuses:[]}))
- const records = await page.evaluate(()=>window.importHarness.diagnostics().records)
- assert.equal(records.at(-1).status,'failure')
- assert.equal(records.at(-1).failureCode,'image.read-failed')
- assert.doesNotMatch(JSON.stringify(records),/private|accepted.png|data:image/)
- assert.match(after.statuses.at(-1),/could not be read/)
-})

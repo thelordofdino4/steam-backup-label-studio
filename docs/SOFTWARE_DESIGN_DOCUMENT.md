@@ -280,7 +280,7 @@ The frontend has three top-level workspaces:
 
 The disc editor is the stable alpha-capable workspace. The case insert editor is active and partially implemented for jewel case layouts.
 
-The frontend contains runtime-connected lifecycle and native application-menu foundations. `src/main.tsx` constructs one application lifecycle runtime and one menu runtime outside React Strict Mode; their focused boundaries own idempotent disposal, while committed React adapters connect lifecycle, feedback, and workflow-navigation dependencies without recreating either root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, native transport validation, frontend ingress, and runtime lifecycle. Rust constructs the native hierarchy from that descriptor, applies bridge/window/item-set/generation-validated state, and forwards typed activation envelopes. The seven supported File presentation IDs plus `export.png` dispatch through the existing application root. Five Tools presentation IDs resolve through those same descriptors into one typed editor-navigation router and shared nonmodal workflow host; they reveal/focus single existing owner presentations without executing a domain operation. The fifth is the Case-only `menu.tools.case-layout-presets` destination. The user reported the earlier focused Windows native-Tauri menu checklist passing on 2026-07-31; Linux and macOS remain separately unverified. Close/termination, Edit, Window, and Help remain disabled. No custom React menubar exists.
+The frontend contains runtime-connected lifecycle and native application-menu foundations. `src/main.tsx` constructs one application lifecycle runtime and one menu runtime outside React Strict Mode; their focused boundaries own idempotent disposal, while committed React adapters connect lifecycle, feedback, and workflow-navigation dependencies without recreating either root. `src/lifecycle/` supplies the single-session/canonical-baseline primitives and framework-neutral root that owns one immutable lifecycle store, command registry/dispatcher, busy-scope coordinator, typed command-port set, and implementation-aware capability projection. `project.new-disc`, `project.new-case`, `project.open`, `project.save`, `project.save-as`, `workspace.return-home`, and `project.resume` are production-implemented lifecycle ports. The lifecycle session is continuously synchronized with the complete normalized committed Disc or Case editor aggregate and the exact session-only editor route; it is the authoritative dirty/Save/Resume source. `src/applicationMenu/` defines the exact first-release menu descriptors, semantic targets, platform projection, owner-injected capability projection, native transport validation, frontend ingress, and runtime lifecycle. Rust constructs the native hierarchy from that descriptor, applies bridge/window/item-set/generation-validated state, and forwards typed activation envelopes. The seven supported File presentation IDs plus `export.png` dispatch through the existing application root. Five Tools presentation IDs resolve through those same descriptors into one typed editor-navigation router and shared nonmodal workflow host; they reveal/focus single existing owner presentations without executing a domain operation. The fifth is the Case-only `menu.tools.case-layout-presets` destination. The user reported the earlier focused Windows native-Tauri menu checklist passing on 2026-07-31; Linux and macOS remain separately unverified. Guarded native Close Window/Quit is integrated by PR #417. Unimplemented Edit, Window and Help targets remain disabled. No custom React menubar exists.
 
 ### 5.2 Key Files
 
@@ -367,7 +367,7 @@ callers; the picker helper is not a general application-modal framework.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
-Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. The application ingress performs a second bridge/window/projection-generation check. File lifecycle and `menu.file.export-png` targets dispatch through the application root; Tools targets resolve through `applicationMenuWorkflowRouting.ts` into the typed navigation store. That store rechecks session, editor/surface, host, registered owner, modal, and transition readiness, then reveals one shared host and focuses the registered control after commit. Stable portal containers preserve one live owner presentation and prevent duplicate IDs while keeping the sidebar slot available. Navigation completion publishes no false domain-success feedback and changes no project/session state. The Help documentation item now delegates to an informational owner that opens packaged offline guidance and a bounded local diagnostic report; Home exposes the same owner independently of native menu availability. Help is nonmodal, rechecks application/native dialog ownership, restores focus and changes no project state. About remains unavailable pending its runtime metadata owner; external Report an Issue remains omitted. Close/termination and all Edit and Window semantic boundaries remain unavailable.
+Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. The application ingress performs a second bridge/window/projection-generation check. File lifecycle and `menu.file.export-png` targets dispatch through the application root; Tools targets resolve through `applicationMenuWorkflowRouting.ts` into the typed navigation store. That store rechecks session, editor/surface, host, registered owner, modal, and transition readiness, then reveals one shared host and focuses the registered control after commit. Stable portal containers preserve one live owner presentation and prevent duplicate IDs while keeping the sidebar slot available. Navigation completion publishes no false domain-success feedback and changes no project/session state. Native Close Window and Quit dispatch through the guarded termination owner; unimplemented Edit, Window and Help targets remain unavailable.
 
 ### 5.4 Render, Edit, And Export Paths
 
@@ -375,7 +375,7 @@ Application-menu presentation IDs are separate from semantic command and owner I
 - Vite entry: `index.html` provides the root element and loads `/src/main.tsx`.
 - Tauri dev/build entry: `src-tauri/tauri.conf.json` points dev to Vite and packaged frontend output to `dist`.
 - UI routing: `App.tsx` renders `HomeScreen`, disc editor panels plus `DiscPreview`, or `CaseInsertEditorShell`.
-- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects owner capabilities, routes seven File lifecycle commands plus `export.png` through the existing application root, and routes the four no-accelerator Tools launchers through the typed editor-navigation owner. Because the pinned Windows WebView2/Wry path does not emit native Ctrl accelerator events, one bounded window-local adapter derives command-owned chords from the same descriptor and routes only latest-projected-enabled activations through the same ingress with modal/key-owner precedence and cross-source deduplication. Help documentation uses its informational owner; About, Close/termination, Edit and Window targets stay disabled and disconnected.
+- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects owner capabilities, routes seven File lifecycle commands plus `export.png` through the existing application root, and routes the five no-accelerator Tools launchers through the typed editor-navigation owner. Because the pinned Windows WebView2/Wry path does not emit native Ctrl accelerator events, one bounded window-local adapter derives command-owned chords from the same descriptor and routes only latest-projected-enabled activations through the same ingress with modal/key-owner precedence and cross-source deduplication. Native Close Window and Quit use the guarded termination owner. Unimplemented Edit, Window and Help targets stay disabled.
 - Open: every current Home, Disc, and Case Load control dispatches
   `project.open`; the owner stages dialog/read/schema/restore work before one
   dirty-aware replacement decision and one batched lifecycle-and-editor commit.
@@ -729,9 +729,9 @@ system allocator; one-byte-over rejection and failure cleanup are exercised.
 JPEG fatal `longjmp` remains inside one C wrapper frame. Exact
 versions, source/archive/overlay digests, notices, exclusions, and patch
 rationale live under `src-tauri/crates/sbls-package-codec/vendor/`.
-The root `LICENSE` contains MIT text, but `README.md` still says a license has
-not been chosen and the application manifest leaves `license` empty; this
-package slice does not resolve that repository-level conflict. The unpublished
+The root `LICENSE` contains MIT text and the application manifest leaves
+`license` empty; release metadata reconciliation remains under #381/#376.
+This documentation does not change licensing policy. The unpublished
 codec manifest currently declares `MIT AND BSD-3-Clause AND IJG`, while the
 checked-in libjpeg-turbo IJG/Modified-BSD notices and libwebp Modified-BSD
 notice/patent grant remain the authoritative upstream texts.
@@ -2514,6 +2514,9 @@ Disc background image geometry, reconstructs Disc preset state, and projects
 Case branding before any live mutation. Its commit phase establishes the exact
 accepted normalized snapshot as a path-bearing revision-zero clean session and
 applies the complete editor aggregate synchronously in the same React batch.
+The Disc accepted snapshot uses `createProjectSnapshot` after all restoration
+and preset fallback, preserving the source timestamp so initial editor capture
+is canonically equal to the Open baseline rather than a synthetic edit.
 
 The draft target-state application-command, single-project session, path,
 baseline, dirty-state, replacement-guard, and native close/Quit semantics are
@@ -2677,6 +2680,13 @@ authorizes it and adopts state.
 
 Export renders PNG bytes through canvas helpers. Disc export is circular and 300 DPI by selected/custom disc geometry. Case insert export is rectangular and template-driven. Export preflight summarizes output and warnings before writing files.
 
+The #359 source checkpoint makes physical resolution explicit in the shared
+canvas serializer: the caller's sizing DPI becomes one PNG `pHYs` chunk, with
+IHDR dimensions and chunk CRCs checked before writing. Non-density chunks and
+pixels are preserved. See [`PNG_PHYSICAL_OUTPUT_CONTRACT.md`](PNG_PHYSICAL_OUTPUT_CONTRACT.md)
+for integer rounding, existing Disc border margins, representative sizes and
+the still-pending native/physical calibration checklist.
+
 ### 16.2 Key Files
 
 - `src/export/exportPng.ts`
@@ -2685,6 +2695,7 @@ Export renders PNG bytes through canvas helpers. Disc export is circular and 300
 - `src/export/caseInsertPngImage.ts`
 - `src/export/caseInsertPngText.ts`
 - `src/export/canvasImage.ts`
+- `src/export/pngPhysicalResolution.ts`
 - `src/export/exportPreflight.ts`
 - `src/export/discDesignCheck.ts`
 - `src/export/caseInsertExportPreflight.ts`
@@ -2711,7 +2722,9 @@ Export reads current runtime project state and template geometry. Layer order po
 - Destination cancellation stops before rendering or writing. Disc preview
   measurement remains deferred until rendering is about to begin.
 - Canvas export builds PNG bytes.
-- Tauri writes binary PNG bytes directly to the selected path.
+- Tauri commits complete PNG bytes through the same-directory atomic writer
+  under #362; a failed write/flush/sync/replacement preserves the destination
+  and reports cleanup failures without a direct-write fallback.
 
 The merged issue #302 checkpoint and shared-command checkpoint implement the
 ordering, conditional warning decision, central capability/busy arbitration,
@@ -2719,7 +2732,9 @@ typed terminal results, and exact-once feedback using the current string-based
 preflight summaries. The remaining target in
 [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) still requires a
 fully immutable normalized request, typed diagnostics/blockers, Disc DOM-size
-independence, a final filename policy, and safe destination replacement.
+independence and a final filename policy. #362 connects safe destination
+replacement to the existing writer, with focused headless Windows evidence;
+native GUI/platform workflow acceptance is not implied.
 
 ### 16.5 Invariants And Future-Change Rules
 
@@ -3146,12 +3161,15 @@ Consequences:
 
 The following are documented future plans or active gaps, not current implemented guarantees:
 
-- Guided Start and opening-screen workflow.
-- Home Return/Resume, Close/termination use of the dirty-aware guard, and native
-  package workflow acceptance; the guard is already active for New Disc, New
-  Case, and Open, while content-recognized `.sbls` Open/Save/Save As,
-  encoder/write composition, session format identity, bounded binary project
-  I/O, and native decode/staging are source-connected.
+- Guided Start (Home with New/Open/Resume is already implemented).
+- Full native workflow acceptance is distinct from source-connected lifecycle
+  behavior. #417 integrated guarded Close Window/Quit; #360 records remaining
+  acceptance. Home Return/Resume keeps the exact retained session; New Disc,
+  New Case and Open already use the shared dirty-aware guard. See
+  [replacement acceptance](PROJECT_REPLACEMENT_ACCEPTANCE.md) and
+  [bounded Windows termination evidence](NATIVE_TERMINATION_WINDOWS_ACCEPTANCE.md).
+  Content-recognized `.sbls` Open/Save/Save As and bounded native I/O are
+  source-connected.
 - DVD/Amaray and Blu-ray case editors.
 - Direct printer integration.
 - Full arbitrary layer management.
@@ -3168,3 +3186,7 @@ Future changes to this SDD should remain evidence-based:
 - Add or update an ADR when a core contract changes.
 - Clearly mark future plans as future.
 - Do not describe planned behavior as implemented until code, tests, and runtime evidence support it.
+
+### Native termination ownership checkpoint (#360)
+
+Close Window/Quit reuse the lifecycle guard, Save owner, revision authorization and busy scopes. A captured handoff lease blocks the existing async request owner before retirement notifications, then finishes pending Case edits through a narrow optional port before final authorization. Main does not install the separate Case coordinator. The native bridge distinguishes proven no-authority rejection from an uncertain acknowledgement; unknown outcomes remain paused rather than admit edits that a delayed close could discard. Once-only awaitable cleanup preserves disposal ordering. See NATIVE_TERMINATION_ACCEPTANCE.md for the bounded source scope and outstanding primary/native gates.

@@ -1,7 +1,7 @@
-import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { createBlankDiscSavedProject } from '../project/blankDiscProject.ts'
 import { createProjectSnapshot } from '../project/createProjectSnapshot.ts'
 import {
   createBlankJewelCaseSavedProject,
@@ -381,12 +381,13 @@ test('built-in qualification is exact and rejects cross-platform theme aliases',
 
 test('real blank Disc no-rating state does not invent an unsupported accepted image', () => {
   const project = createBlankDiscSavedProject()
-  assert.deepEqual(byOwner(createProjectPackageCapturePlan(project).captures, 'disc.rating.custom')?.decision,
-    { kind: 'no-accepted-asset' })
+  const ratingDecision = () => byOwner(
+    createProjectPackageCapturePlan(project).captures,
+    'disc.rating.custom',
+  )?.decision
+  assert.deepEqual(ratingDecision(), { kind: 'no-accepted-asset' })
   project.ratingBadge!.customImageSize = { width: 10, height: 10 }
-  assert.deepEqual(byOwner(createProjectPackageCapturePlan(project).captures, 'disc.rating.custom')?.decision,
-    { kind: 'unsupported-nonportable-asset' })
+  assert.deepEqual(ratingDecision(), { kind: 'unsupported-nonportable-asset' })
   project.ratingBadge!.customImageDataUrl = DATA_URL
-  assert.deepEqual(byOwner(createProjectPackageCapturePlan(project).captures, 'disc.rating.custom')?.decision,
-    { kind: 'project-owned-data-url' })
+  assert.deepEqual(ratingDecision(), { kind: 'project-owned-data-url' })
 })

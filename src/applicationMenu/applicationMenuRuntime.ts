@@ -1,13 +1,3 @@
-import type { ApplicationMenuInformationalPort } from './applicationMenuInformationalPort.ts'
-import {
-  createApplicationMenuDiagnosticReporter,
-  type ApplicationMenuDiagnosticStage,
-  type ApplicationMenuStartupStage,
-  type ApplicationMenuStartupObserver,
-  type ApplicationMenuStartupObservation,
-  type ApplicationMenuRuntimeStartResult,
-} from './applicationMenuDiagnostics.ts'
-export type { ApplicationMenuRuntimeStartResult } from './applicationMenuDiagnostics.ts'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
 import type {
@@ -85,7 +75,6 @@ export type ApplicationMenuRuntimeDiagnostic =
         | 'application-menu.invocation-unexpected'
         | 'application-menu.feedback-failed'
       detail?: string
-      stage?: ApplicationMenuDiagnosticStage
     }>
 
 export type ApplicationMenuInvocationIngress = (
@@ -104,7 +93,6 @@ export type ApplicationMenuRuntimeDependencies = Readonly<{
   installWindowsWebviewAccelerators?:
     WindowsWebviewApplicationMenuAcceleratorInstaller
   now?: () => number
-  observeStartup?: ApplicationMenuStartupObserver
   onDiagnostic?: (diagnostic: ApplicationMenuRuntimeDiagnostic) => void
 }>
 
@@ -113,8 +101,13 @@ export type ApplicationMenuCommandIngressDependencies = Readonly<{
     dispatch: ApplicationCommandDispatchResult<unknown>,
   ): void
   workflowNavigation: EditorWorkflowNavigationPort
-  informational?: ApplicationMenuInformationalPort
 }>
+
+export type ApplicationMenuRuntimeStartResult =
+  | 'started'
+  | 'unavailable'
+  | 'failed'
+  | 'disposed'
 
 export type ApplicationMenuRuntime = Readonly<{
   start(): Promise<ApplicationMenuRuntimeStartResult>
@@ -154,7 +147,7 @@ function productionOwnerCapabilities(
       APPLICATION_MENU_NATIVE_WINDOW_OPERATION_IDS,
       OWNER_UNAVAILABLE,
     ),
-    informational: commandIngress?.informational?.getCapabilities() ?? mappedCapabilities<ApplicationMenuInformationalOperationId>(
+    informational: mappedCapabilities<ApplicationMenuInformationalOperationId>(
       APPLICATION_MENU_INFORMATIONAL_OPERATION_IDS,
       OWNER_UNAVAILABLE,
     ),
@@ -170,9 +163,7 @@ function productionOwnerCapabilities(
         : SEMANTIC_ROUTING_UNAVAILABLE,
       'focused-edit': SEMANTIC_ROUTING_UNAVAILABLE,
       'native-window': SEMANTIC_ROUTING_UNAVAILABLE,
-      informational: commandIngressReady && commandIngress.informational
-        ? ENABLED_CAPABILITY
-        : SEMANTIC_ROUTING_UNAVAILABLE,
+      informational: SEMANTIC_ROUTING_UNAVAILABLE,
     }),
   })
 }
@@ -239,13 +230,14 @@ export function createApplicationMenuRuntime(
   lifecycle: ApplicationLifecycleCompositionRoot,
   dependencies: ApplicationMenuRuntimeDependencies = {},
 ): ApplicationMenuRuntime {
-  const onDiagnostic = createApplicationMenuDiagnosticReporter(dependencies.onDiagnostic)
+  const onDiagnostic = dependencies.onDiagnostic ?? ((diagnostic) => {
+    console.error(diagnostic.code, diagnostic.detail ?? '')
+  })
   const nativeAvailable = dependencies.nativeAvailable ??
     isNativeApplicationMenuAvailable
   const createNativePort = dependencies.createNativePort ??
     ((ingress) => createNativeApplicationMenuPort(ingress, {
       onDiagnostic,
-      onStartupStage: reportStartupStage,
     }))
   const captureWindowState = dependencies.captureWindowState ??
     captureProductionWindowState
@@ -256,18 +248,6 @@ export function createApplicationMenuRuntime(
     ((descriptor, activate) =>
       installWindowsWebviewApplicationMenuAccelerators(descriptor, activate))
   const now = dependencies.now ?? Date.now
-
-  let startupObservation: ApplicationMenuStartupObservation | void
-  let startupStage: ApplicationMenuStartupStage = 'native-availability'
-  function reportStartupStage(stage: ApplicationMenuStartupStage) {
-    startupStage = stage
-    try { startupObservation?.stage(stage) } catch { /* Observation only. */ }
-  }
-  function completeStartup(result: ApplicationMenuRuntimeStartResult) {
-    try { startupObservation?.complete(result) } catch { /* Observation only. */ }
-    startupObservation = undefined
-    return result
-  }
 
   let startPromise: Promise<ApplicationMenuRuntimeStartResult> | null = null
   let nativePort: NativeApplicationMenuPort | null = null
@@ -292,10 +272,9 @@ export function createApplicationMenuRuntime(
   const rememberedRuntimeInvocations = new Set<string>()
   const runtimeInvocationOrder: string[] = []
 
-  function reportProjectionFailure(error: unknown, stage: ApplicationMenuDiagnosticStage) {
+  function reportProjectionFailure(error: unknown) {
     onDiagnostic({
       code: 'application-menu.projection-failed',
-      stage,
       detail: errorDetail(error),
     })
   }
@@ -381,21 +360,6 @@ export function createApplicationMenuRuntime(
       return false
     }
 
-    if (descriptor.semanticTarget.kind === 'informational') {
-      const owner = ingress.dependencies.informational
-      const operation = descriptor.semanticTarget.operationId
-      try {
-        if (!owner?.getCapabilities()[operation].canExecute || !owner.invoke(operation)) {
-          rejectInvocation('informational-owner-unavailable')
-          return false
-        }
-      } catch (error) {
-        onDiagnostic({ code: 'application-menu.invocation-unexpected', detail: errorDetail(error) })
-        return false
-      }
-      return true
-    }
-
     if (descriptor.eventRoutingOwner === 'editor-navigation-router') {
       const resolution = resolveApplicationMenuWorkflow(
         invocation.itemId,
@@ -403,11 +367,6 @@ export function createApplicationMenuRuntime(
       )
       if (resolution.status === 'rejected') {
         rejectInvocation(resolution.reason)
-        return false
-      }
-      try { ingress.dependencies.informational?.dismissForNavigation?.() }
-      catch (error) {
-        onDiagnostic({ code: 'application-menu.invocation-unexpected', detail: errorDetail(error) })
         return false
       }
       void ingress.dependencies.workflowNavigation.navigate(resolution.intent)
@@ -502,35 +461,30 @@ export function createApplicationMenuRuntime(
     const generation = nextGeneration
     nextGeneration += 1
     const snapshot = lifecycle.getSnapshot()
-    let stage: ApplicationMenuDiagnosticStage = 'projection-window-state'
-    void Promise.resolve().then(() => captureWindowState(port.windowLabel))
-      .then((window) => {
-        stage = 'projection-capabilities'
-        return projectApplicationMenuCapabilities(
-          port.platformDescriptor,
-          {
-            generation,
-            platform: port.platformDescriptor.platform,
-            window,
-            ...(snapshot.lifecycle.activeSession
-              ? { sessionId: snapshot.lifecycle.activeSession.id }
-              : {}),
-            workspace: workspaceFor(snapshot),
-            physicalProjectTarget: physicalTargetFor(snapshot),
-            capabilities: productionOwnerCapabilities(
-              snapshot.capabilities,
-              commandIngress?.dependencies ?? null,
-            ),
-          },
-        )
-      })
-      .then(async (projection) => {
-        stage = 'projection-native-apply'
-        return {
-          projection,
-          result: disposed ? undefined : await port.applyProjection(projection),
-        }
-      })
+    void captureWindowState(port.windowLabel)
+      .then((window) => projectApplicationMenuCapabilities(
+        port.platformDescriptor,
+        {
+          generation,
+          platform: port.platformDescriptor.platform,
+          window,
+          ...(snapshot.lifecycle.activeSession
+            ? { sessionId: snapshot.lifecycle.activeSession.id }
+            : {}),
+          workspace: workspaceFor(snapshot),
+          physicalProjectTarget: physicalTargetFor(snapshot),
+          capabilities: productionOwnerCapabilities(
+            snapshot.capabilities,
+            commandIngress?.dependencies ?? null,
+          ),
+        },
+      ))
+      .then(async (projection) => ({
+        projection,
+        result: disposed
+          ? undefined
+          : await port.applyProjection(projection),
+      }))
       .then(({ projection, result }) => {
         if (
           !disposed &&
@@ -542,43 +496,37 @@ export function createApplicationMenuRuntime(
         }
       })
       .catch((error) => {
-        if (!disposed) reportProjectionFailure(error, stage)
+        if (!disposed) reportProjectionFailure(error)
       })
   }
 
   async function start(): Promise<ApplicationMenuRuntimeStartResult> {
     if (disposed) return 'disposed'
-    try { startupObservation = dependencies.observeStartup?.() } catch { /* Observation only. */ }
-    reportStartupStage('native-availability')
+    if (!nativeAvailable()) return 'unavailable'
     try {
-      if (!nativeAvailable()) return completeStartup('unavailable')
-      reportStartupStage('native-port')
       const port = await createNativePort((invocation) => {
         handleInvocation(invocation, 'native')
       })
       if (disposed) {
         await port.dispose()
-        return completeStartup('disposed')
+        return 'disposed'
       }
       nativePort = port
       appliedProjectionGeneration = null
       appliedProjection = null
       if (port.platformDescriptor.platform === 'windows') {
-        reportStartupStage('windows-accelerators')
         uninstallWindowsWebviewAccelerators =
           installWindowsWebviewAccelerators(
             port.platformDescriptor,
             handleWindowsWebviewAccelerator,
           )
       }
-      reportStartupStage('lifecycle-subscription')
       unsubscribeLifecycle = lifecycle.subscribe(projectLatestSnapshot)
-      reportStartupStage('window-subscription')
       unsubscribeWindow = await subscribeWindowState(projectLatestSnapshot)
       if (disposed) {
         unsubscribeWindow()
         unsubscribeWindow = null
-        unsubscribeLifecycle?.()
+        unsubscribeLifecycle()
         unsubscribeLifecycle = null
         uninstallWindowsWebviewAccelerators?.()
         uninstallWindowsWebviewAccelerators = null
@@ -586,11 +534,10 @@ export function createApplicationMenuRuntime(
         nativePort = null
         appliedProjectionGeneration = null
         appliedProjection = null
-        return completeStartup('disposed')
+        return 'disposed'
       }
-      reportStartupStage('initial-projection')
       projectLatestSnapshot()
-      return completeStartup('started')
+      return 'started'
     } catch (error) {
       unsubscribeWindow?.()
       unsubscribeWindow = null
@@ -611,10 +558,9 @@ export function createApplicationMenuRuntime(
       }
       onDiagnostic({
         code: 'application-menu.start-failed',
-        stage: startupStage,
         detail: errorDetail(error),
       })
-      return completeStartup('failed')
+      return 'failed'
     }
   }
 

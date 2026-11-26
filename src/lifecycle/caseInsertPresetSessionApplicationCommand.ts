@@ -130,6 +130,9 @@ export function getCaseInsertPresetSessionApplicationCommandCapability(
       'Open a Case project before applying a Case layout preset.',
     )
   }
+  if (context.stateSnapshot.caseSteamProjectionPending) {
+    return disabled('case.layoutPreset.projection-pending', 'Wait for the Case import to finish updating the editor.')
+  }
   if (hasBusyScopeConflict(
     CASE_INSERT_PRESET_PROJECT_MUTATION_SCOPE,
     context.busy,

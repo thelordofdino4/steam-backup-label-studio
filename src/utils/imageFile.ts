@@ -1,4 +1,3 @@
-import { ImageImportError } from '../image/imageImportFailure.ts'
 import type { BackgroundImageSize } from '../project/projectTypes.ts'
 import { ImportedImagePolicyError, MAX_IMPORTED_IMAGE_FILE_BYTES } from '../image/importedImagePolicy.ts'
 
@@ -16,12 +15,11 @@ export function readImageFileAsDataUrl(file: File) {
         return
       }
 
-      reject(new ImageImportError('image.read-failed'))
+      reject(new Error(`Could not read ${file.name} as an image.`))
     }
 
-    reader.onerror = () => reject(new ImageImportError('image.read-failed', reader.error))
-    try { reader.readAsDataURL(file) }
-    catch (cause) { reject(new ImageImportError('image.read-failed', cause)) }
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`))
+    reader.readAsDataURL(file)
   })
 }
 

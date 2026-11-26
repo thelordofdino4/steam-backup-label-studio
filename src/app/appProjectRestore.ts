@@ -29,16 +29,6 @@ type DiscTextRestoreState = Pick<
   | 'discTextStyles'
 >
 
-type BackgroundRestoreState = Pick<
-  RestoredProjectState,
-  | 'backgroundScale'
-  | 'backgroundOffset'
-  | 'backgroundImageUrl'
-  | 'backgroundImageSource'
-  | 'backgroundImageSize'
-  | 'isBackgroundArtworkEnabled'
->
-
 export type ApplicationEditorAggregateApplyDependencies = Readonly<{
   batchReactUpdates: (apply: () => void) => void
   shell: Readonly<{
@@ -91,7 +81,6 @@ export type ApplicationEditorAggregateApplyDependencies = Readonly<{
       ValueSetter<RestoredProjectState['steamBannerFallbackText']>
     restoreExportGuides: ValueSetter<RestoredProjectState['exportGuides']>
     restoreDiscTextState: ValueSetter<DiscTextRestoreState>
-    restoreBackgroundImageState: ValueSetter<BackgroundRestoreState>
   }>
   caseInsertProject: Readonly<{
     setProjectJewelCase:
@@ -216,14 +205,6 @@ function applyDiscCandidate(
     discTextHtmlSources: restored.discTextHtmlSources,
     discTextLayout: restored.discTextLayout,
     discTextStyles: restored.discTextStyles,
-  })
-  dependencies.discProject.restoreBackgroundImageState({
-    backgroundScale: restored.backgroundScale,
-    backgroundOffset: restored.backgroundOffset,
-    backgroundImageUrl: restored.backgroundImageUrl,
-    backgroundImageSource: restored.backgroundImageSource,
-    backgroundImageSize: restored.backgroundImageSize,
-    isBackgroundArtworkEnabled: restored.isBackgroundArtworkEnabled,
   })
   dependencies.transientEditor.restoreActiveDiscPresetState(
     candidate.activeDiscPresetState as ActiveDiscPresetState | null,

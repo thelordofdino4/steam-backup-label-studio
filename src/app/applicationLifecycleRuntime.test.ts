@@ -32,6 +32,7 @@ test('one application runtime creates one root, dependency updates reuse it, and
   let disposeCount = 0
   let capturedOptions: ApplicationLifecycleCompositionRootOptions | undefined
   const runtime = createApplicationLifecycleRuntime({
+    documentHistoryLimit: 16,
     createRoot(options) {
       createCount += 1
       capturedOptions = options
@@ -55,6 +56,8 @@ test('one application runtime creates one root, dependency updates reuse it, and
 
   assert.equal(createCount, 1)
   assert.equal(runtime.root, root)
+  assert.equal(capturedOptions?.discHistoryLimit, 16)
+  assert.equal(capturedOptions?.caseHistoryLimit, 16)
   assert.equal(capturedOptions?.ports?.openProject?.availability, 'implemented')
   assert.equal(capturedOptions?.ports?.newDisc?.availability, 'implemented')
   assert.equal(capturedOptions?.ports?.newCase?.availability, 'implemented')
@@ -188,21 +191,4 @@ test('repeated Open activation cannot enter two dialogs and releases scopes afte
   await first
   assert.deepEqual(runtime.root.getBusyState().occupiedScopes, [])
   runtime.dispose()
-})
-
-
-test('production runtime observes the existing Open owner without capturing its project or result payload', async () => {
-  const runtime = createApplicationLifecycleRuntime()
-  runtime.updateProjectOpenDependencies({
-    stageCandidate: async () => ({ status: 'cancelled', reason: 'file-dialog-dismissed' }),
-    prepareEditorAggregateApply: () => { throw new Error('not reached') },
-  })
-  const result = await runtime.root.dispatch('project.open')
-  assert.equal(result.disposition, 'executed')
-  const records = runtime.diagnostics.snapshot().records
-  assert.equal(records.length, 1)
-  assert.equal(records[0].commandId, 'project.open')
-  assert.equal(records[0].status, 'cancelled')
-  runtime.dispose()
-  assert.deepEqual(runtime.diagnostics.snapshot().records, [])
 })

@@ -1,4 +1,3 @@
-import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
@@ -174,8 +173,8 @@ export function useProjectLogoAssets({
         )
       })
     } catch (error) {
-      asyncWork.fail(request, imageImportFailure(error), (failure) => {
-        announceStatus(`Logo import failed: ${failure.userMessage}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Logo import failed: ${String(error)}`)
       })
     }
   }

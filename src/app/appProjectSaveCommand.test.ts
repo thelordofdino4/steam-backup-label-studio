@@ -1,3 +1,5 @@
+import { DiscBackgroundRaster, readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
+import { captureNormalizedProjectSnapshot } from '../lifecycle/canonicalProject.ts'
 import { createProjectPackageCommandFailure } from '../tauri/packageProjectFile.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -24,7 +26,8 @@ import {
 import {
   createProjectFileCommandFailure,
 } from '../tauri/projectFileFailure.ts'
-import type { ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
+import { createProjectPackageWriteRequest, type ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
+import { createProjectPackageCapturePlan } from '../package/projectPackageCapturePlan.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
@@ -549,6 +552,107 @@ test('an edit made while snapshot R writes remains current and dirty', async () 
   assert.equal(session.cleanBaseline?.exactSnapshot.title, 'Revision R')
   assert.equal(session.revision, 1)
   assert.equal(selectIsActiveProjectDirty(harness.root.getLifecycleState()), true)
+})
+
+test('Disc revision pin separates immutable R from the package projection and refuses a foreign session', async () => {
+  // This seam is exercised independently of the Save-command writer port.
+  const { pinDiscSaveRevision, projectPinnedDiscSave, adoptPinnedDiscSave } =
+    await import('../lifecycle/projectSession.ts')
+  const source = discProject('Pinned R')
+  source.background = { ...source.background,
+    imageDataUrl: 'data:image/png;base64,AA==',
+    imageSource: { source: 'uploaded', sourceLabel: 'Fixture', sourceId: null },
+    imageSize: { width: 1, height: 1 },
+  }
+  const start = stateFor(source, 'sbls-package-v1', 'before.sbls')
+  const r = start.activeSession
+  assert.ok(r?.kind === 'disc')
+  const pin = pinDiscSaveRevision(r)
+  const payload = projectPinnedDiscSave(pin)
+  assert.notEqual(payload, r.project)
+  assert.equal(payload.background.imageDataUrl, source.background.imageDataUrl)
+  assert.equal(Object.hasOwn(payload.background, 'asset'), false)
+  assert.ok(Object.isFrozen(payload))
+  assert.deepEqual(createProjectPackageWriteRequest(payload, createProjectPackageCapturePlan(payload)),
+    createProjectPackageWriteRequest(
+      captureNormalizedProjectSnapshot(source) as SavedDiscProject,
+      createProjectPackageCapturePlan(captureNormalizedProjectSnapshot(source) as SavedDiscProject)))
+  const harness = createHarness({state:start})
+  assert.equal(harness.root.commitDiscBackground({sessionId:r.id, expectedRevision:r.revision,
+    operation:{kind:'transform', scale:1.2, offset:{x:2,y:3}}}), 'committed')
+  const current = harness.root.getLifecycleState()
+  const currentProject = current.activeSession!.project
+  const saved = adoptPinnedDiscSave(current,pin,'after.sbls')
+  assert.equal(saved.activeSession!.project,currentProject)
+  assert.equal(saved.activeSession!.cleanBaseline!.exactSnapshot,r.project)
+  assert.equal(saved.activeSession!.currentPath,'after.sbls')
+  assert.equal(selectIsActiveProjectDirty(saved),true)
+  const replacement = createNewProjectSession({sessionId:'replacement',project:source})
+  assert.equal(adoptPinnedDiscSave(replacement,pin,'must-not-adopt.sbls'),replacement)
+})
+
+test('an in-flight Disc Save writes exact Background R; success or failure never overwrites R+1', async () => {
+  for (const failWrite of [false, true]) {
+    let finishWrite!: () => void
+    const writeGate = new Promise<void>(resolve => { finishWrite = resolve })
+    const source = discProject('Asset R')
+    source.background = { ...source.background,
+      imageDataUrl: 'data:image/png;base64,AA==',
+      imageSource: { source: 'uploaded', sourceLabel: 'Fixture R', sourceId: null },
+      imageSize: { width: 1, height: 1 },
+    }
+    const storedR = await DiscBackgroundRaster.stageAcceptedSource(source.background.imageDataUrl)
+    assert.ok(DiscBackgroundRaster.owns(storedR))
+    const harness = createHarness({
+      state: createLoadedProjectSession({sessionId:'stable-session',project:source,
+        currentPath:'before.json',persistenceFormat:'legacy-json',stagedDiscBackground:storedR}),
+      dialogResult: 'after.sbls',
+      write: async () => {
+        await writeGate
+        if (failWrite) throw createProjectFileCommandFailure(
+          'project.atomic-write.replace-destination', 'permission-denied',
+          'project.atomic-write.replace-destination')
+        return {status:'success'}
+      },
+    })
+    const r = harness.root.getLifecycleState().activeSession!
+    assert.ok(r.kind === 'disc')
+    assert.equal(r.project.background.asset, storedR)
+    const save = harness.root.dispatch('project.save')
+    let advancedState!: ApplicationLifecycleState
+    try {
+      await new Promise<void>(resolve => setImmediate(resolve))
+      const [written] = harness.writeCalls
+      assert.ok(written)
+      assert.notEqual(written.normalizedProject, r.project)
+      assert.equal(written.normalizedProject.background.imageDataUrl, source.background.imageDataUrl)
+      assert.deepEqual(createProjectPackageWriteRequest(written.normalizedProject, written.capturePlan),
+        createProjectPackageWriteRequest(
+          captureNormalizedProjectSnapshot(source) as SavedDiscProject,
+          createProjectPackageCapturePlan(captureNormalizedProjectSnapshot(source) as SavedDiscProject)))
+      const replacementSource = 'data:image/png;base64,AQ=='
+      const stagedAsset = await DiscBackgroundRaster.stageAcceptedSource(replacementSource)
+      assert.equal(harness.root.commitDiscBackground({sessionId:r.id, expectedRevision:r.revision,
+        operation:{kind:'asset',stagedAsset,background:{...source.background,
+          imageDataUrl:replacementSource, scale:1.2}}}), 'committed')
+      advancedState = harness.root.getLifecycleState()
+    } finally {
+      finishWrite()
+    }
+    const result = await save
+    assert.equal(result.disposition, 'executed')
+    if (result.disposition !== 'executed') throw new Error('Expected a completed Save.')
+    assert.equal(result.result.status, failWrite ? 'failure' : 'success')
+    const active = harness.root.getLifecycleState().activeSession
+    assert.ok(active?.kind === 'disc')
+    assert.equal(readDiscBackgroundAsset(active.project.background.asset), 'data:image/png;base64,AQ==')
+    assert.equal(active.revision,r.revision+1)
+    assert.equal(selectIsActiveProjectDirty(harness.root.getLifecycleState()),true)
+    assert.equal(active.cleanBaseline!.exactSnapshot,failWrite ? r.cleanBaseline!.exactSnapshot : r.project)
+    if (failWrite) assert.equal(harness.root.getLifecycleState(), advancedState)
+    assert.equal(active.currentPath, failWrite ? 'before.json' : 'after.sbls')
+    assert.equal(active.persistenceFormat, failWrite ? 'legacy-json' : 'sbls-package-v1')
+  }
 })
 
 test('a replaced session cannot adopt path, format, or baseline after commit', async () => {

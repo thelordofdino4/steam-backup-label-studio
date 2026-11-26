@@ -721,7 +721,7 @@ export async function discoverSteamMetadataCandidates({
   if (!game && appId) {
     try {
       game = await importSteamApp(appId)
-    } catch {
+    } catch (error) {
       results.push({
         ratingCandidates: [],
         legalCandidates: [],
@@ -730,7 +730,7 @@ export async function discoverSteamMetadataCandidates({
             source: 'steam-appdetails',
             label: 'Steam appdetails',
             status: 'error',
-            detail: 'This candidate source could not be checked. Retry or use another source.',
+            detail: error instanceof Error ? error.message : String(error),
           },
         ],
       })
@@ -770,7 +770,7 @@ export async function discoverSteamMetadataCandidates({
           ),
         ],
       })
-    } catch {
+    } catch (error) {
       results.push({
         ratingCandidates: [],
         legalCandidates: [],
@@ -779,7 +779,7 @@ export async function discoverSteamMetadataCandidates({
             'error',
             0,
             0,
-            'This candidate source could not be checked. Retry or use another source.',
+            error instanceof Error ? error.message : String(error),
           ),
         ],
       })

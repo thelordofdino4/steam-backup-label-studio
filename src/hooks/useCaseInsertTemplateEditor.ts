@@ -1,4 +1,3 @@
-import type { ApplicationCommandError } from '../lifecycle/applicationCommandTypes.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import {
   useCallback,
@@ -229,7 +228,7 @@ export function useCaseInsertTemplateEditor({
   async function applyPrimaryImageSlotSource(
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertPrimaryImageSlotKey,
-    loadSource: (announce: (message: string) => void, onFailure: (failure: ApplicationCommandError) => void) => Promise<LoadedCaseInsertImageSlotSource | null>,
+    loadSource: (announce: (message: string) => void) => Promise<LoadedCaseInsertImageSlotSource | null>,
   ) {
     const request = asyncWork.begin(`image:case:${paneId}:${slotKey}:primary`)
     await applyLoadedCaseInsertImageSlotSource({
@@ -237,7 +236,7 @@ export function useCaseInsertTemplateEditor({
       announceStatus,
       importedImagePromise: loadSource((message) => {
         if (asyncWork.isCurrent(request)) announceStatus(message)
-      }, (failure) => { asyncWork.fail(request, failure, () => { announceStatus(failure.userMessage) }) }),
+      }),
       applyImage: (image) =>
         updatePrimaryImageSlot(paneId, slotKey, (slot) =>
           setCaseInsertImageSlotImage(slot, image),
@@ -249,7 +248,7 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertImageSlotGroupKey,
     slotId: string,
-    loadSource: (announce: (message: string) => void, onFailure: (failure: ApplicationCommandError) => void) => Promise<LoadedCaseInsertImageSlotSource | null>,
+    loadSource: (announce: (message: string) => void) => Promise<LoadedCaseInsertImageSlotSource | null>,
   ) {
     const request = asyncWork.begin(`image:case:${paneId}:${slotKey}:${slotId}`)
     await applyLoadedCaseInsertImageSlotSource({
@@ -257,7 +256,7 @@ export function useCaseInsertTemplateEditor({
       announceStatus,
       importedImagePromise: loadSource((message) => {
         if (asyncWork.isCurrent(request)) announceStatus(message)
-      }, (failure) => { asyncWork.fail(request, failure, () => { announceStatus(failure.userMessage) }) }),
+      }),
       applyImage: (image) =>
         updateGroupedImageSlot(
           paneId,
@@ -290,7 +289,6 @@ export function useCaseInsertTemplateEditor({
     const request = asyncWork.begin(`image:case:${paneId}:${slotKey}:primary`)
     const image = await loadUploadedCaseInsertImageSlotImage({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
-      onFailure: (failure) => { asyncWork.fail(request, failure, () => { announceStatus(failure.userMessage) }) },
       uploadFile,
     })
     if (!image) {
@@ -318,7 +316,7 @@ export function useCaseInsertTemplateEditor({
     await applyPrimaryImageSlotSource(
       paneId,
       slotKey,
-      (announce, onFailure) => loadSteamArtworkCaseInsertImageSlotImage({ announceStatus: announce, onFailure, asset, label }),
+      (announce) => loadSteamArtworkCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -331,7 +329,7 @@ export function useCaseInsertTemplateEditor({
     await applyPrimaryImageSlotSource(
       paneId,
       slotKey,
-      (announce, onFailure) => loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus: announce, onFailure, asset, label }),
+      (announce) => loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -344,7 +342,7 @@ export function useCaseInsertTemplateEditor({
     await applyPrimaryImageSlotSource(
       paneId,
       slotKey,
-      (announce, onFailure) => loadWebArtworkCaseInsertImageSlotImage({ announceStatus: announce, onFailure, candidate, label }),
+      (announce) => loadWebArtworkCaseInsertImageSlotImage({ announceStatus: announce, candidate, label }),
     )
   }
 
@@ -538,7 +536,6 @@ export function useCaseInsertTemplateEditor({
     const request = asyncWork.begin(`image:case:${paneId}:${slotKey}:${slotId}`)
     const image = await loadUploadedCaseInsertImageSlotImage({
       announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
-      onFailure: (failure) => { asyncWork.fail(request, failure, () => { announceStatus(failure.userMessage) }) },
       uploadFile,
     })
     if (!image) {
@@ -575,7 +572,7 @@ export function useCaseInsertTemplateEditor({
       paneId,
       slotKey,
       slotId,
-      (announce, onFailure) => loadSteamArtworkCaseInsertImageSlotImage({ announceStatus: announce, onFailure, asset, label }),
+      (announce) => loadSteamArtworkCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -590,7 +587,7 @@ export function useCaseInsertTemplateEditor({
       paneId,
       slotKey,
       slotId,
-      (announce, onFailure) => loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus: announce, onFailure, asset, label }),
+      (announce) => loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus: announce, asset, label }),
     )
   }
 
@@ -605,7 +602,7 @@ export function useCaseInsertTemplateEditor({
       paneId,
       slotKey,
       slotId,
-      (announce, onFailure) => loadWebArtworkCaseInsertImageSlotImage({ announceStatus: announce, onFailure, candidate, label }),
+      (announce) => loadWebArtworkCaseInsertImageSlotImage({ announceStatus: announce, candidate, label }),
     )
   }
 

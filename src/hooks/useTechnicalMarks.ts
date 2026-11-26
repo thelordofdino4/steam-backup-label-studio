@@ -1,4 +1,3 @@
-import { imageImportFailure } from '../image/imageImportFailure.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import {
@@ -127,8 +126,8 @@ export function useTechnicalMarks({
         return nextMarks
       })
     } catch (error) {
-      asyncWork.fail(request, imageImportFailure(error), (failure) => {
-        announceStatus(`Technical mark import failed: ${failure.userMessage}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Technical mark import failed: ${String(error)}`)
       })
     }
   }
