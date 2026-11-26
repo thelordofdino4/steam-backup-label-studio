@@ -401,7 +401,65 @@ test('repeated confirmation while pending completes and publishes feedback once'
   assert.equal(calls.complete, 1)
   assert.equal(calls.feedback, 1)
   assert.equal(controller.getSnapshot().review, null)
+  assert.equal(controller.getSnapshot().notice, null)
+  assert.equal(controller.getSnapshot().selectedOptionValue, '')
+  assert.equal(controller.getSnapshot().focusRequest?.target, 'selector')
 })
+
+test('successful Apply retry clears failure without adding a local success notice', async () => {
+  let fail = true
+  let publications = 0
+  const review = { ...applyReview(), warningIds: [], materialConsentRequirementIds: [] }
+  const workflow = {
+    inspectCurrent: () => detachedInspection(),
+    beginApply: () => ({ ok: true, status: 'review-required', review }),
+    complete: async () => fail
+      ? { ok: false, status: 'dispatch-failed', operation: 'apply', code: 'test-failed' }
+      : { ok: true, status: 'dispatched', operation: 'apply', dispatch: {} },
+  } as unknown as AppCaseInsertPresetWorkflowOwner
+  const controller = createCaseInsertPresetPresentationController({
+    workflow,
+    catalog: catalog({ getLatest: 0 }),
+    publishDispatchFeedback: () => { publications += 1 },
+  })
+  controller.selectOption(controller.getSnapshot().options[0]!.value)
+  controller.beginApplyReview()
+  assert.equal((await controller.confirmReview()).ok, false)
+  assert.equal(controller.getSnapshot().notice?.kind, 'error')
+  assert.equal(controller.getSnapshot().focusRequest?.target, 'error-summary')
+  assert.ok(controller.getSnapshot().review)
+  fail = false
+  assert.equal((await controller.confirmReview()).ok, true)
+  assert.equal(controller.getSnapshot().notice, null)
+  assert.equal(controller.getSnapshot().review, null)
+  assert.equal(controller.getSnapshot().selectedOptionValue, '')
+  assert.equal(controller.getSnapshot().focusRequest?.target, 'selector')
+  assert.equal(publications, 1)
+})
+
+for (const operation of ['reapply', 'detach'] as const) {
+  test(`${operation} completion retains its existing local feedback`, async () => {
+    const review = {
+      ...applyReview(), operation, warningIds: [], materialConsentRequirementIds: [],
+    }
+    const workflow = {
+      inspectCurrent: () => detachedInspection(),
+      beginApply: () => ({ ok: true, status: 'review-required', review }),
+      complete: async () => ({ ok: true, status: 'dispatched', operation, dispatch: {} }),
+    } as unknown as AppCaseInsertPresetWorkflowOwner
+    const controller = createCaseInsertPresetPresentationController({
+      workflow,
+      catalog: catalog({ getLatest: 0 }),
+      publishDispatchFeedback: () => {},
+    })
+    controller.selectOption(controller.getSnapshot().options[0]!.value)
+    controller.beginApplyReview()
+    await controller.confirmReview()
+    assert.equal(controller.getSnapshot().notice?.message,
+      `Case layout preset ${operation} completed.`)
+    assert.equal(controller.getSnapshot().focusRequest?.target, 'status')
+  })
+}
 
 for (const recoveryStatus of ['unavailable', 'incompatible'] as const) {
 test(`${recoveryStatus} attachment keeps catalog-independent Detach and disables Reapply planning`, () => {

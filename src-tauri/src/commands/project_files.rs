@@ -1012,7 +1012,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_json_commands_and_direct_png_writer_remain_behaviorally_distinct() {
+    fn legacy_json_and_atomic_png_commands_preserve_distinct_payload_semantics() {
         let directory = TestDirectory::new("legacy-regression");
         let json_path = directory.join("project.sbls.json");
         let png_path = directory.join("export.png");
@@ -1030,9 +1030,8 @@ mod tests {
             json_contents
         );
 
-        crate::commands::files::write_binary_file(
-            png_path.to_string_lossy().into_owned(),
-            png_bytes.clone(),
+        crate::commands::files::write_export_png_request(
+            &crate::commands::files::png_request_body(&png_path, &png_bytes),
         )
         .unwrap();
         assert_eq!(fs::read(png_path).unwrap(), png_bytes);

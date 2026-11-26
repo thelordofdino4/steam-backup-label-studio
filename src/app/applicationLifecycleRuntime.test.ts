@@ -32,6 +32,7 @@ test('one application runtime creates one root, dependency updates reuse it, and
   let disposeCount = 0
   let capturedOptions: ApplicationLifecycleCompositionRootOptions | undefined
   const runtime = createApplicationLifecycleRuntime({
+    documentHistoryLimit: 16,
     createRoot(options) {
       createCount += 1
       capturedOptions = options
@@ -55,6 +56,8 @@ test('one application runtime creates one root, dependency updates reuse it, and
 
   assert.equal(createCount, 1)
   assert.equal(runtime.root, root)
+  assert.equal(capturedOptions?.discHistoryLimit, 16)
+  assert.equal(capturedOptions?.caseHistoryLimit, 16)
   assert.equal(capturedOptions?.ports?.openProject?.availability, 'implemented')
   assert.equal(capturedOptions?.ports?.newDisc?.availability, 'implemented')
   assert.equal(capturedOptions?.ports?.newCase?.availability, 'implemented')

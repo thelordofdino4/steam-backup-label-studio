@@ -1,0 +1,329 @@
+# Performance baseline (#368)
+
+> Status: Partial measured baseline and repeatable diagnostic harness.
+> Authority: Existing production owners define behavior; this document defines measurement scope.
+> Native acceptance: Input-to-preview, actual committed edits, WebView IPC and whole-app memory remain unmeasured.
+
+## Reproduce
+
+Run from the repository root. The generator creates a fresh private temporary
+run directory, prints its path, and preserves generated fixtures and reports.
+No existing projects are read or overwritten. Each stage refuses to overwrite
+its report. Use a newly generated directory for a complete repeat.
+
+```powershell
+node --experimental-strip-types scripts/performance/project-baseline.mjs
+$env:SBLS_PERFORMANCE_DIR = '<directory printed above>'
+cargo test --manifest-path src-tauri/Cargo.toml --package app --locked project_package_performance_baseline -- --ignored --nocapture --test-threads=1
+node --experimental-strip-types scripts/performance/staging-baseline.mjs $env:SBLS_PERFORMANCE_DIR
+node --experimental-strip-types scripts/performance/browser-baseline.mjs $env:SBLS_PERFORMANCE_DIR
+```
+
+The native benchmark is explicitly ignored by ordinary `npm test`; performance
+numbers are not CI pass/fail thresholds. Its code still compiles in the full
+Rust test suite. No Tauri app window is launched. Browser work is headless
+Chromium diagnostic evidence only, not native UI, visual or physical acceptance.
+Run stages sequentially with unrelated CPU-heavy work stopped. Record compiler,
+Node/browser versions, hardware, source commit, working changes and build profile.
+Repeat an entire run before comparing small differences; five samples are not
+a statistically established percentile distribution.
+
+## Fixtures and boundaries
+
+Six fixtures cover Disc and Case Insert at three image sizes. Each starts from
+its existing complete blank-project constructor and enables background and title
+artwork. One deterministic 24-bit BI_RGB BMP is retained at both registered
+owners. Case uses Cover owners; Tray is also exported as a default-path control, not a large-image workload, in the
+benchmark. Disabled/default state and qualified built-ins remain present. Disc explicitly
+uses the published ESRB E metadata tuple (badge stays disabled). The initial
+blank `ratingSystem=none` fixture was rejected by the existing capture-plan
+owner as `unsupported-nonportable-asset` at `disc.rating.custom`, despite null
+custom image/size and disabled placeholder state. The separate #358 image-policy work addresses this by checking actual
+custom-image evidence. The gap was present on the November 1 baseline and is fixed on current main; the compatibility tuple remains solely to preserve workload comparability.
+The benchmark does not duplicate that fix or bypass the production capture plan.
+Saved time and backup dates are pinned. Built-in URLs use stable repository
+asset paths. Deterministic xorshift pixel noise avoids compression-ratio artifacts.
+These are controlled workloads, not a claim about a typical user's project mix.
+
+| Size | Pixels | Unique BMP bytes | Logical repeated data-URL bytes | Unique RGBA bytes |
+| --- | --- | ---: | ---: | ---: |
+| Small | 128 x 128 | 49,206 | 131,260 | 65,536 |
+| Normal | 512 x 512 | 786,486 | 2,097,340 | 1,048,576 |
+| Large | 1400 x 1400 | 5,880,054 | 15,680,188 | 7,840,000 |
+
+The historical large fixture fit the former V1 16 MiB hydrated JSON limit. Current frontend framing is V2: metadata, unique data-URL pool and fan-out limits are independent, as specified in PROJECT_PACKAGE_SAVE_CAPACITY.md. The same six workloads are retained; they do not probe the newer maximum envelope.
+Actual native round-trip success, rather than byte arithmetic alone, determines
+supported-fixture acceptance. Native checks verify schema/kind and both exact
+asset leaves; package bytes and hydrated output size are recorded. Qualified
+built-in URL omission follows current package behavior.
+
+The Node stage measures synchronous source helpers: fresh normalized capture /
+validation / freeze, schema validation alone, uncached and cached canonical
+comparison, serialization, capture planning and raw request framing. The scalar
+successor capture-plus-comparison measurement is explicitly a **proxy**, not
+an actual lifecycle commit or input-to-preview result. Capture input is fresh
+relative to the weak-set cache; canonical comparison setup is outside its timer.
+Each timed boundary has one warm-up and five individually recorded samples.
+
+The native stage separately measures frame parsing, codec encode, codec decode,
+complete native Save (including atomic filesystem commit), and native Open
+(read plus decode). These exclude frontend framing, WebView transport, dialogs,
+session adoption and UI. Warm filesystem caches and the debug build profile must
+not be described as cold-storage or release performance. Timings are wall time.
+
+The browser stage calls actual image loading, active-pixel/content-shape analysis
+and Disc/Cover/Tray PNG exporters at their existing 300 DPI defaults, with guides
+off. It uses a fresh page per fixture and warm image/URL caches per stage. Export
+timings include awaited render/encode and current byte conversion; they do not
+include native PNG destination writes. They are wall time, not a main-thread CPU
+profile. Native Tauri may have different decoder, scheduling and memory behavior.
+
+## Memory and duplication method
+
+Each Node fixture runs in a fresh child process. Reports record endpoint
+`process.memoryUsage()` bytes and process-wide peak RSS from
+[`process.resourceUsage().maxRSS`](https://nodejs.org/api/process.html#processresourceusage)
+in KiB. Peak includes module loading, fixture generation, repeated samples,
+retained benchmark inputs, temporary allocations and garbage-collector behavior.
+It cannot isolate one operation and is **not SBLS/WebView/native process memory**.
+Native and browser process-tree peak measurements remain pending.
+
+The fixture ledger reports exact BMP, ASCII data-URL, JSON UTF-8, request,
+package and hydrated sizes. Repeating a string in JSON duplicates encoded bytes;
+JavaScript may share string storage across object/snapshot references. The ledger
+therefore does not claim physical heap copies, live IPC copy count or a measured
+whole-app peak. Do not add these independent maxima as if simultaneously live.
+
+## Recorded diagnostic baseline - 2026-11-01
+
+Production source: `923f7b7fcbfa6569439e26ba049c265816a1db65`, plus this
+benchmark-only harness. Hardware: Ryzen 9 7950X, 32 logical CPUs, about 31.2 GiB
+RAM; Windows x64, Node v24.16.0, Rust 1.95.0, native debug test profile.
+Harness hashes cover CRLF checkout bytes. Raw samples, environment/browser
+version, fixture hashes and harness hashes:
+[`2026-11-01-baseline.json`](performance/2026-11-01-baseline.json).
+All six frames passed production native codec, exact asset-leaf round-trip,
+atomic Save and read/decode validation. All browser exports returned PNG bytes.
+No native application UI was launched. Timing stages ran sequentially.
+
+Median milliseconds from five samples (one warm-up excluded):
+
+| Fixture | Capture/validate/freeze | Uncached comparison | JSON serialization | Raw framing | Native Save | Native Open | Browser active-pixel analysis | Browser primary PNG export |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| disc-small | 0.27 | 0.11 | 0.10 | 0.39 | 27.72 | 14.47 | 0.30 | 97.30 |
+| disc-normal | 0.25 | 1.49 | 1.48 | 5.67 | 333.29 | 201.57 | 3.60 | 98.30 |
+| disc-large | 0.24 | 10.76 | 8.43 | 31.29 | 2599.06 | 1535.09 | 26.50 | 104.40 |
+| case-small | 0.75 | 0.12 | 0.11 | 0.45 | 32.61 | 18.97 | 0.30 | 107.70 |
+| case-normal | 0.75 | 1.13 | 1.14 | 5.50 | 358.98 | 204.95 | 3.60 | 121.50 |
+| case-large | 0.73 | 7.29 | 8.64 | 35.42 | 2547.07 | 1495.00 | 28.70 | 138.20 |
+
+Node-only process peak RSS ranged from about 77 to 428 MiB across these runs.
+This includes fixture generation and repeated benchmark allocations; it is not
+an app memory estimate. Sub-millisecond cached decode/comparison samples can
+round to zero; that means below measurement resolution, not zero work. Raw
+samples show variability and must be retained when comparing future runs.
+
+## Remaining required native baseline
+
+Before architecture migration is accepted, record native pointer/slider event to
+visible-preview latency, actual committed scalar edits, production snapshot-owner
+capture, end-to-end Save/Open and export, and whole-process-tree memory on the
+same fixtures. Use the primary checkout and explicitly authorized native Tauri
+route from AGENTS.md and record the exact integrated source baseline. Record Tauri host plus WebView renderer process identities, sampling
+interval, working/private bytes and observed peaks; sampling misses shorter
+spikes and RSS includes shared pages. Keep measurements separate by boundary and
+profile. Include ordinary drag/slider, text, retained disabled artwork and more
+than one real project before treating these controlled fixtures as representative.
+
+#363/#365 and subsequent document migrations still need that pre-migration native
+evidence. No cache, GPU/WebGL rewrite, asset-store redesign or optimization is
+justified by this harness alone. #368 remains open.
+
+## Current-main reconciliation — 2026-11-17
+
+Based on main d895c58c. The historical November 1 report is preserved unchanged. Native codec timing now follows production V1/V2 dispatch; restored image leaves are compared against the independent hydrated project fixture, with non-null data-URL assertions. Browser analysis requires exact full opaque bounds; PNG output validates signature, IHDR dimensions and 300-DPI pHYs outside timed regions. Current runs record framing magic separately. No production behavior or thresholds changed. Fresh run evidence and native measurement limits remain separate.
+The separate raw-bounds check supports successful pixel access; it does not independently prove the timed helper's content-shape computation succeeded. Stored full-image bounds are intentionally omitted by production normalization.
+
+### Fresh sequential current-main run
+
+[2026-11-17 raw report](performance/2026-11-17-baseline.json) records clean
+measurement source `86c5f942c08674bc389ed63561b35e4095422901`, production main
+`d895c58cdd057306c2a6fc7593162dcfe99b5908`, checkout-byte harness SHA256 values,
+compiler/hardware/browser versions, all six fixture hashes and raw samples.
+Node, native-code and browser stages ran sequentially after aggregate tests ended.
+All six V2 frames passed exact hydrated asset round trips, atomic Save/read-decode
+and real Disc/Cover/Tray exporter checks. The original run remains historical;
+constructor/framing/export policy changes mean this is not a controlled claim
+that one isolated optimization caused any timing difference.
+
+Current request sizes are 75,341 / 1,058,381 / 7,849,809 bytes for Disc and
+95,715 / 1,078,755 / 7,870,183 for Case. Both native and browser reports preserve
+one warm-up and five raw samples per boundary. These warm debug/headless figures
+remain diagnostic, not native GUI, whole-process memory, percentile thresholds,
+physical-print or packaged-platform acceptance.
+
+Validation: 2,838 Node tests and 343 Rust tests passed; the one ignored benchmark
+was separately exercised successfully. Build, lint, cycles (978 files), discovery
+(3/3), and diff checks passed. Independent immutable-source review approved the
+reconciliation. No primary checkout source or native app was changed/launched.
+
+
+## Opt-in native lifecycle observer (#368, partial)
+
+Set `VITE_SBLS_LIFECYCLE_TIMING=1` in the launching process environment before
+an explicitly authorized `npm run tauri dev` session. Both Vite DEV and this exact
+flag must be true. Unset/default and production builds do not construct the
+observer or display its report. This does not enable telemetry, files, clipboard,
+network export, synthetic input, scheduling changes, or developer-console control.
+
+Existing composition-root boundaries collect at most 256 completed samples:
+
+- `project.open`, `project.save`, `project.save-as`, `export.png`: from immediately
+  before dispatcher/context construction until its existing promise settles.
+  This **includes human dialog/preflight waiting**, capture, transport, and any
+  command work; it is not native-only time, pure IPC, feedback commit or paint.
+  Unknown command strings and pre-dispatch termination-admission rejections are
+  not recorded. Disabled/busy responses from the dispatcher are `not-executed`.
+- `synchronize-current-project`: the existing capture/compare/store attempt,
+  including synchronous subscriber notification. Outcomes distinguish changed,
+  no-op, invalid, wrong-kind and stale-session. This is not pure snapshot cost,
+  a control-event latency, or the separate local Case continuous-edit duration.
+- Before/after values are **lifecycle state generations**, not content revision
+  IDs or a claim that one command owns all intervening changes.
+
+The observer uses one WebView `performance.now` clock. It adds measurement overhead
+when enabled; these are instrumented debug measurements, not uninstrumented or
+release performance. No native-clock subtraction, frame callbacks, or display
+latency inference is permitted. Native substages, interaction/preview correlation,
+whole-process memory and the rest of #368 remain outstanding.
+
+### Supported retrieval and native acceptance still required
+
+After the measured operations finish, expand **Development lifecycle timing
+report** and press **Refresh timing report**. The report is read-only semantic
+text with sequence, fixed boundary/outcome, elapsed milliseconds, generations,
+retained count, dropped-oldest count and invalid-clock count. It updates only on
+explicit refresh, never on the measured hot path. Read through the documented
+native CUA accessibility/screenshot route; no hidden JavaScript or clipboard is
+needed. Closing the app loses the bounded local buffer. Record exact integrated
+commit, flag, fixture hashes and operation order separately; three-decimal display
+is formatting precision, not timing accuracy. Samples are ordered by completion,
+not dispatch start, and overlapping/nested work can contribute to multiple samples.
+
+Before publishing measurements, run an announced primary native session, exercise
+success/cancel/failure plus no-op/real sync with disposable projects, verify the
+reported outcomes against visible behavior and saved/reopened artifacts, and
+confirm report retrieval. Keep dialog-wait totals distinct from machine-only
+work. No native run or accepted performance result is claimed by adding this code.
+
+
+Observer source validation: focused 14 tests, full Node 2,843 tests, build/lint,
+cycles (981 files) and discovery (3 tests) pass. The initial aggregate found one
+structural assertion assuming a zero-argument runtime constructor; the corrected
+assertion still requires exactly one runtime call and tolerates optional observer
+arguments. The subsequent full aggregate passed. An isolated headless component
+diagnostic verified disabled gates, semantic report text and explicit-refresh
+isolation; this is not native acceptance. Rust source and manifests are unchanged
+from the earlier verified main baseline; no fresh Rust execution is claimed.
+
+
+## Persisted Case fixture correction (2026-11-17)
+
+Native Case Open exposed a diagnostic generator gap shared by main and primary:
+request construction used canonical content snapshots, which deliberately omit
+`caseInsertLayoutPreset`. The codec round trip preserved assets but could not
+establish frontend Open validity. The former Case native-output packages are
+invalid production Open inputs; the source fixture JSON itself was complete.
+Historical reports and original inputs are retained unchanged. Their native
+codec figures are not evidence of Case frontend staging or GUI acceptance.
+
+New request generation retains the existing blank-project persistence constructors
+and their complete Case companion, validating/copying through the production parser.
+Content-only capture/validation/comparison remain separately measured. Serialization
+now explicitly labels content-snapshot versus persisted-project input; capture
+planning/framing use the persisted project. These are changed workload boundaries,
+not controlled before/after optimization evidence. Original and persisted fixture
+hashes are separately recorded. No production schema, codec or lifecycle behavior
+is changed.
+
+Before writing frames, the generator exercises production Open staging. The ignored
+native test also checks exact Case persisted state and writes actual decoded bytes
+outside timing. The separate staging command consumes those bytes, asserting both
+exact BMP leaves and exact Case preset recovery through production Open. It uses
+deterministic branding dependencies and a declared fixture image-size resolver;
+this is not real WebView image decode, UI adoption or native GUI acceptance.
+
+
+### Fresh corrected pipeline receipt
+
+[2026-11-17 persisted-fixture correction report](performance/2026-11-17-persisted-fixture-correction.json)
+records source `44012551`, raw Node/native samples, compiler and environment,
+checkout-byte harness hashes, six persisted/request/package/hydrated artifact
+hashes, and successful actual-native-hydration staging results. Stages ran
+sequentially after tests finished. The Node source status truthfully records an
+untracked redirected run-location receipt; tracked source was unchanged.
+
+All six corrected frames passed native codec, atomic Save/read-decode, exact
+asset/preset checks and production frontend Open staging. Case request sizes are
+95,875 / 1,078,915 / 7,870,343 bytes; Disc remains 75,341 / 1,058,381 / 7,849,809.
+Staging verifies both exact assets again in the accepted normalized aggregate.
+No browser export rerun or corrected-fixture native GUI acceptance is claimed.
+
+Validation: focused 7/7, final full Node 2,850/2,850, Rust 343/343 plus one
+intentionally ignored benchmark; that benchmark separately passed the six fresh
+frames. Build, lint, cycles (981 files), discovery (3/3) and diff checks passed.
+Historical November 1/17 reports and original fixture constructor are unchanged.
+This correction does not complete #368 or justify an optimization.
+
+## Opt-in Disc interaction identity observer (#368, narrower than acceptance)
+
+A separate exact development flag, VITE_SBLS_INTERACTION_TIMING=1, enables a
+bounded local report. Production/default builds construct no observer. This
+first slice covers only Disc title-artwork **scale** handler and the **plain
+custom-note inline draft** handler. HTML/source mode, metadata-bound text, other
+Disc controls, Case controls, pointer hardware latency and displayed frames are
+not measured. No native run or accepted baseline is claimed by this change.
+
+Start is immediately inside the existing owner handler, before its ordinary
+normalization/clamping. End is the first subsequent DiscPreview layout effect
+whose corresponding immutable artwork/values object is the exact result that
+handler scheduled. It measures handler-to-matching-props React layout commit,
+not commit of a complete document transaction, lifecycle content revision,
+completion of image decoding, paint, compositor presentation, or native work.
+Custom-note layout clamping occurs in the existing handler; identity correlation
+is with its values object, not an independently audited whole-preview subtree.
+
+Diagnostic code does not force capture/synchronization, add React state updates,
+wrap production setters, or alter scheduling. A WeakMap associates existing
+result objects with numeric tickets without storing their content in samples or
+holding strong references to project assets. Only fixed kind/outcome enums,
+sequence numbers and elapsed times enter the report. Session identity is used
+transiently for invalidation, never recorded. Recording is bounded to 256 entries
+and does not schedule report rendering; explicit Refresh interaction timing
+report reads the buffer. App close loses this buffer.
+
+No-op means the effective clamped scale or plain custom-note value did not
+change, even if the owner allocated a fresh object. A later instrumented event
+supersedes the prior pending event in that channel; the latest event in that
+uncommitted batch is also excluded as coalesced rather than attributing a whole
+batch to its final handler. A mismatched first commit,
+hidden/disabled target, unmount, or lifecycle session/workspace replacement
+excludes the sample. StrictMode repeated effects cannot complete a ticket twice.
+Pending work without any observed commit stays separately counted. A conservative
+**5-second cutoff** excludes long/delayed observations as expired. Therefore the
+successful subset is censored, NOT an unqualified latency distribution. Report
+all excluded outcomes and pending counts with any future measurements. No timers
+or frame callbacks are introduced; sampling itself adds debug-build overhead.
+
+Headless behavioral coverage exercises real useTitleArtwork/useDiscTextState
+handlers and the same useDiscInteractionCommit seam invoked by DiscPreview,
+including real input onChange, StrictMode, batching, no-op, disabled/HTML paths,
+unmount/session replacement, and injected diagnostic failures. It is not native
+GUI acceptance or whole-preview rendering/paint evidence. Narrow further native
+acceptance must be announced and run from the primary checkout after review,
+without replacing its separate Case work. #368 remains open.
+
+Candidate source validation: 15 focused observer/real-hook seam tests and all
+2,865 Node tests pass; build, lint, cycles (987 files), discovery (3/3), and
+diff checks pass. Rust source is unchanged and was not rerun for this frontend
+diagnostic slice. Native GUI and measurements remain unrun.

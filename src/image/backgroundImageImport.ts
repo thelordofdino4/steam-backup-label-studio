@@ -1,3 +1,4 @@
+import { DiscBackgroundRaster, type DiscBackgroundAsset } from './discBackgroundAsset.ts'
 import {
   createSelectedBackgroundImageState,
   type BackgroundImageState,
@@ -8,6 +9,7 @@ import {
   createImportedImageAssetFromDataUrl,
 } from '../utils/importedImageAsset'
 import { readImageFileAsDataUrl } from '../utils/imageFile'
+import { ImportedImagePolicyError } from './importedImagePolicy'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type { ProjectImageAssetProvenance } from '../project/projectTypes'
 
@@ -25,6 +27,7 @@ export class BackgroundImageLoadError extends Error {
 
 export type BackgroundImageImportResult = {
   background: BackgroundImageState
+  stagedAsset: DiscBackgroundAsset
   imageSource: ProjectImageAssetProvenance
   selectedArtworkId: string | null
   statusMessage: string
@@ -38,7 +41,11 @@ export async function createBackgroundImageImportFromDataUrl(
 ): Promise<BackgroundImageImportResult> {
   const importedImage = await createImportedImageAssetFromDataUrl(imageDataUrl)
 
+  // Image preparation already validated and canonicalized these exact bytes.
+  const stagedAsset = await DiscBackgroundRaster.stageAcceptedSource(importedImage.imageDataUrl)
+
   return {
+    stagedAsset,
     background: createSelectedBackgroundImageState(
       importedImage.imageDataUrl,
       importedImage.imageSize,
@@ -56,7 +63,8 @@ export async function createUploadedBackgroundImageImport(
 
   try {
     imageDataUrl = await readImageFileAsDataUrl(file)
-  } catch {
+  } catch (error) {
+    if (error instanceof ImportedImagePolicyError) throw error
     throw new BackgroundImageReadError()
   }
 
@@ -69,7 +77,8 @@ export async function createUploadedBackgroundImageImport(
         sourceLabel: file.name,
       }),
     )
-  } catch {
+  } catch (error) {
+    if (error instanceof ImportedImagePolicyError) throw error
     throw new BackgroundImageLoadError()
   }
 }

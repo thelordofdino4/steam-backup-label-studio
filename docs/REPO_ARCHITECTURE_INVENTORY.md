@@ -10,6 +10,19 @@
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
 
+Focused async ownership map: [Async Project Work Contract](ASYNC_PROJECT_WORK_CONTRACT.md) records the runtime request owner, existing image/discovery consumers, and session-bound Case reconciliation (#367).
+
+## Document-owner migration reference
+
+The focused #363 [committed document ownership contract](COMMITTED_DOCUMENT_OWNERSHIP_CONTRACT.md)
+maps current owners at canonical main `c2a7cd15b8c536bd68087da188266c24ed56b68d`, including
+native Close/Quit, async admission and the optional Case edit finish port.
+The target is one document installation; the first Disc-background migration
+and old-path deletion remain work for #365. This does not refresh the broad
+historical inventory below or imply runtime migration or native acceptance.
+The [#368 closeout](https://github.com/thelordofdino4/steam-backup-label-studio/issues/368)
+records evidence separately from the displayed-frame successor #422.
+
 ## Basis
 
 - Branch: `main`
@@ -150,6 +163,19 @@ Source-of-truth state:
 - React app state is owned in `src/app/App.tsx` plus feature hooks imported by `App`.
 - Native state is not persisted in Rust; Rust commands perform filesystem, HTTP, and platform integration work on request.
 
+- Native termination ownership (#360): `src/app/appNativeTerminationCommand.ts`
+  reuses `appProjectReplacementGuard.ts` and the existing nested Save owner;
+  `applicationTerminationRuntime.ts` connects native requests to the existing
+  dispatcher and readiness/modal capabilities. `useApplicationTerminationIngress.ts`
+  supplies shared feedback after React commit. `nativeTerminationInteraction.ts`
+  flushes pending UI work and temporarily prevents input during final handoff,
+  restoring it on failure. `src/tauri/nativeTermination.ts` validates bridge,
+  window, monotonic sequence and command responses.
+  `src-tauri/src/native_termination.rs` intercepts main-window close/application
+  exit events and owns one-use native permits, with no project state. File
+  Close Window/Quit use the same command owners. Source/headless validation
+  does not establish native Windows/Linux/macOS acceptance.
+
 Render path:
 
 - `index.html` exposes `#root`.
@@ -193,6 +219,7 @@ Key files:
 - `src/app/appProjectSave.ts`
 - `src/app/appProjectSaveCommand.ts`
 - `src/package/projectPackageCapturePlan.ts`
+- `src/package/projectPackageWriteProjection.ts`
 - `src/tauri/projectPackageWrite.ts`
 - `src/app/appProjectRestore.ts`
 - `src/app/appPngExport.ts`
@@ -248,8 +275,9 @@ Source-of-truth state:
   dependency ref keeps the root stable while New/Open/Save/guard/workspace
   adapters change. `project.new-disc`, `project.new-case`, `project.open`,
   `project.save`, `project.save-as`, `workspace.return-home`, and
-  `project.resume` have production command owners; Close/termination ports
-  remain explicitly disabled. After committed React updates, focused adapters
+  `project.resume`, `application.close-window`, and `application.quit` have
+  production command owners; Close Project remains disabled. #360 native
+  termination acceptance is pending. After committed React updates, focused adapters
   synchronize one complete normalized Disc or Case aggregate and the exact
   session-only Disc or Case Front/Back/Spine route into the active lifecycle
   session. Canonical content and identical route synchronization are no-ops;
@@ -263,7 +291,7 @@ Source-of-truth state:
   `src-tauri/src/application_menu.rs` constructs the descriptor-driven native
   hierarchy, applies exact-window generation-ordered enabled/checked/label state, forwards typed
   activation envelopes, and owns bridge-scoped teardown. A focused
-  descriptor-driven ingress routes the seven implemented File lifecycle
+  descriptor-driven ingress routes the nine implemented File lifecycle
   commands and `export.png` through the existing application root after
   committed React feedback dependencies make each boundary ready. Native item
   clicks are production-connected. In the real Windows WebView2 window, the
@@ -286,7 +314,7 @@ Source-of-truth state:
   Presets are Disc-only; Case Layout Presets is Case-only. Combined Spine
   resolves only equivalent left/right
   area/owner/control entries and retains the combined Spine route. Sidebar
-  migration has not begun. Close/termination, Edit, native window actions,
+  migration has not begun. Close Project, Edit, native window sizing actions,
   and Help remain disconnected and disabled. The user reported the complete
   focused Windows native-Tauri manual checklist passing on 2026-07-31; Linux
   and macOS remain separately unverified.
@@ -384,6 +412,7 @@ Key files:
 - `src/app/appProjectOpenCommand.ts`
 - `src/app/appProjectSaveCommand.ts`
 - `src/package/projectPackageCapturePlan.ts`
+- `src/package/projectPackageWriteProjection.ts`
 - `src/diagnostics/projectParityHarness.ts`
 - `src/tauri/binaryProjectFile.ts`
 - `src/tauri/binaryProjectFile.test.ts`
@@ -491,7 +520,7 @@ Save/load path:
   opaque JSON bytes to `src-tauri/src/project_file.rs`, which owns exclusive
   adjacent-temp creation, write/flush/sync/close ordering, platform replacement,
   and safe owned-temp cleanup. `read_project_file` remains the JSON text read
-  boundary. `write_binary_file` remains a separate direct binary writer.
+  boundary. `write_export_png` is a separate raw PNG adapter over the shared atomic writer.
 - Dormant `read_binary_project_file` accepts an empty top-level raw body and
   returns raw bytes; dormant `write_binary_project_file` borrows the top-level
   raw request bytes and delegates them to the atomic writer. Both carry the
@@ -1711,6 +1740,15 @@ Risks:
 
 ## Image and Artwork Systems
 
+Issue #358 ordinary-import acceptance is owned by `utils/importedImageAsset.ts`,
+`image/importedImagePolicy.ts`, `tauri/importedImageValidation.ts`, the read-only
+native `commands/image_import.rs`, and the codec's `asset_validation.rs` using its
+existing raster decoders. `package/legacyImageFormatWarning.ts` reuses the closed
+capture traversal for compatibility notices. See
+[image asset policy](IMAGE_ASSET_ACCEPTANCE_POLICY.md) for the complete ingress and
+format matrices. No renderer or presentation component owns validation decisions.
+
+
 Purpose: import, normalize, place, frame, render, save, and export background artwork, title artwork, additional artwork, screenshots, and image slots.
 
 Key files:
@@ -2101,6 +2139,11 @@ Source-of-truth state:
 - Export captures one Disc or Case adapter input behind the registered command;
   those inputs still originate in the same runtime state used by preview.
 - Export dimensions are derived from template geometry and export DPI helpers.
+- `src/export/pngPhysicalResolution.ts` owns explicit PNG `pHYs` encoding and
+  verifies canvas dimensions/chunk CRCs. Both exporters pass their sizing DPI
+  through `canvasToPngBytes`; non-density chunks and pixels remain untouched.
+  `PNG_PHYSICAL_OUTPUT_CONTRACT.md` records exact sizing and pending native/print
+  acceptance under #359.
 
 Render path:
 
@@ -2114,7 +2157,9 @@ Edit/interaction path:
 
 - Export is initiated by `export.png`. Its shared root scope prevents a second
   export and conflicts with lifecycle transitions/navigation; child scopes own
-  warning, destination, and direct PNG write phases. Disc preview measurement
+  warning, destination, and atomic PNG write phases. `commands/files.rs` reuses
+  `project_file::write` under #362, with no PNG renderer or project-save policy
+  changes. Disc preview measurement
   remains deferred until rendering is about to begin.
 
 Save/load path:
@@ -2263,3 +2308,5 @@ workspace-aware Rust checks:
 - `cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets --locked`
 - `cargo test --manifest-path src-tauri/Cargo.toml --workspace --locked --jobs 1`
 - `cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --locked -- -D warnings`
+
+#360 reconciliation owners: applicationTerminationRuntime.ts owns the identity-scoped final handoff lease; projectAsyncWork.ts remains the sole async admission/retirement owner; applicationCaseInsertContinuousEditPort.ts is the existing narrow finish contract used by guard/Save/final close authorization. nativeTermination.ts and native_termination.rs distinguish success, proven-safe rejection and unknown outcomes. onceAsyncCleanup.ts supplies shared reentrant cleanup completion. NATIVE_TERMINATION_ACCEPTANCE.md records source/primary/native boundaries without importing #411 or Case implementation work.

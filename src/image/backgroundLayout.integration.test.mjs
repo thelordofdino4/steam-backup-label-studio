@@ -25,7 +25,7 @@ test.before(async () => {
     } }],
   })
   await server.listen()
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, chromiumSandbox: true })
   page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
   page.on('pageerror', (error) => browserErrors.push(error.stack ?? error.message))
   const address = server.httpServer.address()
