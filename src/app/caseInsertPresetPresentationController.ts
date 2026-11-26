@@ -599,12 +599,19 @@ export function createCaseInsertPresetPresentationController({
         selectedOptionValue = ''
         clearReview()
         reapplyPolicies = createPolicyChoices(inspection)
-        setNotice(
-          'status',
-          `case.layoutPreset.${completion.operation}.completed`,
-          `Case layout preset ${completion.operation} completed.`,
-          'status',
-        )
+        if (completion.status === 'dispatched' && completion.operation === 'apply') {
+          // The shared command feedback owner has already announced success.
+          // Return to the enabled selector without adding a second live status.
+          notice = null
+          requestFocus('selector')
+        } else {
+          setNotice(
+            'status',
+            `case.layoutPreset.${completion.operation}.completed`,
+            `Case layout preset ${completion.operation} completed.`,
+            'status',
+          )
+        }
         publish()
         return Object.freeze({
           ok: true,

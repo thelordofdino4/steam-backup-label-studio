@@ -4,6 +4,7 @@ import {
   createDefaultDiscTextValues,
 } from './index.ts'
 import {
+  planSteamImportedDiscTextValues,
   resolveDiscTextMetadataState,
   restoreDiscTextMetadataValueTransition,
 } from './metadataStateTransitions.ts'
@@ -98,4 +99,33 @@ test('disc text metadata restore transition returns title to game metadata', () 
   assert.equal(transition.state.discTextTitleValue, '')
   assert.equal(transition.renderedContent, 'Half-Life')
   assert.equal(transition.resolution.resolvedDiscTextTitle, 'Half-Life')
+})
+
+
+test('Disc Steam plan preserves authored manual App ID/Title and only resets eligible copyright', () => {
+  const state = {
+    discTextValues: { ...createDefaultDiscTextValues(), appId: 'manual-id', copyright: 'Manual text' },
+    discTextValueSources: { ...createDefaultDiscTextValueSources(),
+      title: 'manual' as const, appId: 'manual' as const, copyright: 'manual' as const },
+    discTextTitleValue: 'Manual Title',
+  }
+  const metadata = { ...createDefaultProjectMetadata(), title: 'Fixture Game',
+    steamAppId: '620', copyrightText: 'Fixture legal' }
+  const unchanged = planSteamImportedDiscTextValues(620, metadata, state, false)
+  assert.equal(unchanged.discTextValues, state.discTextValues)
+  assert.equal(unchanged.discTextValueSources, state.discTextValueSources)
+  assert.equal(unchanged.resolvedDiscTextTitle, 'Manual Title')
+  assert.equal(unchanged.metadataBoundDiscTextValues.copyright, 'Manual text')
+  const planned = planSteamImportedDiscTextValues(620, metadata, state, true)
+  assert.equal(planned.discTextValues.appId, 'manual-id')
+  assert.equal(planned.discTextValues.copyright, '')
+  assert.equal(planned.discTextValueSources.copyright, 'metadata')
+  assert.equal(planned.metadataBoundDiscTextValues.copyright, 'Fixture legal')
+  assert.equal(planned.resolvedDiscTextTitle, 'Manual Title')
+  assert.equal(state.discTextValues.copyright, 'Manual text')
+  const auto = planSteamImportedDiscTextValues(620, metadata, {
+    ...state, discTextValueSources: { ...state.discTextValueSources, appId: 'metadata' },
+  }, false)
+  assert.equal(auto.discTextValues.appId, '620')
+  assert.equal(auto.discTextValues.copyright, 'Manual text')
 })

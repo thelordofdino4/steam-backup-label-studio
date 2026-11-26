@@ -31,6 +31,7 @@ let browser
 let page
 test.before(async () => {
   server = await createServer({
+    cacheDir: 'node_modules/.vite-ribbon-category-state',
     logLevel: 'silent', server: { host: '127.0.0.1', port: 0 },
     plugins: [{ name: 'ribbon-category-state', configureServer(vite) {
       vite.middlewares.use(async (request, response, next) => {
@@ -44,7 +45,7 @@ test.before(async () => {
   })
   await server.listen()
   const address = server.httpServer.address()
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, chromiumSandbox: true })
   page = await browser.newPage()
   await page.goto(`http://127.0.0.1:${address.port}${route}`)
   await page.waitForFunction(() => Boolean(window.__setRibbonCategory))
@@ -82,7 +83,7 @@ for (const category of categories) {
   })
 }
 for (const action of ['click', 'Enter', 'Space']) {
-  test(`native ${action} updates category state without changing button semantics`, async () => {
+  test(`button ${action} updates category state without changing button semantics`, async () => {
     await page.evaluate(() => window.__setRibbonCategory('presets'))
     const button = group().getByRole('button', { name: 'Artistic', exact: true })
     if (action === 'click') await button.click()

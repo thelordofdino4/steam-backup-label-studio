@@ -1,0 +1,1960 @@
+{
+  "project": {
+    "schemaVersion": "0.4.0",
+    "projectType": "caseInsert",
+    "title": "Capacity fixture",
+    "savedAt": "2026-11-01T00:00:00.000Z",
+    "game": {
+      "manualTitle": "Capacity fixture",
+      "selectedSteamGame": null
+    },
+    "metadata": {
+      "title": "Capacity fixture",
+      "subtitle": "",
+      "steamAppId": "",
+      "developer": "",
+      "publisher": "",
+      "releaseDate": "",
+      "backupDate": "2026-11-01",
+      "discNumber": "",
+      "discTotal": "",
+      "installNotes": "",
+      "copyrightText": "",
+      "ratingSystem": "none",
+      "ratingValue": ""
+    },
+    "template": {
+      "type": "caseInsert",
+      "variant": "jewelCase"
+    },
+    "editor": {
+      "activeCaseInsertTemplatePane": "cover"
+    },
+    "caseInsert": {
+      "templateType": "jewelCase",
+      "templates": {
+        "cover": {
+          "steamBanner": {
+            "enabled": true,
+            "colors": {
+              "gradientStart": "#2a475f",
+              "gradientEnd": "#1a2838",
+              "accent": "#2aabe2"
+            },
+            "lockupImageDataUrl": null,
+            "lockupImageSource": {
+              "source": "built-in",
+              "sourceId": "case-steam-banner:cover-lockup",
+              "sourceLabel": "Default Steam banner lockup",
+              "sourceUrl": null
+            },
+            "lockupImageSize": {
+              "width": 388,
+              "height": 117
+            },
+            "lockupLayout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 0
+            },
+            "useTextFallback": false,
+            "fallbackText": "STEAM"
+          },
+          "background": {
+            "id": "cover-background",
+            "label": "Cover sheet background",
+            "enabled": true,
+            "imageDataUrl": "data:image/bmp;base64,SBLS_CAPACITY_BITMAP",
+            "imageSource": {
+              "source": "uploaded",
+              "sourceId": "capacity.bmp",
+              "sourceLabel": "Capacity fixture"
+            },
+            "imageSize": {
+              "width": 1024,
+              "height": 1024
+            },
+            "defaultSteamLogo": null,
+            "fit": "cover",
+            "layout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 0
+            },
+            "frame": {
+              "enabled": false,
+              "color": "#f9fafb",
+              "width": 2,
+              "shape": "rectangle",
+              "style": "solid",
+              "lumpiness": 50,
+              "jaggedness": 50,
+              "roughnessOffset": 0
+            }
+          },
+          "titleArtwork": {
+            "id": "cover-title-artwork",
+            "label": "Title/logo artwork",
+            "enabled": false,
+            "imageDataUrl": null,
+            "imageSource": null,
+            "imageSize": null,
+            "defaultSteamLogo": null,
+            "fit": "contain",
+            "layout": {
+              "scale": 1,
+              "x": 50,
+              "y": 24,
+              "rotation": 0
+            },
+            "frame": {
+              "enabled": false,
+              "color": "#f9fafb",
+              "width": 2,
+              "shape": "rectangle",
+              "style": "solid",
+              "lumpiness": 50,
+              "jaggedness": 50,
+              "roughnessOffset": 0
+            }
+          },
+          "additionalArtworkEnabled": false,
+          "artworkSlots": [],
+          "logoSlots": [],
+          "markSlots": [],
+          "textBlocks": [
+            {
+              "id": "cover-title-text",
+              "label": "Game title",
+              "enabled": false,
+              "value": "Capacity fixture",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 1,
+                "fontSizePt": 36,
+                "width": 80,
+                "x": 50,
+                "y": 34,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#ffffff",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-subtitle-text",
+              "label": "Subtitle / edition",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 1,
+                "fontSizePt": 20,
+                "width": 72,
+                "x": 50,
+                "y": 45,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-disc-number",
+              "label": "Disc number",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.9,
+                "fontSizePt": 14,
+                "width": 42,
+                "x": 18,
+                "y": 82,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-backup-date",
+              "label": "Backup date",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.86,
+                "fontSizePt": 12,
+                "width": 48,
+                "x": 50,
+                "y": 86,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-steam-app-id",
+              "label": "Steam App ID",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.82,
+                "fontSizePt": 12,
+                "width": 48,
+                "x": 82,
+                "y": 82,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#d1d5db",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-developer-text",
+              "label": "Developer text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "left",
+              "layout": {
+                "scale": 0.84,
+                "fontSizePt": 12,
+                "width": 48,
+                "x": 22,
+                "y": 88,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-publisher-text",
+              "label": "Publisher text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "right",
+              "layout": {
+                "scale": 0.84,
+                "fontSizePt": 12,
+                "width": 48,
+                "x": 78,
+                "y": 88,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-install-notes",
+              "label": "Install notes",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.9,
+                "fontSizePt": 13,
+                "width": 58,
+                "x": 50,
+                "y": 74,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-custom-note",
+              "label": "Custom note",
+              "enabled": false,
+              "value": "",
+              "source": "manual",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 1,
+                "fontSizePt": 14,
+                "width": 74,
+                "x": 50,
+                "y": 82,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#ffffff",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "cover-copyright-text",
+              "label": "Copyright/legal text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 1,
+                "fontSizePt": 8,
+                "width": 86,
+                "x": 50,
+                "y": 93,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#d1d5db",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": true,
+                "backgroundColor": "#0f172a",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.65,
+                "borderEnabled": true,
+                "borderColor": "#ffffff",
+                "borderRadius": 0.35
+              }
+            }
+          ],
+          "textLists": []
+        },
+        "tray": {
+          "steamBanner": {
+            "enabled": false,
+            "colors": {
+              "gradientStart": "#2a475f",
+              "gradientEnd": "#1a2838",
+              "accent": "#2aabe2"
+            },
+            "lockupImageDataUrl": null,
+            "lockupImageSource": {
+              "source": "built-in",
+              "sourceId": "case-steam-banner:cover-lockup",
+              "sourceLabel": "Default Steam banner lockup",
+              "sourceUrl": null
+            },
+            "lockupImageSize": {
+              "width": 388,
+              "height": 117
+            },
+            "lockupLayout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 0
+            },
+            "useTextFallback": false,
+            "fallbackText": "STEAM"
+          },
+          "background": {
+            "id": "tray-background",
+            "label": "Tray card background",
+            "enabled": true,
+            "imageDataUrl": "data:image/bmp;base64,SBLS_CAPACITY_BITMAP",
+            "imageSource": {
+              "source": "uploaded",
+              "sourceId": "capacity.bmp",
+              "sourceLabel": "Capacity fixture"
+            },
+            "imageSize": {
+              "width": 1024,
+              "height": 1024
+            },
+            "defaultSteamLogo": null,
+            "fit": "cover",
+            "layout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 0
+            },
+            "frame": {
+              "enabled": false,
+              "color": "#f9fafb",
+              "width": 2,
+              "shape": "rectangle",
+              "style": "solid",
+              "lumpiness": 50,
+              "jaggedness": 50,
+              "roughnessOffset": 0
+            }
+          },
+          "titleArtwork": {
+            "id": "tray-title-artwork",
+            "label": "Tray card title artwork",
+            "enabled": false,
+            "imageDataUrl": null,
+            "imageSource": null,
+            "imageSize": null,
+            "defaultSteamLogo": null,
+            "fit": "contain",
+            "layout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 0
+            },
+            "frame": {
+              "enabled": false,
+              "color": "#f9fafb",
+              "width": 2,
+              "shape": "rectangle",
+              "style": "solid",
+              "lumpiness": 50,
+              "jaggedness": 50,
+              "roughnessOffset": 0
+            }
+          },
+          "additionalArtworkEnabled": false,
+          "artworkSlots": [],
+          "logoSlots": [],
+          "markSlots": [],
+          "textBlocks": [
+            {
+              "id": "tray-title-text",
+              "label": "Game title",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 1.18,
+                "fontSizePt": 24,
+                "width": 74,
+                "x": 50,
+                "y": 11,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#ffffff",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-subtitle-text",
+              "label": "Subtitle / edition",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.95,
+                "fontSizePt": 16,
+                "width": 66,
+                "x": 50,
+                "y": 17,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-disc-number",
+              "label": "Disc number",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "left",
+              "layout": {
+                "scale": 0.72,
+                "fontSizePt": 12,
+                "width": 28,
+                "x": 18,
+                "y": 91,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-backup-date",
+              "label": "Backup date",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.72,
+                "fontSizePt": 12,
+                "width": 32,
+                "x": 50,
+                "y": 91,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-steam-app-id",
+              "label": "Steam App ID",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "right",
+              "layout": {
+                "scale": 0.72,
+                "fontSizePt": 12,
+                "width": 32,
+                "x": 82,
+                "y": 91,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#d1d5db",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-developer-text",
+              "label": "Developer text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "left",
+              "layout": {
+                "scale": 0.76,
+                "fontSizePt": 12,
+                "width": 36,
+                "x": 22,
+                "y": 86,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-publisher-text",
+              "label": "Publisher text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "right",
+              "layout": {
+                "scale": 0.76,
+                "fontSizePt": 12,
+                "width": 36,
+                "x": 78,
+                "y": 86,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-install-notes",
+              "label": "Install notes",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.82,
+                "fontSizePt": 12,
+                "width": 62,
+                "x": 50,
+                "y": 62,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-custom-note",
+              "label": "Custom note",
+              "enabled": false,
+              "value": "",
+              "source": "manual",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.82,
+                "fontSizePt": 12,
+                "width": 66,
+                "x": 50,
+                "y": 67,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#ffffff",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "tray-copyright-text",
+              "label": "Copyright/legal text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.54,
+                "fontSizePt": 8,
+                "width": 88,
+                "x": 50,
+                "y": 96,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#d1d5db",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": true,
+                "backgroundColor": "#0f172a",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.65,
+                "borderEnabled": true,
+                "borderColor": "#ffffff",
+                "borderRadius": 0.35
+              }
+            },
+            {
+              "id": "tray-description",
+              "label": "Description",
+              "enabled": false,
+              "value": "",
+              "source": "manual",
+              "avoidVisualElements": false,
+              "align": "left",
+              "layout": {
+                "scale": 0.68,
+                "fontSizePt": 12,
+                "width": 52,
+                "x": 66,
+                "y": 36,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": true,
+                "backgroundColor": "#0f172a",
+                "backgroundOpacity": 0.58,
+                "backgroundPadding": 0.8,
+                "borderEnabled": true,
+                "borderColor": "#ffffff",
+                "borderRadius": 0.45
+              }
+            },
+            {
+              "id": "tray-minimum-requirements",
+              "label": "Minimum requirements",
+              "enabled": false,
+              "value": "",
+              "source": "manual",
+              "avoidVisualElements": false,
+              "align": "left",
+              "layout": {
+                "scale": 0.52,
+                "fontSizePt": 10,
+                "width": 38,
+                "x": 29,
+                "y": 74,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": true,
+                "backgroundColor": "#0f172a",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.78,
+                "borderEnabled": true,
+                "borderColor": "#ffffff",
+                "borderRadius": 0.45
+              }
+            },
+            {
+              "id": "tray-recommended-requirements",
+              "label": "Recommended requirements",
+              "enabled": false,
+              "value": "",
+              "source": "manual",
+              "avoidVisualElements": false,
+              "align": "left",
+              "layout": {
+                "scale": 0.52,
+                "fontSizePt": 10,
+                "width": 38,
+                "x": 71,
+                "y": 74,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": true,
+                "backgroundColor": "#0f172a",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.78,
+                "borderEnabled": true,
+                "borderColor": "#ffffff",
+                "borderRadius": 0.45
+              }
+            }
+          ],
+          "textLists": [
+            {
+              "id": "tray-feature-bullets",
+              "label": "Feature bullets",
+              "enabled": false,
+              "items": [],
+              "source": "manual",
+              "avoidVisualElements": false,
+              "layout": {
+                "scale": 0.68,
+                "fontSizePt": 12,
+                "width": 36,
+                "x": 25,
+                "y": 34,
+                "rotation": 0
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": true,
+                "backgroundColor": "#0f172a",
+                "backgroundOpacity": 0.58,
+                "backgroundPadding": 0.8,
+                "borderEnabled": true,
+                "borderColor": "#ffffff",
+                "borderRadius": 0.45
+              }
+            }
+          ]
+        }
+      },
+      "spine": {
+        "mirrored": true,
+        "left": {
+          "steamBanner": {
+            "enabled": true,
+            "colors": {
+              "gradientStart": "#2a475f",
+              "gradientEnd": "#1a2838",
+              "accent": "#2aabe2"
+            },
+            "lockupImageDataUrl": null,
+            "lockupImageSource": {
+              "source": "built-in",
+              "sourceId": "case-steam-banner:spine-icon",
+              "sourceLabel": "Default Steam spine icon",
+              "sourceUrl": null
+            },
+            "lockupImageSize": {
+              "width": 48,
+              "height": 48,
+              "contentBounds": {
+                "x": 1,
+                "y": 1,
+                "width": 46,
+                "height": 46
+              }
+            },
+            "lockupLayout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 90
+            },
+            "useTextFallback": false,
+            "fallbackText": "STEAM"
+          },
+          "background": {
+            "id": "left-spine-background",
+            "label": "Left spine background",
+            "enabled": true,
+            "imageDataUrl": "data:image/bmp;base64,SBLS_CAPACITY_BITMAP",
+            "imageSource": {
+              "source": "uploaded",
+              "sourceId": "capacity.bmp",
+              "sourceLabel": "Capacity fixture"
+            },
+            "imageSize": {
+              "width": 1024,
+              "height": 1024
+            },
+            "defaultSteamLogo": null,
+            "fit": "cover",
+            "layout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 0
+            },
+            "frame": {
+              "enabled": false,
+              "color": "#f9fafb",
+              "width": 2,
+              "shape": "rectangle",
+              "style": "solid",
+              "lumpiness": 50,
+              "jaggedness": 50,
+              "roughnessOffset": 0
+            }
+          },
+          "titleArtwork": {
+            "id": "left-spine-title-artwork",
+            "label": "Left spine game logo",
+            "enabled": false,
+            "imageDataUrl": null,
+            "imageSource": null,
+            "imageSize": null,
+            "defaultSteamLogo": null,
+            "fit": "contain",
+            "layout": {
+              "scale": 0.78,
+              "x": 50,
+              "y": 58,
+              "rotation": 90
+            },
+            "frame": {
+              "enabled": false,
+              "color": "#f9fafb",
+              "width": 2,
+              "shape": "rectangle",
+              "style": "solid",
+              "lumpiness": 50,
+              "jaggedness": 50,
+              "roughnessOffset": 0
+            }
+          },
+          "additionalArtworkEnabled": false,
+          "artworkSlots": [],
+          "logoSlots": [],
+          "markSlots": [],
+          "title": {
+            "id": "left-spine-title-text",
+            "label": "Game title",
+            "enabled": true,
+            "value": "Capacity fixture",
+            "source": "metadata",
+            "avoidVisualElements": false,
+            "align": "center",
+            "layout": {
+              "scale": 1,
+              "fontSizePt": 16,
+              "width": 90,
+              "x": 50,
+              "y": 50,
+              "rotation": -90
+            },
+            "style": {
+              "fontFamily": "arial",
+              "color": "#ffffff",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "contrast": "strokeShadow",
+              "backgroundEnabled": false,
+              "backgroundColor": "#111827",
+              "backgroundOpacity": 0.68,
+              "backgroundPadding": 0.8,
+              "borderEnabled": false,
+              "borderColor": "#f9fafb",
+              "borderRadius": 0.6
+            }
+          },
+          "textBlocks": [
+            {
+              "id": "left-spine-subtitle-text",
+              "label": "Subtitle / edition",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.78,
+                "fontSizePt": 12,
+                "width": 74,
+                "x": 50,
+                "y": 42,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "left-spine-disc-number",
+              "label": "Disc number",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.7,
+                "fontSizePt": 10,
+                "width": 46,
+                "x": 50,
+                "y": 60,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "left-spine-backup-date",
+              "label": "Backup date",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.68,
+                "fontSizePt": 10,
+                "width": 48,
+                "x": 50,
+                "y": 68,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "left-spine-steam-app-id",
+              "label": "Steam App ID",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.66,
+                "fontSizePt": 10,
+                "width": 48,
+                "x": 50,
+                "y": 76,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#d1d5db",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "left-spine-developer-text",
+              "label": "Developer text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.68,
+                "fontSizePt": 10,
+                "width": 48,
+                "x": 50,
+                "y": 84,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "left-spine-publisher-text",
+              "label": "Publisher text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.68,
+                "fontSizePt": 10,
+                "width": 48,
+                "x": 50,
+                "y": 88,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "left-spine-install-notes",
+              "label": "Install notes",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.66,
+                "fontSizePt": 10,
+                "width": 58,
+                "x": 50,
+                "y": 72,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "left-spine-custom-note",
+              "label": "Custom note",
+              "enabled": false,
+              "value": "",
+              "source": "manual",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.72,
+                "fontSizePt": 10,
+                "width": 58,
+                "x": 50,
+                "y": 78,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#ffffff",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "left-spine-copyright-text",
+              "label": "Copyright/legal text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.62,
+                "fontSizePt": 8,
+                "width": 68,
+                "x": 50,
+                "y": 92,
+                "rotation": -90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#d1d5db",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": true,
+                "backgroundColor": "#0f172a",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.65,
+                "borderEnabled": true,
+                "borderColor": "#ffffff",
+                "borderRadius": 0.35
+              }
+            }
+          ]
+        },
+        "right": {
+          "steamBanner": {
+            "enabled": true,
+            "colors": {
+              "gradientStart": "#2a475f",
+              "gradientEnd": "#1a2838",
+              "accent": "#2aabe2"
+            },
+            "lockupImageDataUrl": null,
+            "lockupImageSource": {
+              "source": "built-in",
+              "sourceId": "case-steam-banner:spine-icon",
+              "sourceLabel": "Default Steam spine icon",
+              "sourceUrl": null
+            },
+            "lockupImageSize": {
+              "width": 48,
+              "height": 48,
+              "contentBounds": {
+                "x": 1,
+                "y": 1,
+                "width": 46,
+                "height": 46
+              }
+            },
+            "lockupLayout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 90
+            },
+            "useTextFallback": false,
+            "fallbackText": "STEAM"
+          },
+          "background": {
+            "id": "right-spine-background",
+            "label": "Right spine background",
+            "enabled": true,
+            "imageDataUrl": "data:image/bmp;base64,SBLS_CAPACITY_BITMAP",
+            "imageSource": {
+              "source": "uploaded",
+              "sourceId": "capacity.bmp",
+              "sourceLabel": "Capacity fixture"
+            },
+            "imageSize": {
+              "width": 1024,
+              "height": 1024
+            },
+            "defaultSteamLogo": null,
+            "fit": "cover",
+            "layout": {
+              "scale": 1,
+              "x": 0,
+              "y": 0,
+              "rotation": 0
+            },
+            "frame": {
+              "enabled": false,
+              "color": "#f9fafb",
+              "width": 2,
+              "shape": "rectangle",
+              "style": "solid",
+              "lumpiness": 50,
+              "jaggedness": 50,
+              "roughnessOffset": 0
+            }
+          },
+          "titleArtwork": {
+            "id": "right-spine-title-artwork",
+            "label": "Right spine game logo",
+            "enabled": false,
+            "imageDataUrl": null,
+            "imageSource": null,
+            "imageSize": null,
+            "defaultSteamLogo": null,
+            "fit": "contain",
+            "layout": {
+              "scale": 0.78,
+              "x": 50,
+              "y": 58,
+              "rotation": 90
+            },
+            "frame": {
+              "enabled": false,
+              "color": "#f9fafb",
+              "width": 2,
+              "shape": "rectangle",
+              "style": "solid",
+              "lumpiness": 50,
+              "jaggedness": 50,
+              "roughnessOffset": 0
+            }
+          },
+          "additionalArtworkEnabled": false,
+          "artworkSlots": [],
+          "logoSlots": [],
+          "markSlots": [],
+          "title": {
+            "id": "right-spine-title-text",
+            "label": "Game title",
+            "enabled": true,
+            "value": "Capacity fixture",
+            "source": "metadata",
+            "avoidVisualElements": false,
+            "align": "center",
+            "layout": {
+              "scale": 1,
+              "fontSizePt": 16,
+              "width": 90,
+              "x": 50,
+              "y": 50,
+              "rotation": 90
+            },
+            "style": {
+              "fontFamily": "arial",
+              "color": "#ffffff",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "contrast": "strokeShadow",
+              "backgroundEnabled": false,
+              "backgroundColor": "#111827",
+              "backgroundOpacity": 0.68,
+              "backgroundPadding": 0.8,
+              "borderEnabled": false,
+              "borderColor": "#f9fafb",
+              "borderRadius": 0.6
+            }
+          },
+          "textBlocks": [
+            {
+              "id": "right-spine-subtitle-text",
+              "label": "Subtitle / edition",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.78,
+                "fontSizePt": 12,
+                "width": 74,
+                "x": 50,
+                "y": 42,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "right-spine-disc-number",
+              "label": "Disc number",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.7,
+                "fontSizePt": 10,
+                "width": 46,
+                "x": 50,
+                "y": 60,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "right-spine-backup-date",
+              "label": "Backup date",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.68,
+                "fontSizePt": 10,
+                "width": 48,
+                "x": 50,
+                "y": 68,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "right-spine-steam-app-id",
+              "label": "Steam App ID",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.66,
+                "fontSizePt": 10,
+                "width": 48,
+                "x": 50,
+                "y": 76,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#d1d5db",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "right-spine-developer-text",
+              "label": "Developer text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.68,
+                "fontSizePt": 10,
+                "width": 48,
+                "x": 50,
+                "y": 84,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "right-spine-publisher-text",
+              "label": "Publisher text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.68,
+                "fontSizePt": 10,
+                "width": 48,
+                "x": 50,
+                "y": 88,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#e5e7eb",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "right-spine-install-notes",
+              "label": "Install notes",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.66,
+                "fontSizePt": 10,
+                "width": 58,
+                "x": 50,
+                "y": 72,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#f8fafc",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "right-spine-custom-note",
+              "label": "Custom note",
+              "enabled": false,
+              "value": "",
+              "source": "manual",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.72,
+                "fontSizePt": 10,
+                "width": 58,
+                "x": 50,
+                "y": 78,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#ffffff",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "strokeShadow",
+                "backgroundEnabled": false,
+                "backgroundColor": "#111827",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.8,
+                "borderEnabled": false,
+                "borderColor": "#f9fafb",
+                "borderRadius": 0.6
+              }
+            },
+            {
+              "id": "right-spine-copyright-text",
+              "label": "Copyright/legal text",
+              "enabled": false,
+              "value": "",
+              "source": "metadata",
+              "avoidVisualElements": false,
+              "align": "center",
+              "layout": {
+                "scale": 0.62,
+                "fontSizePt": 8,
+                "width": 68,
+                "x": 50,
+                "y": 92,
+                "rotation": 90
+              },
+              "style": {
+                "fontFamily": "arial",
+                "color": "#d1d5db",
+                "bold": false,
+                "italic": false,
+                "underline": false,
+                "contrast": "shadow",
+                "backgroundEnabled": true,
+                "backgroundColor": "#0f172a",
+                "backgroundOpacity": 0.68,
+                "backgroundPadding": 0.65,
+                "borderEnabled": true,
+                "borderColor": "#ffffff",
+                "borderRadius": 0.35
+              }
+            }
+          ]
+        }
+      },
+      "export": {
+        "surfaces": [
+          "front",
+          "back"
+        ],
+        "guideIds": []
+      }
+    },
+    "caseInsertLayoutPreset": {
+      "kind": "sbls/case-insert-layout-preset-project-state",
+      "formatVersion": 1,
+      "applicationRevision": 0,
+      "attachment": {
+        "status": "unattached"
+      }
+    }
+  },
+  "plan": {
+    "version": 1,
+    "captures": [
+      {
+        "ownerId": "case.cover.banner",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "steam-banner:banner-lockup"
+        }
+      },
+      {
+        "ownerId": "case.cover.background",
+        "decision": {
+          "kind": "project-owned-data-url"
+        }
+      },
+      {
+        "ownerId": "case.cover.title.current",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "case.cover.title.default",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "case.tray.banner",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "steam-banner:banner-lockup"
+        }
+      },
+      {
+        "ownerId": "case.tray.background",
+        "decision": {
+          "kind": "project-owned-data-url"
+        }
+      },
+      {
+        "ownerId": "case.tray.title.current",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "case.tray.title.default",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "case.spine-left.banner",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "steam-banner:spine-icon"
+        }
+      },
+      {
+        "ownerId": "case.spine-left.background",
+        "decision": {
+          "kind": "project-owned-data-url"
+        }
+      },
+      {
+        "ownerId": "case.spine-left.title.current",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "case.spine-left.title.default",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "case.spine-right.banner",
+        "decision": {
+          "kind": "qualified-built-in",
+          "compatibilityId": "steam-banner:spine-icon"
+        }
+      },
+      {
+        "ownerId": "case.spine-right.background",
+        "decision": {
+          "kind": "project-owned-data-url"
+        }
+      },
+      {
+        "ownerId": "case.spine-right.title.current",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      },
+      {
+        "ownerId": "case.spine-right.title.default",
+        "decision": {
+          "kind": "no-accepted-asset"
+        }
+      }
+    ]
+  }
+}

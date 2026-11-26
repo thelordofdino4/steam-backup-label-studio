@@ -1,3 +1,6 @@
+import { ImportedImagePolicyError } from '../image/importedImagePolicy'
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import type {
   ChangeEvent,
   Dispatch,
@@ -38,6 +41,7 @@ export function useCaseInsertTemplateSteamBannerEditor({
   setProjectJewelCase,
   announceStatus,
 }: UseCaseInsertTemplateSteamBannerEditorOptions) {
+  const asyncWork = useProjectAsyncWork()
   function handleSteamBannerEnabledChange(
     paneId: CaseInsertTemplatePaneId,
     enabled: boolean,
@@ -63,24 +67,31 @@ export function useCaseInsertTemplateSteamBannerEditor({
       return
     }
 
+    const request = asyncWork.begin(`image:case:${paneId}:steam-banner`)
     try {
       const image = await createUploadedCaseInsertImageSlotImage(
         file,
         'Steam banner lockup',
       )
-
-      setProjectJewelCase((currentCaseInsert) =>
-        setCustomCaseInsertTemplateSteamBannerLockupImage(
-          currentCaseInsert, paneId, image,
-        ),
-      )
-      announceStatus(`Using ${file.name} as the Steam banner lockup.`)
-    } catch {
-      announceStatus('The Steam banner lockup image could not be read.')
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        setProjectJewelCase((currentCaseInsert) =>
+          setCustomCaseInsertTemplateSteamBannerLockupImage(
+            currentCaseInsert, paneId, image,
+          ),
+        )
+        announceStatus(`Using ${file.name} as the Steam banner lockup.`)
+      })
+    } catch (error) {
+      asyncWork.publish(request, () => {
+        announceStatus(error instanceof ImportedImagePolicyError
+          ? error.message
+          : 'The Steam banner lockup image could not be read.')
+      })
     }
   }
 
   function handleClearSteamBannerLockup(paneId: CaseInsertTemplatePaneId) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((currentCaseInsert) =>
       resetCaseInsertTemplateSteamBannerLockupImage(currentCaseInsert, paneId),
     )
@@ -102,6 +113,7 @@ export function useCaseInsertTemplateSteamBannerEditor({
   function handleResetSteamBannerLockupLayout(
     paneId: CaseInsertTemplatePaneId,
   ) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((currentCaseInsert) =>
       resetCaseInsertTemplateSteamBannerLockupDefaultLayout(
         currentCaseInsert, paneId,
@@ -150,6 +162,7 @@ export function useCaseInsertTemplateSteamBannerEditor({
   }
 
   function handleResetSteamBannerColors(paneId: CaseInsertTemplatePaneId) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((currentCaseInsert) =>
       resetCaseInsertTemplateSteamBannerColors(currentCaseInsert, paneId),
     )

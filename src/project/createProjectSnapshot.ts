@@ -79,7 +79,14 @@ function shouldPersistSteamBannerLockupImage(
   return Boolean(imageUrl) && imageSource?.source !== 'built-in'
 }
 
-export function createProjectSnapshot({
+type DiscBackgroundProjectionParam =
+  | 'backgroundScale' | 'backgroundOffset' | 'backgroundImageUrl'
+  | 'backgroundImageSource' | 'backgroundImageSize' | 'isBackgroundArtworkEnabled'
+
+export type DiscLegacyProjectProjectionParams = Omit<CreateProjectSnapshotParams, DiscBackgroundProjectionParam>
+export type DiscLegacyProjectProjection = Omit<SavedDiscProject, 'background'>
+
+export function createDiscLegacyProjectProjection({
   discGuidedWorkflow,
   manualGameTitle,
   selectedSteamGame,
@@ -103,12 +110,6 @@ export function createProjectSnapshot({
   steamBannerUseTextFallback,
   steamBannerFallbackText,
   exportGuides,
-  backgroundScale,
-  backgroundOffset,
-  backgroundImageUrl,
-  backgroundImageSource,
-  backgroundImageSize,
-  isBackgroundArtworkEnabled,
   discTextSettings,
   discTextValues,
   discTextValueSources,
@@ -116,7 +117,7 @@ export function createProjectSnapshot({
   discTextHtmlSources,
   discTextLayout,
   discTextStyles,
-}: CreateProjectSnapshotParams): SavedDiscProject {
+}: DiscLegacyProjectProjectionParams): DiscLegacyProjectProjection {
   const guidedLayout = createSavedDiscGuidedLayout(discGuidedWorkflow)
   const shouldPersistLockupImage = shouldPersistSteamBannerLockupImage(
     steamBannerLockupImageUrl,
@@ -160,6 +161,26 @@ export function createProjectSnapshot({
     export: {
       guides: exportGuides,
     },
+    discText: {
+      settings: discTextSettings,
+      values: discTextValues,
+      valueSources: discTextValueSources,
+      titleValue: discTextTitleValue,
+      htmlSources: discTextHtmlSources ?? {},
+      layout: discTextLayout,
+      styles: discTextStyles,
+    },
+  }
+}
+
+/** Full transport projection is used for New/Open staging, not legacy edits. */
+export function createProjectSnapshot(params: CreateProjectSnapshotParams): SavedDiscProject {
+  const {
+    backgroundScale, backgroundOffset, backgroundImageUrl, backgroundImageSource,
+    backgroundImageSize, isBackgroundArtworkEnabled, ...legacy
+  } = params
+  return {
+    ...createDiscLegacyProjectProjection(legacy),
     background: {
       enabled: isBackgroundArtworkEnabled,
       scale: backgroundScale,
@@ -169,15 +190,6 @@ export function createProjectSnapshot({
       imageSize: backgroundImageSize,
       note:
         'MVP save state embeds the background image as a data URL. A more efficient .sbls package format can replace this later.',
-    },
-    discText: {
-      settings: discTextSettings,
-      values: discTextValues,
-      valueSources: discTextValueSources,
-      titleValue: discTextTitleValue,
-      htmlSources: discTextHtmlSources ?? {},
-      layout: discTextLayout,
-      styles: discTextStyles,
     },
   }
 }

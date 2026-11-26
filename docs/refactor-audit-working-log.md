@@ -1,7 +1,7 @@
 # Refactor Audit Working Log
 
-> Temporary working note for the bounded audit -> refactor -> test loop.
-> Keep only if this becomes useful project documentation; otherwise discard before finalizing.
+> Status: HISTORICAL CHECKPOINT — preserved refactor evidence ending at `6feb262bed2abd36b1371e5c0674013018132d16`.
+> Current ownership: [Documentation Map](README.md); old counts, commands, temporary decisions, and validation receipts below are not current guidance.
 
 ## Pass 1 - Continuation Audit
 
