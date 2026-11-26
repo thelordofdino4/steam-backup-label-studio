@@ -55,6 +55,7 @@ test('explicit CI lanes partition the complete suite without skipping a sandboxe
   assert.deepEqual(sandboxed, [
     'src/app/discSteamMounted.integration.test.mjs',
     'src/components/preview/contextualTextRibbonContrast.integration.test.mjs',
+    'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
     'src/export/discBackgroundLifetime.integration.test.mjs',
   ])
   assert.ok(sandboxed.every(file => !remaining.includes(file)))
