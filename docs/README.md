@@ -54,6 +54,8 @@ Windows PNG evidence: [`PNG_PHYSICAL_WINDOWS_ACCEPTANCE.md`](PNG_PHYSICAL_WINDOW
 records six saved outputs, the original-byte correction of an unsupported Tray
 content-loss interpretation, and the remaining physical/platform gates for #359.
 
+Case back copy review preparation: [`CASE_BACK_COPY_FIT_REVIEW.md`](CASE_BACK_COPY_FIT_REVIEW.md) records the read-only #181 owner, estimated fit evidence, and remaining Game planning/application gates.
+
 | Document | Status | Purpose | Read when | Conflict rule |
 | --- | --- | --- | --- | --- |
 | [`PROJECT_PACKAGE_SAVE_CAPACITY.md`](PROJECT_PACKAGE_SAVE_CAPACITY.md) | Conditional implementation evidence | Save transport framing, independent capacity limits, regression fixtures, and outstanding native memory gates for #357. | Package save transport or capacity work. | Package policy defers to `PROJECT_PACKAGE_FORMAT_CONTRACT.md`; source checks do not replace native acceptance. |
