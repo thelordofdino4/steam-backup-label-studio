@@ -1,5 +1,6 @@
 # Artwork Frame Material Contract
-> Status: Reset contract after failed issue #165 branch.
+> Status: TARGET CONTRACT for restart gates; HISTORICAL CHECKPOINT for the failed #165 experiment.
+> The failed branch is ARCHIVE / EXPERIMENT, not current renderer behavior.
 > Purpose: Preserve what was learned from the failed procedural metal-frame
 > attempt and define the guardrails for a clean restart.
 > Read when: Working on artwork-frame materials, steel/metal frame rendering,
