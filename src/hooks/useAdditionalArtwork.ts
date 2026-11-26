@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useState, type ChangeEvent } from 'react'
 import {
   clampAdditionalArtworkElementLayoutToSafeZone,
@@ -44,6 +46,7 @@ export function useAdditionalArtwork({
   selectedDiscTemplate,
   announceStatus,
 }: UseAdditionalArtworkOptions) {
+  const asyncWork = useProjectAsyncWork()
   const [projectAdditionalArtwork, setProjectAdditionalArtwork] =
     useState<ProjectAdditionalArtwork>(() => createDefaultProjectAdditionalArtwork())
 
@@ -54,6 +57,7 @@ export function useAdditionalArtwork({
   }
 
   function resetProjectAdditionalArtwork() {
+    asyncWork.invalidateAll()
     setProjectAdditionalArtwork(createDefaultProjectAdditionalArtwork())
   }
 
@@ -89,26 +93,30 @@ export function useAdditionalArtwork({
       return
     }
 
+    const request = asyncWork.begin(`image:additional:${elementId}`)
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        setProjectAdditionalArtwork((currentAdditionalArtwork) =>
+          applyImportedAdditionalArtwork(
+            currentAdditionalArtwork,
+            elementId,
+            importedImage,
+            selectedDiscTemplate,
+            {
+              source: 'custom',
+              sourceId: null,
+              sourceLabel: file.name,
+            },
+          ),
+        )
 
-      setProjectAdditionalArtwork((currentAdditionalArtwork) =>
-        applyImportedAdditionalArtwork(
-          currentAdditionalArtwork,
-          elementId,
-          importedImage,
-          selectedDiscTemplate,
-          {
-            source: 'custom',
-            sourceId: null,
-            sourceLabel: file.name,
-          },
-        ),
-      )
-
-      announceStatus(`Using ${file.name} as additional artwork.`)
+        announceStatus(`Using ${file.name} as additional artwork.`)
+      })
     } catch (error) {
-      announceStatus(`Additional artwork import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Additional artwork import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -116,28 +124,32 @@ export function useAdditionalArtwork({
     elementId: string,
     asset: SteamArtworkAsset,
   ) {
+    const request = asyncWork.begin(`image:additional:${elementId}`)
     try {
       const importedImage = await createImportedImageAssetFromDataUrl(
         await downloadSteamArtworkAsDataUrl(asset.url),
       )
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        setProjectAdditionalArtwork((currentAdditionalArtwork) =>
+          applyImportedAdditionalArtwork(
+            currentAdditionalArtwork,
+            elementId,
+            importedImage,
+            selectedDiscTemplate,
+            {
+              source: 'steam-artwork',
+              sourceId: asset.id,
+              sourceLabel: asset.label,
+            },
+          ),
+        )
 
-      setProjectAdditionalArtwork((currentAdditionalArtwork) =>
-        applyImportedAdditionalArtwork(
-          currentAdditionalArtwork,
-          elementId,
-          importedImage,
-          selectedDiscTemplate,
-          {
-            source: 'steam-artwork',
-            sourceId: asset.id,
-            sourceLabel: asset.label,
-          },
-        ),
-      )
-
-      announceStatus(`Using ${asset.label} as additional artwork.`)
+        announceStatus(`Using ${asset.label} as additional artwork.`)
+      })
     } catch (error) {
-      announceStatus(`Steam artwork import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Steam artwork import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -145,28 +157,32 @@ export function useAdditionalArtwork({
     elementId: string,
     asset: LocalSteamScreenshotAsset,
   ) {
+    const request = asyncWork.begin(`image:additional:${elementId}`)
     try {
       const importedImage = await createImportedImageAssetFromDataUrl(
         await readLocalImageAsDataUrl(asset.path),
       )
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        setProjectAdditionalArtwork((currentAdditionalArtwork) =>
+          applyImportedAdditionalArtwork(
+            currentAdditionalArtwork,
+            elementId,
+            importedImage,
+            selectedDiscTemplate,
+            {
+              source: 'local-steam-screenshot',
+              sourceId: asset.id,
+              sourceLabel: asset.label,
+            },
+          ),
+        )
 
-      setProjectAdditionalArtwork((currentAdditionalArtwork) =>
-        applyImportedAdditionalArtwork(
-          currentAdditionalArtwork,
-          elementId,
-          importedImage,
-          selectedDiscTemplate,
-          {
-            source: 'local-steam-screenshot',
-            sourceId: asset.id,
-            sourceLabel: asset.label,
-          },
-        ),
-      )
-
-      announceStatus(`Using ${asset.label} as additional artwork.`)
+        announceStatus(`Using ${asset.label} as additional artwork.`)
+      })
     } catch (error) {
-      announceStatus(`Local screenshot import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Local screenshot import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -174,29 +190,33 @@ export function useAdditionalArtwork({
     elementId: string,
     candidate: RemoteLogoCandidate,
   ) {
+    const request = asyncWork.begin(`image:additional:${elementId}`)
     try {
       const importedImage = await createImportedImageAssetFromDataUrl(
         await downloadRemoteLogoCandidateAsDataUrl(candidate),
         candidate.label,
       )
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        setProjectAdditionalArtwork((currentAdditionalArtwork) =>
+          applyImportedAdditionalArtwork(
+            currentAdditionalArtwork,
+            elementId,
+            importedImage,
+            selectedDiscTemplate,
+            {
+              source: 'web-artwork',
+              sourceId: candidate.id,
+              sourceLabel: candidate.label,
+            },
+          ),
+        )
 
-      setProjectAdditionalArtwork((currentAdditionalArtwork) =>
-        applyImportedAdditionalArtwork(
-          currentAdditionalArtwork,
-          elementId,
-          importedImage,
-          selectedDiscTemplate,
-          {
-            source: 'web-artwork',
-            sourceId: candidate.id,
-            sourceLabel: candidate.label,
-          },
-        ),
-      )
-
-      announceStatus(`Using ${candidate.label} as additional artwork.`)
+        announceStatus(`Using ${candidate.label} as additional artwork.`)
+      })
     } catch (error) {
-      announceStatus(`Web artwork import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Web artwork import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -233,6 +253,7 @@ export function useAdditionalArtwork({
   }
 
   function handleResetAdditionalArtworkElementLayout(elementId: string) {
+    asyncWork.invalidateAll()
     setProjectAdditionalArtwork((currentAdditionalArtwork) =>
       clampProjectAdditionalArtworkToSafeZone(
         resetProjectAdditionalArtworkElementLayout(
@@ -263,6 +284,7 @@ export function useAdditionalArtwork({
   }
 
   function handleResetAdditionalArtworkElementFrame(elementId: string) {
+    asyncWork.invalidateAll()
     setProjectAdditionalArtwork((currentAdditionalArtwork) =>
       resetAdditionalArtworkElementFrame(currentAdditionalArtwork, elementId),
     )
@@ -271,6 +293,7 @@ export function useAdditionalArtwork({
   }
 
   function handleClearAdditionalArtworkElementImage(elementId: string) {
+    asyncWork.invalidateAll()
     setProjectAdditionalArtwork((currentAdditionalArtwork) =>
       clearAdditionalArtworkElementImage(currentAdditionalArtwork, elementId),
     )
@@ -279,6 +302,7 @@ export function useAdditionalArtwork({
   }
 
   function handleRemoveAdditionalArtworkElement(elementId: string) {
+    asyncWork.invalidateAll()
     setProjectAdditionalArtwork((currentAdditionalArtwork) =>
       removeAdditionalArtworkElement(currentAdditionalArtwork, elementId),
     )

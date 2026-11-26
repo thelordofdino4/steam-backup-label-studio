@@ -381,7 +381,7 @@ The current MVP focuses on one complete path:
 - Blu-ray case support.
 - Multi-disc wizard.
 - Guided Start / setup wizard.
-- Native Close/Quit guarding and complete native package workflow acceptance. Content-recognized `.sbls` Open/Save and dirty-aware New/Open replacement are already source-connected.
+- Complete native package workflow and termination acceptance. Content-recognized `.sbls` Open/Save and dirty-aware New/Open/Close/Quit are already source-connected.
 - Official asset/logo packs.
 - IGDB or automatic rating lookup.
 - Direct printer integration.

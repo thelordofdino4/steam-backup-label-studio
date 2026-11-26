@@ -233,17 +233,19 @@ test('focused hooks compose persisted workflow with transient resolved geometry'
   )
   assert.match(
     appSource,
-    /discGuidedPlaceholderPreview\.recordPresetApplication\(/,
+    /getNextDiscGuidedWorkflowForPresetApplication\(\{[\s\S]*?ownerState: discGuidedSlotState/,
   )
+  assert.match(appSource, /kind: 'preset', fields, guidedLayout: createSavedDiscGuidedLayout\(guided\)/)
   assert.match(
     appSource,
     /presetState:\s*activeDiscPreset\.getActivePresetState\(\)/,
   )
   assert.match(previewHookSource, /resolvedPreset:\s*activePresetState/)
-  assert.match(previewHookSource, /omitDiscGuidedSlot\(currentWorkflow, slotId\)\.state/)
-  assert.match(previewHookSource, /restoreDiscGuidedSlot\(currentWorkflow, slotId\)\.state/)
-  assert.match(previewHookSource, /restoreCompletedDiscGuidedSlot\(currentWorkflow, slotId\)\.state/)
-  assert.match(previewHookSource, /resetDiscGuidedProgress\(currentWorkflow\)\.state/)
+  assert.match(previewHookSource, /editSlot\('omit', slotId\)/)
+  assert.match(previewHookSource, /editSlot\('include', slotId\)/)
+  assert.match(previewHookSource, /editSlot\('show-again', slotId\)/)
+  assert.match(appSource, /resetProgress: \(\) => handleDiscGuidedDocumentEdit\(\{ kind: 'reset-guided-progress' \}\)/)
+  assert.match(appSource, /applyDiscEditorDocumentEdit\(applicationLifecycleRoot, basis, operation/)
   assert.match(previewHookSource, /createDiscGuidedProgressItems\(workflow\)/)
   assert.doesNotMatch(appSource, /omitDiscGuidedSlot|restoreDiscGuidedSlot/)
   assert.doesNotMatch(previewHookSource, /useState|coordinate|offset|layout\.x|layout\.y/i)

@@ -6,7 +6,7 @@
 > Authoritative source: This contract for target Game workflow semantics; current implementation facts defer to source and tests; application session/lifecycle semantics defer to the lifecycle contract; serialized fields defer to the project-file specification.
 > Last reviewed against commit: `f750a5c4b8721e6de4912a9be5ef26a05cddab5e`.
 
-Last refreshed: 2026-07-26.
+Last refreshed: 2026-11-01 (focused #304 search-generation checkpoint).
 
 ## 1. Status, scope, and authority
 
@@ -75,7 +75,7 @@ Last refreshed: 2026-07-26.
 
 **CURRENT FACT —** The current Game panel is a sidebar panel. It combines a Steam query, result buttons that immediately start import, direct metadata inputs, and rating/legal assistance controls in one presentation component. Source: [`GamePanel.tsx`](../src/components/sidebar/GamePanel.tsx).
 
-**CURRENT FACT —** `useSteamImport` has loading booleans but no request generation or stale-completion guard. A new search can be started with Enter while the visible button is disabled, and any older completion may replace results, status, and loading state. This is the gap tracked by [#304](https://github.com/thelordofdino4/steam-backup-label-studio/issues/304). Source: [`useSteamImport.ts`](../src/hooks/useSteamImport.ts).
+**CURRENT FACT —** `useSteamImport` owns a monotonically increasing search generation under [#304](https://github.com/thelordofdino4/steam-backup-label-studio/issues/304). Only the latest submitted request may publish results, success/no-results/failure feedback, or release search loading. Reset, explicit result Clear, and submitted empty input invalidate pending requests; Clear and empty input release search loading immediately. Typing alone is not submission. Prior results, selection and import behavior otherwise retain their existing semantics. A new search can still be submitted with Enter while the button is disabled. Source: [`useSteamImport.ts`](../src/hooks/useSteamImport.ts); deterministic real-hook/transport-adapter diagnostics: [`useSteamImport.integration.test.mjs`](../src/hooks/useSteamImport.integration.test.mjs). Native timing acceptance remains pending; this narrow fix does not implement the target command registry, stable selection, import planning or broader workflow/session invalidation.
 
 **CURRENT FACT —** Clicking a current result imports immediately; there is no independent stable selection followed by a reviewable import plan. Source: [`GamePanel.tsx`](../src/components/sidebar/GamePanel.tsx) and [`App.tsx`](../src/app/App.tsx).
 
@@ -100,7 +100,7 @@ Last refreshed: 2026-07-26.
 | Claim class | Concern | Verified current state | Required target state |
 | --- | --- | --- | --- |
 | **CURRENT FACT / TARGET REQUIREMENT** | Game entry | Sidebar panel mixes search, import, metadata, and assistance | `area.game` is a rich workflow destination with focused semantic operations |
-| **CURRENT FACT / TARGET REQUIREMENT** | Search ordering | No generation guard; Enter bypasses disabled button | Latest accepted request wins; all stale completions are discarded |
+| **CURRENT FACT / TARGET REQUIREMENT** | Search ordering | Latest submitted generation controls results/status/loading; reset/Clear/empty invalidate; Enter remains available | Latest accepted request wins; all stale completions are discarded |
 | **CURRENT FACT / TARGET REQUIREMENT** | Selection | Result activation immediately imports | Selection is explicit, stable, and non-mutating |
 | **CURRENT FACT / TARGET REQUIREMENT** | Planning | Partial metadata calculation; Disc helper mutates during calculation | Complete immutable plan; planning has no project setters or feature mutation |
 | **CURRENT FACT / TARGET REQUIREMENT** | Apply | Multiple setters and mid-sequence announcements | One validated all-or-nothing commit and one coherent result |
@@ -109,6 +109,8 @@ Last refreshed: 2026-07-26.
 | **CURRENT FACT / TARGET REQUIREMENT** | Case visibility | Imported Tray text may remain disabled | Every accepted non-empty selected Case text is visibly rendered through minimal enablement |
 | **CURRENT FACT / TARGET REQUIREMENT** | Feedback | Several independent announcements; success may precede all changes | One typed operation result drives coherent global and local feedback |
 | **CURRENT FACT / TARGET REQUIREMENT** | Persistence/history | Project content saves; workflow drafts do not; no shared transaction history | Same persistence boundary; one future history transaction per mutating apply |
+
+**CURRENT FACT - #310 feedback checkpoint:** The checked Case import plans the after-state once, derives its visibility status from the same normalized project, and shows that status only after the existing transaction accepts it. Fresh-default and previously disabled text remain disabled; enabled text remains enabled; repeated import preserves those flags. The final shared status reports non-empty Steam text as enabled/hidden and names the current Back role sections containing hidden text. Manual overrides preserved by the existing same-game import policy are excluded from the imported-text count. No-data imports do not claim visible text. These are per-owner checkboxes (Game Description Text, Feature Bullets / Callouts, System Requirements, Legal Info), not a current global "Back Cover Text" toggle. Focused tests cover mixed visibility, repeat import and actual Case snapshot/restore. The historical cross-game replacement policy is unchanged. This bounded feedback repair does not implement reviewed `game.import.plan`/`game.import.apply`, minimal accepted-owner enablement below, or native discoverability acceptance; #310 remains open for those gates.
 
 ## 4. Target workflow overview
 
@@ -325,6 +327,8 @@ Existing project metadata
 **TARGET REQUIREMENT —** A target marked not applicable cannot be synthesized merely to claim parity. A shared value may feed distinct adapters, but its visible manifestation remains owned per compatible surface. Any explicit Disc preset choice in an import plan must consume a fresh immutable plan from [`DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md`](DISC_LAYOUT_PRESET_WORKFLOW_CONTRACT.md) and join the same atomic Game after-state; Game does not call a private preset setter sequence or own preset compatibility.
 
 ## 12. Case text visibility and copy/layout boundaries
+
+**CURRENT FACT —** The #181 preparation exposes a read-only [copy-fit review](CASE_BACK_COPY_FIT_REVIEW.md) using existing generated variants and preflight estimates. It has no selected variant, mutation authority, production chooser or apply integration. Section 17's planning/atomic-apply order remains unchanged.
 
 **TARGET REQUIREMENT —** For [#310](https://github.com/thelordofdino4/steam-backup-label-studio/issues/310), any selected non-empty Case text value accepted in an import plan must be visibly rendered after successful apply. The plan must include the minimum necessary `enable` impact for that exact text owner.
 

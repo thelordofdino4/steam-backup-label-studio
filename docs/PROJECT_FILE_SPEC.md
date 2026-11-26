@@ -234,8 +234,8 @@ The production native encode/write adapter accepts one
 narrowly framed raw request containing capture metadata plus canonical project
 JSON and passes its complete owned package buffer directly to the atomic
 writer. The package codec does not consume TypeScript ports or filesystem paths.
-`write_binary_file` and PNG export behavior are unchanged; that direct writer
-is not an atomic project-package writer. These infrastructure boundaries add no
+The separate PNG export adapter uses `write_export_png` and the shared atomic
+writer, without entering this project-format boundary. These infrastructure boundaries add no
 schema fields. Lifecycle replacement, Resume, menu, shortcut, and history
 behavior is owned by the lifecycle and menu contracts; this project-schema
 checkpoint does not redefine it.

@@ -3,7 +3,7 @@
 > Purpose: Product summary, current feature surface, and top-level repository orientation.
 > Read when: Always, before repository work.
 > Authoritative source: Product/scope details defer to docs/PRD.md; architecture details defer to docs/SOFTWARE_DESIGN_DOCUMENT.md.
-> Current-state corrections reviewed against `923f7b7fcbfa6569439e26ba049c265816a1db65` on 2026-11-02; no new native acceptance is claimed.
+> Current-state corrections reviewed against `31da73e1140bbb5521642dcb81066b99c7357541` on 2026-11-26; no new native acceptance is claimed.
 
 
 A desktop app for designing Steam backup disc labels and jewel case inserts for personal Steam backup media. Windows is the exercised native development target; broader platform goals and acceptance are separate below.
@@ -36,7 +36,7 @@ Do not treat historical "recent validation" notes in older docs as proof that na
 
 ## Current Editor Navigation
 
-At source baseline `923f7b7f`, Disc setup panels are Project File → Export Options → Template → Game → Steam Branding → Disc Layout Presets, followed by packaging-role panels. Case has surface tabs, Project File → Export Options → Template → Case Layout Presets → Game, dedicated Steam branding, and surface-specific role panels. Tools launchers reveal/focus existing workflow owners through a shared host; sidebar presentations remain available when their workflow is not hosted there.
+At the source baseline above, Disc setup panels are Project File → Export Options → Template → Game → Steam Branding → Disc Layout Presets, followed by packaging-role panels. Case has surface tabs, Project File → Export Options → Template → Case Layout Presets → Game, dedicated Steam branding, and surface-specific role panels. Tools launchers reveal/focus existing workflow owners through a shared host; sidebar presentations remain available when their workflow is not hosted there.
 
 Guide Legend is already a preview-local, collapsible app-shell panel in both editors; #124 is closed. It is not saved design content or exported artwork. Earlier sidebar-order descriptions in historical notes and agent instructions are not the current component inventory. This documentation correction does not reorder controls or relax the instruction against unrelated UI changes. See the [current behavior map](docs/README.md#current-behavior-at-the-reconciled-baseline) for source owners.
 
@@ -137,7 +137,7 @@ The project should not bundle official trademarked assets unless licensing is cl
 - Preserve the implemented preview-local Guide Legend; #124 is closed. New placement changes require their own scoped work.
 - Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, export preflight, and future case layouts so manual preview/export checks match the current feature set.
 - Continue architecture cleanup tracked by open issues such as #44, #46, and #47 only where it supports alpha work; #48 is the closed schema-validation/migration baseline, and future schema work follows `docs/PROJECT_FILE_SPEC.md`.
-- Use `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md` as the package authority; closed issue #56 remains the historical ZIP-container decision record. Codec, bounded native recognition/read/decode, shared immutable staging, session format identity, authoritative current-project and exact route synchronization, package Open/Save/Save As, the shared dirty-aware New/Open replacement guard, Home Return/Resume, and shared command feedback are source-connected. Close/termination guarding and native Tauri workflow acceptance remain future work.
+- Use `docs/PROJECT_PACKAGE_FORMAT_CONTRACT.md` as the package authority; closed issue #56 remains the historical ZIP-container decision record. Codec, bounded native recognition/read/decode, shared immutable staging, session format identity, authoritative current-project and exact route synchronization, package Open/Save/Save As, the shared dirty-aware New/Open replacement guard, Home Return/Resume, and shared command feedback are source-connected. Guarded native Close Window/Quit is source-connected; see the bounded Windows receipt. Full native workflow and release acceptance remain separate.
 - Defer Guided Start (#17), DVD/Amaray and Blu-ray case editors, direct printer support, official asset packs, automatic rating lookup, full arbitrary layer management, and broad refactors unless they become necessary for a focused alpha blocker.
 
 ## Platform Targets And Acceptance

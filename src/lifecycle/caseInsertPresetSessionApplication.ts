@@ -47,6 +47,8 @@ export type CaseInsertPresetSessionApplication = Readonly<{
   applicationStateIdentity: string
 }>
 
+export type CasePresetHistorySemantics = Pick<CaseInsertPresetSessionApplication, 'attachment' | 'recoveryStatus'>
+
 export type CaseInsertPresetSessionApplicationFailureCode =
   | 'invalid-input'
   | 'unsupported-version'
@@ -443,6 +445,22 @@ export function synchronizeCaseInsertPresetSessionApplication(
     status: 'advanced' as const,
     application: advanced.application,
   })
+}
+
+/** Rebind saved semantic preset configuration to a new history-step identity;
+ * never restore an older revision, assignment snapshot, or adoption receipt. */
+export function rebindCasePresetHistoryApplication(input: Readonly<{
+  sessionId: string
+  project: NormalizedCaseInsertProject
+  current: CaseInsertPresetSessionApplication
+  semantic: Pick<CaseInsertPresetSessionApplication, 'attachment' | 'recoveryStatus'>
+}>): CaseInsertPresetSessionApplicationResult {
+  const built = buildApplication({
+    sessionId: input.sessionId, project: input.project,
+    applicationRevision: input.current.applicationRevision + 1,
+    attachment: input.semantic.attachment, recoveryStatus: input.semantic.recoveryStatus,
+  })
+  return isFailure(built) ? built : Object.freeze({ ok: true as const, application: built.application })
 }
 
 /**
