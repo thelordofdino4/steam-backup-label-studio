@@ -74,13 +74,21 @@ globalThis.discCanvasFixture = {
     const layer = document.querySelector(selector)
     const first = layer?.firstElementChild
     const surface = layer?.closest('.disc-preview')
-    const transform = first ? getComputedStyle(first).transform : 'none'
-    const m = transform === 'none' ? null : new DOMMatrixReadOnly(transform)
+    // Measure rendered placement, not whether CSS uses a transform or inset.
+    const ratio = surface?.offsetWidth ? surface.getBoundingClientRect().width / surface.offsetWidth : 0
+    const layerRect = layer?.getBoundingClientRect()
+    const artRect = first?.getBoundingClientRect()
+    const placement = layerRect && artRect && ratio > 0
+      ? {
+        x: (artRect.left - layerRect.left) / ratio,
+        y: (artRect.top - layerRect.top) / ratio,
+        width: artRect.width / ratio,
+        height: artRect.height / ratio,
+      }
+      : null
     const pointerId = active?.events.find(e => e.type === 'pointerdown')?.pointerId
     return {
-      ...current(), transform,
-      translation: m ? { x: m.m41, y: m.m42 } : null,
-      ratio: surface ? surface.getBoundingClientRect().width / surface.offsetWidth : null,
+      ...current(), placement, ratio,
       artLoaded: !!layer?.querySelector('img')?.naturalWidth,
       captured: pointerId !== undefined && layer?.hasPointerCapture(pointerId),
     }

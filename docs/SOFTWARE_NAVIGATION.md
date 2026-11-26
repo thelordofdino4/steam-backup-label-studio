@@ -22,6 +22,10 @@
 
 ## Failure evidence and corrections
 
+## Disc Background renderer reconciliation diagnostics
+
+- CI 45756308742 on the first #396 reconciliation timed out in the mounted cancellation fixture before starting a gesture because it required an inline transform matrix; the shared layout painter now places artwork using explicit insets. The follow-up measures actual local rendered bounds and preserves trusted gesture, revision, and cancellation assertions. The Windows lifetime fixture was still passing retired component props and the standalone pointer fixture supplied the retired direct setter; migrate those fixtures to the shared layout model and current pointer gesture port. These failures do not establish a native app regression. Re-run the corrected head in the existing CI lanes without changing sandbox settings.
+
 - #367 isolated headless screenshot-ownership fixture, 2026-11-15: the initial Playwright launch resolved Chromium against the sandbox-relative cache and reported missing `chromium_headless_shell-1223`. No fixture navigation or native interaction occurred. Read-only inspection found the matching installed browser in `C:\Users\John Paul Keller\AppData\Local\ms-playwright`. The supported correction is to set the process-local `PLAYWRIGHT_BROWSERS_PATH` to that existing cache before rerunning the fresh headless synthetic fixture. Do not install another browser, attach to a user browser, capture the desktop, or launch Tauri. Corrected launch succeeded: the pre-fix fixture completed with 15 behavioral failures and six passing controls, not navigation or transport failures. It confirmed session/game result relabeling and stale action feedback. The supported source correction binds accepted data and actions to the session plus numeric Steam App ID, retains same-identity refresh results, and defers hiding to accepted identity changes rather than import start. New focused and full automated checks must run against the corrected source; these fixtures do not establish native acceptance.
 
 - Missing tauri CLI: candidate dependencies incomplete; locked npm ci restored them. Offline attempt lacked cached package; normal restore succeeded.
