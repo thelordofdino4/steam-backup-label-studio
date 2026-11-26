@@ -1,3 +1,4 @@
+import { materializeDiscProject } from '../lifecycle/canonicalProject.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
@@ -53,7 +54,9 @@ test('root synchronization publishes one complete canonical change and no identi
   assert.equal(session.id, 'sync-root')
   assert.equal(session.currentPath, 'C:\\projects\\sync.sbls')
   assert.equal(session.persistenceFormat, 'sbls-package-v1')
-  assert.deepEqual(session.cleanBaseline?.exactSnapshot, baseline)
+  const retainedBaseline = session.cleanBaseline?.exactSnapshot
+  assert.ok(retainedBaseline && 'background' in retainedBaseline)
+  assert.deepEqual(materializeDiscProject(retainedBaseline), baseline)
   assert.deepEqual(session.lastEditorRoute, { workspace: 'disc' })
   assert.equal(selectIsActiveProjectDirty(root.getLifecycleState()), true)
 

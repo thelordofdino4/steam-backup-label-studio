@@ -13,7 +13,7 @@ export function ApplicationLifecycleBoundary({
   runtime: ApplicationLifecycleRuntime
   children: ReactNode
 }>) {
-  useEffect(() => () => runtime.dispose(), [runtime])
+  useEffect(() => () => { void runtime.dispose() }, [runtime])
 
   return (
     <ApplicationLifecycleRuntimeContext.Provider value={runtime}>

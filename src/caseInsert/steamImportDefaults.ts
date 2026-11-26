@@ -3,7 +3,6 @@ import type {
 } from './brandingSlotSources.ts'
 import {
   applySteamBackCoverImportToCaseInsert,
-  getSteamBackCoverImportStatus,
 } from './steamBackCoverImport.ts'
 import {
   applyCaseInsertSteamImportBrandingDefaults,
@@ -30,12 +29,6 @@ export type ApplySteamImportDefaultsToCaseInsertParams = {
   titleArtworkSeed: CaseInsertTitleArtworkImportSeed | null
   ratingCandidate: RatingBoardCandidate | null
   brandingSources: CaseInsertBrandingSourceCatalog
-}
-
-/** Prepare once so committed content and its feedback describe the same state. */
-export function prepareCaseInsertSteamImport(params: ApplySteamImportDefaultsToCaseInsertParams) {
-  const caseInsert = applySteamImportDefaultsToCaseInsert(params)
-  return { caseInsert, statusMessage: getSteamBackCoverImportStatus(caseInsert) }
 }
 
 export function applySteamImportDefaultsToCaseInsert({

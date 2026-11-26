@@ -1,3 +1,4 @@
+import { finishApplicationCaseInsertContinuousEdit, type GetApplicationCaseInsertContinuousEditPort } from './applicationCaseInsertContinuousEditPort.ts'
 import {
   commandFailed,
   commandSucceeded,
@@ -46,6 +47,7 @@ function failure(
 
 export function createApplicationWorkspaceNavigationCommandOwners(
   getRuntimeDependencies: GetRuntimeDependencies,
+  getDiscBackgroundEdit: GetApplicationCaseInsertContinuousEditPort = () => null,
 ): Readonly<{
   returnHome: ReturnHomeCommandOwner
   resumeProject: ResumeProjectCommandOwner
@@ -77,6 +79,8 @@ export function createApplicationWorkspaceNavigationCommandOwners(
   const returnHome: ReturnHomeCommandOwner = Object.freeze({
     availability: 'implemented',
     executeReturnHome(context) {
+      const finished = finishApplicationCaseInsertContinuousEdit(getDiscBackgroundEdit())
+      if (finished.status !== 'success') return finished
       const latest = context.getCurrentStateSnapshot()
       const session = latest.state.activeSession
       if (!session || latest.state.visibleWorkspace === 'home') {

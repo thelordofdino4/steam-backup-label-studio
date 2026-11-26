@@ -44,6 +44,20 @@ window.FileReader = class extends OriginalReader {
   }
 }
 window.__TAURI_INTERNALS__ = { invoke(command, args) {
+  // Stub only the native codec boundary; file reading, decode, bounds and
+  // request ownership remain production code. Malformed bytes still reject.
+  if(command === 'validate_imported_image_asset') {
+    if(!(args instanceof Uint8Array)) throw Error('Expected binary validation transport')
+    const value = new TextDecoder().decode(args)
+    const prefix = 'data:image/png;base64,'
+    if(!value.startsWith(prefix)) return Promise.reject({code:'project.package.asset-type-invalid'})
+    const bytes = Uint8Array.from(atob(value.slice(prefix.length)), c=>c.charCodeAt(0))
+    if(bytes.length < 24 || ![137,80,78,71,13,10,26,10].every((byte,index)=>bytes[index]===byte)) {
+      return Promise.reject({code:'project.package.asset-type-invalid'})
+    }
+    const view = new DataView(bytes.buffer)
+    return Promise.resolve({status:'success',mimeType:'image/png',width:view.getUint32(16),height:view.getUint32(20)})
+  }
   if(command === 'fetch_steam_app_details') return new Promise((resolve,reject) => metadataRequests.push({resolve,reject,appId:args.appid}))
   if(command === 'fetch_steam_store_items') return Promise.resolve('{}')
   if(command === 'find_steam_library_cache_assets') return Promise.resolve([])
@@ -94,7 +108,16 @@ window.importHarness = {
   })
  },
  async settle(index,fail) { await act(async()=>{ if(fail)readers[index].reject();else readers[index].resume();await completions[index] }) },
- async edit() {await act(async()=>{const session=runtime.root.getLifecycleState().activeSession;runtime.root.synchronizeCurrentProject({sessionId:session.id,kind:session.kind,project:{...session.project,title:session.project.title+' changed'}})})},
+ async edit() {
+  await act(async()=>{
+   const session=runtime.root.getLifecycleState().activeSession
+   if(session?.kind!=='disc')throw new Error('Expected the Disc fixture to be active')
+   const legacy={...session.project,title:session.project.title+' changed'}
+   delete legacy.background
+   const outcome=runtime.root.synchronizeDiscLegacyProject({sessionId:session.id,legacy})
+   if(outcome!=='synchronized')throw new Error('Fixture edit failed to advance the Disc revision: '+outcome)
+  })
+ },
  async newProject() {await act(async()=>{const result=await runtime.root.dispatch('project.new-disc');if(result.result?.status==='failed')throw new Error(JSON.stringify(result))})},
  async reset() {await act(async()=>{runtime.projectAsyncWork.invalidateAll()})},
  async metadataStart(id,apply=true) {

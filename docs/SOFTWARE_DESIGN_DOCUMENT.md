@@ -2514,6 +2514,9 @@ Disc background image geometry, reconstructs Disc preset state, and projects
 Case branding before any live mutation. Its commit phase establishes the exact
 accepted normalized snapshot as a path-bearing revision-zero clean session and
 applies the complete editor aggregate synchronously in the same React batch.
+The Disc accepted snapshot uses `createProjectSnapshot` after all restoration
+and preset fallback, preserving the source timestamp so initial editor capture
+is canonically equal to the Open baseline rather than a synthetic edit.
 
 The draft target-state application-command, single-project session, path,
 baseline, dirty-state, replacement-guard, and native close/Quit semantics are
@@ -2677,6 +2680,13 @@ authorizes it and adopts state.
 
 Export renders PNG bytes through canvas helpers. Disc export is circular and 300 DPI by selected/custom disc geometry. Case insert export is rectangular and template-driven. Export preflight summarizes output and warnings before writing files.
 
+The #359 source checkpoint makes physical resolution explicit in the shared
+canvas serializer: the caller's sizing DPI becomes one PNG `pHYs` chunk, with
+IHDR dimensions and chunk CRCs checked before writing. Non-density chunks and
+pixels are preserved. See [`PNG_PHYSICAL_OUTPUT_CONTRACT.md`](PNG_PHYSICAL_OUTPUT_CONTRACT.md)
+for integer rounding, existing Disc border margins, representative sizes and
+the still-pending native/physical calibration checklist.
+
 ### 16.2 Key Files
 
 - `src/export/exportPng.ts`
@@ -2685,6 +2695,7 @@ Export renders PNG bytes through canvas helpers. Disc export is circular and 300
 - `src/export/caseInsertPngImage.ts`
 - `src/export/caseInsertPngText.ts`
 - `src/export/canvasImage.ts`
+- `src/export/pngPhysicalResolution.ts`
 - `src/export/exportPreflight.ts`
 - `src/export/discDesignCheck.ts`
 - `src/export/caseInsertExportPreflight.ts`
@@ -2711,7 +2722,9 @@ Export reads current runtime project state and template geometry. Layer order po
 - Destination cancellation stops before rendering or writing. Disc preview
   measurement remains deferred until rendering is about to begin.
 - Canvas export builds PNG bytes.
-- Tauri writes binary PNG bytes directly to the selected path.
+- Tauri commits complete PNG bytes through the same-directory atomic writer
+  under #362; a failed write/flush/sync/replacement preserves the destination
+  and reports cleanup failures without a direct-write fallback.
 
 The merged issue #302 checkpoint and shared-command checkpoint implement the
 ordering, conditional warning decision, central capability/busy arbitration,
@@ -2719,7 +2732,9 @@ typed terminal results, and exact-once feedback using the current string-based
 preflight summaries. The remaining target in
 [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) still requires a
 fully immutable normalized request, typed diagnostics/blockers, Disc DOM-size
-independence, a final filename policy, and safe destination replacement.
+independence and a final filename policy. #362 connects safe destination
+replacement to the existing writer, with focused headless Windows evidence;
+native GUI/platform workflow acceptance is not implied.
 
 ### 16.5 Invariants And Future-Change Rules
 
@@ -3147,11 +3162,15 @@ Consequences:
 The following are documented future plans or active gaps, not current implemented guarantees:
 
 - Guided Start and opening-screen workflow.
-- Home Return/Resume, Close/termination use of the dirty-aware guard, and native
-  package workflow acceptance; the guard is already active for New Disc, New
-  Case, and Open, while content-recognized `.sbls` Open/Save/Save As,
-  encoder/write composition, session format identity, bounded binary project
-  I/O, and native decode/staging are source-connected.
+- Close/termination use of the dirty-aware guard remains future work under
+  #360. Home Return/Resume is already source-connected and retains the exact
+  session without replacement; New Disc, New Case, and Open already use the
+  shared dirty-aware guard. The bounded #303 reconciliation and remaining
+  acceptance are recorded in
+  [`PROJECT_REPLACEMENT_ACCEPTANCE.md`](PROJECT_REPLACEMENT_ACCEPTANCE.md).
+  Content-recognized `.sbls` Open/Save/Save As, encoder/write composition,
+  session format identity, bounded binary project I/O, and native decode/staging
+  are source-connected; broader package/lifecycle acceptance remains separate.
 - DVD/Amaray and Blu-ray case editors.
 - Direct printer integration.
 - Full arbitrary layer management.
@@ -3168,3 +3187,7 @@ Future changes to this SDD should remain evidence-based:
 - Add or update an ADR when a core contract changes.
 - Clearly mark future plans as future.
 - Do not describe planned behavior as implemented until code, tests, and runtime evidence support it.
+
+### Native termination ownership checkpoint (#360)
+
+Close Window/Quit reuse the lifecycle guard, Save owner, revision authorization and busy scopes. A captured handoff lease blocks the existing async request owner before retirement notifications, then finishes pending Case edits through a narrow optional port before final authorization. Main does not install the separate Case coordinator. The native bridge distinguishes proven no-authority rejection from an uncertain acknowledgement; unknown outcomes remain paused rather than admit edits that a delayed close could discard. Once-only awaitable cleanup preserves disposal ordering. See NATIVE_TERMINATION_ACCEPTANCE.md for the bounded source scope and outstanding primary/native gates.

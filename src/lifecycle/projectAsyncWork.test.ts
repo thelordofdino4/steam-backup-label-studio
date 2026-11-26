@@ -185,3 +185,42 @@ test('new work retires a failed application feedback permission', () => {
   work.begin('background-artwork')
   assert.equal(work.publish(request, () => { assert.fail('old failure') }), false)
 })
+
+test('a completed newer same-lane proposal cannot revive failed application feedback', () => {
+  const { work } = fixture()
+  const failed = work.begin('background-artwork')
+  assert.throws(() => work.commit(failed, () => { throw new Error('failed') }))
+  const newer = work.begin('background-artwork')
+  assert.equal(work.publish(newer, () => {}), true)
+  assert.equal(work.publish(failed, () => { assert.fail('revived old failure') }), false)
+})
+
+test('lane invalidation permanently retires consumed failure feedback', () => {
+  const { work } = fixture()
+  const failed = work.begin('background-artwork')
+  assert.throws(() => work.commit(failed, () => { throw new Error('failed') }))
+  work.invalidate('background-artwork')
+  assert.equal(work.publish(failed, () => { assert.fail('reset failure') }), false)
+})
+
+test('other-lane proposal completion preserves current failure feedback exactly once', () => {
+  const { work } = fixture()
+  const failed = work.begin('background-artwork')
+  assert.throws(() => work.commit(failed, () => { throw new Error('failed') }))
+  const unrelated = work.begin('screenshot-discovery')
+  assert.equal(work.publish(unrelated, () => {}), true)
+  let reports = 0
+  assert.equal(work.publish(failed, () => { reports += 1 }), true)
+  assert.equal(work.publish(failed, () => { reports += 1 }), false)
+  assert.equal(reports, 1)
+})
+
+test('same-lane work started during a failing application retires its later feedback', () => {
+  const { work } = fixture()
+  const failed = work.begin('background-artwork')
+  assert.throws(() => work.commit(failed, () => {
+    work.publish(work.begin('background-artwork'), () => {})
+    throw new Error('failed after replacement')
+  }))
+  assert.equal(work.publish(failed, () => { assert.fail('reentrant old failure') }), false)
+})

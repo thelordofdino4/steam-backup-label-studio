@@ -49,6 +49,7 @@ export {
 
 export const EXPORT_DPI = 300
 export const MM_PER_INCH = 25.4
+export const CUSTOM_OUTER_DIAMETER_MIN_MM = 20
 export const CUSTOM_OUTER_DIAMETER_MAX_MM = 305
 export const DISC_LAYOUT_CENTER_PERCENT = 50
 
@@ -743,7 +744,7 @@ export function getImageContentShapeFootprintPercent(
 }
 
 export function normalizeCustomDiscTemplate(template: DiscTemplate): DiscTemplate {
-  const outerDiameterMm = clampNumber(template.outerDiameterMm, 20, CUSTOM_OUTER_DIAMETER_MAX_MM)
+  const outerDiameterMm = clampNumber(template.outerDiameterMm, CUSTOM_OUTER_DIAMETER_MIN_MM, CUSTOM_OUTER_DIAMETER_MAX_MM)
   const physicalCenterHoleDiameterMm = clampNumber(template.physicalCenterHoleDiameterMm, 0, outerDiameterMm - 1)
   const innerHoleDiameterMm = clampNumber(template.innerHoleDiameterMm, physicalCenterHoleDiameterMm, outerDiameterMm - 1)
   const printableDiameterMm = clampNumber(template.printableDiameterMm, innerHoleDiameterMm, outerDiameterMm)

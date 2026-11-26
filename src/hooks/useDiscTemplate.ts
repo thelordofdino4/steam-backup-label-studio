@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { DiscTemplate } from '../types/template'
+import { createDiscDimensionEditingState, getDiscDimensionFieldViews, updateDiscDimensionDraft } from '../templates/discDimensionEditing'
 import type { DiscTemplateGeometryGuardrailState } from '../layout/discTemplateGeometryGuardrail'
 import {
   CUSTOM_OUTER_DIAMETER_MAX_MM,
@@ -12,25 +12,25 @@ import {
   getIsCustomDiscTemplate,
   getSelectedDiscTemplate,
   restoreDiscTemplateRuntimeState,
-  updateCustomDiscTemplateDimension,
+  type DiscTemplateState,
   type CustomDiscDimensionKey,
   type RestorableDiscTemplateState,
 } from '../templates/discTemplateStateModel'
 
 export type UseDiscTemplateOptions = {
   announceStatus: (message: string) => void
-  clampForegroundElementLayoutsToTemplate: (template: DiscTemplate) => void
+  commitTemplateChange: (state: DiscTemplateState, project: () => void) => boolean
   getGeometryGuardrailState: () => DiscTemplateGeometryGuardrailState
 }
 
 export function useDiscTemplate({
   announceStatus,
-  clampForegroundElementLayoutsToTemplate,
+  commitTemplateChange,
   getGeometryGuardrailState,
 }: UseDiscTemplateOptions) {
-  const [discTemplateState, setDiscTemplateState] = useState(
-    createDefaultDiscTemplateState,
-  )
+  const [dimensionEditing, setDimensionEditing] = useState(() =>
+    createDiscDimensionEditingState(createDefaultDiscTemplateState()))
+  const discTemplateState = dimensionEditing.templateState
   const selectedDiscTemplate = useMemo(
     () => getSelectedDiscTemplate(discTemplateState),
     [discTemplateState],
@@ -46,12 +46,12 @@ export function useDiscTemplate({
   )
 
   function resetDiscTemplateState() {
-    setDiscTemplateState(createDefaultDiscTemplateState())
+    setDimensionEditing(createDiscDimensionEditingState(createDefaultDiscTemplateState()))
   }
 
   function restoreDiscTemplateState(templateState: RestorableDiscTemplateState) {
-    setDiscTemplateState((currentState) =>
-      restoreDiscTemplateRuntimeState(currentState, templateState))
+    setDimensionEditing(current => createDiscDimensionEditingState(
+      restoreDiscTemplateRuntimeState(current.templateState, templateState)))
   }
 
   function handleTemplateChange(templateId: RestorableDiscTemplateState['selectedDiscTemplateId']) {
@@ -60,42 +60,30 @@ export function useDiscTemplate({
       templateId,
     )
 
-    setDiscTemplateState(templateChange.state)
-    clampForegroundElementLayoutsToTemplate(templateChange.selectedTemplate)
-    announceStatus(templateChange.statusMessage)
+    if (commitTemplateChange(templateChange.state, () =>
+      setDimensionEditing(createDiscDimensionEditingState(templateChange.state)))) {
+      announceStatus(templateChange.statusMessage)
+    }
   }
 
   function handleCustomDimensionChange(
     field: CustomDiscDimensionKey,
     value: string,
   ) {
-    const dimensionChange = updateCustomDiscTemplateDimension({
-      state: discTemplateState,
-      field,
-      value,
-      geometryGuardrailState: getGeometryGuardrailState(),
-    })
-
-    if (dimensionChange.statusMessage) {
-      announceStatus(dimensionChange.statusMessage)
+    const dimensionChange = updateDiscDimensionDraft(
+      dimensionEditing, field, value, getGeometryGuardrailState())
+    if (dimensionChange.changed && dimensionChange.selectedTemplateToClamp) {
+      commitTemplateChange(dimensionChange.state.templateState, () => setDimensionEditing(dimensionChange.state))
+    } else {
+      setDimensionEditing(dimensionChange.state)
     }
-
-    if (!dimensionChange.changed) {
-      return
-    }
-
-    setDiscTemplateState(dimensionChange.state)
-
-    if (dimensionChange.selectedTemplateToClamp) {
-      clampForegroundElementLayoutsToTemplate(
-        dimensionChange.selectedTemplateToClamp,
-      )
-    }
+    if (dimensionChange.statusMessage) announceStatus(dimensionChange.statusMessage)
   }
 
   return {
     selectedDiscTemplateId: discTemplateState.selectedDiscTemplateId,
     customDiscTemplate: discTemplateState.customDiscTemplate,
+    customDimensionFields: getDiscDimensionFieldViews(dimensionEditing),
     selectedDiscTemplate,
     defaultDiscTemplate: discTemplates.standardPrintableDisc,
     discTemplateOptions,

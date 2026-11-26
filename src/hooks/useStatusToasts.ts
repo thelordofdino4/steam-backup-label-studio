@@ -78,6 +78,7 @@ const STATUS_TOAST_DISPLAY: Record<StatusToastKind, StatusToastDisplay> = {
 export type StatusAnnouncementOptions = Readonly<{
   kind?: StatusToastKind
   deduplicationKey?: string
+  toastOnly?: boolean
 }>
 
 function getStatusToastKind(message: string): StatusToastKind {
@@ -188,7 +189,9 @@ export function useStatusToasts() {
       iconUrl: display.iconUrl,
     }
 
-    setProjectStatus(message)
+    // A later success supersedes an earlier failure, without leaving success
+    // text behind after its toast expires.
+    setProjectStatus(options.toastOnly ? '' : message)
     setStatusToasts((currentToasts) => [...currentToasts, toast].slice(-5))
 
     window.setTimeout(() => {

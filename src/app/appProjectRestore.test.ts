@@ -130,7 +130,6 @@ function createRecordingDependencies() {
       setSteamBannerFallbackText: record('setSteamBannerFallbackText'),
       restoreExportGuides: record('restoreExportGuides'),
       restoreDiscTextState: record('restoreDiscTextState'),
-      restoreBackgroundImageState: record('restoreBackgroundImageState'),
     },
     caseInsertProject: {
       setProjectJewelCase: record('setProjectJewelCase'),
@@ -197,7 +196,6 @@ test('Disc candidate commits lifecycle and every editor owner in one synchronous
     'setSteamBannerFallbackText',
     'restoreExportGuides',
     'restoreDiscTextState',
-    'restoreBackgroundImageState',
     'restoreActiveDiscPresetState',
     'setActiveWorkspace',
     'setHomeStatusMessage',
