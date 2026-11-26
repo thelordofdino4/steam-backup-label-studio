@@ -1085,6 +1085,7 @@ test('Case Steam import publishes game, artwork, and back-cover in one accepted 
       const state = window.readCaseSteamDiagnostic()
       return state && !state.pending && state.revision === prior + 1 && state.project.game.selectedSteamGame?.appId === appId
     }, { appId: newer.id, prior: before.revision }, { timeout: 12_000 })
+    await page.locator('.preview-toast-description').filter({ hasText: /Steam back-cover text: 0 enabled, 1 hidden\. To show hidden text, open Back/ }).waitFor({ timeout: 5_000 })
     await drain(page)
     const after = await page.evaluate(() => window.readCaseSteamDiagnostic())
     assert.equal(after.revision, before.revision + 1)
@@ -1094,7 +1095,6 @@ test('Case Steam import publishes game, artwork, and back-cover in one accepted 
     assert.equal(after.project.caseInsert.templates.tray.titleArtwork.defaultSteamLogo.imageDataUrl, newer.dataUrl)
     const legalBlock = after.project.caseInsert.templates.tray.textBlocks.find(block => block.id === 'tray-copyright-text')
     assert.equal(legalBlock?.value, legal)
-    await page.getByText(/Steam back-cover text: \d+ enabled, [1-9]\d* hidden\. To show hidden text, open Back/).first().waitFor({ timeout: 5_000 })
     assert.deepEqual(after.project.caseInsert.export, before.project.caseInsert.export)
     assert.equal(await title.inputValue(), 'Incoming Fixture Game')
     const step = async (direction, expected, revision, past, future, visibleTitle) => {
