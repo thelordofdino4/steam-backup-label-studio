@@ -1,3 +1,4 @@
+import type { DiscDimensionFieldView } from '../../templates/discDimensionEditing'
 import type { DiscTemplate } from '../../types/template'
 import type { SelectedDiscTemplateId } from '../../project/projectTypes'
 import type { CustomDiscDimensionKey } from '../../templates/discTemplateStateModel'
@@ -10,9 +11,8 @@ type TemplatePanelProps = {
   selectedDiscTemplateId: SelectedDiscTemplateId
   selectedDiscTemplate: DiscTemplate
   isCustomDiscTemplate: boolean
-  customDiscTemplate: DiscTemplate
+  customDimensionFields: readonly DiscDimensionFieldView[]
   discTemplateOptions: DiscTemplate[]
-  customOuterDiameterMaxMm: number
   handleTemplateChange: (templateId: SelectedDiscTemplateId) => void
   handleCustomDimensionChange: (dimensionKey: CustomDiscDimensionKey, rawValue: string) => void
 }
@@ -21,9 +21,8 @@ export function TemplatePanel({
   selectedDiscTemplateId,
   selectedDiscTemplate,
   isCustomDiscTemplate,
-  customDiscTemplate,
+  customDimensionFields,
   discTemplateOptions,
-  customOuterDiameterMaxMm,
   handleTemplateChange,
   handleCustomDimensionChange,
 }: TemplatePanelProps) {
@@ -57,76 +56,25 @@ export function TemplatePanel({
 
         {isCustomDiscTemplate ? (
           <div className="custom-dimension-grid">
-            <label className="custom-dimension-row">
-              <span>Outer diameter</span>
-              <input
-                type="number"
-                min="1"
-                max={customOuterDiameterMaxMm}
-                step="0.1"
-                value={customDiscTemplate.outerDiameterMm}
-                onChange={(event) =>
-                  handleCustomDimensionChange('outerDiameterMm', event.target.value)
-                }
-              />
-              <span>mm</span>
-            </label>
-            <label className="custom-dimension-row">
-              <span>Physical center hole</span>
-              <input
-                type="number"
-                min="1"
-                max={customDiscTemplate.outerDiameterMm}
-                step="0.1"
-                value={customDiscTemplate.physicalCenterHoleDiameterMm}
-                onChange={(event) =>
-                  handleCustomDimensionChange('physicalCenterHoleDiameterMm', event.target.value)
-                }
-              />
-              <span>mm</span>
-            </label>
-            <label className="custom-dimension-row">
-              <span>Inner print boundary</span>
-              <input
-                type="number"
-                min="1"
-                max={customDiscTemplate.outerDiameterMm}
-                step="0.1"
-                value={customDiscTemplate.innerHoleDiameterMm}
-                onChange={(event) =>
-                  handleCustomDimensionChange('innerHoleDiameterMm', event.target.value)
-                }
-              />
-              <span>mm</span>
-            </label>
-            <label className="custom-dimension-row">
-              <span>Outer print boundary</span>
-              <input
-                type="number"
-                min="1"
-                max={customDiscTemplate.outerDiameterMm}
-                step="0.1"
-                value={customDiscTemplate.printableDiameterMm}
-                onChange={(event) =>
-                  handleCustomDimensionChange('printableDiameterMm', event.target.value)
-                }
-              />
-              <span>mm</span>
-            </label>
-            <label className="custom-dimension-row">
-              <span>Safe zone</span>
-              <input
-                type="number"
-                min="1"
-                max={customDiscTemplate.outerDiameterMm}
-                step="0.1"
-                value={customDiscTemplate.safeDiameterMm}
-                onChange={(event) =>
-                  handleCustomDimensionChange('safeDiameterMm', event.target.value)
-                }
-              />
-              <span>mm</span>
-            </label>
+            {customDimensionFields.map(field => (
+              <div className="custom-dimension-row" key={field.key}>
+                <label id={field.inputId + '-label'} htmlFor={field.inputId}>{field.label}</label>
+                <input
+                  id={field.inputId}
+                  type="text"
+                  inputMode="decimal"
+                  aria-labelledby={field.inputId + '-label ' + field.inputId + '-unit'}
+                  value={field.value}
+                  aria-invalid={field.messages.length > 0 || undefined}
+                  aria-describedby={field.messages.length ? field.errorId : undefined}
+                  onChange={event => handleCustomDimensionChange(field.key, event.target.value)}
+                />
+                <span id={field.inputId + '-unit'} className="custom-dimension-unit">mm</span>
+                <span id={field.errorId} className="hint custom-dimension-error" aria-live="polite">
+                  {field.messages.join(' ')}
+                </span>
+              </div>
+            ))}
           </div>
         ) : (
           <dl className="template-metrics">

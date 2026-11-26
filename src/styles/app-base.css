@@ -212,7 +212,7 @@ textarea {
   text-align: right;
 }
 
-.custom-dimension-row span:last-child {
+.custom-dimension-unit {
   color: #9ca3af;
 }
 
@@ -317,3 +317,6 @@ input:disabled {
   font-size: 13px;
   font-weight: 700;
 }
+
+.custom-dimension-error { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
+.custom-dimension-error:empty { display: none; }

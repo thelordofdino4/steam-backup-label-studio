@@ -59,7 +59,7 @@ test.before(async () => {
   } }] })
   await server.listen()
   url = `http://127.0.0.1:${server.httpServer.address().port}${route}`
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, chromiumSandbox: true })
   page = await browser.newPage({ viewport: { width: 1600, height: 900 } })
   page.on('pageerror', error => errors.push(error.message))
   await page.goto(url)

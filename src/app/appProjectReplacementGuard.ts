@@ -10,6 +10,10 @@ import type {
 import type { ApplicationLifecycleState } from '../lifecycle/projectSession.ts'
 import { isProjectSessionDirty } from '../lifecycle/projectSession.ts'
 import type { SaveProjectWithinOperation } from './appProjectSaveCommand.ts'
+import {
+  finishApplicationCaseInsertContinuousEdit,
+  type GetApplicationCaseInsertContinuousEditPort,
+} from './applicationCaseInsertContinuousEditPort.ts'
 
 export type ProjectReplacementDecision = 'save' | 'discard' | 'cancel'
 
@@ -80,9 +84,16 @@ function declined(): ApplicationCommandResult<never> {
 export function createProjectReplacementGuard(
   getRuntimeDependencies: GetRuntimeDependencies,
   saveProjectWithinOperation: SaveProjectWithinOperation,
+  getContinuousEditPort: GetApplicationCaseInsertContinuousEditPort =
+    () => null,
 ): ProjectReplacementGuard {
   return async (context, operation) => {
     while (true) {
+      const finishedBeforeInspection =
+        finishApplicationCaseInsertContinuousEdit(getContinuousEditPort())
+      if (finishedBeforeInspection.status !== 'success') {
+        return finishedBeforeInspection
+      }
       const inspected = context.getCurrentStateSnapshot()
       const session = inspected.state.activeSession
 
@@ -117,6 +128,11 @@ export function createProjectReplacementGuard(
       if (decision === 'cancel') return declined()
 
       if (decision === 'discard') {
+        const finishedBeforeAuthorization =
+          finishApplicationCaseInsertContinuousEdit(getContinuousEditPort())
+        if (finishedBeforeAuthorization.status !== 'success') {
+          return finishedBeforeAuthorization
+        }
         const latest = context.getCurrentStateSnapshot()
         if (
           latest.state.activeSession?.id !== session.id ||
@@ -130,6 +146,11 @@ export function createProjectReplacementGuard(
       const saved = await saveProjectWithinOperation(context, operation)
       if (saved.status !== 'success') return saved
 
+      const finishedBeforeSaveInspection =
+        finishApplicationCaseInsertContinuousEdit(getContinuousEditPort())
+      if (finishedBeforeSaveInspection.status !== 'success') {
+        return finishedBeforeSaveInspection
+      }
       const latest = context.getCurrentStateSnapshot()
       if (latest.state.activeSession?.id !== session.id) {
         return failure(
