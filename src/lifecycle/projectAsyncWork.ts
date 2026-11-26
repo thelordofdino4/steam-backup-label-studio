@@ -50,13 +50,16 @@ export interface ProjectAsyncWork {
  */
 export function createProjectAsyncWork(
   getState: () => ApplicationLifecycleStateSnapshot,
+  options: Readonly<{ canAcceptWork?: () => boolean }> = {},
 ): ProjectAsyncWork {
+  const canAcceptWork = options.canAcceptWork ?? (() => true)
   let sequence = 0
   let mutationGeneration = 0
   let version = 0
   let observedStateGeneration = getState().generation
   let disposed = false
   const latest = new Map<ProjectAsyncLane, ProjectAsyncRequest>()
+  const failureOwners = new Map<ProjectAsyncLane, ProjectAsyncRequest>()
   const requestSessions = new WeakMap<ProjectAsyncRequest, ProjectSessionContinuation>()
   const failedApplications = new WeakMap<ProjectAsyncRequest, Readonly<{
     mutationGeneration: number
@@ -86,7 +89,7 @@ export function createProjectAsyncWork(
     observeSessionRoute()
     const snapshot = getState()
     const session = snapshot.state.activeSession
-    return !disposed && latest.get(request.lane) === request &&
+    return !disposed && canAcceptWork() && latest.get(request.lane) === request &&
       session !== null && snapshot.state.visibleWorkspace !== 'home' &&
       request.sessionId === session.id &&
       request.contentRevision === session.revision &&
@@ -103,16 +106,24 @@ export function createProjectAsyncWork(
     const failed = failedApplications.get(request)
     // A synchronous owner failure may report once, but never regain mutation
     // authority. New requests, navigation, edits, or disposal retire it.
-    const mayReportFailure = !mutates && !disposed && failed !== undefined &&
-      !latest.has(request.lane) && requestSessions.get(request) === continuation &&
+    const mayReportFailure = !mutates && !disposed && canAcceptWork() && failed !== undefined &&
+      failureOwners.get(request.lane) === request && requestSessions.get(request) === continuation &&
       failed.mutationGeneration === mutationGeneration &&
       failed.stateGeneration === getState().generation
     if (!current && !mayReportFailure) return false
     failedApplications.delete(request)
+    failureOwners.delete(request.lane)
     latest.delete(request.lane)
-    if (mutates) mutationGeneration += 1
+    if (mutates) {
+      mutationGeneration += 1
+      failureOwners.clear()
+      // Reserve the one failure report before applying. Reentrant newer work
+      // or invalidation can retire it even if this synchronous apply throws.
+      failureOwners.set(request.lane, request)
+    }
     try {
       apply()
+      if (failureOwners.get(request.lane) === request) failureOwners.delete(request.lane)
     } catch (error) {
       if (mutates) failedApplications.set(request, {
         mutationGeneration, stateGeneration: getState().generation,
@@ -128,11 +139,13 @@ export function createProjectAsyncWork(
     getCurrentSessionId: () => getState().state.activeSession?.id ?? null,
     captureSessionContinuation() {
       observeSessionRoute()
-      return continuation
+      // Work captured while final native handoff owns admission cannot revive
+      // if that handoff fails and the application becomes interactive again.
+      return !disposed && canAcceptWork() ? continuation : Object.freeze({ sessionId: null })
     },
     isSessionContinuationCurrent(candidate) {
       observeSessionRoute()
-      return !disposed && candidate === continuation && candidate.sessionId !== null &&
+      return !disposed && canAcceptWork() && candidate === continuation && candidate.sessionId !== null &&
         getState().state.visibleWorkspace !== 'home'
     },
     begin(lane: ProjectAsyncLane) {
@@ -151,17 +164,24 @@ export function createProjectAsyncWork(
         stateGeneration: snapshot.generation,
         mutationGeneration,
       })
-      latest.set(lane, request)
-      requestSessions.set(request, continuation)
+      failureOwners.delete(lane)
+      if (canAcceptWork()) {
+        latest.set(lane, request)
+        requestSessions.set(request, continuation)
+      } else {
+        latest.delete(lane)
+      }
       notify()
       return request
     },
     isCurrent,
     invalidate(lane: ProjectAsyncLane) {
-      if (latest.delete(lane)) notify()
+      const hadFailure = failureOwners.delete(lane)
+      if (latest.delete(lane) || hadFailure) notify()
     },
     invalidateAll() {
       latest.clear()
+      failureOwners.clear()
       continuation = Object.freeze({ sessionId: getState().state.activeSession?.id ?? null })
       notify()
     },
@@ -185,6 +205,7 @@ export function createProjectAsyncWork(
     dispose() {
       disposed = true
       latest.clear()
+      failureOwners.clear()
       notify()
       listeners.clear()
     },

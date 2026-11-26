@@ -99,8 +99,11 @@ window.searchHarness = {
   async changeProject() {
     await act(async () => {
       const session = runtime.root.getLifecycleState().activeSession
-      const project = { ...session.project, title: 'Edited while pending' }
-      runtime.root.synchronizeCurrentProject({ sessionId: session.id, kind: session.kind, project })
+      if (session?.kind !== 'disc') throw new Error('Expected the Disc fixture to be active')
+      const legacy = { ...session.project, title: 'Edited while pending' }
+      delete legacy.background
+      const outcome = runtime.root.synchronizeDiscLegacyProject({ sessionId: session.id, legacy })
+      if (outcome !== 'synchronized') throw new Error('Fixture edit failed to advance the Disc revision: ' + outcome)
     })
   },
   async importGame(fail) {

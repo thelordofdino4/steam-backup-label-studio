@@ -1,3 +1,9 @@
+import { createInteractionPerformanceObserver, isInteractionTimingEnabled } from './diagnostics/interactionPerformanceObserver.ts'
+import { InteractionPerformanceContext } from './diagnostics/InteractionPerformanceContext.ts'
+import { InteractionPerformanceReport } from './diagnostics/InteractionPerformanceReport.tsx'
+import { bindInteractionSession } from './diagnostics/interactionPerformanceSession.ts'
+import { createLifecyclePerformanceObserver, isLifecycleTimingEnabled } from './lifecycle/lifecyclePerformanceObserver.ts'
+import { LifecyclePerformanceReport } from './diagnostics/LifecyclePerformanceReport.tsx'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
@@ -15,7 +21,17 @@ import './styles/layoutFix.css'
 import App from './app/App.tsx'
 
 function mountApplication() {
-  const lifecycleRuntime = createApplicationLifecycleRuntime()
+  const performanceObserver = isLifecycleTimingEnabled(
+    import.meta.env.DEV, import.meta.env.VITE_SBLS_LIFECYCLE_TIMING,
+  )
+    ? createLifecyclePerformanceObserver() : undefined
+  const interactionObserver = isInteractionTimingEnabled(
+    import.meta.env.DEV, import.meta.env.VITE_SBLS_INTERACTION_TIMING,
+  ) ? createInteractionPerformanceObserver() : undefined
+  const lifecycleRuntime = createApplicationLifecycleRuntime({
+    performanceObserver, casePresetProjection: true, documentHistoryLimit: 16,
+  })
+  const unbindInteractionSession = bindInteractionSession(interactionObserver, lifecycleRuntime.root)
   const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root, {
     observeStartup: lifecycleRuntime.diagnostics.observeMenuStartup,
     onDiagnostic: lifecycleRuntime.diagnostics.recordMenuDiagnostic,
@@ -23,8 +39,9 @@ function mountApplication() {
 
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {
+      unbindInteractionSession()
       void menuRuntime.dispose()
-      lifecycleRuntime.dispose()
+      void lifecycleRuntime.dispose()
     })
   }
 
@@ -32,7 +49,11 @@ function mountApplication() {
     <ApplicationLifecycleBoundary runtime={lifecycleRuntime}>
       <ApplicationMenuBoundary runtime={menuRuntime}>
         <StrictMode>
-          <App />
+          <InteractionPerformanceContext.Provider value={interactionObserver}>
+            <App />
+          </InteractionPerformanceContext.Provider>
+          {interactionObserver && <InteractionPerformanceReport observer={interactionObserver} />}
+          {performanceObserver && <LifecyclePerformanceReport observer={performanceObserver} />}
         </StrictMode>
       </ApplicationMenuBoundary>
     </ApplicationLifecycleBoundary>,

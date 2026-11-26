@@ -130,7 +130,10 @@ type UseDiscPreviewPointerDragOptions = {
     imageSize: BackgroundImageSize | null
     scale: number
     offset: BackgroundOffset
-    setOffset: Dispatch<SetStateAction<BackgroundOffset>>
+    begin: (key: string) => boolean
+    updateOffset: (key: string, offset: BackgroundOffset) => void
+    finish: (key: string) => unknown
+    cancel: (key?: string) => void
   }
   discText: {
     layout: DiscTextLayoutSettings
@@ -160,6 +163,8 @@ function useDiscPreviewPercentDrag<TDragState extends PercentDragState>(
   })
 }
 
+const backgroundPointerKey = (pointerId: number) => `disc-preview:${pointerId}`
+
 export function useDiscPreviewPointerDrag({
   preview,
   background,
@@ -185,12 +190,13 @@ export function useDiscPreviewPointerDrag({
         ? previewRect.width / previewElement.offsetWidth
         : 1
     },
-    onDraggedOffset: (_dragState, nextOffset) => {
+    onDraggedOffset: (dragState, nextOffset) => {
       const previewElement = discPreviewRef.current
       const previewRect = previewElement?.getBoundingClientRect()
       const previewWidth = previewElement?.offsetWidth ?? previewRect?.width
 
-      background.setOffset(
+      background.updateOffset(
+        backgroundPointerKey(dragState.pointerId),
         previewWidth
           ? clampBackgroundOffsetToImageBounds(
               nextOffset,
@@ -407,7 +413,8 @@ export function useDiscPreviewPointerDrag({
 
   const handleBackgroundPointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
-      if (!background.imageUrl) {
+      if (!background.imageUrl || event.button !== 0 || !event.isPrimary ||
+          !background.begin(backgroundPointerKey(event.pointerId))) {
         return
       }
 
@@ -421,7 +428,7 @@ export function useDiscPreviewPointerDrag({
         ),
       )
     },
-    [background.imageUrl, background.offset, backgroundPointerDrag],
+    [background, backgroundPointerDrag],
   )
 
   const beginDiscTextDrag = useCallback(
@@ -607,6 +614,7 @@ export function useDiscPreviewPointerDrag({
   )
 
   const cancelPreviewPointerDrag = useCallback(() => {
+    background.cancel()
     backgroundPointerDrag.cancelPointerDrag()
     discTextPointerDrag.cancelPointerDrag()
     logoAssetPointerDrag.cancelPointerDrag()
@@ -617,6 +625,7 @@ export function useDiscPreviewPointerDrag({
     platformMarkPointerDrag.cancelPointerDrag()
     technicalMarkPointerDrag.cancelPointerDrag()
   }, [
+    background,
     backgroundPointerDrag,
     additionalArtworkPointerDrag,
     discTextPointerDrag,
@@ -634,7 +643,12 @@ export function useDiscPreviewPointerDrag({
       background: {
         handleBackgroundPointerDown,
         handleBackgroundPointerMove: backgroundPointerDrag.handlePointerMove,
-        handleBackgroundPointerUp: backgroundPointerDrag.endPointerDrag,
+        handleBackgroundPointerUp(event: PointerEvent<HTMLDivElement>) {
+          const key = backgroundPointerKey(event.pointerId)
+          if (event.type === 'pointerup') background.finish(key)
+          else background.cancel(key)
+          backgroundPointerDrag.endPointerDrag(event)
+        },
       },
       discText: {
         handleDiscTextPointerDown,

@@ -11,7 +11,7 @@ test.before(async () => {
     cacheDir: 'node_modules/.vite-test-application-help', logLevel: 'silent', server: { host: '127.0.0.1', port: 0 } })
   await server.listen()
   url = `http://127.0.0.1:${server.httpServer.address().port}/src/components/testing/application-help-integration.html`
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, chromiumSandbox: true })
   page = await browser.newPage({ viewport: { width: 1000, height: 720 } })
   page.on('pageerror', error => { if (loadErrors.length < 12) loadErrors.push(error.message) })
   page.on('response', response => { if (response.status() >= 400 && loadErrors.length < 12) loadErrors.push(`${response.status()} ${new URL(response.url()).pathname}`) })

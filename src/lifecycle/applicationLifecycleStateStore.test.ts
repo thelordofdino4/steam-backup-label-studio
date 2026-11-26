@@ -42,6 +42,7 @@ function createDiscState() {
 
 test('state store defensively captures an immutable explicit seed', () => {
   const mutableSeed = structuredClone(createDiscState())
+  Object.assign(mutableSeed.activeSession!, { project: createDiscProject() })
   const store = createApplicationLifecycleStateStore({
     initialState: mutableSeed,
   })

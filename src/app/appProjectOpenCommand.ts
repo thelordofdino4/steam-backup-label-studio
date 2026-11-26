@@ -112,11 +112,8 @@ export function createApplicationProjectOpenCommandOwner(
               persistenceFormat: candidate.persistenceFormat,
               lastEditorRoute: candidate.editorRoute,
               ...(candidate.projectType === 'caseInsert'
-                ? {
-                    caseInsertPresetRecovery:
-                      candidate.caseInsertPresetRecovery,
-                  }
-                : {}),
+                ? { caseInsertPresetRecovery: candidate.caseInsertPresetRecovery }
+                : { stagedDiscBackground: candidate.stagedDiscBackground }),
             }) : state,
           ))
       } catch (error) {

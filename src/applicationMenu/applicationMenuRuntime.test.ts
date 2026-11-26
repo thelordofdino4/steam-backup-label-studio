@@ -951,6 +951,7 @@ test('Help routes only to its informational owner and rechecks stale capability 
 
 test('Tools dismiss informational presentation before delegating to the existing navigation owner', async () => {
   const order: string[] = []
+  let dismissFails = false
   const root = fakeDiscLifecycle(async () => { throw new Error('unexpected lifecycle dispatch') })
   const projections: ApplicationMenuProjection[] = []
   let receive: ((invocation: ApplicationMenuInvocation) => void) | undefined
@@ -968,7 +969,10 @@ test('Tools dismiss informational presentation before delegating to the existing
     informational: {
       getCapabilities: () => ({ 'help.open-documentation': { canExecute: true }, 'help.show-about': { canExecute: false, reasonCode: 'unavailable' } }),
       invoke: () => true,
-      dismissForNavigation: () => { order.push('dismiss-help') },
+      dismissForNavigation: () => {
+        order.push('dismiss-help')
+        if (dismissFails) throw new Error('informational closure failed')
+      },
     },
   })
   await runtime.start()
@@ -976,5 +980,9 @@ test('Tools dismiss informational presentation before delegating to the existing
   receive!({ invocationId: 'tools-after-help', bridgeInstanceId: 'bridge-1', windowLabel: 'main', itemId: 'menu.tools.game', projectionGeneration: projections.at(-1)!.generation })
   await flush()
   assert.deepEqual(order, ['dismiss-help', 'navigate'])
+  dismissFails = true
+  receive!({ invocationId: 'tools-after-help-dismiss-failure', bridgeInstanceId: 'bridge-1', windowLabel: 'main', itemId: 'menu.tools.game', projectionGeneration: projections.at(-1)!.generation })
+  await flush()
+  assert.deepEqual(order, ['dismiss-help', 'navigate', 'dismiss-help', 'navigate'])
   await runtime.dispose()
 })
