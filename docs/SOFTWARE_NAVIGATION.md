@@ -345,3 +345,5 @@ The first Windows mounted run (45721770534, job 139581617825) passed Apply, temp
 
 ### 2026-11-26 #366 isolated Steam history candidate
 The first source build of the new import planner found two placement inputs missing their required template and a leftover type-only import from the older private checkpoint. No browser or native step ran. Pass the exact selected template to both text fit owners and remove the unused import before validating this candidate.
+
+The first mounted run (45740898518, Windows job 139645354505) passed the existing newer/retired two-PNG journey and 13 other diagnostics. The new Save As/Undo test stopped before Save: the second search result was intentionally disabled while the first import was pending. The two-PNG journey permits the second result by committing a separate Subtitle edit, which retires the first request. Save As needs no supersession prerequisite. Keep the second-request coverage in that passing test and use one pending import in the Save As/Undo test so only the path/baseline change is exercised. No production controls or browser settings change.
