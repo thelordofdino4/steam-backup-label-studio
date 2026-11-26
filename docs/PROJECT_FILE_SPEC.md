@@ -643,9 +643,9 @@ geometry, field values, or visual similarity.
 Legacy `0.1.0`, `0.2.0`, and `0.3.0` JSON remain accepted through this chain;
 new snapshots use `0.4.0`.
 
-## Future Package Direction
+## Package Container Boundary
 
-The target ZIP-compatible single-file package is specified by
+Production Open and Save use the ZIP-compatible single-file package specified by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 That contract owns the exact layout, content-addressed asset paths, mandatory
 digests, manifest bindings, hydration, security limits, legacy conversion, and
