@@ -1085,6 +1085,7 @@ test('Case Steam import publishes game, artwork, and back-cover in one accepted 
       const state = window.readCaseSteamDiagnostic()
       return state && !state.pending && state.revision === prior + 1 && state.project.game.selectedSteamGame?.appId === appId
     }, { appId: newer.id, prior: before.revision }, { timeout: 12_000 })
+    await page.locator('.preview-toast-description').filter({ hasText: /Steam back-cover text: 0 enabled, 1 hidden\. To show hidden text, open Back/ }).waitFor({ timeout: 5_000 })
     await drain(page)
     const after = await page.evaluate(() => window.readCaseSteamDiagnostic())
     assert.equal(after.revision, before.revision + 1)
