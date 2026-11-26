@@ -1747,7 +1747,8 @@ result envelope.
 | TARGET REQUIREMENT | Stale/conflict | None; discard invalid acceptance | One actionable recoverable message with session/revision/scope detail | First conflict summary/re-plan control |
 | TARGET REQUIREMENT | Compatibility/content/fit blocker | None | Accessible blocker list and stable codes | First actionable blocker or review summary |
 | TARGET REQUIREMENT | Atomic failure | None | One persistent actionable failure; no competing owner success | Review/retry control |
-| TARGET REQUIREMENT | Apply/Reapply/Detach success | One atomic commit or semantic no-op | One exact shared summary | Preserve editor continuity or use an explicit typed destination |
+| TARGET REQUIREMENT | Apply success after review | One atomic commit or semantic no-op | One accessible shared toast; no persistent panel, Project File, or Home success message | Selector; selection returns to neutral |
+| TARGET REQUIREMENT | Reapply/Detach success | One atomic commit or semantic no-op | One exact shared summary | Preserve editor continuity or use an explicit typed destination |
 
 **TARGET REQUIREMENT —** Review exposes programmatic group, region, side,
 role/object, selection, warning, blocker, customization, and consent state.
@@ -1760,8 +1761,17 @@ declared Case-editor fallback. A modal review, if later chosen, follows the
 shared modal focus lifecycle; final nonmodal/modal choice does not change the
 operation contract.
 
-**TARGET REQUIREMENT —** Feedback is emitted exactly once and remains globally
-perceivable if the workflow is hidden or Home becomes visible. Navigation
+**TARGET REQUIREMENT -** Successful Apply confirmation uses the existing shared
+toast without a local success notice or persistent Project File/Home success
+text. Accepted success clears superseded persistent status so an earlier failure
+cannot look current. The toast retains its polite live region and normal expiry.
+Review, consent, cancellation, actionable failures, and Reapply/Detach retain
+their existing behavior. This does not introduce a one-shot Apply workflow.
+Source/headless checks do not establish native or screen-reader acceptance.
+
+**TARGET REQUIREMENT -** Feedback is emitted exactly once and remains globally
+perceivable if the workflow is hidden. Actionable failures remain available if
+Home becomes visible; Apply success is transient toast-only. Navigation
 success is not Apply success, and lower owner adapters do not publish competing
 terminal toasts.
 

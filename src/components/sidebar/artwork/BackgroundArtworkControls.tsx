@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react'
+import type { ReactNode, Ref, RefCallback } from 'react'
 import {
   BACKGROUND_SCALE_MAX,
   BACKGROUND_SCALE_MIN,
@@ -22,7 +22,7 @@ import type { ArtworkPanelProps } from './types'
 type BackgroundArtworkControlsProps = ArtworkPanelProps & {
   enableControlRef?: Ref<HTMLInputElement>
   localFilePanelOpen?: boolean
-  localUploadControlRef?: Ref<HTMLInputElement>
+  localUploadControlRef?: RefCallback<HTMLInputElement | HTMLButtonElement>
   onLocalFilePanelOpenChange?: (open: boolean) => void
 }
 import { WebArtworkCandidateControls } from './WebArtworkCandidateControls'
@@ -62,6 +62,7 @@ function BackgroundArtworkFineTuneControls({
   backgroundOffset,
   backgroundOffsetSliderRanges,
   handleBackgroundScaleChange,
+  backgroundRangeGesture,
   handleBackgroundOffsetChange,
   backgroundImageUrl,
   handleResetBackground,
@@ -74,6 +75,7 @@ function BackgroundArtworkFineTuneControls({
   | 'backgroundOffset'
   | 'backgroundOffsetSliderRanges'
   | 'handleBackgroundScaleChange'
+  | 'backgroundRangeGesture'
   | 'handleBackgroundOffsetChange'
   | 'backgroundImageUrl'
   | 'handleResetBackground'
@@ -104,6 +106,17 @@ function BackgroundArtworkFineTuneControls({
       ? `These controls adjust the current background from ${sectionLabel.toLowerCase()}.`
       : `Inactive while ${activeSourceLabel.toLowerCase()} controls the current background. Choose ${sectionLabel.toLowerCase()} to enable these controls.`
 
+  const pointerGesture = (kind: 'scale' | 'x' | 'y') => {
+    if (!backgroundRangeGesture) return undefined
+    return {
+      ...backgroundRangeGesture,
+      update(key: string, value: number) {
+        if (kind === 'scale') backgroundRangeGesture.scale(key, value)
+        else backgroundRangeGesture.offset(key, kind, value)
+      },
+    }
+  }
+
   return (
     <fieldset
       className="background-source-layout-controls"
@@ -121,6 +134,7 @@ function BackgroundArtworkFineTuneControls({
           max={backgroundScaleControlRange.max}
           step={0.01}
           value={backgroundScale}
+          pointerGesture={pointerGesture('scale')}
           onInput={handleBackgroundScaleChange}
           onChange={handleBackgroundScaleChange}
         />
@@ -132,6 +146,7 @@ function BackgroundArtworkFineTuneControls({
           max={backgroundOffsetSliderRanges.x.max}
           step={0.1}
           value={backgroundOffset.x}
+          pointerGesture={pointerGesture('x')}
           onInput={(value) => handleBackgroundOffsetChange('x', value)}
           onChange={(value) => handleBackgroundOffsetChange('x', value)}
         />
@@ -143,6 +158,7 @@ function BackgroundArtworkFineTuneControls({
           max={backgroundOffsetSliderRanges.y.max}
           step={0.1}
           value={backgroundOffset.y}
+          pointerGesture={pointerGesture('y')}
           onInput={(value) => handleBackgroundOffsetChange('y', value)}
           onChange={(value) => handleBackgroundOffsetChange('y', value)}
         />

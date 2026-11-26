@@ -1,4 +1,5 @@
 import { useContext, useLayoutEffect } from 'react'
+import type { ApplicationCaseInsertContinuousEditPort } from './applicationCaseInsertContinuousEditPort.ts'
 import type {
   ApplicationLifecycleCompositionRoot,
 } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
@@ -37,6 +38,7 @@ export function useApplicationLifecycleRoot(
     newProject: ApplicationProjectNewRuntimeDependencies
     workspaceNavigation: ApplicationWorkspaceNavigationRuntimeDependencies
     exportPng: ApplicationPngExportRuntimeDependencies
+    caseInsertContinuousEdit?: ApplicationCaseInsertContinuousEditPort | null
   }>,
 ): ApplicationLifecycleCompositionRoot {
   const runtime = useContext(ApplicationLifecycleRuntimeContext)
@@ -53,6 +55,7 @@ export function useApplicationLifecycleRoot(
       dependencies.workspaceNavigation,
     )
     runtime.updatePngExportDependencies(dependencies.exportPng)
+    runtime.updateCaseInsertContinuousEditPort(dependencies.caseInsertContinuousEdit ?? null)
   }, [dependencies, runtime])
 
   return runtime.root

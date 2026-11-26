@@ -9,6 +9,7 @@ import {
   applySteamPlatformMarksImport,
 } from '../steam/steamPlatformMarks.ts'
 import type {
+  SteamPlatformMarkImportResult,
   SteamPlatformMarkImportStatus,
 } from '../steam/steamPlatformMarks.ts'
 import type {
@@ -24,8 +25,8 @@ type ApplySteamImportedDiscTextValues = (
 ) => DiscTextMetadataResolution
 
 type ApplySteamTitleArtworkImport = (
-  importedGame: SteamImportedGame,
-) => Promise<SteamTitleArtworkImportResult>
+  prepared: SteamTitleArtworkImportResult,
+) => SteamTitleArtworkImportResult
 
 export type SteamDiscVisualDefaultImport = {
   nextDiscTextResolution: DiscTextMetadataResolution
@@ -48,28 +49,34 @@ export type RunSteamDiscVisualDefaultImportParams = {
   projectPlatformMarks: ProjectPlatformMarks
   selectedDiscTemplate: DiscTemplate
   selectedSteamGame: SteamImportedGame | null
-  applySteamImportedDiscTextValues: ApplySteamImportedDiscTextValues
-  applySteamTitleArtworkImport: ApplySteamTitleArtworkImport
+  prepareSteamTitleArtworkImport: (game: SteamImportedGame) => Promise<SteamTitleArtworkImportResult>
   applyPlatformMarksImport?: typeof applySteamPlatformMarksImport
 }
 
-export async function runSteamDiscVisualDefaultImport({
+export type PreparedSteamDiscVisualImport = Readonly<{
+  importedGame: SteamImportedGame
+  nextProjectMetadata: ProjectMetadata
+  useMetadataCopyright: boolean
+  titleArtwork: SteamTitleArtworkImportResult
+  platform: SteamPlatformMarkImportResult
+}>
+
+type SteamDiscVisualApplyPorts = Readonly<{
+  applySteamImportedDiscTextValues: ApplySteamImportedDiscTextValues
+  applySteamTitleArtworkImport: ApplySteamTitleArtworkImport
+}>
+
+export async function prepareSteamDiscVisualDefaultImport({
   importedGame,
   nextProjectMetadata,
   shouldUpdateCopyrightDiscTextSource,
   projectPlatformMarks,
   selectedDiscTemplate,
   selectedSteamGame,
-  applySteamImportedDiscTextValues,
-  applySteamTitleArtworkImport,
+  prepareSteamTitleArtworkImport,
   applyPlatformMarksImport = applySteamPlatformMarksImport,
-}: RunSteamDiscVisualDefaultImportParams): Promise<SteamDiscVisualDefaultImport> {
-  const nextDiscTextResolution = applySteamImportedDiscTextValues(
-    importedGame,
-    nextProjectMetadata,
-    { useMetadataCopyright: shouldUpdateCopyrightDiscTextSource },
-  )
-  const titleArtworkImport = await applySteamTitleArtworkImport(importedGame)
+}: RunSteamDiscVisualDefaultImportParams): Promise<PreparedSteamDiscVisualImport> {
+  const preparedTitleArtwork = await prepareSteamTitleArtworkImport(importedGame)
   const platformMarkImport = applyPlatformMarksImport({
     importedGame,
     currentPlatformMarks: projectPlatformMarks,
@@ -77,11 +84,33 @@ export async function runSteamDiscVisualDefaultImport({
     previousSelectedSteamGame: selectedSteamGame,
   })
 
+  return Object.freeze({
+    importedGame,
+    nextProjectMetadata,
+    useMetadataCopyright: shouldUpdateCopyrightDiscTextSource,
+    titleArtwork: preparedTitleArtwork,
+    platform: platformMarkImport,
+  })
+}
+
+/** Compatibility apply port: callers must already hold the accepted request.
+ * Preparation never receives mirror or editor mutation ports.
+ */
+export function applyPreparedSteamDiscVisualDefaultImport(
+  prepared: PreparedSteamDiscVisualImport,
+  { applySteamImportedDiscTextValues, applySteamTitleArtworkImport }: SteamDiscVisualApplyPorts,
+): SteamDiscVisualDefaultImport {
+  const nextDiscTextResolution = applySteamImportedDiscTextValues(
+    prepared.importedGame,
+    prepared.nextProjectMetadata,
+    { useMetadataCopyright: prepared.useMetadataCopyright },
+  )
+  const titleArtworkImport = applySteamTitleArtworkImport(prepared.titleArtwork)
   return {
     nextDiscTextResolution,
     titleArtworkStatusMessage: titleArtworkImport.statusMessage,
-    platformMarkImportStatus: platformMarkImport.status,
-    platformMarkStatusMessage: platformMarkImport.statusMessage,
-    platformMarks: platformMarkImport.platformMarks,
+    platformMarkImportStatus: prepared.platform.status,
+    platformMarkStatusMessage: prepared.platform.statusMessage,
+    platformMarks: prepared.platform.platformMarks,
   }
 }
