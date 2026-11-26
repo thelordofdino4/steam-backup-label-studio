@@ -1384,7 +1384,7 @@ mod tests {
             let response = decode_request_with(
                 &headers_for(destination.to_str().unwrap()),
                 &InvokeBody::Raw(Vec::new()),
-                project_binary_io::read,
+                |path| project_binary_io::read(path),
                 |bytes| {
                     let (hydrated, metadata) = decode_project_package(bytes)?.into_parts();
                     assert_eq!(metadata.asset_count(), expected_asset_count);
