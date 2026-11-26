@@ -112,7 +112,8 @@ test('Disc Layout Presets sits after setup controls and before semantic roles', 
 })
 
 test('App delegates preset decisions to the focused adapter', () => {
-  assert.match(appSource, /applyDiscRolePresetToOwners\(\{/)
+  assert.match(appSource, /planDiscPresetDocument\(\{/)
+  assert.match(appSource, /commitPreparedDiscBackgroundCompound\(applicationLifecycleRoot,/)
   assert.match(appSource, /announceStatus\(`Applied \$\{result\.preset\.label\} layout preset\.`\)/)
   assert.doesNotMatch(appSource, /applyDiscRolePresetToState/)
   assert.doesNotMatch(appSource, /getDiscRolePresetUpdatePlan/)

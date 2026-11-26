@@ -11,6 +11,8 @@ browser-only diagnostic routes for contextual text-editor work. Read it before
 using Any App / Computer Use, browser automation, or smoke/capture scripts
 against the preview editor.
 
+Before starting SBLS testing, read `SOFTWARE_NAVIGATION.md`; reread it before each navigation attempt and follow its evidence-gated retry procedure.
+
 ## Runtime Source Of Truth
 
 User-visible runtime smoke targets the native Tauri application window opened
@@ -90,10 +92,7 @@ runtime smoke.
 5. Bring the Tauri window to the foreground and ensure no Codex, terminal,
    browser, or other window covers the tested area before screenshots.
 
-6. Use Any App / Computer Use for interactions and screenshots. Use one native
-   session and at most one retry after a tool or bridge failure. If the retry
-   fails, stop and report `Tauri Any App blocked` with the exact bridge/tooling
-   error.
+6. Use Any App / Computer Use for interactions and screenshots. Before every attempt, read `SOFTWARE_NAVIGATION.md`. Follow its diagnose, document, reread, and verify procedure before retrying a failure. Report `Tauri Any App blocked` when no evidence-supported correction is available.
 
 7. Label results explicitly as one of:
    - `Tauri Any App verified`
@@ -146,12 +145,12 @@ Keep this section current when a native pilot route succeeds.
 ### Known Any App Bridge Failures
 
 - If Any App captures Brave/Chrome/Edge because a browser tab title contains
-  the app name, refine the target to the exact Tauri process path and retry
-  once.
+  the app name, document the target mismatch and supported correction in SOFTWARE_NAVIGATION.md, then reread it before retrying
+  only with fresh evidence.
 - If Any App cannot determine the current browser URL after a browser window
-  was accidentally targeted, stop browser targeting and retry once against the
+  was accidentally targeted, stop browser targeting, follow SOFTWARE_NAVIGATION.md, and target the
   exact Tauri process path only.
-- If the retry still fails, report the native bridge blocker. Do not switch to
+- If an attempt fails without an evidence-supported correction, report the native bridge blocker. Do not switch to
   Vite/Playwright as a fallback.
 
 ### Manual-Only Native Dialog Checks
@@ -573,7 +572,4 @@ investigation:
 4. Run `npm run diagnose:text-editor:browser`.
 5. Include the result in the final validation report.
 
-For ad-hoc browser automation that is not yet encoded, use one browser session
-and at most one retry for a failed action. If selectors or browser tools keep
-failing, stop and report the automation failure instead of continuing to poke at
-the DOM.
+For ad-hoc browser diagnostics, follow SOFTWARE_NAVIGATION.md before each attempt and retry. Do not guess selectors or repeatedly probe the DOM after a failure. Browser diagnostics do not establish native acceptance.

@@ -43,6 +43,27 @@ export function resolveDiscTextMetadataState(
   }
 }
 
+/** Prospective text effects of a Disc Steam import. Geometry and Guided
+ * completion still run at their existing accepted owner boundary.
+ */
+export function planSteamImportedDiscTextValues(
+  appId: number,
+  metadata: ProjectMetadata,
+  state: DiscTextMetadataState,
+  useMetadataCopyright: boolean,
+): DiscTextMetadataResolution {
+  const values = state.discTextValueSources.appId === 'manual'
+    ? state.discTextValues
+    : { ...state.discTextValues, appId: String(appId) }
+  return resolveDiscTextMetadataState(metadata, {
+    discTextValues: useMetadataCopyright ? { ...values, copyright: '' } : values,
+    discTextValueSources: useMetadataCopyright
+      ? { ...state.discTextValueSources, copyright: 'metadata' }
+      : state.discTextValueSources,
+    discTextTitleValue: state.discTextTitleValue,
+  })
+}
+
 export function restoreDiscTextMetadataValueTransition({
   key,
   metadata,

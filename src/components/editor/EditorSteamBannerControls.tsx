@@ -1,3 +1,4 @@
+import { IMPORTED_IMAGE_ACCEPT } from '../../image/importedImagePolicy'
 import type { ChangeEvent, ReactNode } from 'react'
 import {
   getDefaultSteamBannerLockupSourceLabel,
@@ -192,7 +193,7 @@ export function EditorSteamBannerControls({
               id={`${idPrefix}-lockup-upload`}
               className="logo-file-input"
               type="file"
-              accept="image/*"
+              accept={IMPORTED_IMAGE_ACCEPT}
               onChange={onLockupUpload}
             />
             <p className="hint">

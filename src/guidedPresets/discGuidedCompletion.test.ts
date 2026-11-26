@@ -371,8 +371,12 @@ test('completion architecture has no reactive, DOM, preset-definition, or App sl
     (appSource.match(
       /onDiscGuidedSlotCompleted:\s*completeActiveDiscGuidedSlot/g,
     ) ?? []).length,
-    8,
+    7,
   )
+  // Background supplies the eighth owner through a compound document commit;
+  // App still has no slot-specific applicability policy.
+  assert.match(appSource, /prepareGuidedCompletion\(slotId, session\)/)
+  assert.match(ownerSources, /prepareGuidedCompletion\?\.\(\s*DISC_GUIDED_COMPLETION_SLOT_IDS\.backgroundImage, session\)/)
   assert.match(appSource, /completeDiscGuidedSlotsForMetadataAction\(/)
   assert.match(appSource, /completeDiscGuidedRatingBadgeAction\(/)
   assert.doesNotMatch(

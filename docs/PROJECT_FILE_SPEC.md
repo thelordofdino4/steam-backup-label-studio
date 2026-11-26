@@ -234,8 +234,8 @@ The production native encode/write adapter accepts one
 narrowly framed raw request containing capture metadata plus canonical project
 JSON and passes its complete owned package buffer directly to the atomic
 writer. The package codec does not consume TypeScript ports or filesystem paths.
-`write_binary_file` and PNG export behavior are unchanged; that direct writer
-is not an atomic project-package writer. These infrastructure boundaries add no
+The separate PNG export adapter uses `write_export_png` and the shared atomic
+writer, without entering this project-format boundary. These infrastructure boundaries add no
 schema fields. Lifecycle replacement, Resume, menu, shortcut, and history
 behavior is owned by the lifecycle and menu contracts; this project-schema
 checkpoint does not redefine it.
@@ -643,9 +643,9 @@ geometry, field values, or visual similarity.
 Legacy `0.1.0`, `0.2.0`, and `0.3.0` JSON remain accepted through this chain;
 new snapshots use `0.4.0`.
 
-## Future Package Direction
+## Package Container Boundary
 
-The target ZIP-compatible single-file package is specified by
+Production Open and Save use the ZIP-compatible single-file package specified by
 [`PROJECT_PACKAGE_FORMAT_CONTRACT.md`](PROJECT_PACKAGE_FORMAT_CONTRACT.md).
 That contract owns the exact layout, content-addressed asset paths, mandatory
 digests, manifest bindings, hydration, security limits, legacy conversion, and

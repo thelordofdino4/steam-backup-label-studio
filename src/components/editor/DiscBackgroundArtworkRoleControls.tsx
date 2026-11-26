@@ -22,7 +22,10 @@ export function DiscBackgroundArtworkRoleControls({
   const { registerFocusTarget, state } = useEditorRoleFocus()
   const [localFilePanelOpen, setLocalFilePanelOpen] = useState(false)
   const enableRef = useRef<HTMLInputElement | null>(null)
-  const localUploadRef = useRef<HTMLInputElement | null>(null)
+  const localUploadElement = useRef<HTMLInputElement | HTMLButtonElement | null>(null)
+  const localUploadRef = useCallback((element: HTMLInputElement | HTMLButtonElement | null) => {
+    localUploadElement.current = element
+  }, [])
   const openLocalFilePanel = useCallback(
     () => setLocalFilePanelOpen(true),
     [],
@@ -32,7 +35,7 @@ export function DiscBackgroundArtworkRoleControls({
 
   useLayoutEffect(() => registerBackgroundArtworkFocusTargets({
     enableElement: () => enableRef.current,
-    localUploadElement: () => localUploadRef.current,
+    localUploadElement: () => localUploadElement.current,
     openLocalFilePanel,
     registerFocusTarget,
   }), [openLocalFilePanel, registerFocusTarget])

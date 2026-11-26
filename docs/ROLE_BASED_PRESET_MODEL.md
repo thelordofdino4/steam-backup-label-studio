@@ -1191,8 +1191,9 @@ workflow/busy/feedback/history, or runtime behavior. Separate later checkpoints
 now provide lifecycle installation, persistence/recovery, a presentation-neutral
 workflow owner, the one-identity/two-revision Jewel Case Essentials production
 catalog, and
-accessible Case presentation/invocation. Issues #168, #149, #181, #281, and
-#305 remain open.
+accessible Case presentation/invocation. Issues #168, #149, #181, and #281
+remain open at baseline `923f7b7f`; #305 is closed after its exact-bound fix
+merged in PR #383. Earlier checkpoint acceptance remains scoped to its own revision.
 
 Remaining areas:
 

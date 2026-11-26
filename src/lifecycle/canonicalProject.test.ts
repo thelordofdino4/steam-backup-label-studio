@@ -8,8 +8,10 @@ import type {
   SavedDiscProject,
 } from '../project/projectTypes.ts'
 import {
+  captureLifecycleProjectSnapshot,
   captureNormalizedProjectSnapshot,
   createCanonicalProjectComparisonValue,
+  projectContentsAreSemanticallyEqual,
 } from './canonicalProject.ts'
 
 function createDiscProject(
@@ -340,4 +342,41 @@ test('project capture safely preserves unknown keys but rejects root session met
     /not persisted project content/,
   )
   assert.equal(({} as Record<string, unknown>).polluted, undefined)
+})
+
+
+test('Case content comparison does not serialize asset data for independent history checkpoints', () => {
+  const before = createCaseInsertProjectSnapshot({ activeCaseInsertTemplatePane: 'cover' })
+  before.caseInsert.templates.cover.titleArtwork.imageDataUrl = 'data:image/png;base64,YXNzZXQ='
+  const same = structuredClone(before)
+  same.savedAt = '2026-01-01T00:00:01.000Z'
+  same.editor = { activeCaseInsertTemplatePane: 'tray' }
+  const different = structuredClone(same)
+  different.caseInsert.templates.cover.titleArtwork.imageDataUrl = 'data:image/png;base64,Y2hhbmdlZA=='
+  const ordered = [before, same, different].map(item => captureLifecycleProjectSnapshot(item))
+  const serialize = JSON.stringify
+  let equal: boolean, changed: boolean
+  try {
+    JSON.stringify = () => { throw new Error('unexpected content serialization') }
+    equal = projectContentsAreSemanticallyEqual(ordered[0]!, ordered[1]!)
+    changed = projectContentsAreSemanticallyEqual(ordered[0]!, ordered[2]!)
+  } finally { JSON.stringify = serialize }
+  assert.equal(equal, true)
+  assert.equal(changed, false)
+})
+
+test('Disc independent remainders compare exact artwork without encoding another JSON copy', () => {
+  const before = createDiscProject({ titleArtwork: { imageDataUrl: 'data:image/png;base64,YXNzZXQ=' } })
+  const same = { ...structuredClone(before), savedAt: '2026-09-01T12:00:01.000Z' }
+  const changed = { ...structuredClone(same), titleArtwork: { imageDataUrl: 'data:image/png;base64,Y2hhbmdlZA==' } }
+  const captures = [before, same, changed].map(item => captureLifecycleProjectSnapshot(item))
+  const serialize = JSON.stringify
+  let equal: boolean, different: boolean
+  try {
+    JSON.stringify = () => { throw new Error('unexpected Disc artwork serialization') }
+    equal = projectContentsAreSemanticallyEqual(captures[0]!, captures[1]!)
+    different = projectContentsAreSemanticallyEqual(captures[0]!, captures[2]!)
+  } finally { JSON.stringify = serialize }
+  assert.equal(equal, true)
+  assert.equal(different, false)
 })

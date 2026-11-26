@@ -1,3 +1,4 @@
+import { IMPORTED_IMAGE_ACCEPT } from '../../image/importedImagePolicy'
 import {
   useCallback,
   type ChangeEvent,
@@ -349,7 +350,7 @@ export function EditorImageSourceControls({
             id={uploadId}
             className="logo-file-input"
             type="file"
-            accept="image/*"
+            accept={IMPORTED_IMAGE_ACCEPT}
             onChange={(event) => void onUpload(event)}
           />
           {renderFineTuneControls?.(
