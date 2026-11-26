@@ -1,7 +1,7 @@
 // Actual Disc App and controls in sandboxed Chromium. Native substitutes are limited
 // to fixture Steam transport, PNG validation, and Save/export destinations.
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -929,6 +929,11 @@ test('imported artwork preview, package write, and PNG agree through Undo and Re
         ? request.continue() : request.abort('blockedbyclient')
     })
     await page.goto(origin + route)
+    const relayDirectory = process.env.SBLS_DISC_HISTORY_PACKAGE_RELAY
+    if (relayDirectory) {
+      await page.waitForFunction(() => typeof window.enableDiscHistoryPackageRelay === 'function')
+      await page.evaluate(() => window.enableDiscHistoryPackageRelay())
+    }
     await page.locator('[data-smoke-id="home-new-disc"]').click()
     await reveal(page, 'Layout Presets')
     await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
@@ -999,6 +1004,13 @@ test('imported artwork preview, package write, and PNG agree through Undo and Re
     const redone = await capture('redo', newer.dataUrl)
     assert.deepEqual(redone.project, imported.project)
     assert.equal(redone.png.pixels, imported.png.pixels)
+    if (relayDirectory) {
+      for (const label of ['before', 'applied', 'undo', 'redo']) {
+        const raw = await page.evaluate(label => window.readDiscHistoryPackageRequest(label), label)
+        assert.ok(raw.length > 20, 'the production Save command emitted a complete native request')
+        await writeFile(join(relayDirectory, label + '.request'), Uint8Array.from(raw), { flag: 'wx' })
+      }
+    }
   } finally { await page.close() }
 })
 

@@ -3,6 +3,10 @@
 const decoder = new TextDecoder('utf-8', { fatal: true })
 const results = new Map()
 let armed
+let packageRelay
+
+window.enableDiscHistoryPackageRelay = () => { packageRelay = new Map() }
+window.readDiscHistoryPackageRequest = label => Array.from(packageRelay?.get(label) ?? [])
 
 window.armDiscHistoryOutput = label => {
   if (armed || results.has(label) || !['before', 'applied', 'undo', 'redo'].includes(label))
@@ -71,6 +75,7 @@ window.captureDiscHistoryOutput = (command, bytes) => {
   const captured = results.get(armed)
   if (command === 'encode_and_write_project_package_file' && magic === 'SBLSPSV2' && !captured.project) {
     captured.project = parseProject(bytes, view)
+    packageRelay?.set(armed, bytes.slice())
     return Promise.resolve({ status: 'success' })
   }
   if (command === 'write_export_png' && magic === 'SBLSPEV1' && !captured.png) {

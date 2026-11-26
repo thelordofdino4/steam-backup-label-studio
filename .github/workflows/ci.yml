@@ -108,4 +108,15 @@ jobs:
         run: npx --no-install playwright install --only-shell chromium
 
       - name: Verify sandboxed browser cases
-        run: npm run test:node -- --sandboxed-browser-only
+        run: |
+          $env:SBLS_DISC_HISTORY_PACKAGE_RELAY = Join-Path $env:RUNNER_TEMP 'disc-history-package-relay'
+          New-Item -Path $env:SBLS_DISC_HISTORY_PACKAGE_RELAY -ItemType Directory -ErrorAction Stop | Out-Null
+          npm run test:node -- --sandboxed-browser-only
+
+      - name: Reopen packages emitted by the mounted Disc history fixture
+        run: |
+          $env:SBLS_DISC_HISTORY_PACKAGE_RELAY = Join-Path $env:RUNNER_TEMP 'disc-history-package-relay'
+          $result = cargo test --manifest-path src-tauri/Cargo.toml --locked --lib commands::project_packages::tests::mounted_disc_history_packages_reopen_with_exact_committed_content -- --ignored --exact | Tee-Object -Variable report
+          $result
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not ($report -match 'test result: ok\. 1 passed;')) { throw 'The mounted package reopen test did not run exactly once.' }
