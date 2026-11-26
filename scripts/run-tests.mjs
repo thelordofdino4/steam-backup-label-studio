@@ -7,6 +7,7 @@ const [mode, lane, ...extra] = process.argv.slice(2)
 const sandboxedBrowserTestFiles = [
   'src/app/discSteamMounted.integration.test.mjs',
   'src/components/editor/EditorInspectorSection.integration.test.mjs',
+  'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
   'src/export/discBackgroundLifetime.integration.test.mjs',
 ]
 const validModes = ['--list', '--node-only', '--rust-only']

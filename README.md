@@ -175,4 +175,4 @@ Steam Backup Label Studio is an unofficial personal backup labeling tool. It is 
 
 ## License
 
-The repository includes an [MIT license text](LICENSE). The application Cargo manifest still has an empty license field; release metadata and attribution reconciliation remain tracked by #381/#376. Vendored codec notices are separate and retained under [vendor/LICENSES](src-tauri/crates/sbls-package-codec/vendor/LICENSES/). This documentation correction does not change any license or release policy.
+The repository includes an [MIT license text](LICENSE). The application Cargo manifest does not specify license metadata; release metadata and attribution reconciliation remain tracked by #381/#376. Vendored codec notices are separate and retained under [vendor/LICENSES](src-tauri/crates/sbls-package-codec/vendor/LICENSES/). This documentation correction does not change any license or release policy.
