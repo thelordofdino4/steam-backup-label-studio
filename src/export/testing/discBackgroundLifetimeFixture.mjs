@@ -6,6 +6,7 @@ import { BackgroundLayer } from '/src/components/preview/BackgroundLayer.tsx'
 import { createBlankDiscSavedProject } from '/src/project/blankDiscProject.ts'
 import { restoreProjectStateFromContents } from '/src/project/restoreProjectState.ts'
 import { createUploadedBackgroundImageImport } from '/src/image/backgroundImageImport.ts'
+import { resolveBackgroundImageLayout } from '/src/image/backgroundImage.ts'
 import { DiscBackgroundRaster, readDiscBackgroundAsset } from '/src/image/discBackgroundAsset.ts'
 import { createApplicationLifecycleCompositionRoot } from '/src/lifecycle/applicationLifecycleCompositionRoot.ts'
 import { createNewProjectSession } from '/src/lifecycle/projectSession.ts'
@@ -54,7 +55,9 @@ window.runLifetimeRegression = async ({ size, gifBase64 }) => {
   const paint = ({ background }) => {
     const input = captureDiscBackgroundExportInput(background)
     flushSync(() => mounted.render(createElement(BackgroundLayer, {
-      ...input, backgroundPreviewSize: { width: '600px', height: '600px' },
+      ...input, layout: resolveBackgroundImageLayout(
+        input.backgroundImageSize, input.backgroundScale, input.backgroundOffset, 600,
+      ),
       handleBackgroundPointerDown: noop, handleBackgroundPointerMove: noop, handleBackgroundPointerUp: noop,
     })))
   }

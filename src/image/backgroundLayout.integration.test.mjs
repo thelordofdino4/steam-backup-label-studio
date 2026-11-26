@@ -51,13 +51,34 @@ test.before(async () => {
     function Component({ config }) {
       const previewRef = React.useRef(null)
       const [offset, setOffset] = React.useState(config.offset)
+      const gesture = React.useRef(null)
       const coordinateSize = useDiscPreviewSize({ activeWorkspace: 'disc', discPreviewRef: previewRef })
       const layout = resolveBackgroundImageLayout(config.imageSize, config.scale, offset, coordinateSize)
       const defaults = createBlankDiscSavedProject()
       const binding = (value) => ({ value, setValue: () => {} })
       const handlers = useDiscPreviewPointerDrag({
         preview: { discPreviewRef: previewRef, selectedDiscTemplate: discTemplates.standardPrintableDisc },
-        background: { imageUrl: config.url, imageSize: config.imageSize, scale: config.scale, offset, setOffset },
+        background: {
+          imageUrl: config.url, imageSize: config.imageSize, scale: config.scale, offset,
+          begin(key) {
+            if (gesture.current !== null) return false
+            gesture.current = { key, initial: offset }
+            return true
+          },
+          updateOffset(key, value) {
+            if (gesture.current?.key === key) setOffset(value)
+          },
+          finish(key) {
+            if (gesture.current?.key === key) gesture.current = null
+          },
+          cancel(key) {
+            if (gesture.current && (key === undefined || gesture.current.key === key)) {
+              const { initial } = gesture.current
+              gesture.current = null
+              setOffset(initial)
+            }
+          },
+        },
         discText: { layout: defaults.discText.layout, styles: defaults.discText.styles, getTextContent: () => '', setLayout: () => {} },
         logoAssets: binding(defaults.logoAssets), titleArtwork: binding(defaults.titleArtwork),
         additionalArtwork: binding(defaults.additionalArtwork),
@@ -231,6 +252,7 @@ test('actual pointer hook converts screen deltas before shared clamping and sele
   await page.mouse.move(box.x + 200, box.y + 200)
   await page.mouse.down()
   await page.mouse.move(box.x + 240, box.y + 180)
+  await page.waitForFunction(() => window.__backgroundState.offset.x !== 12, undefined, { timeout: 5000 })
   const state = await snapshot()
   assert.deepEqual(state.offset, { x: 32, y: -18 })
   assertRect(state.content, { x: 12, y: 22, width: 240, height: 120 })
