@@ -12,6 +12,7 @@ export type ApplicationLifecycleStateSnapshot = Readonly<{
   state: ApplicationLifecycleState
   discHistory?: DocumentHistory
   discHistoryProjectionPending?: true
+  caseSteamProjectionPending?: true
 }>
 export type ApplicationLifecycleStateTransition = (current: ApplicationLifecycleState) => ApplicationLifecycleState
 export type ApplicationLifecycleStateCommitResult = Readonly<{
@@ -25,22 +26,27 @@ export type ApplicationLifecycleStateStoreOptions = Readonly<{
   onSubscriberError?: (error: unknown) => void
 }>
 
+type Projection = 'disc' | 'caseInsert'
+type DocumentCommitPolicy = 'record-disc-transaction' | 'record-disc-transaction-with-projection' |
+  'case-steam-transaction-with-projection'
+
 export interface ApplicationLifecycleStateStore {
   getSnapshot(): ApplicationLifecycleStateSnapshot
   commitTransition(
     expectedGeneration: number, transition: ApplicationLifecycleStateTransition,
-    historyPolicy?: 'record-disc-transaction' | 'record-disc-transaction-with-projection',
+    historyPolicy?: DocumentCommitPolicy,
   ): ApplicationLifecycleStateCommitResult
   stepDiscHistory(expectedGeneration: number, direction: 'undo' | 'redo'): ApplicationLifecycleStateCommitResult
-  acknowledgeDiscHistoryProjection(expectedGeneration: number): ApplicationLifecycleStateCommitResult
+  acknowledgeDocumentProjection(expectedGeneration: number, kind: Projection): ApplicationLifecycleStateCommitResult
   subscribe(subscriber: ApplicationLifecycleStateSubscriber): () => void
   dispose(): void
 }
 
-function makeSnapshot(generation: number, state: ApplicationLifecycleState, discHistory?: DocumentHistory, pending = false) {
+function makeSnapshot(generation: number, state: ApplicationLifecycleState, discHistory?: DocumentHistory, pending?: Projection) {
   return Object.freeze({
     generation, state, ...(discHistory ? { discHistory } : {}),
-    ...(pending ? { discHistoryProjectionPending: true as const } : {}),
+    ...(pending === 'disc' ? { discHistoryProjectionPending: true as const } : {}),
+    ...(pending === 'caseInsert' ? { caseSteamProjectionPending: true as const } : {}),
   })
 }
 
@@ -62,7 +68,7 @@ export function createApplicationLifecycleStateStore(
     Object.freeze({ status, snapshot: at })
 
   function publish(
-    basis: ApplicationLifecycleStateSnapshot, state: ApplicationLifecycleState, history?: DocumentHistory, pending = false,
+    basis: ApplicationLifecycleStateSnapshot, state: ApplicationLifecycleState, history?: DocumentHistory, pending?: Projection,
   ): ApplicationLifecycleStateCommitResult {
     if (basis !== snapshot) return result('stale')
     const committed = makeSnapshot(basis.generation + 1, state, history, pending)
@@ -98,7 +104,8 @@ export function createApplicationLifecycleStateStore(
         const old = basis.discHistory
         if (old && prior?.kind === 'disc' && prior.id === current.id) {
           if (prior.revision === current.revision && prior.project === current.project) history = old
-          else if (historyPolicy !== undefined && current.revision === prior.revision + 1) {
+          else if ((historyPolicy === 'record-disc-transaction' || historyPolicy === 'record-disc-transaction-with-projection') &&
+              current.revision === prior.revision + 1) {
             const recorded = recordDocumentTransition(old, current.id, prior.project, current.project)
             if (recorded !== old) history = recorded
           }
@@ -106,11 +113,18 @@ export function createApplicationLifecycleStateStore(
         // New/Open and unclassified content edits cannot resurrect earlier content.
         history ??= createDocumentHistory(current.id, current.project, limit)
       }
-      return publish(basis, next, history,
-        (historyPolicy === 'record-disc-transaction-with-projection' && prior?.kind === 'disc' &&
-          current?.kind === 'disc' && prior.id === current.id && current.revision === prior.revision + 1) ||
-        (!!basis.discHistoryProjectionPending && prior?.id === current?.id &&
-          prior?.revision === current?.revision && prior?.project === current?.project))
+      let pending: Projection | undefined
+      if (prior && current && prior.kind === current.kind && prior.id === current.id) {
+        if (current.revision === prior.revision + 1 &&
+            ((current.kind === 'disc' && historyPolicy === 'record-disc-transaction-with-projection') ||
+             (current.kind === 'caseInsert' && historyPolicy === 'case-steam-transaction-with-projection'))) {
+          pending = current.kind
+        } else if (prior.revision === current.revision && prior.project === current.project &&
+            (basis.discHistoryProjectionPending || basis.caseSteamProjectionPending)) {
+          pending = current.kind
+        }
+      }
+      return publish(basis, next, history, pending)
     },
     stepDiscHistory(expectedGeneration, direction) {
       if (disposed) throw new Error('The application lifecycle state store is disposed.')
@@ -124,13 +138,14 @@ export function createApplicationLifecycleStateStore(
       // Only already captured projects of the current Disc session enter this history.
       const restored = restoreHistoryDiscProject(state, current, history.current as CommittedDiscProject)
       if (restored === state) return result('no-op')
-      return publish(basis, captureApplicationLifecycleState(restored), history, true)
+      return publish(basis, captureApplicationLifecycleState(restored), history, 'disc')
     },
-    acknowledgeDiscHistoryProjection(expectedGeneration) {
+    acknowledgeDocumentProjection(expectedGeneration, kind) {
       if (disposed) throw new Error('The application lifecycle state store is disposed.')
       const basis = snapshot
       if (expectedGeneration !== basis.generation) return result('stale')
-      if (!basis.discHistoryProjectionPending) return result('no-op')
+      if (!(kind === 'disc' ? basis.discHistoryProjectionPending : basis.caseSteamProjectionPending))
+        return result('no-op')
       return publish(basis, basis.state, basis.discHistory)
     },
     subscribe(subscriber) {

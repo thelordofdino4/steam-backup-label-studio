@@ -350,3 +350,5 @@ The first mounted run (45740898518, Windows job 139645354505) passed the existin
 
 ### 2026-11-26 #366 Windows package relay
 Run 45743544671 (Windows job 139654051214) stopped at compilation of the added Rust test. Passing the generic project_binary_io::read function item directly did not meet decode_request_with's lifetime-general FnOnce(&Path) bound. No browser navigation or package write was reached. Use the same explicit closure as the production decode command to instantiate the generic read at each borrow; keep the actual Windows file read, strict test count, and codec untouched.
+
+The initial local Case command-wire TypeScript check found missing parameter annotations for the two new composition-root methods. No browser or desktop action occurred. Use the existing composition-root interface parameter types explicitly, then rebuild.

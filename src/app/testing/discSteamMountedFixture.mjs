@@ -161,6 +161,13 @@ window.readDiscHistoryDiagnostic = () => {
     past: discHistory?.past.length, future: discHistory?.future.length,
     path: state.activeSession?.currentPath, dirty: selectIsActiveProjectDirty(state) }
 }
+window.readCaseSteamDiagnostic = () => {
+  const { state, caseSteamProjectionPending } = lifecycleRuntime.root.getStateSnapshot()
+  const session = state.activeSession
+  if (session?.kind !== 'caseInsert') return null
+  return { sessionId: session.id, revision: session.revision, project: session.project,
+    path: session.currentPath, dirty: selectIsActiveProjectDirty(state), pending: Boolean(caseSteamProjectionPending) }
+}
 window.readDiscHistoryProject = () => {
   const session = lifecycleRuntime.root.getStateSnapshot().state.activeSession
   if (session?.kind !== 'disc') throw new Error('Expected active Disc')

@@ -166,7 +166,7 @@ test('Undo returns to clean content without reviving async Steam import authorit
   assert.equal(disc().id, request.sessionId)
   assert.equal(disc().revision, original.revision + 2)
   assert.equal(selectIsActiveProjectDirty(store.getSnapshot().state), false)
-  assert.equal(store.acknowledgeDiscHistoryProjection(store.getSnapshot().generation).status, 'committed')
+  assert.equal(store.acknowledgeDocumentProjection(store.getSnapshot().generation, 'disc').status, 'committed')
 
   releaseLogo()
   assert.deepEqual(await returned, { committed: false, published: false })
@@ -174,7 +174,7 @@ test('Undo returns to clean content without reviving async Steam import authorit
   assert.equal(store.stepDiscHistory(store.getSnapshot().generation, 'redo').status, 'committed')
   assert.equal(disc().revision, original.revision + 3)
   assert.equal(selectIsActiveProjectDirty(store.getSnapshot().state), true)
-  assert.equal(store.acknowledgeDiscHistoryProjection(store.getSnapshot().generation).status, 'committed')
+  assert.equal(store.acknowledgeDocumentProjection(store.getSnapshot().generation, 'disc').status, 'committed')
   const fresh = work.begin('steam-game')
   assert.equal(fresh.contentRevision, disc().revision)
   let freshCommits = 0

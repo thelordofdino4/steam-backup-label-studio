@@ -1,3 +1,4 @@
+import { prepareCaseSteamImport, type CaseSteamImport } from './caseSteamOperation.ts'
 import { readClosedDataFootprint } from './closedDocumentFootprint.ts'
 import { prepareDiscSteamImport, type DiscSteamImportAfterState } from './discSteamOperation.ts'
 import { beginLifecyclePerformanceSample, type LifecyclePerformanceObserver } from './lifecyclePerformanceObserver.ts'
@@ -49,7 +50,7 @@ import { createSavedDiscGuidedLayout, restoreSavedDiscGuidedWorkflow } from '../
 import type { DiscTextLayoutSettings } from '../discText/types.ts'
 import { normalizeUskRatingValue } from '../project/projectMetadata.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
-import type { RatingBadgeLayout, SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject, TitleArtworkLayout } from '../project/projectTypes.ts'
+import type { RatingBadgeLayout, SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject, SavedCaseInsertProject, TitleArtworkLayout } from '../project/projectTypes.ts'
 import {
   synchronizeActiveProjectContent,
   editDiscBackground,
@@ -69,6 +70,7 @@ import {
   savedDiscBackgroundMatches,
   getNormalizedProjectKind,
   normalizedProjectValueMatches,
+  projectContentsAreSemanticallyEqual,
 } from './canonicalProject.ts'
 
 const UNIMPLEMENTED_TERMINATION = Object.freeze({
@@ -218,6 +220,10 @@ export interface ApplicationLifecycleCompositionRoot {
     input?: unknown,
   ): Promise<ApplicationCommandDispatchResult<Value>>
   commitDiscSupplementalUsk(edit: DiscSupplementalUskEdit): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
+  commitCaseSteamImport(edit: CaseSteamImport & Readonly<{ expectedGeneration: number }>): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
+  acknowledgeCaseSteamProjection(input: Readonly<{
+    sessionId: ProjectSessionId; expectedGeneration: number; projection: SavedCaseInsertProject
+  }>): 'committed' | 'no-op' | 'stale' | 'invalid'
   commitDiscEditorDocumentEdit(edit: DiscEditorDocumentEdit): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
   stepDiscDocumentHistory(input: Readonly<{
     sessionId: ProjectSessionId
@@ -468,7 +474,7 @@ export function createApplicationLifecycleCompositionRoot(
       const legacy = readClosedDataFootprint(input.projection, discLegacyKeys, discLegacyKeys)
       if (!legacy || replaceActiveDiscRemainder(snapshot.state, current,
         prepareDiscLegacyRemainder(current, legacy)) !== snapshot.state) return 'invalid'
-      return stateStore.acknowledgeDiscHistoryProjection(snapshot.generation).status
+      return stateStore.acknowledgeDocumentProjection(snapshot.generation, 'disc').status
     } catch {
       return 'invalid'
     }
@@ -511,7 +517,8 @@ export function createApplicationLifecycleCompositionRoot(
     const session = snapshot.state.activeSession
     if (!session || session.id !== input.sessionId) return 'stale-session'
     if (session.kind !== input.kind) return 'wrong-kind'
-    if (session.kind === 'disc' && snapshot.discHistoryProjectionPending) return 'stale-session'
+    if ((session.kind === 'disc' && snapshot.discHistoryProjectionPending) ||
+        (session.kind === 'caseInsert' && snapshot.caseSteamProjectionPending)) return 'stale-session'
 
     let result
     try {
@@ -609,6 +616,29 @@ export function createApplicationLifecycleCompositionRoot(
       return stateStore.stepDiscHistory(snapshot.generation, input.direction).status
     },
     canCommitDiscBackground,
+    commitCaseSteamImport({ expectedGeneration, ...edit }: Parameters<ApplicationLifecycleCompositionRoot['commitCaseSteamImport']>[0]) {
+      const snapshot = stateStore.getSnapshot()
+      if (disposed || options.canAcceptCommands?.() === false || snapshot.caseSteamProjectionPending ||
+          busyCoordinator.getState().occupiedScopes.includes('project.mutation')) return 'unavailable'
+      if (snapshot.generation !== expectedGeneration) return 'stale'
+      const prepared = prepareCaseSteamImport(snapshot.state, edit)
+      if (prepared.status !== 'prepared') return prepared.status
+      return stateStore.commitTransition(snapshot.generation, () => prepared.state, 'case-steam-transaction-with-projection').status
+    },
+    acknowledgeCaseSteamProjection(input: Parameters<ApplicationLifecycleCompositionRoot['acknowledgeCaseSteamProjection']>[0]) {
+      if (disposed) return 'invalid'
+      const snapshot = stateStore.getSnapshot()
+      const current = snapshot.state.activeSession
+      if (snapshot.state.visibleWorkspace !== 'caseInsert' || current?.kind !== 'caseInsert' ||
+          current.id !== input.sessionId || snapshot.generation !== input.expectedGeneration) return 'stale'
+      if (!snapshot.caseSteamProjectionPending) return 'no-op'
+      try {
+        const projected = captureNormalizedProjectSnapshot(input.projection)
+        if (projected.projectType !== 'caseInsert' ||
+            !projectContentsAreSemanticallyEqual(projected, current.project)) return 'invalid'
+        return stateStore.acknowledgeDocumentProjection(snapshot.generation, 'caseInsert').status
+      } catch { return 'invalid' }
+    },
     commitDiscEditorDocumentEdit(edit: DiscEditorDocumentEdit) {
       if (!canCommitDiscBackground()) return 'unavailable'
       const snapshot = stateStore.getSnapshot()

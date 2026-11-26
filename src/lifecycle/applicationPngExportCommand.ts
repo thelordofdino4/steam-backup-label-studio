@@ -63,10 +63,10 @@ export function getApplicationPngExportCapability(
 ): ApplicationCommandCapability {
   // The renderer consumes some mirrored Disc owners until the editor has
   // committed its exact projection. Do not capture a mixed revision.
-  if (context.stateSnapshot.discHistoryProjectionPending) {
+  if (context.stateSnapshot.discHistoryProjectionPending || context.stateSnapshot.caseSteamProjectionPending) {
     return Object.freeze({
       canExecute: false,
-      reasonCode: 'export.disc-history-projection-pending',
+      reasonCode: context.stateSnapshot.caseSteamProjectionPending ? 'export.case-steam-projection-pending' : 'export.disc-history-projection-pending',
       userMessage: 'Wait for the editor to finish restoring this change before exporting.',
     })
   }

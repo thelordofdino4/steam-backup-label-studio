@@ -1060,3 +1060,37 @@ test('mounted logo layout Reset preserves the import and preset Undo steps', { t
     }
   } finally { await page.close() }
 })
+
+test('Case Steam import publishes game, artwork, and back-cover in one accepted revision', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-case-insert"]').click()
+    await reveal(page, 'Game')
+    const before = await page.evaluate(() => window.readCaseSteamDiagnostic())
+    await start(page, newer.id)
+    assert.deepEqual(await page.evaluate(() => window.readCaseSteamDiagnostic()), before,
+      'external artwork has not yet completed, so no project owner changes')
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await page.waitForFunction(({ appId, prior }) => {
+      const state = window.readCaseSteamDiagnostic()
+      return state && !state.pending && state.revision === prior + 1 && state.project.game.selectedSteamGame?.appId === appId
+    }, { appId: newer.id, prior: before.revision }, { timeout: 12_000 })
+    await drain(page)
+    const after = await page.evaluate(() => window.readCaseSteamDiagnostic())
+    assert.equal(after.revision, before.revision + 1)
+    assert.equal(after.sessionId, before.sessionId)
+    assert.equal(after.project.metadata.steamAppId, String(newer.id))
+    assert.equal(after.project.caseInsert.templates.cover.titleArtwork.imageDataUrl, newer.dataUrl)
+    assert.equal(after.project.caseInsert.templates.tray.titleArtwork.defaultSteamLogo.imageDataUrl, newer.dataUrl)
+    const legalBlock = after.project.caseInsert.templates.tray.textBlocks.find(block => block.id === 'tray-copyright-text')
+    assert.equal(legalBlock?.value, legal)
+    assert.deepEqual(after.project.caseInsert.export, before.project.caseInsert.export)
+    assert.equal(await page.getByRole('textbox', { name: 'Label title', exact: true }).inputValue(), 'Incoming Fixture Game')
+  } finally { await page.close() }
+})

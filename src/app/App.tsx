@@ -1,3 +1,5 @@
+import { applyCaseSteamDocumentImport, readCaseSteamDocumentBasis } from './appCaseSteamDocumentCommand.ts'
+import { planCaseSteamDocumentImport } from './appCaseSteamDocumentPlan.ts'
 import { planDiscSteamDocumentImport } from './appDiscSteamDocumentPlan.ts'
 import { readDiscEditorDocumentBasis, applyDiscEditorDocumentEdit, type DiscEditorDocumentOperation } from './appDiscEditorDocumentCommand.ts'
 import { planDiscTemplateDocumentEdit } from './appDiscTemplateDocumentPlan.ts'
@@ -179,14 +181,8 @@ import type {
 } from '../caseInsert/previewTextSelection'
 import { createFittedSteamBackCoverCopy } from '../caseInsert/backCoverCopyFit'
 import {
-  getCaseInsertRatingBadgeForSteamImport,
-} from '../caseInsert/steamImportBrandingDefaults'
-import {
   createSteamCaseInsertTitleArtworkSeed,
 } from '../caseInsert/titleArtwork'
-import {
-  applySteamImportDefaultsToCaseInsert,
-} from '../caseInsert/steamImportDefaults'
 import {
   updateRatingBadgeEnabledState,
 } from '../project/projectRatingBadge'
@@ -1733,14 +1729,6 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
       const caseInsertTitleArtworkSeed = options.applyCaseInsertBackCoverDefaults
         ? await createSteamCaseInsertTitleArtworkSeed(importedState.importedGame)
         : null
-      const caseInsertRatingBadgeForImport =
-        options.applyCaseInsertBackCoverDefaults
-          ? getCaseInsertRatingBadgeForSteamImport({
-            projectMetadata: nextProjectMetadata,
-            projectRatingBadge,
-            ratingCandidate: autoRatingCandidate,
-          })
-          : projectRatingBadge
       const caseInsertBackCoverCopyFit = options.applyCaseInsertBackCoverDefaults
         ? createFittedSteamBackCoverCopy(importedState.importedGame, {
           legalText: nextProjectMetadata.copyrightText,
@@ -1795,6 +1783,45 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
           announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
           return
         }
+        if (options.applyCaseInsertBackCoverDefaults) {
+          const captured = captureCurrentLegacyProject()
+          if (captured.kind !== 'caseInsert') return
+          const basis = readCaseSteamDocumentBasis(applicationLifecycleRoot, captured.project)
+          if (!basis || basis.current.id !== request.sessionId ||
+              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return
+          const plan = planCaseSteamDocumentImport({
+            current: captured.project, importedGame: importedState.importedGame,
+            titleArtworkSeed: caseInsertTitleArtworkSeed,
+            metadataPlan: {
+              isDifferentSelectedSteamGame, autoRatingCandidate, autoLegalCandidate, nextProjectMetadata,
+              shouldResetGameScopedRating, shouldResetGameScopedLegal, shouldUpdateCopyrightDiscTextSource,
+            },
+            brandingSources: {
+              projectMetadata, projectLogoAssets, projectRatingBadge, projectMediaMark, projectPlatformMarks, projectTechnicalMarks,
+            },
+          })
+          const committed = applyCaseSteamDocumentImport(applicationLifecycleRoot, {
+            sessionId: request.sessionId, expectedRevision: request.contentRevision,
+            expectedGeneration: basis.expectedGeneration, proposed: plan.project,
+          }, unstable_batchedUpdates, changed => {
+            if (changed) {
+              setSelectedSteamGame(importedState.importedGame)
+              setManualGameTitle(importedState.manualGameTitle)
+              setProjectMetadata(nextProjectMetadata)
+              setProjectRatingBadge(plan.ratingBadge)
+              setProjectJewelCase(plan.project.caseInsert)
+            }
+            loadImportedSteamMetadataCandidates(importedState.importedGame)
+            clearSteamSearchResults()
+          })
+          if (!committed) throw new Error('The checked Case import could not be applied.')
+          announceStatus(importedState.statusMessage)
+          announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
+          caseInsertBackCoverCopyFit?.warnings.forEach(warning => announceStatus(warning))
+          if (caseInsertTitleArtworkSeed) announceStatus(caseInsertTitleArtworkSeed.statusMessage)
+          announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
+          return
+        }
         loadImportedSteamMetadataCandidates(importedState.importedGame)
         const discVisualImport = preparedDiscVisualImport
           ? applyPreparedSteamDiscVisualDefaultImport(preparedDiscVisualImport, {
@@ -1806,43 +1833,7 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
         clearSteamSearchResults()
         setManualGameTitle(importedState.manualGameTitle)
         setProjectMetadata(nextProjectMetadata)
-        if (options.applyCaseInsertBackCoverDefaults) {
-          setProjectRatingBadge(caseInsertRatingBadgeForImport)
-        }
-
         announceStatus(importedState.statusMessage)
-
-        if (options.applyCaseInsertBackCoverDefaults) {
-          setProjectJewelCase((currentCaseInsert) => {
-            return applySteamImportDefaultsToCaseInsert({
-              caseInsert: currentCaseInsert,
-              importedGame: importedState.importedGame,
-              legalText: nextProjectMetadata.copyrightText,
-              replaceExisting: isDifferentSelectedSteamGame,
-              titleArtworkSeed: caseInsertTitleArtworkSeed,
-              ratingCandidate: autoRatingCandidate,
-              brandingSources: {
-                projectMetadata: nextProjectMetadata,
-                projectLogoAssets,
-                projectRatingBadge: caseInsertRatingBadgeForImport,
-                projectMediaMark,
-                projectPlatformMarks,
-                projectTechnicalMarks,
-              },
-            })
-          })
-          caseInsertBrandingMarkSync.syncCaseInsertBrandingMarkSlots({
-            projectMetadata: nextProjectMetadata,
-            projectRatingBadge: caseInsertRatingBadgeForImport,
-          })
-          announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
-          caseInsertBackCoverCopyFit?.warnings.forEach((warning) => {
-            announceStatus(warning)
-          })
-          if (caseInsertTitleArtworkSeed) {
-            announceStatus(caseInsertTitleArtworkSeed.statusMessage)
-          }
-        }
 
         if (discVisualImport) {
           if (
@@ -2229,6 +2220,8 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   const renderedSessionId = applicationCommandSnapshot.lifecycle.activeSession?.id
   const historyProjectionPending =
     applicationLifecycleRoot.getStateSnapshot().discHistoryProjectionPending === true
+  const caseSteamProjectionPending =
+    applicationLifecycleRoot.getStateSnapshot().caseSteamProjectionPending === true
   const discRatingProjectionBasis = useRef<{ sessionId: string; basis: DiscRatingLayoutSyncBasis } | null>(null)
   useLayoutEffect(() => {
     if (activeWorkspace === 'home') return
@@ -2260,6 +2253,12 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
         }
       }
     } else {
+      if (lifecycle.caseSteamProjectionPending) {
+        applicationLifecycleRoot.acknowledgeCaseSteamProjection({
+          sessionId: session.id, expectedGeneration: lifecycle.generation, projection: captured.project,
+        })
+        return
+      }
       applicationLifecycleRoot.synchronizeCurrentProject({
         sessionId: session.id, kind: 'caseInsert', project: captured.project,
       })
@@ -2279,6 +2278,7 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
     activeWorkspace,
     applicationLifecycleRoot,
     captureCurrentLegacyProject,
+    caseSteamProjectionPending,
     historyProjectionPending,
     projectRatingBadge,
     renderedSessionId,
