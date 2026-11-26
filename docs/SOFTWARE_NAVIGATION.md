@@ -372,3 +372,6 @@ Windows run 45757026580, job 139697950829, passed the Case import revision, sele
 
 ### 2026-11-26 #380 source verification prerequisites
 The first #398 focused unit run passed 29 tests but EditorPanel.test.ts did not load: this new isolated worktree had no TypeScript dependency installed. No browser or native navigation occurred. Install the locked frontend dependencies before rerunning the same unit checks. Do not change application code or any sandbox to work around the missing package.
+
+### 2026-11-26 #380 mounted Disc fixture adaptation
+Windows run 45766476096 (job 139728475555) passed 26 of 31 browser checks. Five older mounted Disc journeys stopped before interacting with their controls: the flattened inspector gives Game Info Logos and Game Title accessible level-two headings inside existing disclosure summaries. The fixture expected direct text spans. Open the unique matching role disclosure using the heading and assert the Rating badge labeled section is already visible, not a second disclosure. Preserve all rating, history, title, Save and PNG assertions. No application or sandbox change. Package relay and the remaining steps of the five tests have not been verified on this revision.
