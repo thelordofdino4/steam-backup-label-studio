@@ -56,7 +56,7 @@ export type CapturedLifecycleProject = CommittedDiscProject | NormalizedCaseInse
 
 // An identity for the already validated unmigrated fields, shared by successive
 // background-only revisions. Weak keys give it the lifetime of pinned snapshots.
-type DiscRemainderIdentity = { comparison?: string }
+type DiscRemainderIdentity = object
 const discRemainders = new WeakMap<object, DiscRemainderIdentity>()
 
 const FORBIDDEN_ROOT_PROJECT_KEYS = new Set([
@@ -301,7 +301,7 @@ export function captureNormalizedProjectSnapshot(
   return captured
 }
 
-function isCommittedDiscProject(value: unknown): value is CommittedDiscProject {
+export function isCommittedDiscProject(value: unknown): value is CommittedDiscProject {
   return typeof value === 'object' && value !== null && discRemainders.has(value)
 }
 
@@ -399,7 +399,7 @@ export function normalizedProjectSnapshotsAreExactlyEqual(
   return sameJsonValue(first as unknown as JsonValue, second as unknown as JsonValue)
 }
 
-/** Compare exact semantic content without serializing unchanged Disc artwork. */
+/** Compare exact semantic content without encoding artwork just to compare it. */
 export function projectContentsAreSemanticallyEqual(
   first: CapturedLifecycleProject,
   second: CapturedLifecycleProject,
@@ -407,21 +407,27 @@ export function projectContentsAreSemanticallyEqual(
   if (first === second) return true
   if (!isCommittedDiscProject(first) || !isCommittedDiscProject(second)) {
     if (isCommittedDiscProject(first) || isCommittedDiscProject(second)) return false
-    return createCanonicalProjectComparisonValue(first) === createCanonicalProjectComparisonValue(second)
+    // Case history retains multiple committed projects. A structural check
+    // prevents a cached JSON copy of their unchanged encoded artworks.
+    const kind = getNormalizedProjectKind(first)
+    if (kind !== getNormalizedProjectKind(second)) return false
+    return sameJsonValue(createComparisonProjection(first, kind), createComparisonProjection(second, kind))
   }
   if (!committedDiscBackgroundsAreExactlyEqual(first.background, second.background)) return false
   const a = discRemainders.get(first)!
   const b = discRemainders.get(second)!
   if (a === b) return true
 
-  function compareRemainder(project: CommittedDiscProject, identity: DiscRemainderIdentity) {
-    if (identity.comparison !== undefined) return identity.comparison
-    const projection = cloneRecord(project as unknown as JsonObject)
-    delete projection.savedAt
-    delete projection.background
-    return identity.comparison = JSON.stringify(projection)
-  }
-  return compareRemainder(first, a) === compareRemainder(second, b)
+  // The first two checks retain the constant-time path for Background-only
+  // transitions. Independent remainders compare canonical values directly
+  // rather than retaining a second complete JSON copy of imported artwork.
+  const firstRemainder = cloneRecord(first as unknown as JsonObject)
+  const secondRemainder = cloneRecord(second as unknown as JsonObject)
+  delete firstRemainder.savedAt
+  delete secondRemainder.savedAt
+  delete firstRemainder.background
+  delete secondRemainder.background
+  return sameJsonValue(firstRemainder, secondRemainder)
 }
 
 function committedDiscBackgroundsAreExactlyEqual(

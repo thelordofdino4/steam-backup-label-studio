@@ -42,6 +42,7 @@ type UseTitleArtworkOptions = {
   applyActivePresetPlacement?: (
     titleArtwork: ProjectTitleArtwork,
   ) => ProjectTitleArtwork | null
+  commitLayoutReset?: (layout: ProjectTitleArtwork['layout']) => boolean
   onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
@@ -50,6 +51,7 @@ export function useTitleArtwork({
   steamLogoPlacement,
   announceStatus,
   applyActivePresetPlacement = (titleArtwork) => titleArtwork,
+  commitLayoutReset,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseTitleArtworkOptions) {
   const interactionObserver = useContext(InteractionPerformanceContext)
@@ -154,8 +156,16 @@ export function useTitleArtwork({
   }
 
   function handleResetTitleArtworkLayout() {
-    asyncWork.invalidateAll()
-    resetTitleArtworkLayoutForPlacement(steamLogoPlacement)
+    if (commitLayoutReset) {
+      const reset = clampProjectTitleArtworkToSafeZone(
+        resetProjectTitleArtworkLayout(projectTitleArtworkRef.current, selectedDiscTemplate, steamLogoPlacement),
+        selectedDiscTemplate,
+      )
+      if (!commitLayoutReset(reset.layout)) return
+      asyncWork.invalidateAll()
+    } else {
+      resetTitleArtworkLayoutForPlacement(steamLogoPlacement)
+    }
     announceStatus('Reset title artwork layout.')
   }
 

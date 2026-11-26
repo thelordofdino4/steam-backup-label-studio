@@ -1,3 +1,12 @@
+import {
+  applyCaseSteamDocumentImport, readCaseSteamDocumentBasis, stepProjectedCaseHistory, shouldEnableCaseHistoryRating,
+} from './appCaseSteamDocumentCommand.ts'
+import { planCaseSteamDocumentImport } from './appCaseSteamDocumentPlan.ts'
+import { planDiscSteamDocumentImport } from './appDiscSteamDocumentPlan.ts'
+import { readDiscEditorDocumentBasis, applyDiscEditorDocumentEdit, type DiscEditorDocumentOperation } from './appDiscEditorDocumentCommand.ts'
+import { planDiscTemplateDocumentEdit } from './appDiscTemplateDocumentPlan.ts'
+import type { DiscTemplateState } from '../templates/discTemplateStateModel.ts'
+import { prepareDiscHistoryGuidedAttachment, readDiscHistoryTemplate, stepProjectedDiscHistory } from './appDiscHistoryProjection.ts'
 import { captureDiscBackgroundExportInput } from '../lifecycle/canonicalProject.ts'
 import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
@@ -16,7 +25,6 @@ import {
   normalizeCaseInsertNavigationSurfaceForPane,
   type CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces'
-import type { DiscTemplate } from '../types/template'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import '../styles/App.css'
 import '../styles/layoutFix.css'
@@ -175,14 +183,8 @@ import type {
 } from '../caseInsert/previewTextSelection'
 import { createFittedSteamBackCoverCopy } from '../caseInsert/backCoverCopyFit'
 import {
-  getCaseInsertRatingBadgeForSteamImport,
-} from '../caseInsert/steamImportBrandingDefaults'
-import {
   createSteamCaseInsertTitleArtworkSeed,
 } from '../caseInsert/titleArtwork'
-import {
-  applySteamImportDefaultsToCaseInsert,
-} from '../caseInsert/steamImportDefaults'
 import {
   updateRatingBadgeEnabledState,
 } from '../project/projectRatingBadge'
@@ -294,7 +296,18 @@ type SteamImportOptions = {
   applyCaseInsertBackCoverDefaults?: boolean
 }
 
-function App() {
+type DiscHistoryDiagnostic = (
+  step: (direction: 'undo' | 'redo') => ReturnType<typeof stepProjectedDiscHistory>,
+) => () => void
+
+type CaseHistoryDiagnostic = (
+  step: (direction: 'undo' | 'redo') => ReturnType<typeof stepProjectedCaseHistory>,
+) => () => void
+
+function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
+  connectDiscHistoryDiagnostic?: DiscHistoryDiagnostic
+  connectCaseHistoryDiagnostic?: CaseHistoryDiagnostic
+} = {}) {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
   const [discGuidedWorkflow, setDiscGuidedWorkflow] =
@@ -335,7 +348,7 @@ function App() {
     handleCustomDimensionChange,
   } = useDiscTemplate({
     announceStatus,
-    clampForegroundElementLayoutsToTemplate,
+    commitTemplateChange: handleDiscTemplateDocumentEdit,
     getGeometryGuardrailState,
   })
   const [steamLogoPlacement, setSteamLogoPlacement] =
@@ -583,9 +596,10 @@ function App() {
     resolvedDiscTextTitle,
     getCurrentDiscTextContent,
     setDiscTextLayout,
+    setDiscTextValues,
+    setDiscTextValueSources,
     resetDiscTextState,
     restoreDiscTextState,
-    clampDiscTextLayoutToTemplate,
     planDiscTextLayoutClamp,
     setDiscTextSettings,
     repositionDiscTextForSteamLogoPlacement,
@@ -678,7 +692,6 @@ function App() {
     projectLogoAssets,
     setProjectLogoAssets,
     applyLogoAssetImport,
-    clampProjectLogoAssetsToTemplate,
     resetProjectLogoAssets,
     handleLogoAssetUpload,
     handleLogoAssetLayoutChange,
@@ -696,7 +709,6 @@ function App() {
   const {
     projectRatingBadge,
     setProjectRatingBadge,
-    clampProjectRatingBadgeToTemplate,
     resetProjectRatingBadge,
     setRatingBadgeEnabled,
     setRatingBadgeEnabledForAppliedCandidate,
@@ -719,7 +731,6 @@ function App() {
   const {
     projectMediaMark,
     setProjectMediaMark,
-    clampProjectMediaMarkToTemplate,
     resetProjectMediaMark,
     handleMediaMarkUpload,
     handleMediaMarkValueChange,
@@ -737,7 +748,6 @@ function App() {
   const {
     projectPlatformMarks,
     setProjectPlatformMarks,
-    clampProjectPlatformMarksToTemplate,
     resetProjectPlatformMarks,
     handlePlatformMarkToggle,
     handlePlatformMarkUpload,
@@ -767,7 +777,6 @@ function App() {
   const {
     projectTechnicalMarks,
     setProjectTechnicalMarks,
-    clampProjectTechnicalMarksToTemplate,
     resetProjectTechnicalMarks,
     handleTechnicalMarkToggle,
     handleTechnicalMarkUpload,
@@ -785,7 +794,6 @@ function App() {
   const {
     projectTitleArtwork,
     setProjectTitleArtwork,
-    clampProjectTitleArtworkToTemplate,
     resetProjectTitleArtwork,
     resetTitleArtworkLayoutForPlacement,
     handleTitleArtworkLayoutChange,
@@ -799,12 +807,12 @@ function App() {
     steamLogoPlacement,
     announceStatus,
     applyActivePresetPlacement: applyActiveTitleArtworkPresetPlacement,
+    commitLayoutReset: handleDiscTitleArtworkLayoutReset,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
   const {
     projectAdditionalArtwork,
     setProjectAdditionalArtwork,
-    clampProjectAdditionalArtworkToTemplate,
     resetProjectAdditionalArtwork,
     handleAdditionalArtworkEnabledChange,
     handleAddAdditionalArtworkElement,
@@ -1015,18 +1023,78 @@ function App() {
     workflow: discGuidedWorkflow,
     updateWorkflow: setDiscGuidedWorkflow,
     activePresetState: activeDiscPreset.activePresetState,
+    resetProgress: () => handleDiscGuidedDocumentEdit({ kind: 'reset-guided-progress' }),
+    editSlot: (action, slotId) => handleDiscGuidedDocumentEdit({ kind: 'edit-guided-slot', action, slotId }),
   })
 
-  function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
-    clampProjectLogoAssetsToTemplate(template)
-    clampProjectTitleArtworkToTemplate(template)
-    clampProjectAdditionalArtworkToTemplate(template)
-    clampProjectRatingBadgeToTemplate(template)
-    clampProjectMediaMarkToTemplate(template)
-    clampProjectPlatformMarksToTemplate(template)
-    clampProjectTechnicalMarksToTemplate(template)
+  function getDiscDocumentRenderedOwners() {
+    return {
+      titleArtwork: projectTitleArtwork, additionalArtwork: projectAdditionalArtwork,
+      ratingBadge: projectRatingBadge, mediaMark: projectMediaMark, platformMarks: projectPlatformMarks,
+      logoAssets: projectLogoAssets, technicalMarks: projectTechnicalMarks, metadata: projectMetadata,
+      discTextSettings, discTextLayout, discTextValues, discTextValueSources,
+      discTextTitleValue, discTextHtmlSources, discTextStyles,
+    }
+  }
 
-    clampDiscTextLayoutToTemplate(template)
+  function handleDiscTemplateDocumentEdit(next: DiscTemplateState, projectTemplate: () => void) {
+    if (finishBackgroundDrag().status !== 'success') return false
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return false
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return false
+    const rendered = getDiscDocumentRenderedOwners()
+    const { fields, template } = planDiscTemplateDocumentEdit(next, rendered, planDiscTextLayoutClamp)
+    const { template: savedTemplate, ...mirrorOwners } = fields
+    void savedTemplate
+    const workflow = discGuidedWorkflow
+    const guided = workflow.activeLayout ? prepareDiscHistoryGuidedAttachment({
+      workflow, current: basis.current.project, target: basis.current.project,
+      plan: mirrorOwners, renderProjection: captured.project, rendered, template,
+    }) : null
+    if (workflow.activeLayout && !guided) return false
+    return applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, { kind: 'template', fields },
+      unstable_batchedUpdates, (accepted) => {
+        projectTemplate()
+        if (accepted.revision === basis.current.revision) return
+        setProjectTitleArtwork(fields.titleArtwork)
+        setProjectAdditionalArtwork(fields.additionalArtwork)
+        setProjectLogoAssets(fields.logoAssets)
+        setProjectRatingBadge(fields.ratingBadge)
+        setProjectMediaMark(fields.mediaMark)
+        setProjectPlatformMarks(fields.platformMarks)
+        setProjectTechnicalMarks(fields.technicalMarks)
+        setDiscTextLayout(fields.discTextLayout)
+        if (guided) activeDiscPreset.restoreActivePresetState(guided.attachment)
+      })
+  }
+
+  function handleDiscGuidedDocumentEdit(operation: Extract<DiscEditorDocumentOperation, { kind: 'reset-guided-progress' | 'edit-guided-slot' }>) {
+    if (finishBackgroundDrag().status !== 'success') return
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return
+    applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, operation,
+      unstable_batchedUpdates, (accepted) => {
+        if (accepted.revision !== basis.current.revision) {
+          setDiscGuidedWorkflow(restoreSavedDiscGuidedWorkflow(accepted.project.editor))
+        }
+      })
+  }
+
+  function handleDiscTitleArtworkLayoutReset(layout: typeof projectTitleArtwork.layout) {
+    if (finishBackgroundDrag().status !== 'success') return false
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return false
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return false
+    return applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, { kind: 'reset-title-artwork-layout', layout },
+      unstable_batchedUpdates, accepted => {
+        if (accepted.revision !== basis.current.revision) {
+          setProjectTitleArtwork({ ...projectTitleArtwork, layout })
+        }
+      })
   }
 
   function getGeometryGuardrailState() {
@@ -1638,7 +1706,7 @@ function App() {
 
     clearSelectedArtwork()
 
-    await runSteamImport(appId, async (importedState) => {
+    await runSteamImport(appId, async (importedState, request) => {
       const metadataCandidateResult = buildSteamMetadataCandidatesFromImportedGame(
         importedState.importedGame,
       )
@@ -1670,14 +1738,6 @@ function App() {
       const caseInsertTitleArtworkSeed = options.applyCaseInsertBackCoverDefaults
         ? await createSteamCaseInsertTitleArtworkSeed(importedState.importedGame)
         : null
-      const caseInsertRatingBadgeForImport =
-        options.applyCaseInsertBackCoverDefaults
-          ? getCaseInsertRatingBadgeForSteamImport({
-            projectMetadata: nextProjectMetadata,
-            projectRatingBadge,
-            ratingCandidate: autoRatingCandidate,
-          })
-          : projectRatingBadge
       const caseInsertBackCoverCopyFit = options.applyCaseInsertBackCoverDefaults
         ? createFittedSteamBackCoverCopy(importedState.importedGame, {
           legalText: nextProjectMetadata.copyrightText,
@@ -1685,6 +1745,92 @@ function App() {
         : null
 
       return () => {
+        if (activeWorkspace === 'disc' && preparedDiscVisualImport && !options.applyCaseInsertBackCoverDefaults) {
+          const captured = captureCurrentLegacyProject()
+          if (captured.kind !== 'disc') return
+          // The async hook has just admitted the session/content revision. A
+          // same-content Save As can change generation while the PNG decodes.
+          const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+          if (!basis || basis.current.id !== request.sessionId ||
+              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return
+          const plan = planDiscSteamDocumentImport(preparedDiscVisualImport, {
+            isDifferentSelectedSteamGame, autoRatingCandidate, autoLegalCandidate, nextProjectMetadata,
+            shouldResetGameScopedRating, shouldResetGameScopedLegal, shouldUpdateCopyrightDiscTextSource,
+          }, getDiscDocumentRenderedOwners(), selectedDiscTemplate, steamLogoPlacement,
+          activeDiscPreset.getActivePresetState())
+          const committed = applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, {
+            kind: 'steam-import', expectedRevision: request.contentRevision, after: plan.after,
+          }, unstable_batchedUpdates, accepted => {
+            if (accepted.revision !== basis.current.revision) {
+              setSelectedSteamGame(importedState.importedGame)
+              setManualGameTitle(importedState.manualGameTitle)
+              setProjectMetadata(nextProjectMetadata)
+              setProjectTitleArtwork(plan.titleArtwork)
+              if (plan.platformMarks) setProjectPlatformMarks(plan.platformMarks)
+              if (plan.badge) setProjectRatingBadge(plan.badge)
+              setDiscTextSettings({ ...discTextSettings, copyright: plan.copyrightEnabled })
+              setDiscTextLayout({ ...discTextLayout, ...plan.layout })
+              setDiscTextValues({
+                ...discTextValues,
+                ...(plan.after.text?.appId !== undefined && { appId: plan.after.text.appId }),
+                ...(plan.after.text?.copyright !== undefined && { copyright: plan.after.text.copyright }),
+              })
+              setDiscTextValueSources({
+                ...discTextValueSources,
+                ...(plan.after.text?.copyrightSource && { copyright: plan.after.text.copyrightSource }),
+              })
+              setDiscGuidedWorkflow(restoreSavedDiscGuidedWorkflow(accepted.project.editor))
+              activeDiscPreset.restoreActivePresetState(plan.presetState)
+            }
+            loadImportedSteamMetadataCandidates(importedState.importedGame)
+            clearSteamSearchResults()
+          })
+          if (!committed) throw new Error('The checked Disc import could not be applied.')
+          announceStatus(importedState.statusMessage)
+          announceStatus(preparedDiscVisualImport.titleArtwork.statusMessage)
+          announceStatus(preparedDiscVisualImport.platform.statusMessage)
+          announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
+          return
+        }
+        if (options.applyCaseInsertBackCoverDefaults) {
+          const captured = captureCurrentLegacyProject()
+          if (captured.kind !== 'caseInsert') return
+          const basis = readCaseSteamDocumentBasis(applicationLifecycleRoot, captured.project)
+          if (!basis || basis.current.id !== request.sessionId ||
+              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return
+          const plan = planCaseSteamDocumentImport({
+            current: captured.project, importedGame: importedState.importedGame,
+            titleArtworkSeed: caseInsertTitleArtworkSeed,
+            metadataPlan: {
+              isDifferentSelectedSteamGame, autoRatingCandidate, autoLegalCandidate, nextProjectMetadata,
+              shouldResetGameScopedRating, shouldResetGameScopedLegal, shouldUpdateCopyrightDiscTextSource,
+            },
+            brandingSources: {
+              projectMetadata, projectLogoAssets, projectRatingBadge, projectMediaMark, projectPlatformMarks, projectTechnicalMarks,
+            },
+          })
+          const committed = applyCaseSteamDocumentImport(applicationLifecycleRoot, {
+            sessionId: request.sessionId, expectedRevision: request.contentRevision,
+            expectedGeneration: basis.expectedGeneration, proposed: plan.project,
+          }, unstable_batchedUpdates, changed => {
+            if (changed) {
+              setSelectedSteamGame(importedState.importedGame)
+              setManualGameTitle(importedState.manualGameTitle)
+              setProjectMetadata(nextProjectMetadata)
+              setProjectRatingBadge(plan.ratingBadge)
+              setProjectJewelCase(plan.project.caseInsert)
+            }
+            loadImportedSteamMetadataCandidates(importedState.importedGame)
+            clearSteamSearchResults()
+          })
+          if (!committed) throw new Error('The checked Case import could not be applied.')
+          announceStatus(importedState.statusMessage)
+          announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
+          caseInsertBackCoverCopyFit?.warnings.forEach(warning => announceStatus(warning))
+          if (caseInsertTitleArtworkSeed) announceStatus(caseInsertTitleArtworkSeed.statusMessage)
+          announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
+          return
+        }
         loadImportedSteamMetadataCandidates(importedState.importedGame)
         const discVisualImport = preparedDiscVisualImport
           ? applyPreparedSteamDiscVisualDefaultImport(preparedDiscVisualImport, {
@@ -1696,43 +1842,7 @@ function App() {
         clearSteamSearchResults()
         setManualGameTitle(importedState.manualGameTitle)
         setProjectMetadata(nextProjectMetadata)
-        if (options.applyCaseInsertBackCoverDefaults) {
-          setProjectRatingBadge(caseInsertRatingBadgeForImport)
-        }
-
         announceStatus(importedState.statusMessage)
-
-        if (options.applyCaseInsertBackCoverDefaults) {
-          setProjectJewelCase((currentCaseInsert) => {
-            return applySteamImportDefaultsToCaseInsert({
-              caseInsert: currentCaseInsert,
-              importedGame: importedState.importedGame,
-              legalText: nextProjectMetadata.copyrightText,
-              replaceExisting: isDifferentSelectedSteamGame,
-              titleArtworkSeed: caseInsertTitleArtworkSeed,
-              ratingCandidate: autoRatingCandidate,
-              brandingSources: {
-                projectMetadata: nextProjectMetadata,
-                projectLogoAssets,
-                projectRatingBadge: caseInsertRatingBadgeForImport,
-                projectMediaMark,
-                projectPlatformMarks,
-                projectTechnicalMarks,
-              },
-            })
-          })
-          caseInsertBrandingMarkSync.syncCaseInsertBrandingMarkSlots({
-            projectMetadata: nextProjectMetadata,
-            projectRatingBadge: caseInsertRatingBadgeForImport,
-          })
-          announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
-          caseInsertBackCoverCopyFit?.warnings.forEach((warning) => {
-            announceStatus(warning)
-          })
-          if (caseInsertTitleArtworkSeed) {
-            announceStatus(caseInsertTitleArtworkSeed.statusMessage)
-          }
-        }
 
         if (discVisualImport) {
           if (
@@ -2067,6 +2177,16 @@ function App() {
       workflow: caseInsertPresetWorkflowOwner,
       catalog: CASE_INSERT_PRESET_CATALOG,
       publishDispatchFeedback: (dispatch) => {
+        if (dispatch.disposition === 'executed' && dispatch.result.status === 'success') {
+          const accepted = applicationLifecycleRoot.getStateSnapshot()
+          const session = accepted.state.activeSession
+          const receipt = dispatch.result.value as { sessionId?: string; projectRevision?: number; applicationRevision?: number } | undefined
+          if (accepted.casePresetProjectionPending && session?.kind === 'caseInsert' &&
+              receipt?.sessionId === session.id && receipt.projectRevision === session.revision &&
+              receipt.applicationRevision === session.caseInsertPresetApplication.applicationRevision) {
+            setProjectJewelCase(structuredClone(session.project.caseInsert) as typeof projectJewelCase)
+          }
+        }
         publishApplicationCommandFeedback(dispatch, {
           announceStatus,
           setHomeStatusMessage,
@@ -2117,14 +2237,30 @@ function App() {
   useApplicationDocumentSelectionOwnership()
 
   const renderedSessionId = applicationCommandSnapshot.lifecycle.activeSession?.id
+  const historyProjectionPending =
+    applicationLifecycleRoot.getStateSnapshot().discHistoryProjectionPending === true
+  const caseSteamProjectionPending =
+    applicationLifecycleRoot.getStateSnapshot().caseSteamProjectionPending === true
   const discRatingProjectionBasis = useRef<{ sessionId: string; basis: DiscRatingLayoutSyncBasis } | null>(null)
   useLayoutEffect(() => {
     if (activeWorkspace === 'home') return
-    const session = applicationLifecycleRoot.getLifecycleState().activeSession
+    const lifecycle = applicationLifecycleRoot.getStateSnapshot()
+    const session = lifecycle.state.activeSession
     if (!session || session.id !== renderedSessionId || session.kind !== activeWorkspace) return
 
     const captured = captureCurrentLegacyProject()
     if (captured.kind === 'disc') {
+      if (lifecycle.discHistoryProjectionPending) {
+        const outcome = applicationLifecycleRoot.acknowledgeDiscHistoryProjection({
+          sessionId: session.id, expectedGeneration: lifecycle.generation, projection: captured.project,
+        })
+        if (outcome === 'committed') {
+          discRatingProjectionBasis.current = {
+            sessionId: session.id, basis: captureDiscRatingLayoutBasis(captured.project.ratingBadge ?? projectRatingBadge),
+          }
+        }
+        return
+      }
       const previous = discRatingProjectionBasis.current
       const outcome = applicationLifecycleRoot.synchronizeDiscLegacyProject({
         sessionId: session.id, legacy: captured.project,
@@ -2136,6 +2272,12 @@ function App() {
         }
       }
     } else {
+      if (lifecycle.caseSteamProjectionPending) {
+        applicationLifecycleRoot.acknowledgeCaseSteamProjection({
+          sessionId: session.id, expectedGeneration: lifecycle.generation, projection: captured.project,
+        })
+        return
+      }
       applicationLifecycleRoot.synchronizeCurrentProject({
         sessionId: session.id, kind: 'caseInsert', project: captured.project,
       })
@@ -2155,9 +2297,66 @@ function App() {
     activeWorkspace,
     applicationLifecycleRoot,
     captureCurrentLegacyProject,
+    caseSteamProjectionPending,
+    historyProjectionPending,
     projectRatingBadge,
     renderedSessionId,
   ])
+
+  // Intentionally not a public menu/shortcut and not present in production
+  // composition. The mounted fixture can exercise the real editor batch.
+  useLayoutEffect(() => connectDiscHistoryDiagnostic?.(direction =>
+    stepProjectedDiscHistory(applicationLifecycleRoot, direction, {
+      batch: unstable_batchedUpdates,
+      setGame: ({ manualTitle, selectedSteamGame }) => {
+        setManualGameTitle(manualTitle)
+        setSelectedSteamGame(selectedSteamGame)
+      },
+      setMetadata: setProjectMetadata,
+      setDiscTextValues,
+      setDiscTextValueSources,
+      setTemplate: restoreDiscTemplateState,
+      setAdditionalArtwork: setProjectAdditionalArtwork,
+      setRatingBadge: setProjectRatingBadge,
+      setMediaMark: setProjectMediaMark,
+      setPlatformMarks: setProjectPlatformMarks,
+      setTitleArtwork: setProjectTitleArtwork,
+      setLogoAssets: setProjectLogoAssets,
+      setTechnicalMarks: setProjectTechnicalMarks,
+      setDiscTextSettings,
+      setDiscTextLayout,
+      prepareGuidedAttachment(workflow, target, plan, current) {
+        const projection = captureCurrentLegacyProject()
+        if (projection.kind !== 'disc') return null
+        const template = plan.template ? readDiscHistoryTemplate(plan.template) : selectedDiscTemplate
+        if (!template) return null
+        const prepared = prepareDiscHistoryGuidedAttachment({
+          workflow, target, plan, current, template,
+          renderProjection: projection.project, rendered: getDiscDocumentRenderedOwners(),
+        })
+        return prepared ? () => {
+          setDiscGuidedWorkflow(prepared.workflow)
+          activeDiscPreset.restoreActivePresetState(prepared.attachment)
+        } : null
+      },
+    })),
+  )
+
+  useLayoutEffect(() => connectCaseHistoryDiagnostic?.(direction => {
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'caseInsert') return 'unavailable'
+    return stepProjectedCaseHistory(applicationLifecycleRoot, direction, captured.project,
+      unstable_batchedUpdates, target => {
+        if (!target.metadata) return
+        setManualGameTitle(target.game.manualTitle)
+        setSelectedSteamGame(target.game.selectedSteamGame)
+        setProjectMetadata(target.metadata)
+        setProjectJewelCase(target.caseInsert)
+        const metadata = target.metadata
+        const enabled = shouldEnableCaseHistoryRating(target)
+        setProjectRatingBadge(current => updateRatingBadgeEnabledState(metadata, current, enabled).ratingBadge)
+      })
+  }))
 
   useLayoutEffect(() => {
     const destination = workspaceFocusRequestRef.current

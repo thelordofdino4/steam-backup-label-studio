@@ -25,6 +25,8 @@ import {
   createInitialCaseInsertPresetSessionApplication,
   createRecoveredCaseInsertPresetSessionApplication,
   synchronizeCaseInsertPresetSessionApplication,
+  rebindCasePresetHistoryApplication,
+  type CasePresetHistorySemantics,
   type CaseInsertPresetSessionApplication,
 } from './caseInsertPresetSessionApplication.ts'
 import {
@@ -415,6 +417,45 @@ function replaceSessionProject(
     revision,
     caseInsertPresetApplication: advanceCaseApplication(session, caseProject),
   })
+}
+
+/** Restore the already captured Disc content chosen by the history owner.
+ * Navigation and Save metadata belong to the current session, not to history.
+ * The successor is a new revision, never a rollback of the revision counter. */
+export function restoreHistoryDiscProject(
+  state: ApplicationLifecycleState,
+  expected: DiscProjectSession,
+  target: CommittedDiscProject,
+): ApplicationLifecycleState {
+  if (state.activeSession !== expected || state.visibleWorkspace !== 'disc' ||
+      target === expected.project) return state
+  const captured = captureLifecycleProjectSnapshot(target)
+  if (captured !== target || getNormalizedProjectKind(captured) !== 'disc') return state
+  return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
+}
+
+/** An import history step restores the document but keeps the *current*
+ * Case attachment, route and Save metadata. The assignment basis is rebound
+ * by the existing Case companion owner at a fresh monotonic revision. */
+export function restoreHistoryCaseProject(
+  state: ApplicationLifecycleState,
+  expected: CaseInsertProjectSession,
+  target: CapturedLifecycleProject,
+  semantic?: CasePresetHistorySemantics,
+): ApplicationLifecycleState {
+  if (state.activeSession !== expected || state.visibleWorkspace !== 'caseInsert' ||
+      target.projectType !== 'caseInsert' || (!semantic && target === expected.project)) return state
+  const captured = captureLifecycleProjectSnapshot(target)
+  if (captured !== target) return state
+  if (!semantic) return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
+  const rebound = rebindCasePresetHistoryApplication({
+    sessionId: expected.id, project: target, current: expected.caseInsertPresetApplication, semantic,
+  })
+  if (!rebound.ok) return state
+  return Object.freeze({ ...state, activeSession: Object.freeze({
+    ...expected, project: target, caseInsertPresetApplication: rebound.application,
+    revision: projectContentsAreSemanticallyEqual(target, expected.project) ? expected.revision : advanceContentRevision(expected.revision),
+  }) })
 }
 
 function routesAreEqual(

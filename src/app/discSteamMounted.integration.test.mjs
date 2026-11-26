@@ -1,7 +1,7 @@
 // Actual Disc App and controls in sandboxed Chromium. Native substitutes are limited
-// to fixture Steam transport and validation of the two generated PNGs.
+// to fixture Steam transport, PNG validation, and Save/export destinations.
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -142,6 +142,24 @@ window.discSteamTransportFixture = Object.freeze({
   },
 })
 `
+const fixtureOutputCoreModule = '\0sbls-history-output-core'
+const fixtureOutputDialogModule = '\0sbls-history-output-dialog'
+const fixtureOutputCore = `
+import { invoke as realInvoke } from '@tauri-apps/api/core'
+export function invoke(command, body, options) {
+  return window.captureDiscHistoryOutput(command, body) ?? realInvoke(command, body, options)
+}
+`
+const fixtureOutputDialog = `
+import { save as realSave, confirm as realConfirm, open } from '@tauri-apps/plugin-dialog'
+export { open }
+export async function save(options) {
+  return window.discHistoryFixtureDialog(options) ?? realSave(options)
+}
+export async function confirm(...args) {
+  return window.discHistoryFixtureMayConfirm() ? true : realConfirm(...args)
+}
+`
 const fixtureHtml = `<!doctype html><html><head></head><body><div id="root"></div><script type="module" src="${entryURL}"></script></body></html>`
 
 let server, browser, cacheDir, origin
@@ -169,6 +187,9 @@ test.before(async () => {
       resolveId(id, importer) {
         if (id === entryURL) return entryModule
         const caller = importer?.replaceAll('\\', '/')
+        if (id === '@tauri-apps/api/core' && (caller?.endsWith('/src/tauri/projectPackageWrite.ts') ||
+            caller?.endsWith('/src/tauri/pngFile.ts'))) return fixtureOutputCoreModule
+        if (id === '@tauri-apps/plugin-dialog' && caller?.endsWith('/src/app/App.tsx')) return fixtureOutputDialogModule
         if (id === '@tauri-apps/api/core' && caller?.endsWith('/src/steam/steamApi.ts')) return steamModule
         if (id === '@tauri-apps/api/core' && caller?.endsWith('/src/tauri/importedImageValidation.ts')) return imageValidationModule
         if (id === '../steam/steamTitleArtworkImport' && caller?.endsWith('/src/hooks/useTitleArtwork.ts')) return titleArtworkProbeModule
@@ -176,6 +197,8 @@ test.before(async () => {
         if (id === '../lifecycle/projectSession.ts' && caller?.endsWith('/src/app/appProjectSaveCommand.ts')) return saveProbeModule
       },
       load(id) {
+        if (id === fixtureOutputCoreModule) return fixtureOutputCore
+        if (id === fixtureOutputDialogModule) return fixtureOutputDialog
         if (id === entryModule) return entry
         if (id === steamModule) return syntheticTransport
         if (id === imageValidationModule) return imageValidationProbe
@@ -594,3 +617,558 @@ for (const command of ['project.save', 'export.png']) {
     } finally { await page.close() }
   })
 }
+
+test('mounted Disc history restores the real USK controls and acknowledges the committed render', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Game')
+    await start(page, uskAppId)
+    await rejectLogo(page, uskAppId)
+    await page.waitForFunction(appId => window.readDiscSteamReceipt().revisions.at(-1)?.game.appId === appId, uskAppId)
+    await reveal(page, 'Additional metadata')
+    await page.locator('#game-metadata-rating-system').selectOption('PEGI')
+    await page.getByRole('button', { name: 'Find rating/legal candidates' }).click()
+    const useUsk = page.getByRole('button', { name: 'Use USK 16', exact: true })
+    await useUsk.waitFor()
+    await drain(page)
+    const before = (await receipt(page)).revisions.at(-1)
+    await useUsk.click()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '16')
+    await drain(page)
+    const edited = (await receipt(page)).revisions.at(-1)
+    await reveal(page, 'Game Info Logos')
+    await reveal(page, 'Rating badge')
+    assert.equal(await page.getByLabel('USK rating value', { exact: true }).inputValue(), '16')
+    const accepted = async (direction, revision) => {
+      assert.equal(await page.evaluate(step => window.stepDiscHistoryDiagnostic(step), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return state.revision === revision && !state.pending
+      }, revision)
+      return (await receipt(page)).revisions.at(-1)
+    }
+    const undone = await accepted('undo', edited.revision + 1)
+    assert.deepEqual(undone.usk, before.usk)
+    assert.deepEqual(undone.ratingLayout, before.ratingLayout)
+    const redone = await accepted('redo', edited.revision + 2)
+    assert.deepEqual(redone.usk, edited.usk)
+    assert.deepEqual(redone.ratingLayout, edited.ratingLayout)
+    assert.equal(await page.getByLabel('USK rating value', { exact: true }).inputValue(), '16')
+  } finally { await page.close() }
+})
+
+test('mounted Guided Classic history restores fitted placeholder geometry and slot identity', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    const preset = page.getByLabel('Preset', { exact: true })
+    await preset.selectOption('classic-top-title')
+    await drain(page)
+    const before = (await receipt(page)).revisions.at(-1)
+    const slots = page.locator('g[data-guided-slot-id] > foreignObject')
+    const geometry = () => slots.evaluateAll(items => items.map(node => ({
+      id: node.parentElement.getAttribute('data-guided-slot-id'),
+      x: node.getAttribute('x'), y: node.getAttribute('y'),
+      width: node.getAttribute('width'), height: node.getAttribute('height'),
+      rotation: node.getAttribute('transform'),
+    })))
+    assert.deepEqual(await geometry(), [])
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.guided.id ===
+      'disc:guided-layout:classic-top-title')
+    await slots.first().waitFor({ state: 'attached' })
+    await drain(page)
+    const applied = (await receipt(page)).revisions.at(-1)
+    const appliedGeometry = await geometry()
+    assert.ok(appliedGeometry.some(slot => slot.id === 'disc:guided:game-title:primary'))
+    assert.equal(await preset.inputValue(), '', 'successful Apply clears the picker')
+    await preset.selectOption('centered-logo-archive')
+    assert.equal(await page.evaluate(() => window.readDiscHistoryDiagnostic().revision), applied.revision)
+    const step = async (direction, revision) => {
+      assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return state.revision === revision && !state.pending
+      }, revision)
+      return (await receipt(page)).revisions.at(-1)
+    }
+    const undone = await step('undo', applied.revision + 1)
+    assert.deepEqual(undone.guided, before.guided)
+    assert.deepEqual(undone.ratingLayout, before.ratingLayout)
+    assert.deepEqual(await geometry(), [])
+    // The local preset picker is UI state, not history content.
+    assert.equal(await preset.inputValue(), 'centered-logo-archive')
+
+    const redone = await step('redo', applied.revision + 2)
+    assert.deepEqual(redone.guided, applied.guided)
+    assert.deepEqual(redone.ratingLayout, applied.ratingLayout)
+    assert.deepEqual(await geometry(), appliedGeometry)
+    assert.equal(await preset.inputValue(), 'centered-logo-archive')
+  } finally { await page.close() }
+})
+
+test('authored Classic preset output matches Undo and Redo at the real Save and PNG seams', { timeout: 120_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Game')
+    await reveal(page, 'Additional metadata')
+    const title = 'Artwork Backup Test'
+    await page.getByRole('textbox', { name: 'Label title', exact: true }).fill(title)
+    await reveal(page, 'Game Title')
+    await page.locator('[data-smoke-id="disc-sidebar-text-title"] input[type="checkbox"]').check()
+    await reveal(page, 'Layout Presets')
+    await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+    await reveal(page, 'Project File')
+    await drain(page)
+    const capture = async label => {
+      const past = (await receipt(page)).commands.samples
+        .filter(sample => sample.boundary === 'export.png' && sample.outcome === 'success').length
+      await page.evaluate(label => window.armDiscHistoryOutput(label), label)
+      await page.getByRole('button', { name: 'Save Project', exact: true }).click()
+      await page.waitForFunction(label => window.readDiscHistoryOutput(label)?.project, label)
+      await page.getByRole('button', { name: 'Export PNG', exact: true }).click()
+      await page.waitForFunction(label => window.readDiscHistoryOutput(label)?.png, label)
+      await page.waitForFunction(past => window.readDiscSteamReceipt().commands.samples
+        .filter(sample => sample.boundary === 'export.png' && sample.outcome === 'success').length === past + 1, past)
+      await page.evaluate(label => window.finishDiscHistoryOutput(label), label)
+      const result = await page.evaluate(label => window.readDiscHistoryOutput(label), label)
+      assert.equal(result.project.project.game.manualTitle, title)
+      assert.equal(result.project.project.discText.settings.title, true)
+      assert.ok(result.png.width > 100 && result.png.height > 100 && result.png.bytes > 1000)
+      return result
+    }
+    const before = await capture('before')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.guided.id ===
+      'disc:guided-layout:classic-top-title')
+    await drain(page)
+    const applied = await capture('applied')
+    assert.notDeepEqual(before.project, applied.project, 'preset must produce a distinct project')
+    assert.notEqual(before.png.pixels, applied.png.pixels, 'authored title layout must produce different rendered pixels')
+    const step = async direction => {
+      const previous = await page.evaluate(() => window.readDiscHistoryDiagnostic().revision)
+      assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return state.revision === revision && !state.pending
+      }, previous + 1)
+    }
+    await step('undo')
+    const undone = await capture('undo')
+    assert.deepEqual(undone.project, before.project)
+    assert.equal(undone.png.pixels, before.png.pixels)
+    await step('redo')
+    const redone = await capture('redo')
+    assert.deepEqual(redone.project, applied.project)
+    assert.equal(redone.png.pixels, applied.png.pixels)
+  } finally { await page.close() }
+})
+
+test('template and reset keep every earlier Disc operation reachable in the mounted editor', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    await reveal(page, 'Template')
+    const template = page.getByLabel('Disc type', { exact: true })
+    const titleId = 'disc:guided:game-title:primary'
+    const titleSlot = page.locator(`[data-guided-slot-id="${titleId}"]`).last()
+    const selectablePreset = page.getByLabel('Preset', { exact: true })
+    const capture = async () => page.evaluate(() => ({
+      history: window.readDiscHistoryDiagnostic(), project: window.readDiscHistoryProject(),
+    }))
+    const settle = async (previous, past, future = 0) => {
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return state.revision === revision && !state.pending
+      }, previous.history.revision + 1, { timeout: 8_000 })
+      await drain(page)
+      const observed = await capture()
+      assert.equal(observed.history.revision, previous.history.revision + 1)
+      assert.equal(observed.history.past, past)
+      assert.equal(observed.history.future, future)
+      return observed
+    }
+    await selectablePreset.selectOption('classic-top-title')
+    await drain(page)
+    const blank = await capture()
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    const applied = await settle(blank, 1)
+    assert.equal(applied.project.template.variant, 'standardPrintableDisc')
+    await titleSlot.waitFor()
+    await template.selectOption('stickyLabelDisc')
+    const switched = await settle(applied, 2)
+    assert.equal(switched.project.template.variant, 'stickyLabelDisc')
+    assert.deepEqual(switched.project.editor, applied.project.editor)
+    assert.equal(await template.inputValue(), 'stickyLabelDisc')
+    await titleSlot.click()
+    await page.getByRole('menuitem', { name: 'Remove Game Title from layout', exact: true }).click()
+    const omitted = await settle(switched, 3)
+    assert.deepEqual(omitted.project.editor.guidedLayout.omittedSlotIds, [titleId])
+    await titleSlot.waitFor({ state: 'detached' })
+    const resetControl = page.getByRole('button', { name: 'Reset guided progress', exact: true })
+    await resetControl.click()
+    const reset = await settle(omitted, 4)
+    assert.deepEqual(reset.project, switched.project)
+    await titleSlot.waitFor()
+    await resetControl.waitFor({ state: 'detached', timeout: 8_000 })
+    await drain(page)
+    assert.deepEqual(await capture(), reset, 'clearing the progress controls publishes no additional edit')
+
+    const step = async (previous, expected, direction, past, future) => {
+      assert.equal(await page.evaluate(step => window.stepDiscHistoryDiagnostic(step), direction), 'committed')
+      const result = await settle(previous, past, future)
+      assert.deepEqual(result.project, expected.project)
+      assert.equal(await template.inputValue(), expected.project.template.variant)
+      const workflow = expected.project.editor?.guidedLayout
+      await titleSlot.waitFor({ state: workflow && !workflow.omittedSlotIds.includes(titleId) ? 'visible' : 'detached' })
+      return result
+    }
+    let current = reset
+    const entries = [blank, applied, switched, omitted, reset]
+    for (let past = 3; past >= 0; past--) current = await step(current, entries[past], 'undo', past, 4 - past)
+    for (let past = 1; past <= 4; past++) current = await step(current, entries[past], 'redo', past, 4 - past)
+  } finally { await page.close() }
+})
+
+test('Steam import after same-content Save As is one exact undoable edit', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => window.readDiscHistoryProject().editor?.guidedLayout)
+    await reveal(page, 'Game')
+    await reveal(page, 'Project File')
+    const read = () => page.evaluate(() => ({
+      state: window.readDiscHistoryDiagnostic(), project: window.readDiscHistoryProject(),
+    }))
+    const prior = await read()
+    assert.equal(prior.state.path, null)
+    assert.equal(prior.state.past, 1)
+    await start(page, newer.id)
+    await page.evaluate(() => window.armDiscHistoryOutput('before'))
+    await page.getByRole('button', { name: 'Save Project', exact: true }).click()
+    await page.waitForFunction(() => Boolean(window.readDiscHistoryDiagnostic().path) &&
+      !window.readDiscHistoryDiagnostic().dirty)
+    const saved = await read()
+    assert.equal(saved.state.revision, prior.state.revision)
+    assert.deepEqual(saved.project, prior.project)
+    assert.equal(await page.evaluate(id => window.discSteamTransportFixture.pending(id), newer.id), true)
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await page.waitForFunction(({ id, revision }) => {
+      const state = window.readDiscHistoryDiagnostic()
+      return !state.pending && state.revision === revision && window.readDiscHistoryProject().game.selectedSteamGame?.appId === id
+    }, { id: newer.id, revision: saved.state.revision + 1 }, { timeout: 12_000 })
+    const imported = await read()
+    assert.equal(imported.state.past, 2)
+    assert.equal(imported.state.path, saved.state.path)
+    assert.equal(imported.state.dirty, true)
+    assert.equal(imported.project.titleArtwork.imageDataUrl, newer.dataUrl)
+    assert.equal(imported.project.titleArtwork.defaultSteamLogo.imageDataUrl, newer.dataUrl)
+    assert.equal(imported.project.discText.values.appId, String(newer.id))
+    assert.equal(imported.project.discText.valueSources.copyright, 'metadata')
+    assert.ok(imported.project.editor.guidedLayout.completedSlotIds.includes('disc:guided:game-title:primary'))
+    const step = async (direction, expected, revision) => {
+      assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return !state.pending && state.revision === revision
+      }, revision, { timeout: 8_000 })
+      const observed = await read()
+      assert.equal(observed.state.path, saved.state.path)
+      assert.equal(observed.state.dirty, expected.state.dirty)
+      assert.deepEqual(observed.project, expected.project)
+    }
+    await step('undo', saved, imported.state.revision + 1)
+    await step('redo', imported, imported.state.revision + 2)
+    assert.equal(await page.evaluate(() => window.discSteamTransportFixture.requested()), 1)
+  } finally { await page.close() }
+})
+
+test('imported artwork preview, package write, and PNG agree through Undo and Redo', { timeout: 120_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    const relayDirectory = process.env.SBLS_DISC_HISTORY_PACKAGE_RELAY
+    if (relayDirectory) {
+      await page.waitForFunction(() => typeof window.enableDiscHistoryPackageRelay === 'function')
+      await page.evaluate(() => window.enableDiscHistoryPackageRelay())
+    }
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => {
+      const state = window.readDiscHistoryDiagnostic()
+      return state.past === 1 && !state.pending
+    })
+    await reveal(page, 'Game')
+    await reveal(page, 'Project File')
+    const art = page.locator('[data-smoke-id="disc-preview"]')
+      .getByRole('img', { name: 'Game title artwork', exact: true })
+    const capture = async (label, expectedArtwork) => {
+      if (expectedArtwork) {
+        await art.waitFor({ timeout: 8_000 })
+        assert.deepEqual(await art.evaluate(async element => {
+          const image = element instanceof HTMLImageElement ? element : element.querySelector('img')
+          await image.decode()
+          return { source: image.getAttribute('src'), width: image.naturalWidth }
+        }), { source: expectedArtwork, width: newer.width })
+      } else await art.waitFor({ state: 'detached', timeout: 8_000 })
+      const priorExports = (await receipt(page)).commands.samples
+        .filter(sample => sample.boundary === 'export.png' && sample.outcome === 'success').length
+      await page.evaluate(label => window.armDiscHistoryOutput(label), label)
+      await page.getByRole('button', { name: 'Save Project', exact: true }).click()
+      await page.waitForFunction(label => window.readDiscHistoryOutput(label)?.project &&
+        !window.readDiscHistoryDiagnostic().dirty, label, { timeout: 12_000 })
+      await page.getByRole('button', { name: 'Export PNG', exact: true }).click()
+      await page.waitForFunction(({ label, priorExports }) => window.readDiscHistoryOutput(label)?.png &&
+        window.readDiscSteamReceipt().commands.samples
+          .filter(sample => sample.boundary === 'export.png' && sample.outcome === 'success').length === priorExports + 1,
+      { label, priorExports }, { timeout: 12_000 })
+      await page.evaluate(label => window.finishDiscHistoryOutput(label), label)
+      return page.evaluate(label => window.readDiscHistoryOutput(label), label)
+    }
+    const before = await capture('before', null)
+    await start(page, newer.id)
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await page.waitForFunction(id => {
+      const state = window.readDiscHistoryDiagnostic()
+      return !state.pending && state.past === 2 && window.readDiscHistoryProject().game.selectedSteamGame?.appId === id
+    }, newer.id, { timeout: 12_000 })
+    const imported = await capture('applied', newer.dataUrl)
+    assert.equal(imported.project.project.game.selectedSteamGame.appId, newer.id)
+    assert.equal(imported.project.assetUrls.filter(url => url === newer.dataUrl).length, 1,
+      'both title roles share one asset in the encoded write request')
+    assert.ok(!before.project.assetUrls.includes(newer.dataUrl))
+    const assetIndex = imported.project.assetUrls.indexOf(newer.dataUrl)
+    for (const ownerId of ['disc.title.current', 'disc.title.default']) {
+      const [binding, extra] = imported.project.plan.captures.filter(item => item.ownerId === ownerId)
+      assert.equal(extra, undefined)
+      assert.equal(binding?.decision.dataUrlIndex, assetIndex)
+    }
+    assert.notEqual(imported.png.pixels, before.png.pixels)
+    const step = async direction => {
+      const previous = await page.evaluate(() => window.readDiscHistoryDiagnostic().revision)
+      assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const current = window.readDiscHistoryDiagnostic()
+        return current.revision === revision && !current.pending
+      }, previous + 1, { timeout: 8_000 })
+    }
+    await step('undo')
+    const undone = await capture('undo', null)
+    assert.deepEqual(undone.project, before.project)
+    assert.equal(undone.png.pixels, before.png.pixels)
+    await step('redo')
+    const redone = await capture('redo', newer.dataUrl)
+    assert.deepEqual(redone.project, imported.project)
+    assert.equal(redone.png.pixels, imported.png.pixels)
+    if (relayDirectory) {
+      for (const label of ['before', 'applied', 'undo', 'redo']) {
+        const raw = await page.evaluate(label => window.readDiscHistoryPackageRequest(label), label)
+        assert.ok(raw.length > 20, 'the production Save command emitted a complete native request')
+        await writeFile(join(relayDirectory, label + '.request'), Uint8Array.from(raw), { flag: 'wx' })
+      }
+    }
+  } finally { await page.close() }
+})
+
+test('mounted logo layout Reset preserves the import and preset Undo steps', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Game')
+    await reveal(page, 'Layout Presets')
+    await reveal(page, 'Game Title')
+    const current = () => page.evaluate(() => window.readDiscHistoryProject())
+    const settle = (past, future) => page.waitForFunction(({ past, future }) => {
+      const state = window.readDiscHistoryDiagnostic()
+      return !state.pending && state.past === past && state.future === future
+    }, { past, future }, { timeout: 8_000 })
+    const original = await current()
+    await start(page, newer.id)
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await settle(1, 0)
+    const imported = await current()
+    assert.equal(imported.game.selectedSteamGame?.appId, newer.id)
+    await page.getByLabel('Preset', { exact: true }).selectOption('centered-logo-archive')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await settle(2, 0)
+    const applied = await current()
+    await page.getByRole('button', { name: 'Reset game logo layout', exact: true }).click()
+    await settle(3, 0)
+    const reset = await current()
+    assert.notDeepEqual(reset.titleArtwork.layout, applied.titleArtwork.layout)
+    assert.equal(reset.titleArtwork.imageDataUrl, newer.dataUrl)
+    assert.deepEqual(reset, { ...applied, titleArtwork: { ...applied.titleArtwork, layout: reset.titleArtwork.layout } })
+    for (const [index, expected] of [applied, imported, original].entries()) {
+      assert.equal(await page.evaluate(() => window.stepDiscHistoryDiagnostic('undo')), 'committed')
+      await settle(2 - index, index + 1)
+      assert.deepEqual(await current(), expected)
+    }
+    for (const [index, expected] of [imported, applied, reset].entries()) {
+      assert.equal(await page.evaluate(() => window.stepDiscHistoryDiagnostic('redo')), 'committed')
+      await settle(index + 1, 2 - index)
+      assert.deepEqual(await current(), expected)
+    }
+  } finally { await page.close() }
+})
+
+test('Case Steam import publishes game, artwork, and back-cover in one accepted revision', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-case-insert"]').click()
+    await reveal(page, 'Game')
+    await reveal(page, 'Additional metadata')
+    const title = page.getByRole('textbox', { name: 'Label title', exact: true })
+    await title.waitFor({ timeout: 5_000 })
+    const visibleBefore = await title.inputValue()
+    const before = await page.evaluate(() => window.readCaseSteamDiagnostic())
+    await start(page, newer.id)
+    assert.deepEqual(await page.evaluate(() => window.readCaseSteamDiagnostic()), before,
+      'external artwork has not yet completed, so no project owner changes')
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await page.waitForFunction(({ appId, prior }) => {
+      const state = window.readCaseSteamDiagnostic()
+      return state && !state.pending && state.revision === prior + 1 && state.project.game.selectedSteamGame?.appId === appId
+    }, { appId: newer.id, prior: before.revision }, { timeout: 12_000 })
+    await drain(page)
+    const after = await page.evaluate(() => window.readCaseSteamDiagnostic())
+    assert.equal(after.revision, before.revision + 1)
+    assert.equal(after.sessionId, before.sessionId)
+    assert.equal(after.project.metadata.steamAppId, String(newer.id))
+    assert.equal(after.project.caseInsert.templates.cover.titleArtwork.imageDataUrl, newer.dataUrl)
+    assert.equal(after.project.caseInsert.templates.tray.titleArtwork.defaultSteamLogo.imageDataUrl, newer.dataUrl)
+    const legalBlock = after.project.caseInsert.templates.tray.textBlocks.find(block => block.id === 'tray-copyright-text')
+    assert.equal(legalBlock?.value, legal)
+    assert.deepEqual(after.project.caseInsert.export, before.project.caseInsert.export)
+    assert.equal(await title.inputValue(), 'Incoming Fixture Game')
+    const step = async (direction, expected, revision, past, future, visibleTitle) => {
+      assert.equal(await page.evaluate(direction => window.stepCaseHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const settled = window.readCaseSteamDiagnostic()
+        return settled && !settled.pending && settled.revision === revision
+      }, revision, { timeout: 8_000 })
+      const observed = await page.evaluate(() => window.readCaseSteamDiagnostic())
+      assert.deepEqual(observed.project, expected.project)
+      assert.equal(observed.past, past)
+      assert.equal(observed.future, future)
+      assert.equal(observed.applicationRevision, after.applicationRevision + revision - after.revision)
+      assert.equal(await title.inputValue(), visibleTitle)
+    }
+    await step('undo', before, after.revision + 1, 0, 1, visibleBefore)
+    await step('redo', after, after.revision + 2, 1, 0, 'Incoming Fixture Game')
+  } finally { await page.close() }
+})
+
+test('Case Apply and Detach are separate history steps with exact content and attachment', { timeout: 120_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-case-insert"]').click()
+    await reveal(page, 'Case Layout Presets')
+    const read = () => page.evaluate(() => window.readCaseSteamDiagnostic())
+    const settle = (past, future, attached) => page.waitForFunction(({ past, future, attached }) => {
+      const item = window.readCaseSteamDiagnostic()
+      return item && !item.pending && item.past === past && item.future === future && item.attached === attached
+    }, { past, future, attached }, { timeout: 12_000 })
+    await settle(0, 0, false)
+    const before = await read()
+    const confirmReview = async operation => {
+      const label = operation === 'Apply' ? 'Review complete preset' : 'Review Detach'
+      await page.getByRole('button', { name: label, exact: true }).click()
+      const review = page.getByRole('region', { name: label, exact: true })
+      await review.waitFor({ timeout: 6_000 })
+      for (const checkbox of await review.getByRole('checkbox').all()) await checkbox.check()
+      await review.getByRole('button', { name: 'Confirm ' + operation, exact: true }).click({ timeout: 6_000 })
+    }
+    const selector = page.locator('#case-layout-preset-selector')
+    await selector.selectOption({ label: 'Jewel Case Essentials (revision 2)' })
+    await confirmReview('Apply')
+    await settle(1, 0, true)
+    const applied = await read()
+    assert.equal(applied.revision, before.revision + 1)
+    assert.equal(applied.applicationRevision, before.applicationRevision + 1)
+    assert.notDeepEqual(applied.project.caseInsert, before.project.caseInsert)
+    await confirmReview('Detach')
+    await settle(2, 0, false)
+    const detached = await read()
+    assert.equal(detached.revision, applied.revision)
+    assert.equal(detached.applicationRevision, applied.applicationRevision + 1)
+    assert.deepEqual(detached.project, applied.project)
+    let previous = detached
+    const step = async (direction, expected, past, future, contentChanged) => {
+      assert.equal(await page.evaluate(direction => window.stepCaseHistoryDiagnostic(direction), direction), 'committed')
+      await settle(past, future, expected.attached)
+      const observed = await read()
+      assert.deepEqual(observed.project, expected.project)
+      assert.equal(observed.applicationRevision, previous.applicationRevision + 1)
+      assert.equal(observed.revision, previous.revision + (contentChanged ? 1 : 0))
+      const label = expected.attached ? 'Attached' : 'Detached'
+      await page.getByText(label, { exact: true }).waitFor({ timeout: 6_000 })
+      previous = observed
+    }
+    await step('undo', applied, 1, 1, false)
+    await step('undo', before, 0, 2, true)
+    await step('redo', applied, 1, 1, true)
+    await step('redo', detached, 2, 0, false)
+  } finally { await page.close() }
+})

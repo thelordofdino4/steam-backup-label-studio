@@ -8,8 +8,10 @@ import { ApplicationMenuBoundary } from '/src/app/ApplicationMenuBoundary.tsx'
 import { createApplicationMenuRuntime } from '/src/applicationMenu/applicationMenuRuntime.ts'
 import { createApplicationLifecycleCompositionRoot } from '/src/lifecycle/applicationLifecycleCompositionRoot.ts'
 import { createLifecyclePerformanceObserver } from '/src/lifecycle/lifecyclePerformanceObserver.ts'
+import { selectIsActiveProjectDirty } from '/src/lifecycle/projectSession.ts'
 import { materializeDiscProject } from '/src/lifecycle/canonicalProject.ts'
 import { InteractionPerformanceContext } from '/src/diagnostics/InteractionPerformanceContext.ts'
+import '/src/app/testing/discHistoryOutputFixture.mjs'
 import '/src/styles/index.css'
 import '/src/styles/layoutFix.css'
 
@@ -73,8 +75,9 @@ function summarize(session) {
 }
 const lifecycleRuntime = createApplicationLifecycleRuntime({
   performanceObserver: observer,
+  casePresetProjection: true,
   createRoot(options) {
-    const root = createApplicationLifecycleCompositionRoot(options)
+    const root = createApplicationLifecycleCompositionRoot({ ...options, discHistoryLimit: 4, caseHistoryLimit: 4 })
     root.subscribe(snapshot => {
       const session = snapshot.lifecycle.activeSession
       if (!session || session.kind !== 'disc') return
@@ -144,10 +147,50 @@ window.observeOrdinaryDiscExport = () => {
 }
 const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
 const appNode = document.getElementById('root')
+let stepHistory
+const connectDiscHistoryDiagnostic = step => {
+  stepHistory = step
+  return () => { if (stepHistory === step) stepHistory = undefined }
+}
+window.stepDiscHistoryDiagnostic = direction => {
+  if (direction !== 'undo' && direction !== 'redo') throw Error('Expected Undo or Redo')
+  return stepHistory?.(direction)
+}
+window.readDiscHistoryDiagnostic = () => {
+  const { state, discHistory, discHistoryProjectionPending } = lifecycleRuntime.root.getStateSnapshot()
+  return { revision: state.activeSession?.revision, pending: Boolean(discHistoryProjectionPending),
+    past: discHistory?.past.length, future: discHistory?.future.length,
+    path: state.activeSession?.currentPath, dirty: selectIsActiveProjectDirty(state) }
+}
+let stepCaseHistory
+const connectCaseHistoryDiagnostic = step => {
+  stepCaseHistory = step
+  return () => { if (stepCaseHistory === step) stepCaseHistory = undefined }
+}
+window.stepCaseHistoryDiagnostic = direction => {
+  if (direction !== 'undo' && direction !== 'redo') throw Error('Expected Undo or Redo')
+  return stepCaseHistory?.(direction)
+}
+window.readCaseSteamDiagnostic = () => {
+  const { state, caseSteamProjectionPending, caseHistory } = lifecycleRuntime.root.getStateSnapshot()
+  const session = state.activeSession
+  if (session?.kind !== 'caseInsert') return null
+  return { sessionId: session.id, revision: session.revision, project: session.project,
+    path: session.currentPath, dirty: selectIsActiveProjectDirty(state), pending: Boolean(caseSteamProjectionPending),
+    past: caseHistory?.past.length, future: caseHistory?.future.length,
+    applicationRevision: session.caseInsertPresetApplication.applicationRevision,
+    attached: session.caseInsertPresetApplication.attachment.status === 'attached' }
+}
+window.readDiscHistoryProject = () => {
+  const session = lifecycleRuntime.root.getStateSnapshot().state.activeSession
+  if (session?.kind !== 'disc') throw new Error('Expected active Disc')
+  const { savedAt, ...document } = materializeDiscProject(session.project)
+  return document
+}
 createRoot(appNode).render(createElement(ApplicationLifecycleBoundary, { runtime: lifecycleRuntime },
   createElement(ApplicationMenuBoundary, { runtime: menuRuntime },
     createElement(StrictMode, null, createElement(InteractionPerformanceContext.Provider,
-      { value: undefined }, createElement(App))))))
+      { value: undefined }, createElement(App, { connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }))))))
 window.readDiscSteamReceipt = () => ({
   overflow,
   revisions: structuredClone(revisions),

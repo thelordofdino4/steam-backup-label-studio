@@ -1333,6 +1333,8 @@ export function useDiscTextState({
     getCurrentDiscTextContent,
     getCurrentDiscTextRenderedContent,
     setDiscTextLayout,
+    setDiscTextValues,
+    setDiscTextValueSources,
     resetDiscTextState,
     restoreDiscTextState,
     clampDiscTextLayoutToTemplate,
