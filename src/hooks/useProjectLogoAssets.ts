@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import {
   clampLogoAssetLayoutToSafeZone,
@@ -52,6 +54,7 @@ export function useProjectLogoAssets({
   applyActivePresetPlacement = (logoAssets) => logoAssets,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseProjectLogoAssetsOptions) {
+  const asyncWork = useProjectAsyncWork()
   const [projectLogoAssets, setProjectLogoAssets] = useState<ProjectLogoAssets>(() =>
     createDefaultProjectLogoAssets(selectedDiscTemplate),
   )
@@ -122,6 +125,7 @@ export function useProjectLogoAssets({
   }
 
   function resetProjectLogoAssets(template: DiscTemplate = selectedDiscTemplate) {
+    asyncWork.invalidateAll()
     setProjectLogoAssets(createDefaultProjectLogoAssets(template))
   }
 
@@ -142,32 +146,36 @@ export function useProjectLogoAssets({
       return
     }
 
+    const request = asyncWork.begin(`image:logo:${logoKey}:${additionalLogoId ?? "primary"}`)
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-
-      applyLogoAssetImport(
-        logoKey,
-        importedImage,
-        createProjectImageAssetProvenance({
-          source: 'uploaded',
-          sourceLabel: file.name,
-        }),
-        additionalLogoId,
-      )
-
-      if (!additionalLogoId) {
-        onDiscGuidedSlotCompleted(
-          logoKey === 'developer'
-            ? DISC_GUIDED_COMPLETION_SLOT_IDS.developerLogo
-            : DISC_GUIDED_COMPLETION_SLOT_IDS.publisherLogo,
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        applyLogoAssetImport(
+          logoKey,
+          importedImage,
+          createProjectImageAssetProvenance({
+            source: 'uploaded',
+            sourceLabel: file.name,
+          }),
+          additionalLogoId,
         )
-      }
 
-      announceStatus(
-        `Using ${file.name} as the ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo.`,
-      )
+        if (!additionalLogoId) {
+          onDiscGuidedSlotCompleted(
+            logoKey === 'developer'
+              ? DISC_GUIDED_COMPLETION_SLOT_IDS.developerLogo
+              : DISC_GUIDED_COMPLETION_SLOT_IDS.publisherLogo,
+          )
+        }
+
+        announceStatus(
+          `Using ${file.name} as the ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo.`,
+        )
+      })
     } catch (error) {
-      announceStatus(`Logo import failed: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Logo import failed: ${String(error)}`)
+      })
     }
   }
 
@@ -211,11 +219,12 @@ export function useProjectLogoAssets({
   }
 
   function handleClearLogoAsset(logoKey: LogoAssetKey, additionalLogoId?: string) {
+    asyncWork.invalidateAll()
     const nextLogoAssets = clearLogoAsset(
-        projectLogoAssetsRef.current,
-        logoKey,
-        additionalLogoId,
-      )
+      projectLogoAssetsRef.current,
+      logoKey,
+      additionalLogoId,
+    )
     const nextLayout = clampLogoAssetLayoutToSafeZone(
       getLogoAssetLayout(nextLogoAssets, logoKey, additionalLogoId),
       selectedDiscTemplate,
@@ -237,6 +246,7 @@ export function useProjectLogoAssets({
   }
 
   function handleResetLogoAssetLayout(logoKey: LogoAssetKey, additionalLogoId?: string) {
+    asyncWork.invalidateAll()
     setProjectLogoAssets((currentLogoAssets) => {
       const nextLogoAssets = resetProjectLogoAssetLayout(
         currentLogoAssets,
@@ -267,6 +277,7 @@ export function useProjectLogoAssets({
     logoKey: LogoAssetKey,
     additionalLogoId: string,
   ) {
+    asyncWork.invalidateAll()
     setProjectLogoAssets((currentLogoAssets) =>
       removeAdditionalLogoAsset(currentLogoAssets, logoKey, additionalLogoId),
     )

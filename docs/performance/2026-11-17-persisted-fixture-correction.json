@@ -1,0 +1,1067 @@
+{
+  "formatVersion": 1,
+  "purpose": "Persisted Case fixture correction; codec plus production Open staging, not GUI or optimization evidence",
+  "sourceCommit": "44012551b78ee0c1f5400ea5369d594c1b7914ee",
+  "sourceStatusExplanation": "Only the run-location redirect receipt was untracked; tracked source was unchanged. The original node sourceStatus is retained below.",
+  "compiler": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "harnessCheckoutSha256": {
+    "scripts/performance/fixtures.mjs": "16485500603f3feca5955933d75ff1bc0f5e5cfba5f79f12e449559ad689a9a6",
+    "scripts/performance/project-baseline.mjs": "71530a4f781b9c8bfd8db342326ff32bf1d568095e4872b74ab47b1027b13d92",
+    "scripts/performance/persistence.mjs": "4ab043e74883954adca8e64753c38aa12662eb5c3fe234d7434fac8e8aacd055",
+    "scripts/performance/staging-baseline.mjs": "df2f4c173d744a246ddd6207eaaa4ac8c4fb29cf508312eb5e69ae3580bd0e17",
+    "src-tauri/src/commands/project_package_performance.rs": "9b9df71b08332a55eaceb1eddbfaf54570fd8f20ea0c3a15c92741f08693fe01"
+  },
+  "node": {
+    "formatVersion": 1,
+    "capturedAt": "2026-11-17T06:48:32.519Z",
+    "sourceCommit": "44012551b78ee0c1f5400ea5369d594c1b7914ee",
+    "sourceStatus": "?? persistence-run-location.json",
+    "environment": {
+      "node": "v24.16.0",
+      "platform": "win32",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 9 7950X 16-Core Processor            ",
+      "logicalCpus": 32,
+      "physicalMemoryBytes": 33510416384
+    },
+    "warmup": 1,
+    "samples": 5,
+    "results": [
+      {
+        "id": "disc-small",
+        "kind": "disc",
+        "width": 128,
+        "height": 128,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 49206,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 65630,
+        "logicalDataUrlBytes": 131260,
+        "uniqueRgbaBytes": 65536,
+        "projectUtf8Bytes": 139324,
+        "originalFixtureUtf8Bytes": 139324,
+        "requestBytes": 75341,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "498baae8132cfe92f9bc98117c7f9fd280728756365c7daf270cad55db900901",
+        "originalFixtureSha256": "498baae8132cfe92f9bc98117c7f9fd280728756365c7daf270cad55db900901",
+        "persistenceBoundary": "persisted-project-with-case-companion",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.2640999999999849,
+            0.25610000000000355,
+            0.3102000000000089,
+            0.19369999999997844,
+            0.21230000000002747
+          ],
+          "schemaValidationOnly": [
+            0.0018000000000029104,
+            0.001599999999996271,
+            0.0009000000000014552,
+            0.0006999999999948159,
+            0.0011999999999829924
+          ],
+          "canonicalComparisonUncached": [
+            0.08190000000001874,
+            0.07710000000002992,
+            0.08619999999996253,
+            0.08150000000000546,
+            0.0816000000000372
+          ],
+          "canonicalComparisonCached": [
+            0.0004000000000132786,
+            9.999999997489795e-05,
+            0.00010000000003174137,
+            0.00010000000003174137,
+            0.0010000000000331966
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            0.2822999999999638,
+            0.280399999999986,
+            0.2810000000000059,
+            0.3172999999999888,
+            0.295599999999979
+          ],
+          "contentSnapshotJsonSerialization": [
+            0.08530000000001792,
+            0.08310000000000173,
+            0.08239999999995007,
+            0.07920000000001437,
+            0.0806999999999789
+          ],
+          "persistedProjectJsonSerialization": [
+            0.08339999999998327,
+            0.11789999999996326,
+            0.07830000000001291,
+            0.07609999999999673,
+            0.09940000000000282
+          ],
+          "persistedProjectCapturePlan": [
+            0.029500000000041382,
+            0.011699999999962074,
+            0.008100000000013097,
+            0.010299999999972442,
+            0.010199999999997544
+          ],
+          "rawRequestFraming": [
+            0.39440000000001874,
+            0.31569999999999254,
+            0.2880000000000109,
+            0.3237999999999488,
+            0.28050000000001774
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 88752128,
+            "heapTotal": 36945920,
+            "heapUsed": 26136520,
+            "external": 11368777,
+            "arrayBuffers": 852630
+          },
+          "nodeProcessPeakRssKiB": 86684
+        }
+      },
+      {
+        "id": "disc-normal",
+        "kind": "disc",
+        "width": 512,
+        "height": 512,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 786486,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 1048670,
+        "logicalDataUrlBytes": 2097340,
+        "uniqueRgbaBytes": 1048576,
+        "projectUtf8Bytes": 2105404,
+        "originalFixtureUtf8Bytes": 2105404,
+        "requestBytes": 1058381,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "5cf04e345d2f9bdad4cfc3222303ee829fbc819351c278056d3b6d33bfa8e5a8",
+        "originalFixtureSha256": "5cf04e345d2f9bdad4cfc3222303ee829fbc819351c278056d3b6d33bfa8e5a8",
+        "persistenceBoundary": "persisted-project-with-case-companion",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.24399999999997135,
+            0.23989999999997735,
+            0.24320000000000164,
+            0.21050000000002456,
+            0.18399999999996908
+          ],
+          "schemaValidationOnly": [
+            0.0020000000000095497,
+            0.0018000000000029104,
+            0.0009000000000014552,
+            0.0008000000000265572,
+            0.0013999999999896318
+          ],
+          "canonicalComparisonUncached": [
+            1.2483000000000288,
+            1.0509999999999877,
+            1.0656000000000176,
+            1.0004999999999882,
+            1.0083999999999946
+          ],
+          "canonicalComparisonCached": [
+            0.0006000000000199179,
+            0.00029999999998153726,
+            0.00010000000003174137,
+            0.00010000000003174137,
+            0.0011999999999829924
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            1.2741000000000327,
+            1.223099999999988,
+            1.259900000000016,
+            1.237099999999998,
+            1.1809000000000083
+          ],
+          "contentSnapshotJsonSerialization": [
+            1.0407999999999902,
+            1.088100000000054,
+            1.033299999999997,
+            1.0202999999999633,
+            1.0316000000000258
+          ],
+          "persistedProjectJsonSerialization": [
+            1.009299999999996,
+            1.0271000000000186,
+            1.6912999999999556,
+            1.0172999999999774,
+            1.0185000000000173
+          ],
+          "persistedProjectCapturePlan": [
+            0.033799999999985175,
+            0.011200000000030741,
+            0.008000000000038199,
+            0.006999999999948159,
+            0.006899999999973261
+          ],
+          "rawRequestFraming": [
+            2.0077999999999747,
+            1.835300000000018,
+            1.783399999999972,
+            1.7980000000000018,
+            1.7549999999999955
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 142819328,
+            "heapTotal": 129490944,
+            "heapUsed": 61654520,
+            "external": 24271237,
+            "arrayBuffers": 9544282
+          },
+          "nodeProcessPeakRssKiB": 145332
+        }
+      },
+      {
+        "id": "disc-large",
+        "kind": "disc",
+        "width": 1400,
+        "height": 1400,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 5880054,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 7840094,
+        "logicalDataUrlBytes": 15680188,
+        "uniqueRgbaBytes": 7840000,
+        "projectUtf8Bytes": 15688256,
+        "originalFixtureUtf8Bytes": 15688256,
+        "requestBytes": 7849809,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "9da8e668945e7dde20756b9bfb48e36281a9225c1f88da19122c7068b274a43e",
+        "originalFixtureSha256": "9da8e668945e7dde20756b9bfb48e36281a9225c1f88da19122c7068b274a43e",
+        "persistenceBoundary": "persisted-project-with-case-companion",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.26279999999997017,
+            0.2378999999999678,
+            0.25159999999999627,
+            0.21440000000001191,
+            0.1775000000000091
+          ],
+          "schemaValidationOnly": [
+            0.0018000000000029104,
+            0.002200000000016189,
+            0.0011000000000080945,
+            0.0006999999999948159,
+            0.0011999999999829924
+          ],
+          "canonicalComparisonUncached": [
+            7.272999999999968,
+            8.889900000000011,
+            7.189099999999996,
+            7.844600000000014,
+            7.213599999999985
+          ],
+          "canonicalComparisonCached": [
+            0.0020000000000095497,
+            0.0002000000000066393,
+            0.0001999999999497959,
+            9.999999997489795e-05,
+            0.009899999999959164
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            7.486500000000035,
+            7.865400000000022,
+            7.558400000000006,
+            7.956200000000024,
+            7.51909999999998
+          ],
+          "contentSnapshotJsonSerialization": [
+            7.216099999999983,
+            8.873100000000022,
+            7.2859999999999445,
+            7.490599999999972,
+            12.401700000000005
+          ],
+          "persistedProjectJsonSerialization": [
+            7.446700000000078,
+            7.2082000000000335,
+            7.432600000000093,
+            9.41339999999991,
+            7.70799999999997
+          ],
+          "persistedProjectCapturePlan": [
+            0.032800000000065666,
+            0.010300000000029286,
+            0.007300000000100226,
+            0.0072999999999865395,
+            0.006799999999998363
+          ],
+          "rawRequestFraming": [
+            11.673900000000003,
+            12.403799999999933,
+            12.440699999999993,
+            12.657100000000014,
+            12.356199999999944
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 359268352,
+            "heapTotal": 354713600,
+            "heapUsed": 219165640,
+            "external": 81183277,
+            "arrayBuffers": 70667130
+          },
+          "nodeProcessPeakRssKiB": 380904
+        }
+      },
+      {
+        "id": "case-small",
+        "kind": "case",
+        "width": 128,
+        "height": 128,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 49206,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 65630,
+        "logicalDataUrlBytes": 131260,
+        "uniqueRgbaBytes": 65536,
+        "projectUtf8Bytes": 160111,
+        "originalFixtureUtf8Bytes": 160111,
+        "requestBytes": 95875,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "c2ac3d81f9ada66f9b7e035f3dbb87c18118e4d7a1412e6bc86d0e2cd735b567",
+        "originalFixtureSha256": "c2ac3d81f9ada66f9b7e035f3dbb87c18118e4d7a1412e6bc86d0e2cd735b567",
+        "persistenceBoundary": "persisted-project-with-case-companion",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.8713000000000193,
+            0.7708000000000084,
+            0.786200000000008,
+            1.1336000000000013,
+            0.7099999999999795
+          ],
+          "schemaValidationOnly": [
+            0.0024000000000228283,
+            0.002299999999991087,
+            0.0011000000000080945,
+            0.0009000000000014552,
+            0.0013999999999896318
+          ],
+          "canonicalComparisonUncached": [
+            0.1963999999999828,
+            0.17660000000000764,
+            0.1180999999999699,
+            0.1268000000000029,
+            0.11180000000001655
+          ],
+          "canonicalComparisonCached": [
+            0.0005999999999630745,
+            0.0003999999999564352,
+            0.0002000000000066393,
+            0.0002000000000066393,
+            0.0008000000000265572
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            1.1148000000000025,
+            0.8771000000000413,
+            0.9338000000000193,
+            0.8122000000000185,
+            0.8749000000000251
+          ],
+          "contentSnapshotJsonSerialization": [
+            0.12639999999998963,
+            0.11020000000002028,
+            0.1079000000000292,
+            0.12609999999995125,
+            0.11700000000001864
+          ],
+          "persistedProjectJsonSerialization": [
+            0.10960000000000036,
+            0.12139999999999418,
+            0.12640000000004648,
+            0.12839999999999918,
+            0.1017999999999688
+          ],
+          "persistedProjectCapturePlan": [
+            0.01239999999995689,
+            0.006000000000028649,
+            0.005699999999990268,
+            0.005499999999983629,
+            0.005399999999951888
+          ],
+          "rawRequestFraming": [
+            0.9210999999999672,
+            0.8303999999999974,
+            0.6668000000000234,
+            0.6578999999999837,
+            0.9482000000000426
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 95268864,
+            "heapTotal": 38137856,
+            "heapUsed": 24993128,
+            "external": 11439161,
+            "arrayBuffers": 892296
+          },
+          "nodeProcessPeakRssKiB": 93904
+        }
+      },
+      {
+        "id": "case-normal",
+        "kind": "case",
+        "width": 512,
+        "height": 512,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 786486,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 1048670,
+        "logicalDataUrlBytes": 2097340,
+        "uniqueRgbaBytes": 1048576,
+        "projectUtf8Bytes": 2126191,
+        "originalFixtureUtf8Bytes": 2126191,
+        "requestBytes": 1078915,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "71db05f88a799a074cacb3e5865dbb3f6ee7c8c51bcf0a1dad6deb31e3497674",
+        "originalFixtureSha256": "71db05f88a799a074cacb3e5865dbb3f6ee7c8c51bcf0a1dad6deb31e3497674",
+        "persistenceBoundary": "persisted-project-with-case-companion",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.8549000000000433,
+            0.7581000000000131,
+            0.7461000000000126,
+            0.7477000000000089,
+            0.7585000000000264
+          ],
+          "schemaValidationOnly": [
+            0.0021999999999593456,
+            0.002200000000016189,
+            0.0014000000000464752,
+            0.0010000000000331966,
+            0.0017000000000280124
+          ],
+          "canonicalComparisonUncached": [
+            1.1818000000000097,
+            1.0814999999999486,
+            1.1216000000000008,
+            1.5381000000000427,
+            1.2600999999999658
+          ],
+          "canonicalComparisonCached": [
+            0.0011000000000080945,
+            0.00029999999998153726,
+            0.00010000000003174137,
+            0.0002000000000066393,
+            0.0006000000000199179
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            1.8234999999999673,
+            1.799599999999998,
+            1.7312000000000012,
+            1.811399999999992,
+            1.8151000000000295
+          ],
+          "contentSnapshotJsonSerialization": [
+            1.7848000000000184,
+            1.3126999999999498,
+            1.1687000000000012,
+            1.0828000000000202,
+            1.0709999999999695
+          ],
+          "persistedProjectJsonSerialization": [
+            1.067700000000002,
+            1.0633000000000266,
+            1.6759999999999877,
+            1.063600000000008,
+            1.0557999999999765
+          ],
+          "persistedProjectCapturePlan": [
+            0.012499999999988631,
+            0.006000000000028649,
+            0.005300000000033833,
+            0.00529999999997699,
+            0.00529999999997699
+          ],
+          "rawRequestFraming": [
+            2.3438000000000443,
+            2.302500000000009,
+            2.165800000000047,
+            2.1211000000000126,
+            2.140800000000013
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 150077440,
+            "heapTotal": 130142208,
+            "heapUsed": 62970744,
+            "external": 24508054,
+            "arrayBuffers": 9708807
+          },
+          "nodeProcessPeakRssKiB": 152272
+        }
+      },
+      {
+        "id": "case-large",
+        "kind": "case",
+        "width": 1400,
+        "height": 1400,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 5880054,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 7840094,
+        "logicalDataUrlBytes": 15680188,
+        "uniqueRgbaBytes": 7840000,
+        "projectUtf8Bytes": 15709043,
+        "originalFixtureUtf8Bytes": 15709043,
+        "requestBytes": 7870343,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "5313bb3599065d11ad9e7dea1f322e0769971d43a704c9812c11b9f0635dfa4f",
+        "originalFixtureSha256": "5313bb3599065d11ad9e7dea1f322e0769971d43a704c9812c11b9f0635dfa4f",
+        "persistenceBoundary": "persisted-project-with-case-companion",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.7769000000000119,
+            0.7420999999999935,
+            0.7631999999999834,
+            0.7583000000000197,
+            0.7736000000000445
+          ],
+          "schemaValidationOnly": [
+            0.002299999999991087,
+            0.002299999999991087,
+            0.0010000000000331966,
+            0.0009999999999763531,
+            0.0014999999999645297
+          ],
+          "canonicalComparisonUncached": [
+            9.868200000000002,
+            7.488900000000001,
+            7.448099999999954,
+            7.277499999999975,
+            7.449300000000051
+          ],
+          "canonicalComparisonCached": [
+            0.002200000000016189,
+            0.0002000000000066393,
+            0.0001999999999497959,
+            9.999999997489795e-05,
+            0.005799999999965166
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            8.008800000000008,
+            8.181899999999985,
+            8.333899999999971,
+            8.36590000000001,
+            8.040700000000015
+          ],
+          "contentSnapshotJsonSerialization": [
+            7.83439999999996,
+            7.443200000000047,
+            7.257200000000012,
+            7.345899999999915,
+            9.4452
+          ],
+          "persistedProjectJsonSerialization": [
+            7.297699999999963,
+            7.310100000000034,
+            9.557000000000016,
+            7.4605999999999995,
+            7.3337999999999965
+          ],
+          "persistedProjectCapturePlan": [
+            0.014700000000061664,
+            0.006300000000010186,
+            0.005699999999933425,
+            0.005700000000047112,
+            0.005499999999983629
+          ],
+          "rawRequestFraming": [
+            12.98969999999997,
+            12.91319999999996,
+            12.789899999999989,
+            12.989799999999946,
+            13.032100000000014
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 460038144,
+            "heapTotal": 448688128,
+            "heapUsed": 314489872,
+            "external": 81378520,
+            "arrayBuffers": 70831655
+          },
+          "nodeProcessPeakRssKiB": 464644
+        }
+      }
+    ],
+    "pending": [
+      "native input-to-preview latency",
+      "actual lifecycle scalar commit",
+      "native WebView/IPC end-to-end Save/Open",
+      "whole-app process-tree peak memory"
+    ]
+  },
+  "native": {
+    "formatVersion": 1,
+    "limitations": [
+      "No WebView IPC, dialog, UI or lifecycle timing",
+      "Native process peak memory not collected",
+      "Warm filesystem caches; no cold-storage claim"
+    ],
+    "profile": "debug",
+    "results": [
+      {
+        "hydratedJsonBytes": 139324,
+        "id": "disc-small",
+        "packageBytes": 58611,
+        "timingMs": {
+          "codecDecode": [
+            14.5611,
+            14.5207,
+            14.5735,
+            14.5855,
+            14.4816
+          ],
+          "codecEncode": [
+            7.4559,
+            7.2461,
+            7.4414,
+            7.2673,
+            7.550000000000001
+          ],
+          "nativeOpenWithReadDecode": [
+            14.9265,
+            14.9443,
+            14.8223,
+            14.8612,
+            14.8716
+          ],
+          "nativeSaveWithAtomicWrite": [
+            8.5016,
+            8.7929,
+            8.672300000000002,
+            8.9454,
+            8.6698
+          ],
+          "parseFrame": [
+            0.0366,
+            0.0349,
+            0.034999999999999996,
+            0.0393,
+            0.0343
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 2105404,
+        "id": "disc-normal",
+        "packageBytes": 795892,
+        "timingMs": {
+          "codecDecode": [
+            205.947,
+            203.84550000000002,
+            203.70250000000001,
+            203.6178,
+            206.0402
+          ],
+          "codecEncode": [
+            85.053,
+            84.866,
+            84.8956,
+            84.69319999999999,
+            85.1829
+          ],
+          "nativeOpenWithReadDecode": [
+            207.7893,
+            211.3457,
+            202.1579,
+            210.439,
+            201.9245
+          ],
+          "nativeSaveWithAtomicWrite": [
+            94.6069,
+            85.5814,
+            85.52170000000001,
+            86.64789999999999,
+            85.4161
+          ],
+          "parseFrame": [
+            0.0606,
+            0.050300000000000004,
+            0.0478,
+            0.047299999999999995,
+            0.0477
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 15688256,
+        "id": "disc-large",
+        "packageBytes": 5889467,
+        "timingMs": {
+          "codecDecode": [
+            1560.9017000000001,
+            1556.5388,
+            1519.5117,
+            1507.0323,
+            1506.713
+          ],
+          "codecEncode": [
+            612.9172000000001,
+            614.0286,
+            612.3256,
+            612.9023,
+            620.2408
+          ],
+          "nativeOpenWithReadDecode": [
+            1504.1329,
+            1548.6109,
+            1554.3649,
+            1546.2563,
+            1521.306
+          ],
+          "nativeSaveWithAtomicWrite": [
+            617.7644,
+            632.7471999999999,
+            616.3558,
+            613.642,
+            614.2266
+          ],
+          "parseFrame": [
+            0.1914,
+            0.133,
+            0.1264,
+            0.12530000000000002,
+            0.12449999999999999
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 159947,
+        "id": "case-small",
+        "packageBytes": 79289,
+        "timingMs": {
+          "codecDecode": [
+            18.7431,
+            18.7641,
+            19.0047,
+            20.153000000000002,
+            19.3347
+          ],
+          "codecEncode": [
+            12.6524,
+            12.7926,
+            12.7743,
+            12.7669,
+            12.8188
+          ],
+          "nativeOpenWithReadDecode": [
+            19.1302,
+            18.8765,
+            18.891000000000002,
+            18.9484,
+            19.1641
+          ],
+          "nativeSaveWithAtomicWrite": [
+            14.083699999999999,
+            14.326600000000001,
+            14.0924,
+            13.9168,
+            14.1645
+          ],
+          "parseFrame": [
+            0.0333,
+            0.0312,
+            0.0305,
+            0.0305,
+            0.030199999999999998
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 2126027,
+        "id": "case-normal",
+        "packageBytes": 816570,
+        "timingMs": {
+          "codecDecode": [
+            211.8024,
+            213.3869,
+            208.82899999999998,
+            207.25740000000002,
+            207.2612
+          ],
+          "codecEncode": [
+            91.705,
+            90.2039,
+            90.589,
+            90.4816,
+            90.4647
+          ],
+          "nativeOpenWithReadDecode": [
+            209.64450000000002,
+            217.10479999999998,
+            218.111,
+            207.593,
+            207.27880000000002
+          ],
+          "nativeSaveWithAtomicWrite": [
+            90.7383,
+            90.59689999999999,
+            90.89020000000001,
+            90.5308,
+            90.91829999999999
+          ],
+          "parseFrame": [
+            0.051,
+            0.045599999999999995,
+            0.0441,
+            0.0443,
+            0.044
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 15708879,
+        "id": "case-large",
+        "packageBytes": 5910145,
+        "timingMs": {
+          "codecDecode": [
+            1526.5998,
+            1524.3723,
+            1553.7501,
+            1535.8093,
+            1526.6035
+          ],
+          "codecEncode": [
+            648.1411,
+            624.2482,
+            615.9390999999999,
+            621.5738,
+            615.6614999999999
+          ],
+          "nativeOpenWithReadDecode": [
+            1515.4109999999998,
+            1537.2792,
+            1573.3448,
+            1576.5935,
+            1534.1189
+          ],
+          "nativeSaveWithAtomicWrite": [
+            633.7171999999999,
+            620.2366000000001,
+            631.081,
+            619.903,
+            617.6608
+          ],
+          "parseFrame": [
+            0.13119999999999998,
+            0.12300000000000001,
+            0.1216,
+            0.1214,
+            0.1214
+          ]
+        }
+      }
+    ],
+    "samples": 5,
+    "warmup": 1
+  },
+  "staging": {
+    "formatVersion": 1,
+    "boundary": "actual-native-hydration-through-production-open-staging",
+    "limitations": [
+      "No WebView transport, native dialog, editor commit or GUI acceptance"
+    ],
+    "results": [
+      {
+        "id": "disc-small",
+        "status": "success",
+        "projectType": "disc",
+        "editorRoute": {
+          "workspace": "disc"
+        },
+        "exactAssetLeaves": 2,
+        "presetState": "not-applicable"
+      },
+      {
+        "id": "disc-normal",
+        "status": "success",
+        "projectType": "disc",
+        "editorRoute": {
+          "workspace": "disc"
+        },
+        "exactAssetLeaves": 2,
+        "presetState": "not-applicable"
+      },
+      {
+        "id": "disc-large",
+        "status": "success",
+        "projectType": "disc",
+        "editorRoute": {
+          "workspace": "disc"
+        },
+        "exactAssetLeaves": 2,
+        "presetState": "not-applicable"
+      },
+      {
+        "id": "case-small",
+        "status": "success",
+        "projectType": "caseInsert",
+        "editorRoute": {
+          "workspace": "caseInsert",
+          "surface": "front"
+        },
+        "exactAssetLeaves": 2,
+        "presetState": "exact"
+      },
+      {
+        "id": "case-normal",
+        "status": "success",
+        "projectType": "caseInsert",
+        "editorRoute": {
+          "workspace": "caseInsert",
+          "surface": "front"
+        },
+        "exactAssetLeaves": 2,
+        "presetState": "exact"
+      },
+      {
+        "id": "case-large",
+        "status": "success",
+        "projectType": "caseInsert",
+        "editorRoute": {
+          "workspace": "caseInsert",
+          "surface": "front"
+        },
+        "exactAssetLeaves": 2,
+        "presetState": "exact"
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "id": "case-large",
+      "files": {
+        "project.json": {
+          "bytes": 15709043,
+          "sha256": "5313bb3599065d11ad9e7dea1f322e0769971d43a704c9812c11b9f0635dfa4f"
+        },
+        "request.bin": {
+          "bytes": 7870343,
+          "sha256": "81bfbff22618982b6178aac0a3591eca7cca7866151f82106833015f4afbf021"
+        },
+        "native-output.sbls": {
+          "bytes": 5910145,
+          "sha256": "1475dd8fcb713294e5bbfcb6b00d3e7afbf2436e8230a3fdd355a61183d33d3f"
+        },
+        "native-hydrated.json": {
+          "bytes": 15708879,
+          "sha256": "eda12444bf97eb5d4b6398ac258c017361ebc2e04ecfd2b43b7dde60d66406ab"
+        }
+      }
+    },
+    {
+      "id": "case-normal",
+      "files": {
+        "project.json": {
+          "bytes": 2126191,
+          "sha256": "71db05f88a799a074cacb3e5865dbb3f6ee7c8c51bcf0a1dad6deb31e3497674"
+        },
+        "request.bin": {
+          "bytes": 1078915,
+          "sha256": "92876f7f31e38ff2d6cc44a5018029cb7aec214374fddc072dc2ac6c60a8e0ae"
+        },
+        "native-output.sbls": {
+          "bytes": 816570,
+          "sha256": "591db45b7bf2f7a12a05b92eefcc6cc4081a482694847d29a300e97ad5bd775b"
+        },
+        "native-hydrated.json": {
+          "bytes": 2126027,
+          "sha256": "4bbf44734d5429688901970615160e0e5c08e9c3e6542b5918b09c8ebabc7158"
+        }
+      }
+    },
+    {
+      "id": "case-small",
+      "files": {
+        "project.json": {
+          "bytes": 160111,
+          "sha256": "c2ac3d81f9ada66f9b7e035f3dbb87c18118e4d7a1412e6bc86d0e2cd735b567"
+        },
+        "request.bin": {
+          "bytes": 95875,
+          "sha256": "d1bafd93c8a52f2149a8343ecf318d76976b1dd12b9c9d42e66fa38def694433"
+        },
+        "native-output.sbls": {
+          "bytes": 79289,
+          "sha256": "9b1f36724495385aa6de93e412e47a4f98f4aba719e5bbc4dc8dd479d561bd0d"
+        },
+        "native-hydrated.json": {
+          "bytes": 159947,
+          "sha256": "33affed9c1c977fa47f9113469de7aaa3868690926a0d88a93161d36424620ee"
+        }
+      }
+    },
+    {
+      "id": "disc-large",
+      "files": {
+        "project.json": {
+          "bytes": 15688256,
+          "sha256": "9da8e668945e7dde20756b9bfb48e36281a9225c1f88da19122c7068b274a43e"
+        },
+        "request.bin": {
+          "bytes": 7849809,
+          "sha256": "a1948ae6769d22f10d1378e79fd51476ca9cbf6f435788d3bb9f967dac682324"
+        },
+        "native-output.sbls": {
+          "bytes": 5889467,
+          "sha256": "87efdffebeaddfab10e651444ae8446099c53aa0a99bc13c2ddb6f1babfba76e"
+        },
+        "native-hydrated.json": {
+          "bytes": 15688256,
+          "sha256": "b1de85839fecb2b97e459df4f484a54f966dd393376fde84cc58b945117eb984"
+        }
+      }
+    },
+    {
+      "id": "disc-normal",
+      "files": {
+        "project.json": {
+          "bytes": 2105404,
+          "sha256": "5cf04e345d2f9bdad4cfc3222303ee829fbc819351c278056d3b6d33bfa8e5a8"
+        },
+        "request.bin": {
+          "bytes": 1058381,
+          "sha256": "f72f88a27d01d16d9a533d712f0621046b779ba4f9b655dda20dbdaaa4e9976a"
+        },
+        "native-output.sbls": {
+          "bytes": 795892,
+          "sha256": "4ecddec477535ad3a4df32bbf55321abf46fd7cadce2fa84c96481e46692ae62"
+        },
+        "native-hydrated.json": {
+          "bytes": 2105404,
+          "sha256": "d144682319b3cab455dc77e166e18d3582abf965143c861fdc956c9cb46242a3"
+        }
+      }
+    },
+    {
+      "id": "disc-small",
+      "files": {
+        "project.json": {
+          "bytes": 139324,
+          "sha256": "498baae8132cfe92f9bc98117c7f9fd280728756365c7daf270cad55db900901"
+        },
+        "request.bin": {
+          "bytes": 75341,
+          "sha256": "fbd73fd847e9f8d2563a8919a406d8ddd1adfb1d1705172c1d664455ff111197"
+        },
+        "native-output.sbls": {
+          "bytes": 58611,
+          "sha256": "94475195abadbc0835d00f70f9e434a1ce58e190dd38045da31ab353b04468a3"
+        },
+        "native-hydrated.json": {
+          "bytes": 139324,
+          "sha256": "08b665f51886ffc0f17e547a8c1a522dc389d0c5f5b962d192dabdc3f4559c7f"
+        }
+      }
+    }
+  ]
+}

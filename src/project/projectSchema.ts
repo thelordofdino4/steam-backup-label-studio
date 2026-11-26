@@ -1,4 +1,4 @@
-import type { SavedProject } from './projectTypes'
+import type { SavedDiscProject, SavedProject } from './projectTypes'
 import {
   DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
   UNAVAILABLE_CASE_INSERT_TEMPLATE_TYPES,
@@ -100,6 +100,20 @@ export function validateNormalizedProjectSchema(
   }
 }
 
+/** Internal Disc adapter: the committed Background is validated by its owner,
+ * never supplied as a saved-file leaf to this remainder check. */
+export function validateNormalizedDiscProjectRemainder(
+  project: unknown,
+): asserts project is Omit<SavedDiscProject, 'background'> {
+  const issues = collectSavedProjectSchemaIssues(project, false, 'disc-remainder')
+  if (issues.length > 0) {
+    throw new ProjectSchemaError(
+      `Normalized Disc remainder failed schema validation: ${issues[0]}`,
+      issues,
+    )
+  }
+}
+
 export function parseProjectJsonRecord(contents: string): JsonRecord {
   let parsed: unknown
 
@@ -126,10 +140,23 @@ export function getSavedProjectSchemaIssues(
     allowMissingCaseInsertLayoutPreset?: boolean
   }> = {},
 ): string[] {
+  return collectSavedProjectSchemaIssues(
+    project, options.allowMissingCaseInsertLayoutPreset === true, 'saved',
+  )
+}
+
+function collectSavedProjectSchemaIssues(
+  project: unknown,
+  allowMissingCaseInsertLayoutPreset: boolean,
+  scope: 'saved' | 'disc-remainder',
+): string[] {
   const record = asRecord(project)
 
   if (!record) {
     return ['Project file root must be a JSON object.']
+  }
+  if (scope === 'disc-remainder' && Object.hasOwn(record, 'background')) {
+    return ['A Disc remainder cannot write Background.']
   }
 
   const issues: string[] = []
@@ -174,13 +201,16 @@ export function getSavedProjectSchemaIssues(
   }
 
   if (projectType === 'disc') {
-    validateDiscProjectRecord(record, templateRecord, issues)
+    validateDiscProjectRemainder(record, templateRecord, issues)
+    if (scope === 'saved') validateDiscProjectBackground(record, issues)
+  } else if (scope === 'disc-remainder') {
+    issues.push('A Disc remainder must declare a Disc project.')
   } else {
     validateCaseInsertProjectRecord(
       record,
       templateRecord,
       issues,
-      options.allowMissingCaseInsertLayoutPreset === true,
+      allowMissingCaseInsertLayoutPreset,
     )
   }
 
@@ -419,7 +449,7 @@ function validateOptionalEditorProjectTypeField(
   }
 }
 
-function validateDiscProjectRecord(
+function validateDiscProjectRemainder(
   record: JsonRecord,
   templateRecord: JsonRecord,
   issues: string[],
@@ -451,6 +481,9 @@ function validateDiscProjectRecord(
     )
   }
 
+}
+
+function validateDiscProjectBackground(record: JsonRecord, issues: string[]) {
   const backgroundRecord = asRecord(record.background)
 
   if (!backgroundRecord) {

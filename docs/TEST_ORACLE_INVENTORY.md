@@ -41,7 +41,7 @@ Use the full discovered suite for migration slices; a narrow rerun is diagnostic
 
 ## File-reading test inventory
 
-This inventory covers all **98** discovered tests importing/using `readFile` or `readFileSync` at this baseline, including five fixture/asset readers that are not source-string checks. Classification applies to their file-reading assertions; mixed files retain all their behavioral tests too.
+This inventory covers all **99** discovered tests importing/using `readFile` or `readFileSync` after the #357 fixture addition, including six fixture/asset readers that are not source-string checks. Classification applies to their file-reading assertions; mixed files retain all their behavioral tests too.
 
 - **BEHAVIORAL_ORACLE**: reads input/output fixture or asset bytes and checks observable results.
 - **ARCHITECTURE_BOUNDARY**: intentionally retains static checks for domain ownership, adapter wiring, transaction purity, renderer authority, bounded allocation, or native-port separation. Update spelling when an approved ownership boundary moves; preserve the boundary.
@@ -148,6 +148,7 @@ No test is deleted or disabled in this change. A change to a structural assertio
 | `src/render/caseInsertArtworkViewportRenderArtifact.test.ts` | `ARCHITECTURE_BOUNDARY` |
 | `src/tauri/binaryProjectFile.test.ts` | `ARCHITECTURE_BOUNDARY` |
 | `src/tauri/packageProjectFile.test.ts` | `ARCHITECTURE_BOUNDARY` |
+| `src/tauri/projectPackageCapacity.test.ts` | `BEHAVIORAL_ORACLE` |
 | `src/tauri/projectPackageWrite.test.ts` | `ARCHITECTURE_BOUNDARY` |
 
 To refresh the inventory, scan the automatically discovered suite for `readFile`/`readFileSync`, inspect new readers, and classify their assertions using the rules above. This classification is documentation, never a test inclusion/exclusion list. Future tests run whether or not a documentation row has been added.

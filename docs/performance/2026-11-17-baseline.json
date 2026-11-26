@@ -1,0 +1,1297 @@
+{
+  "productionSourceCommit": "d895c58cdd057306c2a6fc7593162dcfe99b5908",
+  "measurementSourceCommit": "86c5f942c08674bc389ed63561b35e4095422901",
+  "measurementStatus": "Partial current-main source/native-code/browser diagnostics; native GUI interaction, IPC and whole-app memory remain pending",
+  "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "harnessSha256": {
+    "scripts/performance/fixtures.mjs": "16485500603f3feca5955933d75ff1bc0f5e5cfba5f79f12e449559ad689a9a6",
+    "scripts/performance/project-baseline.mjs": "12137c9ae11e75be20634f27d1c716b37c0f1fb8b94db6180680b89fd5abdafe",
+    "scripts/performance/browser-baseline.mjs": "609b93ebc216e0d37edcbdf6afb4c7d41e2ff0c05972220ff2f89fc360e65f29",
+    "src-tauri/src/commands/project_package_performance.rs": "e5e145b4b3ad4a4ec81e3bcf59d29841b0ca946103b6e26e8f50755656202157",
+    "src-tauri/src/commands/project_packages.rs": "fe4f0648e517aa6be22c082810f6b5e353e64d4ed3a18c0459b3908cb71f2496"
+  },
+  "node": {
+    "formatVersion": 1,
+    "capturedAt": "2026-11-17T06:01:42.967Z",
+    "sourceCommit": "86c5f942c08674bc389ed63561b35e4095422901",
+    "sourceStatus": "",
+    "environment": {
+      "node": "v24.16.0",
+      "platform": "win32",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 9 7950X 16-Core Processor            ",
+      "logicalCpus": 32,
+      "physicalMemoryBytes": 33510416384
+    },
+    "warmup": 1,
+    "samples": 5,
+    "results": [
+      {
+        "id": "disc-small",
+        "kind": "disc",
+        "width": 128,
+        "height": 128,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 49206,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 65630,
+        "logicalDataUrlBytes": 131260,
+        "uniqueRgbaBytes": 65536,
+        "projectUtf8Bytes": 139324,
+        "requestBytes": 75341,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "498baae8132cfe92f9bc98117c7f9fd280728756365c7daf270cad55db900901",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.2818999999999505,
+            0.29589999999996053,
+            0.335899999999981,
+            0.27800000000002,
+            0.18709999999998672
+          ],
+          "schemaValidationOnly": [
+            0.010400000000004184,
+            0.006700000000023465,
+            0.002900000000011005,
+            0.0011999999999829924,
+            0.0013000000000147338
+          ],
+          "canonicalComparisonUncached": [
+            0.08199999999999363,
+            0.07839999999998781,
+            0.07689999999996644,
+            0.07999999999998408,
+            0.07509999999996353
+          ],
+          "canonicalComparisonCached": [
+            0.0003000000000383807,
+            0.0002000000000066393,
+            0.00010000000003174137,
+            9.999999997489795E-05,
+            0.0006999999999948159
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            0.26710000000002765,
+            0.2563000000000102,
+            0.25159999999999627,
+            0.25219999999995935,
+            0.27080000000000837
+          ],
+          "jsonSerialization": [
+            0.06860000000000355,
+            0.06700000000000728,
+            0.07109999999994443,
+            0.07030000000003156,
+            0.06889999999998508
+          ],
+          "capturePlan": [
+            0.028300000000001546,
+            0.013899999999978263,
+            0.008500000000026375,
+            0.008100000000013097,
+            0.007699999999999818
+          ],
+          "rawRequestFraming": [
+            0.35710000000000264,
+            0.3295999999999708,
+            0.29169999999999163,
+            0.3340000000000032,
+            0.258199999999988
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 87687168,
+            "heapTotal": 37990400,
+            "heapUsed": 23430536,
+            "external": 12686439,
+            "arrayBuffers": 707038
+          },
+          "nodeProcessPeakRssKiB": 85648
+        }
+      },
+      {
+        "id": "disc-normal",
+        "kind": "disc",
+        "width": 512,
+        "height": 512,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 786486,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 1048670,
+        "logicalDataUrlBytes": 2097340,
+        "uniqueRgbaBytes": 1048576,
+        "projectUtf8Bytes": 2105404,
+        "requestBytes": 1058381,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "5cf04e345d2f9bdad4cfc3222303ee829fbc819351c278056d3b6d33bfa8e5a8",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.23559999999997672,
+            0.24389999999999645,
+            0.24689999999998236,
+            0.24099999999998545,
+            0.203899999999976
+          ],
+          "schemaValidationOnly": [
+            0.008900000000039654,
+            0.006000000000028649,
+            0.0027000000000043656,
+            0.0012000000000398359,
+            0.0013000000000147338
+          ],
+          "canonicalComparisonUncached": [
+            1.0670999999999822,
+            1.111599999999953,
+            1.5645000000000095,
+            1.1362000000000307,
+            1.185699999999997
+          ],
+          "canonicalComparisonCached": [
+            0.0004999999999881766,
+            0.0003000000000383807,
+            0.0002000000000066393,
+            0.00010000000003174137,
+            0.0018000000000029104
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            1.212500000000034,
+            1.2099999999999795,
+            1.3924000000000092,
+            1.2472999999999956,
+            1.1788999999999987
+          ],
+          "jsonSerialization": [
+            1.0289999999999964,
+            1.0430000000000064,
+            0.9956999999999994,
+            2.1672000000000367,
+            1.0632999999999697
+          ],
+          "capturePlan": [
+            0.03409999999996671,
+            0.010600000000010823,
+            0.009500000000002728,
+            0.008699999999976171,
+            0.006900000000030104
+          ],
+          "rawRequestFraming": [
+            1.83359999999999,
+            1.7957000000000107,
+            1.7642000000000166,
+            1.8110000000000355,
+            1.7672000000000025
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 137347072,
+            "heapTotal": 124735488,
+            "heapUsed": 56002304,
+            "external": 24417581,
+            "arrayBuffers": 10340884
+          },
+          "nodeProcessPeakRssKiB": 136200
+        }
+      },
+      {
+        "id": "disc-large",
+        "kind": "disc",
+        "width": 1400,
+        "height": 1400,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 5880054,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 7840094,
+        "logicalDataUrlBytes": 15680188,
+        "uniqueRgbaBytes": 7840000,
+        "projectUtf8Bytes": 15688256,
+        "requestBytes": 7849809,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "9da8e668945e7dde20756b9bfb48e36281a9225c1f88da19122c7068b274a43e",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.23149999999998272,
+            0.24750000000000227,
+            0.24729999999999563,
+            0.24950000000001182,
+            0.20629999999999882
+          ],
+          "schemaValidationOnly": [
+            0.008900000000039654,
+            0.006300000000010186,
+            0.0036999999999807187,
+            0.0013000000000147338,
+            0.0013999999999896318
+          ],
+          "canonicalComparisonUncached": [
+            7.249300000000005,
+            7.184900000000027,
+            7.268900000000031,
+            7.467099999999959,
+            7.303100000000029
+          ],
+          "canonicalComparisonCached": [
+            0.003199999999992542,
+            0.0002000000000066393,
+            0.0002000000000066393,
+            0.00010000000003174137,
+            0.0078000000000315595
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            8.044100000000014,
+            7.626300000000015,
+            7.435099999999977,
+            7.689200000000028,
+            7.645800000000008
+          ],
+          "jsonSerialization": [
+            7.534600000000012,
+            8.692499999999995,
+            9.316000000000031,
+            8.6096,
+            7.450199999999995
+          ],
+          "capturePlan": [
+            0.03609999999997626,
+            0.011200000000030741,
+            0.007999999999981355,
+            0.007699999999999818,
+            0.0078000000000315595
+          ],
+          "rawRequestFraming": [
+            16.446300000000008,
+            16.627899999999954,
+            17.395899999999983,
+            16.970399999999927,
+            16.82910000000004
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 471203840,
+            "heapTotal": 465342464,
+            "heapUsed": 329789928,
+            "external": 82656647,
+            "arrayBuffers": 70677246
+          },
+          "nodeProcessPeakRssKiB": 475520
+        }
+      },
+      {
+        "id": "case-small",
+        "kind": "case",
+        "width": 128,
+        "height": 128,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 49206,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 65630,
+        "logicalDataUrlBytes": 131260,
+        "uniqueRgbaBytes": 65536,
+        "projectUtf8Bytes": 160111,
+        "requestBytes": 95715,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "c2ac3d81f9ada66f9b7e035f3dbb87c18118e4d7a1412e6bc86d0e2cd735b567",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.8306999999999789,
+            0.7556000000000154,
+            0.6431999999999789,
+            0.7472000000000207,
+            0.7438999999999965
+          ],
+          "schemaValidationOnly": [
+            0.012799999999970169,
+            0.006100000000003547,
+            0.00329999999996744,
+            0.001599999999996271,
+            0.001699999999971169
+          ],
+          "canonicalComparisonUncached": [
+            0.141900000000021,
+            0.11419999999998254,
+            0.12749999999999773,
+            0.11670000000003711,
+            0.11599999999998545
+          ],
+          "canonicalComparisonCached": [
+            0.0003000000000383807,
+            9.999999997489795E-05,
+            0.0003000000000383807,
+            0.00010000000003174137,
+            0.0007999999999697138
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            1.0083999999999946,
+            0.9315000000000282,
+            0.8772999999999911,
+            0.8888999999999783,
+            0.9241000000000099
+          ],
+          "jsonSerialization": [
+            0.10560000000003811,
+            0.10230000000001382,
+            0.10210000000000719,
+            0.10009999999999764,
+            0.24350000000004002
+          ],
+          "capturePlan": [
+            0.012300000000038835,
+            0.006799999999998363,
+            0.006399999999985084,
+            0.006000000000028649,
+            0.00929999999999609
+          ],
+          "rawRequestFraming": [
+            0.9572000000000003,
+            0.8670000000000186,
+            1.2230000000000132,
+            0.6803999999999633,
+            0.6674999999999613
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 95481856,
+            "heapTotal": 37318656,
+            "heapUsed": 19043544,
+            "external": 12562699,
+            "arrayBuffers": 583298
+          },
+          "nodeProcessPeakRssKiB": 95612
+        }
+      },
+      {
+        "id": "case-normal",
+        "kind": "case",
+        "width": 512,
+        "height": 512,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 786486,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 1048670,
+        "logicalDataUrlBytes": 2097340,
+        "uniqueRgbaBytes": 1048576,
+        "projectUtf8Bytes": 2126191,
+        "requestBytes": 1078755,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "71db05f88a799a074cacb3e5865dbb3f6ee7c8c51bcf0a1dad6deb31e3497674",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.7952999999999975,
+            0.7097999999999729,
+            0.7327000000000226,
+            0.7445000000000164,
+            0.7403999999999655
+          ],
+          "schemaValidationOnly": [
+            0.009999999999990905,
+            0.005899999999996908,
+            0.0030999999999608008,
+            0.0017000000000280124,
+            0.0018999999999778083
+          ],
+          "canonicalComparisonUncached": [
+            1.703200000000038,
+            1.2110999999999876,
+            1.1870000000000118,
+            1.2685000000000173,
+            1.11160000000001
+          ],
+          "canonicalComparisonCached": [
+            0.0008000000000265572,
+            0.0002000000000066393,
+            9.999999997489795E-05,
+            0.0002000000000066393,
+            0.0017000000000280124
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            2.147899999999993,
+            1.8365999999999758,
+            1.8476,
+            1.903599999999983,
+            1.8511999999999489
+          ],
+          "jsonSerialization": [
+            1.2706000000000017,
+            2.02090000000004,
+            1.1338999999999828,
+            1.079999999999984,
+            1.0918000000000347
+          ],
+          "capturePlan": [
+            0.014799999999979718,
+            0.006700000000023465,
+            0.0056000000000153705,
+            0.005599999999958527,
+            0.0056000000000153705
+          ],
+          "rawRequestFraming": [
+            2.336500000000001,
+            2.348799999999983,
+            2.3419999999999845,
+            2.158499999999947,
+            2.149599999999964
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 152309760,
+            "heapTotal": 133320704,
+            "heapUsed": 65665088,
+            "external": 24580986,
+            "arrayBuffers": 10504289
+          },
+          "nodeProcessPeakRssKiB": 150824
+        }
+      },
+      {
+        "id": "case-large",
+        "kind": "case",
+        "width": 1400,
+        "height": 1400,
+        "format": "24-bit BI_RGB BMP",
+        "uniqueEncodedAssetBytes": 5880054,
+        "assetOwnerOccurrences": 2,
+        "dataUrlAsciiBytesPerOwner": 7840094,
+        "logicalDataUrlBytes": 15680188,
+        "uniqueRgbaBytes": 7840000,
+        "projectUtf8Bytes": 15709043,
+        "requestBytes": 7870183,
+        "framingMagic": "SBLSPSV2",
+        "fixtureSha256": "5313bb3599065d11ad9e7dea1f322e0769971d43a704c9812c11b9f0635dfa4f",
+        "timingMs": {
+          "captureValidateFreeze": [
+            0.8274000000000115,
+            0.8630999999999744,
+            0.9171999999999798,
+            0.7730000000000246,
+            0.7617000000000189
+          ],
+          "schemaValidationOnly": [
+            0.01259999999996353,
+            0.006000000000028649,
+            0.0036000000000058208,
+            0.0018000000000029104,
+            0.0020000000000095497
+          ],
+          "canonicalComparisonUncached": [
+            7.9874000000000365,
+            9.74029999999999,
+            7.745400000000018,
+            8.725799999999992,
+            7.766300000000001
+          ],
+          "canonicalComparisonCached": [
+            0.003199999999992542,
+            0.00029999999998153726,
+            0.00010000000003174137,
+            9.999999997489795E-05,
+            0.010099999999965803
+          ],
+          "scalarSuccessorCaptureComparisonProxy": [
+            9.583900000000028,
+            9.283799999999985,
+            8.801800000000014,
+            9.426800000000014,
+            8.742099999999994
+          ],
+          "jsonSerialization": [
+            8.440199999999948,
+            8.521000000000015,
+            7.638599999999997,
+            8.53819999999996,
+            11.03830000000005
+          ],
+          "capturePlan": [
+            0.013800000000060209,
+            0.006200000000035288,
+            0.005399999999895044,
+            0.00580000000002201,
+            0.005499999999983629
+          ],
+          "rawRequestFraming": [
+            13.217399999999998,
+            14.370599999999968,
+            14.299299999999903,
+            21.355999999999995,
+            12.578899999999976
+          ]
+        },
+        "memory": {
+          "nodeEnd": {
+            "rss": 208756736,
+            "heapTotal": 214577152,
+            "heapUsed": 78780056,
+            "external": 67079686,
+            "arrayBuffers": 55100285
+          },
+          "nodeProcessPeakRssKiB": 446640
+        }
+      }
+    ],
+    "pending": [
+      "native input-to-preview latency",
+      "actual lifecycle scalar commit",
+      "native WebView/IPC end-to-end Save/Open",
+      "whole-app process-tree peak memory"
+    ]
+  },
+  "native": {
+    "formatVersion": 1,
+    "limitations": [
+      "No WebView IPC, dialog, UI or lifecycle timing",
+      "Native process peak memory not collected",
+      "Warm filesystem caches; no cold-storage claim"
+    ],
+    "profile": "debug",
+    "results": [
+      {
+        "hydratedJsonBytes": 139324,
+        "id": "disc-small",
+        "packageBytes": 58611,
+        "timingMs": {
+          "codecDecode": [
+            15.4879,
+            15.232600000000001,
+            15.475900000000001,
+            15.2555,
+            15.5311
+          ],
+          "codecEncode": [
+            7.1511,
+            7.3895,
+            7.3026,
+            8.030000000000001,
+            7.1205
+          ],
+          "nativeOpenWithReadDecode": [
+            15.7096,
+            15.512500000000001,
+            15.5964,
+            15.4682,
+            15.683800000000002
+          ],
+          "nativeSaveWithAtomicWrite": [
+            11.2646,
+            10.9478,
+            11.3191,
+            11.3262,
+            10.8075
+          ],
+          "parseFrame": [
+            0.0374,
+            0.035500000000000004,
+            0.0352,
+            0.0342,
+            0.036000000000000004
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 2105404,
+        "id": "disc-normal",
+        "packageBytes": 795892,
+        "timingMs": {
+          "codecDecode": [
+            215.07780000000002,
+            215.9749,
+            216.1442,
+            213.5384,
+            209.1786
+          ],
+          "codecEncode": [
+            87.9348,
+            86.97879999999999,
+            87.837,
+            86.4143,
+            87.664
+          ],
+          "nativeOpenWithReadDecode": [
+            211.0275,
+            208.1928,
+            214.1496,
+            207.6092,
+            209.8085
+          ],
+          "nativeSaveWithAtomicWrite": [
+            93.6094,
+            91.62180000000001,
+            93.3817,
+            90.2243,
+            92.0439
+          ],
+          "parseFrame": [
+            0.0942,
+            0.0855,
+            0.0576,
+            0.0483,
+            0.0479
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 15688256,
+        "id": "disc-large",
+        "packageBytes": 5889467,
+        "timingMs": {
+          "codecDecode": [
+            1568.4676,
+            1576.9400999999998,
+            1534.7685,
+            1530.9507,
+            1562.6218999999999
+          ],
+          "codecEncode": [
+            612.0693,
+            612.6349,
+            612.2573,
+            613.5903999999999,
+            612.6553
+          ],
+          "nativeOpenWithReadDecode": [
+            1528.7595999999999,
+            1546.3437,
+            1557.8835,
+            1536.4588999999999,
+            1529.33
+          ],
+          "nativeSaveWithAtomicWrite": [
+            629.1466,
+            646.4175,
+            640.9565,
+            626.0924,
+            625.6442
+          ],
+          "parseFrame": [
+            0.1842,
+            0.1796,
+            0.1318,
+            0.12589999999999998,
+            0.125
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 159787,
+        "id": "case-small",
+        "packageBytes": 79129,
+        "timingMs": {
+          "codecDecode": [
+            18.9631,
+            19.227999999999998,
+            19.0825,
+            19.1805,
+            19.3528
+          ],
+          "codecEncode": [
+            12.5996,
+            12.544599999999999,
+            12.5281,
+            12.4709,
+            12.670300000000001
+          ],
+          "nativeOpenWithReadDecode": [
+            19.4218,
+            19.5583,
+            19.2751,
+            19.204900000000002,
+            19.2615
+          ],
+          "nativeSaveWithAtomicWrite": [
+            18.1904,
+            18.3451,
+            16.4433,
+            15.671000000000001,
+            15.637000000000002
+          ],
+          "parseFrame": [
+            0.0373,
+            0.0322,
+            0.0317,
+            0.031,
+            0.0305
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 2125867,
+        "id": "case-normal",
+        "packageBytes": 816410,
+        "timingMs": {
+          "codecDecode": [
+            213.37300000000002,
+            218.5948,
+            214.3911,
+            216.985,
+            215.5878
+          ],
+          "codecEncode": [
+            89.87180000000001,
+            89.0676,
+            89.29520000000001,
+            89.1014,
+            89.2294
+          ],
+          "nativeOpenWithReadDecode": [
+            210.7095,
+            212.3662,
+            216.3782,
+            216.588,
+            216.3324
+          ],
+          "nativeSaveWithAtomicWrite": [
+            97.2291,
+            99.3903,
+            99.61059999999999,
+            100.179,
+            99.8429
+          ],
+          "parseFrame": [
+            0.0467,
+            0.0448,
+            0.045200000000000004,
+            0.0441,
+            0.0443
+          ]
+        }
+      },
+      {
+        "hydratedJsonBytes": 15708719,
+        "id": "case-large",
+        "packageBytes": 5909985,
+        "timingMs": {
+          "codecDecode": [
+            1558.0864000000001,
+            1557.0561,
+            1542.1819,
+            1519.647,
+            1518.8319999999999
+          ],
+          "codecEncode": [
+            631.8632,
+            619.0669,
+            615.5595000000001,
+            616.9801,
+            617.1284999999999
+          ],
+          "nativeOpenWithReadDecode": [
+            1557.8213999999998,
+            1541.4816999999998,
+            1527.1787,
+            1530.7459,
+            1547.6898
+          ],
+          "nativeSaveWithAtomicWrite": [
+            653.8334,
+            656.4467000000001,
+            651.6226,
+            655.5072,
+            646.9688
+          ],
+          "parseFrame": [
+            0.1782,
+            0.1708,
+            0.1716,
+            0.1263,
+            0.1227
+          ]
+        }
+      }
+    ],
+    "samples": 5,
+    "warmup": 1
+  },
+  "browser": {
+    "formatVersion": 1,
+    "browserVersion": "148.0.7778.96",
+    "warmup": 1,
+    "samples": 5,
+    "results": [
+      {
+        "id": "disc-small",
+        "imageDecodeMs": [
+          0,
+          0.10000014305114746,
+          0,
+          0,
+          0
+        ],
+        "activePixelAnalysisMs": [
+          0.39999985694885254,
+          0.20000004768371582,
+          0.40000009536743164,
+          0.2999999523162842,
+          0.39999985694885254
+        ],
+        "decodedDimensions": [
+          128,
+          128
+        ],
+        "analyzedDimensions": [
+          128,
+          128
+        ],
+        "contentBounds": {
+          "x": 0,
+          "y": 0,
+          "width": 128,
+          "height": 128
+        },
+        "exportResults": {
+          "disc": {
+            "durationMs": [
+              116.30000019073486,
+              104.89999985694885,
+              101.10000014305115,
+              103.89999985694885,
+              101.90000009536743
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1423,
+              1423
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1423,
+            "height": 1423,
+            "pngBytes": 3360067
+          }
+        }
+      },
+      {
+        "id": "disc-normal",
+        "imageDecodeMs": [
+          0.39999985694885254,
+          0.2999999523162842,
+          0.3000001907348633,
+          0.39999985694885254,
+          0.20000004768371582
+        ],
+        "activePixelAnalysisMs": [
+          3.700000047683716,
+          3.8999998569488525,
+          3.5,
+          3.5,
+          3.4000000953674316
+        ],
+        "decodedDimensions": [
+          512,
+          512
+        ],
+        "analyzedDimensions": [
+          512,
+          512
+        ],
+        "contentBounds": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 512
+        },
+        "exportResults": {
+          "disc": {
+            "durationMs": [
+              119.29999995231628,
+              124,
+              108.80000019073486,
+              111.5,
+              122.89999985694885
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1423,
+              1423
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1423,
+            "height": 1423,
+            "pngBytes": 4346149
+          }
+        }
+      },
+      {
+        "id": "disc-large",
+        "imageDecodeMs": [
+          2,
+          1.7000000476837158,
+          1.7999999523162842,
+          2.0999999046325684,
+          1.8000001907348633
+        ],
+        "activePixelAnalysisMs": [
+          27.200000047683716,
+          26.799999952316284,
+          27.59999990463257,
+          26.90000009536743,
+          27.40000009536743
+        ],
+        "decodedDimensions": [
+          1400,
+          1400
+        ],
+        "analyzedDimensions": [
+          1400,
+          1400
+        ],
+        "contentBounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1400,
+          "height": 1400
+        },
+        "exportResults": {
+          "disc": {
+            "durationMs": [
+              119.90000009536743,
+              126.5,
+              120.5,
+              116.70000004768372,
+              114.89999985694885
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1423,
+              1423
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1423,
+            "height": 1423,
+            "pngBytes": 4800445
+          }
+        }
+      },
+      {
+        "id": "case-small",
+        "imageDecodeMs": [
+          0,
+          0,
+          0,
+          0,
+          0.09999990463256836
+        ],
+        "activePixelAnalysisMs": [
+          0.2999999523162842,
+          0.40000009536743164,
+          0.5,
+          0.39999985694885254,
+          0.2999999523162842
+        ],
+        "decodedDimensions": [
+          128,
+          128
+        ],
+        "analyzedDimensions": [
+          128,
+          128
+        ],
+        "contentBounds": {
+          "x": 0,
+          "y": 0,
+          "width": 128,
+          "height": 128
+        },
+        "exportResults": {
+          "cover": {
+            "durationMs": [
+              127.59999990463257,
+              118.29999995231628,
+              130.70000004768372,
+              120.90000009536743,
+              121.19999980926514
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1414,
+              1414
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1414,
+            "height": 1414,
+            "pngBytes": 4171217
+          },
+          "tray": {
+            "durationMs": [
+              12.799999952316284,
+              12.700000047683716,
+              12.599999904632568,
+              12.700000047683716,
+              12.299999952316284
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1780,
+              1390
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1780,
+            "height": 1390,
+            "pngBytes": 148246
+          }
+        }
+      },
+      {
+        "id": "case-normal",
+        "imageDecodeMs": [
+          0.09999990463256836,
+          0,
+          0,
+          0,
+          0
+        ],
+        "activePixelAnalysisMs": [
+          3.5999999046325684,
+          4,
+          3.5999999046325684,
+          3.6000001430511475,
+          3.5
+        ],
+        "decodedDimensions": [
+          512,
+          512
+        ],
+        "analyzedDimensions": [
+          512,
+          512
+        ],
+        "contentBounds": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 512
+        },
+        "exportResults": {
+          "cover": {
+            "durationMs": [
+              144.59999990463257,
+              134.20000004768372,
+              160,
+              139.29999995231628,
+              135.59999990463257
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1414,
+              1414
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1414,
+            "height": 1414,
+            "pngBytes": 5457590
+          },
+          "tray": {
+            "durationMs": [
+              12.600000143051147,
+              12.899999856948853,
+              12.5,
+              12.399999856948853,
+              12.299999952316284
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1780,
+              1390
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1780,
+            "height": 1390,
+            "pngBytes": 148246
+          }
+        }
+      },
+      {
+        "id": "case-large",
+        "imageDecodeMs": [
+          0.10000014305114746,
+          0,
+          0,
+          0,
+          0.09999990463256836
+        ],
+        "activePixelAnalysisMs": [
+          26.799999952316284,
+          26.700000047683716,
+          26.799999952316284,
+          26.90000009536743,
+          26.399999856948853
+        ],
+        "decodedDimensions": [
+          1400,
+          1400
+        ],
+        "analyzedDimensions": [
+          1400,
+          1400
+        ],
+        "contentBounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1400,
+          "height": 1400
+        },
+        "exportResults": {
+          "cover": {
+            "durationMs": [
+              155.29999995231628,
+              143.40000009536743,
+              143.89999985694885,
+              165.10000014305115,
+              142.79999995231628
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1414,
+              1414
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1414,
+            "height": 1414,
+            "pngBytes": 5948455
+          },
+          "tray": {
+            "durationMs": [
+              13.099999904632568,
+              12.900000095367432,
+              12.700000047683716,
+              12.599999904632568,
+              12.600000143051147
+            ],
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "ihdr": [
+              1780,
+              1390
+            ],
+            "physical": [
+              11811,
+              11811,
+              1
+            ],
+            "width": 1780,
+            "height": 1390,
+            "pngBytes": 148246
+          }
+        }
+      }
+    ],
+    "limitations": [
+      "Headless Chromium diagnostics only; not native Tauri/WebView acceptance",
+      "Warm URL/image caches; no cold decoder claim",
+      "No UI input or whole-app memory measurement",
+      "Wall time includes awaited image/PNG work; not a main-thread CPU profile"
+    ]
+  }
+}

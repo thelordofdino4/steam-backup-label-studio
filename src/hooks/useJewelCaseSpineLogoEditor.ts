@@ -1,3 +1,5 @@
+import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import type {
   ChangeEvent,
   Dispatch,
@@ -45,6 +47,7 @@ export function useJewelCaseSpineLogoEditor({
   setProjectJewelCase,
   announceStatus,
 }: UseJewelCaseSpineLogoEditorOptions) {
+  const asyncWork = useProjectAsyncWork()
   function handleAddSpineAdditionalLogoSlot(
     side: JewelCaseSpineSide,
     logoKey: LogoAssetKey,
@@ -86,24 +89,28 @@ export function useJewelCaseSpineLogoEditor({
       return
     }
 
+    const request = asyncWork.begin(`image:spine:${side}:logo:${logoKey}`)
     const image = await loadUploadedCaseInsertImageSlotImage({
-      announceStatus,
+      announceStatus: (message) => { if (asyncWork.isCurrent(request)) announceStatus(message) },
       uploadFile,
     })
-
     if (!image) {
+      asyncWork.publish(request, () => {})
       return
     }
 
-    setProjectJewelCase((currentCaseInsert) =>
-      setJewelCaseSpinePrimaryLogoSlotImage(
-        currentCaseInsert,
-        side,
-        logoKey,
-        image,
-      ),
-    )
-    announceStatus(`Selected ${side} spine ${uploadFile.statusLabel} image.`)
+    asyncWork.commit(request, () => {
+      setProjectJewelCase((currentCaseInsert) =>
+        setJewelCaseSpinePrimaryLogoSlotImage(
+          currentCaseInsert,
+          side,
+          logoKey,
+          image,
+        ),
+      )
+      announceStatus(`Selected ${side} spine ${uploadFile.statusLabel} image.`)
+
+    })
   }
 
   function handleSpinePrimaryLogoSlotLayoutChange(
@@ -127,6 +134,7 @@ export function useJewelCaseSpineLogoEditor({
     side: JewelCaseSpineSide,
     logoKey: LogoAssetKey,
   ) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((currentCaseInsert) =>
       resetJewelCaseSpinePrimaryLogoSlotDefaultLayout(
         currentCaseInsert,
@@ -140,6 +148,7 @@ export function useJewelCaseSpineLogoEditor({
     side: JewelCaseSpineSide,
     logoKey: LogoAssetKey,
   ) {
+    asyncWork.invalidateAll()
     setProjectJewelCase((currentCaseInsert) =>
       clearJewelCaseSpinePrimaryLogoSlotImage(
         currentCaseInsert,
@@ -160,20 +169,24 @@ export function useJewelCaseSpineLogoEditor({
     const label = getCaseInsertPrimaryLogoLabel(logoKey)
     announceStatus(`Adding ${candidate.label} to the ${side} spine...`)
 
+    const request = asyncWork.begin(`image:spine:${side}:logo:${logoKey}`)
     try {
       const image = await createLogoCandidateCaseInsertImageSlotImage(candidate)
-
-      setProjectJewelCase((currentCaseInsert) =>
-        setJewelCaseSpinePrimaryLogoSlotImage(
-          currentCaseInsert,
-          side,
-          logoKey,
-          image,
-        ),
-      )
-      announceStatus(`Added ${candidate.label} as the ${side} spine ${normalizeCaseInsertLabel(label)}.`)
+      return commitProjectAsyncValue(asyncWork, request, () => {
+        setProjectJewelCase((currentCaseInsert) =>
+          setJewelCaseSpinePrimaryLogoSlotImage(
+            currentCaseInsert,
+            side,
+            logoKey,
+            image,
+          ),
+        )
+        announceStatus(`Added ${candidate.label} as the ${side} spine ${normalizeCaseInsertLabel(label)}.`)
+      })
     } catch (error) {
-      announceStatus(`Logo candidate import failed for ${side} spine ${normalizeCaseInsertLabel(label)}: ${String(error)}`)
+      asyncWork.publish(request, () => {
+        announceStatus(`Logo candidate import failed for ${side} spine ${normalizeCaseInsertLabel(label)}: ${String(error)}`)
+      })
     }
   }
 

@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
+import { InteractionPerformanceContext } from '../diagnostics/InteractionPerformanceContext.ts'
+import { observeInteraction } from '../diagnostics/interactionPerformanceObserver.ts'
 import {
   completeDiscGuidedSlotWhenSatisfied,
   DISC_GUIDED_COMPLETION_SLOT_IDS,
@@ -6,9 +8,6 @@ import {
   isDiscGuidedTextOwnerSatisfied,
   type DiscGuidedSlotCompletionHandler,
 } from '../guidedPresets/discGuidedCompletion.ts'
-import {
-  applySteamGameImportToDiscTextValues,
-} from '../steam/steamGameImport'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 import {
@@ -100,6 +99,7 @@ import {
   type DiscTextRichTextCommandState,
 } from '../discText/textStateTransitions'
 import {
+  planSteamImportedDiscTextValues,
   resolveDiscTextMetadataState,
   restoreDiscTextMetadataValueTransition,
   type DiscTextMetadataResolution,
@@ -181,6 +181,7 @@ export function useDiscTextState({
   )
   const [selectedDiscTextKey, setSelectedDiscTextKey] =
     useState<DiscTextKey | null>(null)
+  const interactionObserver = useContext(InteractionPerformanceContext)
   const [projectDiscNumberArtwork, setProjectDiscNumberArtwork] = useState(() =>
     createDefaultProjectDiscNumberArtwork(),
   )
@@ -369,20 +370,15 @@ export function useDiscTextState({
     setDiscTextStyles(restoredDiscTextStyles)
   }
 
-  function clampDiscTextLayoutToTemplate(template: DiscTemplate) {
-    setDiscTextLayout((currentLayout) => {
-      const nextLayout = clampDiscTextLayoutSettingsForCurrentContent(
-        currentLayout,
-        template,
-      )
-      const didChange = DISC_TEXT_KEYS.some(
-        (key) =>
-          nextLayout[key].x !== currentLayout[key].x ||
-          nextLayout[key].y !== currentLayout[key].y,
-      )
+  function planDiscTextLayoutClamp(currentLayout: DiscTextLayoutSettings, template: DiscTemplate) {
+    const nextLayout = clampDiscTextLayoutSettingsForCurrentContent(currentLayout, template)
+    const didChange = DISC_TEXT_KEYS.some((key) =>
+      nextLayout[key].x !== currentLayout[key].x || nextLayout[key].y !== currentLayout[key].y)
+    return didChange ? nextLayout : currentLayout
+  }
 
-      return didChange ? nextLayout : currentLayout
-    })
+  function clampDiscTextLayoutToTemplate(template: DiscTemplate) {
+    setDiscTextLayout(currentLayout => planDiscTextLayoutClamp(currentLayout, template))
   }
 
   function repositionDiscTextForSteamLogoPlacement(
@@ -716,6 +712,9 @@ export function useDiscTextState({
     value: string,
     options: { sourceMode?: boolean } = {},
   ) {
+    const interaction = key === 'customNote' && !options.sourceMode &&
+      !isDiscTextHtmlEnabled(discTextHtmlSources, key) && interactionObserver
+      ? observeInteraction(() => interactionObserver.begin('disc-custom-note-plain')) : undefined
     if (options.sourceMode) {
       const renderedPlainText = parseHtmlText(value).plainText
       const nextInputUpdate = updateDiscTextInlineDraftValue(
@@ -785,6 +784,9 @@ export function useDiscTextState({
       nextInputUpdate,
       getDiscTextInputUpdateRenderedContent(key, nextInputUpdate),
     )
+    if (interactionObserver && interaction) observeInteraction(() => interactionObserver.expect(
+      interaction, nextInputUpdate.values, discTextValues.customNote !== nextInputUpdate.values.customNote,
+    ))
   }
 
   function finalizeDiscTextInlineDraft(
@@ -1298,37 +1300,18 @@ export function useDiscTextState({
     metadata: ProjectMetadata,
     options: { useMetadataCopyright: boolean },
   ) {
-    const nextDiscTextValueSources = options.useMetadataCopyright
-      ? {
-          ...discTextValueSources,
-          copyright: 'metadata' as const,
-        }
-      : discTextValueSources
-    const nextDiscTextValuesBase = applySteamGameImportToDiscTextValues(
-      importedGame,
-      discTextValues,
-      nextDiscTextValueSources,
-    )
-    const nextDiscTextValues = options.useMetadataCopyright
-      ? {
-          ...nextDiscTextValuesBase,
-          copyright: '',
-        }
-      : nextDiscTextValuesBase
-    const nextResolution = resolveDiscTextForMetadata(metadata, {
-      discTextValues: nextDiscTextValues,
-      discTextValueSources: nextDiscTextValueSources,
-      discTextTitleValue,
-    })
+    const nextResolution = planSteamImportedDiscTextValues(importedGame.appId, metadata, {
+      discTextValues, discTextValueSources, discTextTitleValue,
+    }, options.useMetadataCopyright)
 
-    setDiscTextValues(nextDiscTextValues)
+    setDiscTextValues(nextResolution.discTextValues)
     if (options.useMetadataCopyright) {
-      setDiscTextValueSources(nextDiscTextValueSources)
+      setDiscTextValueSources(nextResolution.discTextValueSources)
     }
     completeDiscGuidedTextIfSatisfied('title', {
       metadata,
-      values: nextDiscTextValues,
-      valueSources: nextDiscTextValueSources,
+      values: nextResolution.discTextValues,
+      valueSources: nextResolution.discTextValueSources,
     })
 
     return nextResolution
@@ -1350,9 +1333,13 @@ export function useDiscTextState({
     getCurrentDiscTextContent,
     getCurrentDiscTextRenderedContent,
     setDiscTextLayout,
+    setDiscTextValues,
+    setDiscTextValueSources,
     resetDiscTextState,
     restoreDiscTextState,
     clampDiscTextLayoutToTemplate,
+    planDiscTextLayoutClamp,
+    setDiscTextSettings,
     repositionDiscTextForSteamLogoPlacement,
     clampDiscTextLayoutForContent,
     clampMetadataBoundDiscTextLayoutsForContent,
