@@ -1,4 +1,17 @@
+import {
+  applyCaseSteamDocumentImport, readCaseSteamDocumentBasis, stepProjectedCaseHistory, shouldEnableCaseHistoryRating,
+} from './appCaseSteamDocumentCommand.ts'
+import { planCaseSteamDocumentImport } from './appCaseSteamDocumentPlan.ts'
+import { planDiscSteamDocumentImport } from './appDiscSteamDocumentPlan.ts'
+import { readDiscEditorDocumentBasis, applyDiscEditorDocumentEdit, type DiscEditorDocumentOperation } from './appDiscEditorDocumentCommand.ts'
+import { planDiscTemplateDocumentEdit } from './appDiscTemplateDocumentPlan.ts'
+import type { DiscTemplateState } from '../templates/discTemplateStateModel.ts'
+import { prepareDiscHistoryGuidedAttachment, readDiscHistoryTemplate, stepProjectedDiscHistory } from './appDiscHistoryProjection.ts'
+import { captureDiscBackgroundExportInput } from '../lifecycle/canonicalProject.ts'
+import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
+import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
+import { buildSteamMetadataCandidatesFromImportedGame } from '../steam/steamMetadataCandidates'
 import {
   useCallback,
   useLayoutEffect,
@@ -12,7 +25,6 @@ import {
   normalizeCaseInsertNavigationSurfaceForPane,
   type CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces'
-import type { DiscTemplate } from '../types/template'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import '../styles/App.css'
 import '../styles/layoutFix.css'
@@ -116,7 +128,7 @@ import {
   completeDiscGuidedSlotsForMetadataAction,
 } from '../guidedPresets/discGuidedCompletion'
 import type { DiscGuidedSlotState } from '../guidedPresets/discGuidedSlots'
-import { useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
+import { getNextDiscGuidedWorkflowForPresetApplication, useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
 import { useActiveDiscPreset } from '../hooks/useActiveDiscPreset'
 import {
   applyActiveDiscPresetToBackgroundState,
@@ -134,8 +146,9 @@ import {
   isActiveDiscPresetPointFitImpossible,
 } from './appActiveDiscPresetPointOwners'
 import {
-  applySupplementalUskRatingCandidate,
+  planDiscSupplementalUskEdit,
 } from './appSupplementalUskRatingCandidate'
+import { captureDiscRatingLayoutBasis, type DiscRatingLayoutSyncBasis } from '../lifecycle/discRatingLayoutSync'
 import {
   ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
   applyActiveDiscPresetToLegalTextState,
@@ -170,14 +183,8 @@ import type {
 } from '../caseInsert/previewTextSelection'
 import { createFittedSteamBackCoverCopy } from '../caseInsert/backCoverCopyFit'
 import {
-  getCaseInsertRatingBadgeForSteamImport,
-} from '../caseInsert/steamImportBrandingDefaults'
-import {
   createSteamCaseInsertTitleArtworkSeed,
 } from '../caseInsert/titleArtwork'
-import {
-  applySteamImportDefaultsToCaseInsert,
-} from '../caseInsert/steamImportDefaults'
 import {
   updateRatingBadgeEnabledState,
 } from '../project/projectRatingBadge'
@@ -191,7 +198,8 @@ import type {
   SavedDiscProject,
   SavedProject,
 } from '../project/projectTypes'
-import { readProjectFile, writeBinaryFile } from '../tauri/fileSystem'
+import { readProjectFile } from '../tauri/fileSystem'
+import { writePngFile } from '../tauri/pngFile.ts'
 import { decodeProjectPackageFile } from '../tauri/packageProjectFile'
 import { recognizeProjectFileFormat } from '../tauri/projectFileFormat'
 import { encodeAndWriteProjectPackageFile } from '../tauri/projectPackageWrite'
@@ -218,8 +226,10 @@ import {
   type SteamLogoPlacement,
 } from '../discText/index'
 import {
+  captureDiscPngLayout,
   createCaseInsertPngExportInput,
   createDiscPngExportInput,
+  getDiscPngExportPreviewWidth,
 } from './appPngExportInputs'
 import {
   createCaseInsertPreviewTextHandlers,
@@ -230,11 +240,12 @@ import {
   getAutoAppliedMetadataCandidateStatusMessage,
 } from './appSteamImportPlan'
 import {
-  runSteamDiscVisualDefaultImport,
+  applyPreparedSteamDiscVisualDefaultImport,
+  prepareSteamDiscVisualDefaultImport,
   shouldApplySteamPlatformMarksEligibilityChange,
 } from './appSteamDiscVisualImport'
 import {
-  createSavedProjectForWorkspace,
+  createLegacyProjectForWorkspace,
 } from './appProjectSave'
 import {
   stageAppProjectOpen,
@@ -256,9 +267,12 @@ import {
 } from './applicationDocumentSelectionOwnership'
 import { useApplicationModalPresence } from './useApplicationModalPresence'
 import {
-  applyDiscRolePresetToOwners,
+  type DiscRolePresetBackgroundRestoreState,
 } from './appDiscRolePresetApplication'
 import { createBlankDiscSavedProject } from '../project/blankDiscProject'
+import { planDiscPresetDocument } from './appDiscPresetDocumentPlan.ts'
+import { commitPreparedDiscBackgroundCompound, projectDiscPresetSiblingFields } from './appDiscBackgroundCompoundCommand.ts'
+import { createSavedDiscGuidedLayout, restoreSavedDiscGuidedWorkflow } from '../project/projectGuidedWorkflow.ts'
 import {
   prepareNewProjectEditorApply,
 } from './appProjectNewEditorApply'
@@ -282,7 +296,18 @@ type SteamImportOptions = {
   applyCaseInsertBackCoverDefaults?: boolean
 }
 
-function App() {
+type DiscHistoryDiagnostic = (
+  step: (direction: 'undo' | 'redo') => ReturnType<typeof stepProjectedDiscHistory>,
+) => () => void
+
+type CaseHistoryDiagnostic = (
+  step: (direction: 'undo' | 'redo') => ReturnType<typeof stepProjectedCaseHistory>,
+) => () => void
+
+function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
+  connectDiscHistoryDiagnostic?: DiscHistoryDiagnostic
+  connectCaseHistoryDiagnostic?: CaseHistoryDiagnostic
+} = {}) {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
   const [discGuidedWorkflow, setDiscGuidedWorkflow] =
@@ -313,7 +338,7 @@ function App() {
     selectedDiscTemplate,
     defaultDiscTemplate,
     discTemplateOptions,
-    customOuterDiameterMaxMm,
+    customDimensionFields,
     isCustomDiscTemplate,
     guideOverlay,
     discExportPreviewFallbackSize,
@@ -323,7 +348,7 @@ function App() {
     handleCustomDimensionChange,
   } = useDiscTemplate({
     announceStatus,
-    clampForegroundElementLayoutsToTemplate,
+    commitTemplateChange: handleDiscTemplateDocumentEdit,
     getGeometryGuardrailState,
   })
   const [steamLogoPlacement, setSteamLogoPlacement] =
@@ -411,10 +436,10 @@ function App() {
       selectedDiscTemplate,
       background,
     })
-    activeDiscPreset.recordTargetedPresetApplication(result.application)
-    return isActiveDiscPresetBackgroundFitImpossible(result.application)
-      ? null
-      : result.background
+    return {
+      background: isActiveDiscPresetBackgroundFitImpossible(result.application) ? null : result.background,
+      acceptPlacement: () => activeDiscPreset.recordTargetedPresetApplication(result.application),
+    }
   }
   const {
     backgroundImageUrl,
@@ -422,7 +447,11 @@ function App() {
     backgroundImageSize,
     backgroundScale,
     backgroundOffset,
-    setBackgroundOffset,
+    beginBackgroundDrag,
+    updateBackgroundDragOffset,
+    finishBackgroundDrag,
+    cancelBackgroundDrag,
+    backgroundRangeGesture,
     isBackgroundArtworkEnabled,
     selectedArtworkId,
     setSelectedArtworkId,
@@ -432,22 +461,30 @@ function App() {
     effectiveBackgroundImageUrl,
     effectiveBackgroundImageSize,
     applyBackgroundImageImport,
-    resetBackgroundArtwork,
     clearSelectedArtwork,
     handleBackgroundUpload,
+    handlePickNativeBackgroundFile,
     handleResetBackground,
     handleUseSteamArtwork,
     handleBackgroundArtworkEnabledChange,
     handleBackgroundScaleChange,
     handleBackgroundOffsetChange,
     handleFitBackgroundToSteamBannerOpenArea,
-    restoreBackgroundImageState,
+    invalidateBackgroundWorkAfterPreset,
+    getDiscSession,
   } = useBackgroundImage({
     discPreviewSize,
     steamLogoPlacement,
     announceStatus,
     applyActivePresetPlacement: applyActiveBackgroundPresetPlacement,
-    onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
+    prepareGuidedCompletion(slotId, session) {
+      const committed = restoreSavedDiscGuidedWorkflow(session.project.editor)
+      const next = completeDiscGuidedSlot(committed, slotId)
+      if (next.outcome !== 'completed') return null
+      const guidedLayout = createSavedDiscGuidedLayout(next.state)
+      if (!guidedLayout) return null
+      return { guidedLayout, mirror: () => setDiscGuidedWorkflow(next.state) }
+    },
   })
   const {
     localSteamScreenshots,
@@ -559,9 +596,12 @@ function App() {
     resolvedDiscTextTitle,
     getCurrentDiscTextContent,
     setDiscTextLayout,
+    setDiscTextValues,
+    setDiscTextValueSources,
     resetDiscTextState,
     restoreDiscTextState,
-    clampDiscTextLayoutToTemplate,
+    planDiscTextLayoutClamp,
+    setDiscTextSettings,
     repositionDiscTextForSteamLogoPlacement,
     clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
     handleDiscTextToggle,
@@ -652,7 +692,6 @@ function App() {
     projectLogoAssets,
     setProjectLogoAssets,
     applyLogoAssetImport,
-    clampProjectLogoAssetsToTemplate,
     resetProjectLogoAssets,
     handleLogoAssetUpload,
     handleLogoAssetLayoutChange,
@@ -670,7 +709,6 @@ function App() {
   const {
     projectRatingBadge,
     setProjectRatingBadge,
-    clampProjectRatingBadgeToTemplate,
     resetProjectRatingBadge,
     setRatingBadgeEnabled,
     setRatingBadgeEnabledForAppliedCandidate,
@@ -693,7 +731,6 @@ function App() {
   const {
     projectMediaMark,
     setProjectMediaMark,
-    clampProjectMediaMarkToTemplate,
     resetProjectMediaMark,
     handleMediaMarkUpload,
     handleMediaMarkValueChange,
@@ -711,7 +748,6 @@ function App() {
   const {
     projectPlatformMarks,
     setProjectPlatformMarks,
-    clampProjectPlatformMarksToTemplate,
     resetProjectPlatformMarks,
     handlePlatformMarkToggle,
     handlePlatformMarkUpload,
@@ -741,7 +777,6 @@ function App() {
   const {
     projectTechnicalMarks,
     setProjectTechnicalMarks,
-    clampProjectTechnicalMarksToTemplate,
     resetProjectTechnicalMarks,
     handleTechnicalMarkToggle,
     handleTechnicalMarkUpload,
@@ -759,25 +794,25 @@ function App() {
   const {
     projectTitleArtwork,
     setProjectTitleArtwork,
-    clampProjectTitleArtworkToTemplate,
     resetProjectTitleArtwork,
     resetTitleArtworkLayoutForPlacement,
     handleTitleArtworkLayoutChange,
     handleResetTitleArtworkLayout,
     handleRestoreTitleArtworkDefault,
     handleTitleArtworkUpload,
+    prepareSteamTitleArtworkImport,
     applySteamTitleArtworkImport,
   } = useTitleArtwork({
     selectedDiscTemplate,
     steamLogoPlacement,
     announceStatus,
     applyActivePresetPlacement: applyActiveTitleArtworkPresetPlacement,
+    commitLayoutReset: handleDiscTitleArtworkLayoutReset,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
   const {
     projectAdditionalArtwork,
     setProjectAdditionalArtwork,
-    clampProjectAdditionalArtworkToTemplate,
     resetProjectAdditionalArtwork,
     handleAdditionalArtworkEnabledChange,
     handleAddAdditionalArtworkElement,
@@ -883,7 +918,10 @@ function App() {
       imageSize: backgroundImageSize,
       scale: backgroundScale,
       offset: backgroundOffset,
-      setOffset: setBackgroundOffset,
+      begin: beginBackgroundDrag,
+      updateOffset: updateBackgroundDragOffset,
+      finish: finishBackgroundDrag,
+      cancel: cancelBackgroundDrag,
     },
     discText: {
       layout: discTextLayout,
@@ -985,18 +1023,78 @@ function App() {
     workflow: discGuidedWorkflow,
     updateWorkflow: setDiscGuidedWorkflow,
     activePresetState: activeDiscPreset.activePresetState,
+    resetProgress: () => handleDiscGuidedDocumentEdit({ kind: 'reset-guided-progress' }),
+    editSlot: (action, slotId) => handleDiscGuidedDocumentEdit({ kind: 'edit-guided-slot', action, slotId }),
   })
 
-  function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
-    clampProjectLogoAssetsToTemplate(template)
-    clampProjectTitleArtworkToTemplate(template)
-    clampProjectAdditionalArtworkToTemplate(template)
-    clampProjectRatingBadgeToTemplate(template)
-    clampProjectMediaMarkToTemplate(template)
-    clampProjectPlatformMarksToTemplate(template)
-    clampProjectTechnicalMarksToTemplate(template)
+  function getDiscDocumentRenderedOwners() {
+    return {
+      titleArtwork: projectTitleArtwork, additionalArtwork: projectAdditionalArtwork,
+      ratingBadge: projectRatingBadge, mediaMark: projectMediaMark, platformMarks: projectPlatformMarks,
+      logoAssets: projectLogoAssets, technicalMarks: projectTechnicalMarks, metadata: projectMetadata,
+      discTextSettings, discTextLayout, discTextValues, discTextValueSources,
+      discTextTitleValue, discTextHtmlSources, discTextStyles,
+    }
+  }
 
-    clampDiscTextLayoutToTemplate(template)
+  function handleDiscTemplateDocumentEdit(next: DiscTemplateState, projectTemplate: () => void) {
+    if (finishBackgroundDrag().status !== 'success') return false
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return false
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return false
+    const rendered = getDiscDocumentRenderedOwners()
+    const { fields, template } = planDiscTemplateDocumentEdit(next, rendered, planDiscTextLayoutClamp)
+    const { template: savedTemplate, ...mirrorOwners } = fields
+    void savedTemplate
+    const workflow = discGuidedWorkflow
+    const guided = workflow.activeLayout ? prepareDiscHistoryGuidedAttachment({
+      workflow, current: basis.current.project, target: basis.current.project,
+      plan: mirrorOwners, renderProjection: captured.project, rendered, template,
+    }) : null
+    if (workflow.activeLayout && !guided) return false
+    return applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, { kind: 'template', fields },
+      unstable_batchedUpdates, (accepted) => {
+        projectTemplate()
+        if (accepted.revision === basis.current.revision) return
+        setProjectTitleArtwork(fields.titleArtwork)
+        setProjectAdditionalArtwork(fields.additionalArtwork)
+        setProjectLogoAssets(fields.logoAssets)
+        setProjectRatingBadge(fields.ratingBadge)
+        setProjectMediaMark(fields.mediaMark)
+        setProjectPlatformMarks(fields.platformMarks)
+        setProjectTechnicalMarks(fields.technicalMarks)
+        setDiscTextLayout(fields.discTextLayout)
+        if (guided) activeDiscPreset.restoreActivePresetState(guided.attachment)
+      })
+  }
+
+  function handleDiscGuidedDocumentEdit(operation: Extract<DiscEditorDocumentOperation, { kind: 'reset-guided-progress' | 'edit-guided-slot' }>) {
+    if (finishBackgroundDrag().status !== 'success') return
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return
+    applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, operation,
+      unstable_batchedUpdates, (accepted) => {
+        if (accepted.revision !== basis.current.revision) {
+          setDiscGuidedWorkflow(restoreSavedDiscGuidedWorkflow(accepted.project.editor))
+        }
+      })
+  }
+
+  function handleDiscTitleArtworkLayoutReset(layout: typeof projectTitleArtwork.layout) {
+    if (finishBackgroundDrag().status !== 'success') return false
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return false
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return false
+    return applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, { kind: 'reset-title-artwork-layout', layout },
+      unstable_batchedUpdates, accepted => {
+        if (accepted.revision !== basis.current.revision) {
+          setProjectTitleArtwork({ ...projectTitleArtwork, layout })
+        }
+      })
   }
 
   function getGeometryGuardrailState() {
@@ -1015,92 +1113,131 @@ function App() {
   }
 
   function handleApplyDiscRolePreset(presetId: string) {
-    const result = applyDiscRolePresetToOwners({
-      presetId,
-      currentState: {
-        background: {
-          enabled: isBackgroundArtworkEnabled,
-          scale: backgroundScale,
-          offset: backgroundOffset,
-          imageDataUrl: backgroundImageUrl,
-          imageSource: backgroundImageSource,
-          imageSize: backgroundImageSize,
-        },
-        titleArtwork: projectTitleArtwork,
-        projectDiscNumberArtwork,
-        discTextSettings,
-        discTextValues,
-        discTextValueSources,
-        discTextTitleValue,
-        discTextHtmlSources,
-        discTextLayout,
-        discTextStyles,
-        logoAssets: projectLogoAssets,
-        ratingBadge: projectRatingBadge,
-        mediaMark: projectMediaMark,
-        platformMarks: projectPlatformMarks,
-        technicalMarks: projectTechnicalMarks,
-        additionalArtwork: projectAdditionalArtwork,
-        metadata: projectMetadata,
+    if (finishBackgroundDrag().status !== 'success') return false
+    const session = getDiscSession()
+    if (!session || !applicationLifecycleRoot.canCommitDiscBackground()) return false
+    const background = session.project.background
+    const currentState = {
+      background: {
+        enabled: background.enabled ?? true,
+        scale: background.scale,
+        offset: background.offset,
+        imageDataUrl: readDiscBackgroundAsset(background.asset),
+        imageSource: background.imageSource ?? null,
+        imageSize: background.imageSize ?? null,
       },
-      selectedDiscTemplate,
-      actions: {
-        restoreBackgroundImageState,
-        setProjectTitleArtwork,
-        clampProjectTitleArtworkToTemplate,
-        restoreDiscTextState,
-        setDiscTextLayout,
-        clampDiscTextLayoutToTemplate,
-        setProjectLogoAssets,
-        clampProjectLogoAssetsToTemplate,
-        setProjectRatingBadge,
-        clampProjectRatingBadgeToTemplate,
-        setProjectMediaMark,
-        clampProjectMediaMarkToTemplate,
-        setProjectPlatformMarks,
-        clampProjectPlatformMarksToTemplate,
-        setProjectTechnicalMarks,
-        clampProjectTechnicalMarksToTemplate,
-      },
+      titleArtwork: projectTitleArtwork,
+      projectDiscNumberArtwork,
+      discTextSettings,
+      discTextValues,
+      discTextValueSources,
+      discTextTitleValue,
+      discTextHtmlSources,
+      discTextLayout,
+      discTextStyles,
+      logoAssets: projectLogoAssets,
+      ratingBadge: projectRatingBadge,
+      mediaMark: projectMediaMark,
+      platformMarks: projectPlatformMarks,
+      technicalMarks: projectTechnicalMarks,
+      additionalArtwork: projectAdditionalArtwork,
+      metadata: projectMetadata,
+    }
+    const plan = planDiscPresetDocument({
+      presetId, currentState, selectedDiscTemplate, clampDiscTextLayout: planDiscTextLayoutClamp,
     })
+    const { result } = plan
 
     if (!result.applied) {
       activeDiscPreset.recordPresetApplication(null, null, false)
-      discGuidedPlaceholderPreview.recordPresetApplication(presetId, false)
       announceStatus('Layout preset is unavailable. Choose another preset.')
       return false
     }
 
-    activeDiscPreset.recordPresetApplication(
-      result.activePresetRef,
-      result.activeResolvedPreset,
-      true,
+    const preparedBackground: DiscRolePresetBackgroundRestoreState | null = plan.background
+    const fields = projectDiscPresetSiblingFields(
+      currentState, plan.owners, result.dispatchedOwners, result.activePresetRef ? 'preserve' : 'explicit',
     )
-    discGuidedPlaceholderPreview.recordPresetApplication(
-      result.canonicalPresetId ?? result.preset.id,
-      true,
-    )
+    const guided = getNextDiscGuidedWorkflowForPresetApplication({
+      currentWorkflow: restoreSavedDiscGuidedWorkflow(session.project.editor),
+      presetId: result.canonicalPresetId ?? result.preset.id,
+      applied: true,
+      ownerState: discGuidedSlotState,
+    })
+    const outcome = unstable_batchedUpdates(() => commitPreparedDiscBackgroundCompound(applicationLifecycleRoot, {
+      sessionId: session.id, expectedRevision: session.revision,
+      operation: { kind: 'asset', background: preparedBackground ? {
+        note: background.note,
+        enabled: preparedBackground.isBackgroundArtworkEnabled,
+        scale: preparedBackground.backgroundScale,
+        offset: preparedBackground.backgroundOffset,
+        imageDataUrl: preparedBackground.backgroundImageUrl,
+        imageSource: preparedBackground.backgroundImageSource,
+        imageSize: preparedBackground.backgroundImageSize,
+      } : {
+        note: background.note, enabled: background.enabled, scale: background.scale,
+        offset: background.offset, imageSource: background.imageSource,
+        imageSize: background.imageSize, imageDataUrl: readDiscBackgroundAsset(background.asset),
+      } },
+    }, { kind: 'preset', fields, guidedLayout: createSavedDiscGuidedLayout(guided) }, mirror => {
+      const owners = plan.owners
+      for (const owner of result.dispatchedOwners) {
+        switch (owner) {
+          case 'titleArtwork': if (mirror.presetField('titleArtwork')) setProjectTitleArtwork(owners.titleArtwork); break
+          case 'logoAssets': if (mirror.presetField('logoAssets')) setProjectLogoAssets(owners.logoAssets); break
+          case 'ratingBadge':
+            if (fields.ratingBadge && (mirror.primaryRatingLayout || mirror.supplementalRatingLayout)) {
+              const { layout, uskLayout } = fields.ratingBadge
+              setProjectRatingBadge(current => ({
+                ...current,
+                layout: mirror.primaryRatingLayout ? { ...current.layout, ...layout } : current.layout,
+                uskBadge: mirror.supplementalRatingLayout
+                  ? { ...current.uskBadge, layout: { ...current.uskBadge.layout, ...uskLayout } }
+                  : current.uskBadge,
+              }))
+            }
+            break
+          case 'mediaMark': if (mirror.presetField('mediaMark')) setProjectMediaMark(owners.mediaMark); break
+          case 'platformMarks': if (mirror.presetField('platformMarks')) setProjectPlatformMarks(owners.platformMarks); break
+          case 'technicalMarks': if (mirror.presetField('technicalMarks')) setProjectTechnicalMarks(owners.technicalMarks); break
+          case 'discText':
+            if (mirror.discTextSettings && currentState.discTextSettings !== owners.discTextSettings) {
+              setDiscTextSettings(owners.discTextSettings)
+            }
+            if (mirror.discTextLayout) setDiscTextLayout(owners.discTextLayout)
+            break
+        }
+      }
+      if (mirror.guided) setDiscGuidedWorkflow(guided)
+      if (!mirror.currentInteraction) return
+      if (preparedBackground) invalidateBackgroundWorkAfterPreset()
+      activeDiscPreset.recordPresetApplication(
+        result.activePresetRef,
+        result.activeResolvedPreset,
+        true,
+      )
 
-    let announcedFitIssue = false
-    if (hasDiscPresetTitleFitImpossibleWarning(result.warnings)) {
-      lastAnnouncedImpossibleTitlePresetRef.current =
-        result.activePresetRef
-      announceStatus(ACTIVE_DISC_PRESET_TITLE_FIT_IMPOSSIBLE_MESSAGE)
-      announcedFitIssue = true
+      let announcedFitIssue = false
+      if (hasDiscPresetTitleFitImpossibleWarning(result.warnings)) {
+        lastAnnouncedImpossibleTitlePresetRef.current =
+          result.activePresetRef
+        announceStatus(ACTIVE_DISC_PRESET_TITLE_FIT_IMPOSSIBLE_MESSAGE)
+        announcedFitIssue = true
+      }
+
+      if (hasDiscPresetLegalFitImpossibleWarning(result.warnings)) {
+        lastAnnouncedImpossibleLegalPresetRef.current =
+          result.activePresetRef
+        announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
+        announcedFitIssue = true
+      }
+
+      if (!announcedFitIssue) announceStatus(`Applied ${result.preset.label} layout preset.`)
+    }))
+    if (outcome !== 'committed' && outcome !== 'no-op') {
+      announceStatus('The Disc preset could not be applied safely.')
+      return false
     }
-
-    if (hasDiscPresetLegalFitImpossibleWarning(result.warnings)) {
-      lastAnnouncedImpossibleLegalPresetRef.current =
-        result.activePresetRef
-      announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
-      announcedFitIssue = true
-    }
-
-    if (announcedFitIssue) {
-      return true
-    }
-
-    announceStatus(`Applied ${result.preset.label} layout preset.`)
     return true
   }
 
@@ -1256,18 +1393,8 @@ function App() {
       projectMetadata.ratingSystem === 'PEGI'
 
     if (shouldApplyAsSupplementalUsk) {
-      const nextRatingBadge = applySupplementalUskRatingCandidate({
-        ratingBadge: projectRatingBadge,
-        metadata: projectMetadata,
-        supplementalRatingValue: candidate.ratingValue,
-        selectedDiscTemplate,
-        applyActivePrimaryRatingPlacement: (ratingBadge) =>
-          applyActiveRatingBadgePresetPlacement(
-            ratingBadge,
-            projectMetadata,
-          ),
-      })
-      setProjectRatingBadge(nextRatingBadge)
+      const accepted = applyDiscSupplementalUskAction(candidate.ratingValue, true)
+      if (!accepted) return
 
       if (options.announce ?? true) {
         announceStatus(
@@ -1359,11 +1486,12 @@ function App() {
   async function handleFindAndApplySteamMetadataCandidates(
     options: { applyDiscVisualDefaults?: boolean } = {},
   ) {
-    const result = await findSteamMetadataCandidates()
-
-    if (result) {
+    await findSteamMetadataCandidates((result) => {
       autoApplySteamMetadataCandidates(result, options)
-    }
+      if (options.applyDiscVisualDefaults === false) {
+        caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
+      }
+    })
   }
 
   function handleApplyRatingCandidate(
@@ -1371,6 +1499,48 @@ function App() {
     options?: { mode?: 'primary' | 'supplemental-usk' },
   ) {
     applyRatingCandidateToProject(candidate, options)
+  }
+
+  function applyDiscSupplementalUskAction(ratingValue: string, applySuggestion: boolean) {
+    const basis = applicationLifecycleRoot.getStateSnapshot()
+    const disc = basis.state.activeSession
+    if (disc?.kind !== 'disc' || basis.state.visibleWorkspace !== 'disc') return false
+    const planned = planDiscSupplementalUskEdit(disc.project.ratingBadge ?? projectRatingBadge,
+      applySuggestion ? {
+        kind: 'apply-suggestion', metadata: disc.project.metadata ?? projectMetadata, ratingValue,
+        selectedDiscTemplate, presetState: activeDiscPreset.getActivePresetState(),
+      } : { kind: 'choose-value', ratingValue })
+    let accepted = false
+    unstable_batchedUpdates(() => {
+      const result = applicationLifecycleRoot.commitDiscSupplementalUsk({
+        sessionId: disc.id, expectedGeneration: basis.generation, ratingValue: planned.badge.uskBadge.ratingValue,
+        ...(applySuggestion ? { placement: { layout: planned.badge.layout, uskLayout: planned.badge.uskBadge.layout } } : {}),
+      })
+      const now = applicationLifecycleRoot.getStateSnapshot()
+      const current = now.state.activeSession
+      if ((result !== 'committed' && result !== 'no-op') || current?.kind !== 'disc' ||
+          current.id !== disc.id || now.state.visibleWorkspace !== 'disc') return
+      const badge = current.project.ratingBadge
+      if (!badge) return
+      accepted = (result === 'committed' ? basis.generation + 1 : basis.generation) === now.generation
+      setProjectRatingBadge(local => ({
+        ...local,
+        layout: applySuggestion ? badge.layout : local.layout,
+        uskBadge: {
+          ...local.uskBadge,
+          layout: applySuggestion ? badge.uskBadge.layout : local.uskBadge.layout,
+          ratingValue: badge.uskBadge.ratingValue,
+        },
+      }))
+      if (accepted && planned.placementApplication) {
+        activeDiscPreset.recordTargetedPresetApplication(planned.placementApplication)
+      }
+    })
+    return accepted
+  }
+
+  function handleDiscSupplementalUskValueChange(ratingValue: string) {
+    applyDiscSupplementalUskAction(ratingValue, false)
   }
 
   function handleApplyCaseInsertRatingCandidate(
@@ -1426,7 +1596,7 @@ function App() {
     setSteamLogoPlacement('top')
     resetSteamBannerState()
     resetExportGuides()
-    resetBackgroundArtwork()
+    clearSelectedArtwork()
     setManualGameTitle(blank?.game.manualTitle ?? 'Untitled Steam Backup Label')
     setProjectMetadata(blank?.metadata ?? createDefaultProjectMetadata())
     resetProjectLogoAssets(defaultDiscTemplate)
@@ -1535,10 +1705,9 @@ function App() {
     const applyDiscVisualDefaults = options.applyDiscVisualDefaults ?? true
 
     clearSelectedArtwork()
-    clearLocalSteamScreenshotResults()
 
-    await runSteamImport(appId, async (importedState) => {
-      const metadataCandidateResult = loadImportedSteamMetadataCandidates(
+    await runSteamImport(appId, async (importedState, request) => {
+      const metadataCandidateResult = buildSteamMetadataCandidatesFromImportedGame(
         importedState.importedGame,
       )
       const {
@@ -1555,116 +1724,170 @@ function App() {
         projectMetadata,
         metadataCandidateResult,
       })
-      const discVisualImport = applyDiscVisualDefaults
-        ? await runSteamDiscVisualDefaultImport({
-            importedGame: importedState.importedGame,
-            nextProjectMetadata,
-            shouldUpdateCopyrightDiscTextSource,
-            projectPlatformMarks,
-            selectedDiscTemplate,
-            selectedSteamGame,
-            applySteamImportedDiscTextValues,
-            applySteamTitleArtworkImport,
-          })
+      const preparedDiscVisualImport = applyDiscVisualDefaults
+        ? await prepareSteamDiscVisualDefaultImport({
+          importedGame: importedState.importedGame,
+          nextProjectMetadata,
+          shouldUpdateCopyrightDiscTextSource,
+          projectPlatformMarks,
+          selectedDiscTemplate,
+          selectedSteamGame,
+          prepareSteamTitleArtworkImport,
+        })
         : null
       const caseInsertTitleArtworkSeed = options.applyCaseInsertBackCoverDefaults
         ? await createSteamCaseInsertTitleArtworkSeed(importedState.importedGame)
         : null
-      const caseInsertRatingBadgeForImport =
-        options.applyCaseInsertBackCoverDefaults
-          ? getCaseInsertRatingBadgeForSteamImport({
-              projectMetadata: nextProjectMetadata,
-              projectRatingBadge,
-              ratingCandidate: autoRatingCandidate,
-            })
-          : projectRatingBadge
       const caseInsertBackCoverCopyFit = options.applyCaseInsertBackCoverDefaults
         ? createFittedSteamBackCoverCopy(importedState.importedGame, {
-            legalText: nextProjectMetadata.copyrightText,
-          })
+          legalText: nextProjectMetadata.copyrightText,
+        })
         : null
 
-      setSelectedSteamGame(importedState.importedGame)
-      clearSteamSearchResults()
-      setManualGameTitle(importedState.manualGameTitle)
-      setProjectMetadata(nextProjectMetadata)
-      if (options.applyCaseInsertBackCoverDefaults) {
-        setProjectRatingBadge(caseInsertRatingBadgeForImport)
-      }
-
-      announceStatus(importedState.statusMessage)
-
-      if (options.applyCaseInsertBackCoverDefaults) {
-        setProjectJewelCase((currentCaseInsert) => {
-          return applySteamImportDefaultsToCaseInsert({
-            caseInsert: currentCaseInsert,
-            importedGame: importedState.importedGame,
-            legalText: nextProjectMetadata.copyrightText,
-            replaceExisting: isDifferentSelectedSteamGame,
+      return () => {
+        if (activeWorkspace === 'disc' && preparedDiscVisualImport && !options.applyCaseInsertBackCoverDefaults) {
+          const captured = captureCurrentLegacyProject()
+          if (captured.kind !== 'disc') return
+          // The async hook has just admitted the session/content revision. A
+          // same-content Save As can change generation while the PNG decodes.
+          const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+          if (!basis || basis.current.id !== request.sessionId ||
+              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return
+          const plan = planDiscSteamDocumentImport(preparedDiscVisualImport, {
+            isDifferentSelectedSteamGame, autoRatingCandidate, autoLegalCandidate, nextProjectMetadata,
+            shouldResetGameScopedRating, shouldResetGameScopedLegal, shouldUpdateCopyrightDiscTextSource,
+          }, getDiscDocumentRenderedOwners(), selectedDiscTemplate, steamLogoPlacement,
+          activeDiscPreset.getActivePresetState())
+          const committed = applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, {
+            kind: 'steam-import', expectedRevision: request.contentRevision, after: plan.after,
+          }, unstable_batchedUpdates, accepted => {
+            if (accepted.revision !== basis.current.revision) {
+              setSelectedSteamGame(importedState.importedGame)
+              setManualGameTitle(importedState.manualGameTitle)
+              setProjectMetadata(nextProjectMetadata)
+              setProjectTitleArtwork(plan.titleArtwork)
+              if (plan.platformMarks) setProjectPlatformMarks(plan.platformMarks)
+              if (plan.badge) setProjectRatingBadge(plan.badge)
+              setDiscTextSettings({ ...discTextSettings, copyright: plan.copyrightEnabled })
+              setDiscTextLayout({ ...discTextLayout, ...plan.layout })
+              setDiscTextValues({
+                ...discTextValues,
+                ...(plan.after.text?.appId !== undefined && { appId: plan.after.text.appId }),
+                ...(plan.after.text?.copyright !== undefined && { copyright: plan.after.text.copyright }),
+              })
+              setDiscTextValueSources({
+                ...discTextValueSources,
+                ...(plan.after.text?.copyrightSource && { copyright: plan.after.text.copyrightSource }),
+              })
+              setDiscGuidedWorkflow(restoreSavedDiscGuidedWorkflow(accepted.project.editor))
+              activeDiscPreset.restoreActivePresetState(plan.presetState)
+            }
+            loadImportedSteamMetadataCandidates(importedState.importedGame)
+            clearSteamSearchResults()
+          })
+          if (!committed) throw new Error('The checked Disc import could not be applied.')
+          announceStatus(importedState.statusMessage)
+          announceStatus(preparedDiscVisualImport.titleArtwork.statusMessage)
+          announceStatus(preparedDiscVisualImport.platform.statusMessage)
+          announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
+          return
+        }
+        if (options.applyCaseInsertBackCoverDefaults) {
+          const captured = captureCurrentLegacyProject()
+          if (captured.kind !== 'caseInsert') return
+          const basis = readCaseSteamDocumentBasis(applicationLifecycleRoot, captured.project)
+          if (!basis || basis.current.id !== request.sessionId ||
+              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return
+          const plan = planCaseSteamDocumentImport({
+            current: captured.project, importedGame: importedState.importedGame,
             titleArtworkSeed: caseInsertTitleArtworkSeed,
-            ratingCandidate: autoRatingCandidate,
+            metadataPlan: {
+              isDifferentSelectedSteamGame, autoRatingCandidate, autoLegalCandidate, nextProjectMetadata,
+              shouldResetGameScopedRating, shouldResetGameScopedLegal, shouldUpdateCopyrightDiscTextSource,
+            },
             brandingSources: {
-              projectMetadata: nextProjectMetadata,
-              projectLogoAssets,
-              projectRatingBadge: caseInsertRatingBadgeForImport,
-              projectMediaMark,
-              projectPlatformMarks,
-              projectTechnicalMarks,
+              projectMetadata, projectLogoAssets, projectRatingBadge, projectMediaMark, projectPlatformMarks, projectTechnicalMarks,
             },
           })
-        })
-        announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
-        caseInsertBackCoverCopyFit?.warnings.forEach((warning) => {
-          announceStatus(warning)
-        })
-        if (caseInsertTitleArtworkSeed) {
-          announceStatus(caseInsertTitleArtworkSeed.statusMessage)
+          const committed = applyCaseSteamDocumentImport(applicationLifecycleRoot, {
+            sessionId: request.sessionId, expectedRevision: request.contentRevision,
+            expectedGeneration: basis.expectedGeneration, proposed: plan.project,
+          }, unstable_batchedUpdates, changed => {
+            if (changed) {
+              setSelectedSteamGame(importedState.importedGame)
+              setManualGameTitle(importedState.manualGameTitle)
+              setProjectMetadata(nextProjectMetadata)
+              setProjectRatingBadge(plan.ratingBadge)
+              setProjectJewelCase(plan.project.caseInsert)
+            }
+            loadImportedSteamMetadataCandidates(importedState.importedGame)
+            clearSteamSearchResults()
+          })
+          if (!committed) throw new Error('The checked Case import could not be applied.')
+          announceStatus(importedState.statusMessage)
+          announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
+          caseInsertBackCoverCopyFit?.warnings.forEach(warning => announceStatus(warning))
+          if (caseInsertTitleArtworkSeed) announceStatus(caseInsertTitleArtworkSeed.statusMessage)
+          announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
+          return
         }
-      }
+        loadImportedSteamMetadataCandidates(importedState.importedGame)
+        const discVisualImport = preparedDiscVisualImport
+          ? applyPreparedSteamDiscVisualDefaultImport(preparedDiscVisualImport, {
+            applySteamImportedDiscTextValues,
+            applySteamTitleArtworkImport,
+          })
+          : null
+        setSelectedSteamGame(importedState.importedGame)
+        clearSteamSearchResults()
+        setManualGameTitle(importedState.manualGameTitle)
+        setProjectMetadata(nextProjectMetadata)
+        announceStatus(importedState.statusMessage)
 
-      if (discVisualImport) {
-        if (
-          shouldApplySteamPlatformMarksEligibilityChange(
-            discVisualImport.platformMarkImportStatus,
+        if (discVisualImport) {
+          if (
+            shouldApplySteamPlatformMarksEligibilityChange(
+              discVisualImport.platformMarkImportStatus,
+            )
+          ) {
+            applyProjectPlatformMarksEligibilityChange(
+              discVisualImport.platformMarks,
+            )
+          }
+          if (autoLegalCandidate) {
+            enableCurvedCopyrightDiscText(autoLegalCandidate.text)
+          } else if (shouldResetGameScopedLegal) {
+            setCopyrightDiscTextEnabled(false)
+          }
+          if (autoRatingCandidate) {
+            setRatingBadgeEnabledForAppliedCandidate(autoRatingCandidate)
+          } else if (shouldResetGameScopedRating) {
+            setRatingBadgeEnabled(false)
+          }
+          clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
+            [
+              'title',
+              'steamAppId',
+              'developer',
+              'publisher',
+              'copyrightText',
+            ],
+            nextProjectMetadata,
+            discVisualImport.nextDiscTextResolution,
           )
-        ) {
-          applyProjectPlatformMarksEligibilityChange(
-            discVisualImport.platformMarks,
-          )
+          announceStatus(discVisualImport.titleArtworkStatusMessage)
+          announceStatus(discVisualImport.platformMarkStatusMessage)
         }
-        if (autoLegalCandidate) {
-          enableCurvedCopyrightDiscText(autoLegalCandidate.text)
-        } else if (shouldResetGameScopedLegal) {
-          setCopyrightDiscTextEnabled(false)
-        }
-        if (autoRatingCandidate) {
-          setRatingBadgeEnabledForAppliedCandidate(autoRatingCandidate)
-        } else if (shouldResetGameScopedRating) {
-          setRatingBadgeEnabled(false)
-        }
-        clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
-          [
-            'title',
-            'steamAppId',
-            'developer',
-            'publisher',
-            'copyrightText',
-          ],
-          nextProjectMetadata,
-          discVisualImport.nextDiscTextResolution,
-        )
-        announceStatus(discVisualImport.titleArtworkStatusMessage)
-        announceStatus(discVisualImport.platformMarkStatusMessage)
-      }
 
-      announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, {
-        applyDiscVisualDefaults,
-      })
+        announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, {
+          applyDiscVisualDefaults,
+        })
+      }
     })
   }
 
-  const captureCurrentSavedProject = useCallback(
-    () => createSavedProjectForWorkspace({
+  const captureCurrentLegacyProject = useCallback(
+    () => createLegacyProjectForWorkspace({
       activeWorkspace,
       caseInsertProject: {
         manualGameTitle,
@@ -1697,12 +1920,6 @@ function App() {
         steamBannerUseTextFallback,
         steamBannerFallbackText,
         exportGuides,
-        backgroundScale,
-        backgroundOffset,
-        backgroundImageUrl,
-        backgroundImageSource,
-        backgroundImageSize,
-        isBackgroundArtworkEnabled,
         discTextSettings,
         discTextValues,
         discTextValueSources,
@@ -1715,11 +1932,6 @@ function App() {
     [
       activeCaseInsertTemplatePane,
       activeWorkspace,
-      backgroundImageSize,
-      backgroundImageSource,
-      backgroundImageUrl,
-      backgroundOffset,
-      backgroundScale,
       customDiscTemplate,
       discGuidedWorkflow,
       discTextHtmlSources,
@@ -1730,7 +1942,6 @@ function App() {
       discTextValueSources,
       discTextValues,
       exportGuides,
-      isBackgroundArtworkEnabled,
       manualGameTitle,
       projectAdditionalArtwork,
       projectDiscNumberArtwork,
@@ -1814,7 +2025,6 @@ function App() {
           setSteamBannerFallbackText,
           restoreExportGuides,
           restoreDiscTextState,
-          restoreBackgroundImageState,
         },
         caseInsertProject: {
           setProjectJewelCase,
@@ -1896,7 +2106,7 @@ function App() {
               }),
               saveDialog: save,
               confirmDialog: confirm,
-              writeBinaryFileCommand: writeBinaryFile,
+              writePngFileCommand: writePngFile,
               buildPreflightSummary: buildCaseInsertExportPreflightSummary,
               exportPngBytes: exportCaseInsertPngBytes,
             }),
@@ -1906,50 +2116,48 @@ function App() {
         ? Object.freeze({
           kind: 'disc',
           physicalTarget: 'disc-label',
-          captureInvocation: () => ({
-            ...createDiscPngExportInput({
-              selectedDiscTemplateId,
-              selectedDiscTemplate,
-              backgroundImageUrl: effectiveBackgroundImageUrl,
-              backgroundImageSize: effectiveBackgroundImageSize,
-              selectedSteamGame,
-              manualGameTitle,
-              steamLogoPlacement,
-              steamBannerUseTextFallback,
-              steamBannerFallbackText,
-              steamBannerLockupImageUrl,
-              discTextSettings,
-              projectLogoAssets,
-              projectTitleArtwork,
-              projectMetadata,
-              projectRatingBadge,
-              projectMediaMark,
-              projectPlatformMarks,
-              projectTechnicalMarks,
-              exportGuides,
-              resolvedDiscTextTitle,
-              backgroundScale,
-              backgroundOffset,
-              steamBannerColors,
-              steamBannerLockupImageSize,
-              steamBannerLockupLayout,
-              projectDiscNumberArtwork,
-              projectAdditionalArtwork,
-              discTextValues,
-              discTextValueSources,
-              discTextHtmlSources,
-              discTextStyles,
-              discTextLayout,
-            }),
-            getPreviewSize: () =>
-              discPreviewRef.current?.getBoundingClientRect().width ??
-              discExportPreviewFallbackSize,
-            saveDialog: save,
-            confirmDialog: confirm,
-            writeBinaryFileCommand: writeBinaryFile,
-            buildPreflightSummary: buildExportPreflightSummary,
-            exportPngBytes: exportDiscLabelPngBytes,
-          }),
+          captureInvocation: session => {
+            return {
+              ...createDiscPngExportInput({
+                selectedDiscTemplateId,
+                selectedDiscTemplate,
+                ...captureDiscBackgroundExportInput(session.project.background),
+                ...captureDiscPngLayout(session.project, { discTextSettings, discTextLayout, projectRatingBadge }),
+                selectedSteamGame,
+                manualGameTitle,
+                steamLogoPlacement,
+                steamBannerUseTextFallback,
+                steamBannerFallbackText,
+                steamBannerLockupImageUrl,
+                projectLogoAssets,
+                projectTitleArtwork,
+                projectMetadata,
+                projectMediaMark,
+                projectPlatformMarks,
+                projectTechnicalMarks,
+                exportGuides,
+                resolvedDiscTextTitle,
+                steamBannerColors,
+                steamBannerLockupImageSize,
+                steamBannerLockupLayout,
+                projectDiscNumberArtwork,
+                projectAdditionalArtwork,
+                discTextValues,
+                discTextValueSources,
+                discTextHtmlSources,
+                discTextStyles,
+              }),
+              getPreviewSize: () => getDiscPngExportPreviewWidth(
+                discPreviewRef.current,
+                discExportPreviewFallbackSize,
+              ),
+              saveDialog: save,
+              confirmDialog: confirm,
+              writePngFileCommand: writePngFile,
+              buildPreflightSummary: buildExportPreflightSummary,
+              exportPngBytes: exportDiscLabelPngBytes,
+            }
+          },
         })
         : null,
     },
@@ -1969,6 +2177,16 @@ function App() {
       workflow: caseInsertPresetWorkflowOwner,
       catalog: CASE_INSERT_PRESET_CATALOG,
       publishDispatchFeedback: (dispatch) => {
+        if (dispatch.disposition === 'executed' && dispatch.result.status === 'success') {
+          const accepted = applicationLifecycleRoot.getStateSnapshot()
+          const session = accepted.state.activeSession
+          const receipt = dispatch.result.value as { sessionId?: string; projectRevision?: number; applicationRevision?: number } | undefined
+          if (accepted.casePresetProjectionPending && session?.kind === 'caseInsert' &&
+              receipt?.sessionId === session.id && receipt.projectRevision === session.revision &&
+              receipt.applicationRevision === session.caseInsertPresetApplication.applicationRevision) {
+            setProjectJewelCase(structuredClone(session.project.caseInsert) as typeof projectJewelCase)
+          }
+        }
         publishApplicationCommandFeedback(dispatch, {
           announceStatus,
           setHomeStatusMessage,
@@ -2010,6 +2228,7 @@ function App() {
     onCapabilitiesChanged:
       applicationLifecycleRoot.refreshCommandCapabilities,
   })
+  useApplicationTerminationIngress({ announceStatus, setHomeStatusMessage, applicationModalActive })
   useApplicationMenuCommandIngress({
     announceStatus,
     setHomeStatusMessage,
@@ -2017,16 +2236,52 @@ function App() {
   })
   useApplicationDocumentSelectionOwnership()
 
+  const renderedSessionId = applicationCommandSnapshot.lifecycle.activeSession?.id
+  const historyProjectionPending =
+    applicationLifecycleRoot.getStateSnapshot().discHistoryProjectionPending === true
+  const caseSteamProjectionPending =
+    applicationLifecycleRoot.getStateSnapshot().caseSteamProjectionPending === true
+  const discRatingProjectionBasis = useRef<{ sessionId: string; basis: DiscRatingLayoutSyncBasis } | null>(null)
   useLayoutEffect(() => {
     if (activeWorkspace === 'home') return
-    const session = applicationLifecycleRoot.getLifecycleState().activeSession
-    if (!session || session.kind !== activeWorkspace) return
+    const lifecycle = applicationLifecycleRoot.getStateSnapshot()
+    const session = lifecycle.state.activeSession
+    if (!session || session.id !== renderedSessionId || session.kind !== activeWorkspace) return
 
-    applicationLifecycleRoot.synchronizeCurrentProject({
-      sessionId: session.id,
-      kind: activeWorkspace,
-      project: captureCurrentSavedProject(),
-    })
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind === 'disc') {
+      if (lifecycle.discHistoryProjectionPending) {
+        const outcome = applicationLifecycleRoot.acknowledgeDiscHistoryProjection({
+          sessionId: session.id, expectedGeneration: lifecycle.generation, projection: captured.project,
+        })
+        if (outcome === 'committed') {
+          discRatingProjectionBasis.current = {
+            sessionId: session.id, basis: captureDiscRatingLayoutBasis(captured.project.ratingBadge ?? projectRatingBadge),
+          }
+        }
+        return
+      }
+      const previous = discRatingProjectionBasis.current
+      const outcome = applicationLifecycleRoot.synchronizeDiscLegacyProject({
+        sessionId: session.id, legacy: captured.project,
+        ...(previous?.sessionId === session.id ? { ratingBasis: previous.basis } : {}),
+      })
+      if (outcome === 'synchronized' || outcome === 'no-op') {
+        discRatingProjectionBasis.current = {
+          sessionId: session.id, basis: captureDiscRatingLayoutBasis(captured.project.ratingBadge ?? projectRatingBadge),
+        }
+      }
+    } else {
+      if (lifecycle.caseSteamProjectionPending) {
+        applicationLifecycleRoot.acknowledgeCaseSteamProjection({
+          sessionId: session.id, expectedGeneration: lifecycle.generation, projection: captured.project,
+        })
+        return
+      }
+      applicationLifecycleRoot.synchronizeCurrentProject({
+        sessionId: session.id, kind: 'caseInsert', project: captured.project,
+      })
+    }
     applicationLifecycleRoot.synchronizeCurrentEditorRoute({
       sessionId: session.id,
       kind: activeWorkspace,
@@ -2041,8 +2296,67 @@ function App() {
     activeCaseInsertNavigationSurface,
     activeWorkspace,
     applicationLifecycleRoot,
-    captureCurrentSavedProject,
+    captureCurrentLegacyProject,
+    caseSteamProjectionPending,
+    historyProjectionPending,
+    projectRatingBadge,
+    renderedSessionId,
   ])
+
+  // Intentionally not a public menu/shortcut and not present in production
+  // composition. The mounted fixture can exercise the real editor batch.
+  useLayoutEffect(() => connectDiscHistoryDiagnostic?.(direction =>
+    stepProjectedDiscHistory(applicationLifecycleRoot, direction, {
+      batch: unstable_batchedUpdates,
+      setGame: ({ manualTitle, selectedSteamGame }) => {
+        setManualGameTitle(manualTitle)
+        setSelectedSteamGame(selectedSteamGame)
+      },
+      setMetadata: setProjectMetadata,
+      setDiscTextValues,
+      setDiscTextValueSources,
+      setTemplate: restoreDiscTemplateState,
+      setAdditionalArtwork: setProjectAdditionalArtwork,
+      setRatingBadge: setProjectRatingBadge,
+      setMediaMark: setProjectMediaMark,
+      setPlatformMarks: setProjectPlatformMarks,
+      setTitleArtwork: setProjectTitleArtwork,
+      setLogoAssets: setProjectLogoAssets,
+      setTechnicalMarks: setProjectTechnicalMarks,
+      setDiscTextSettings,
+      setDiscTextLayout,
+      prepareGuidedAttachment(workflow, target, plan, current) {
+        const projection = captureCurrentLegacyProject()
+        if (projection.kind !== 'disc') return null
+        const template = plan.template ? readDiscHistoryTemplate(plan.template) : selectedDiscTemplate
+        if (!template) return null
+        const prepared = prepareDiscHistoryGuidedAttachment({
+          workflow, target, plan, current, template,
+          renderProjection: projection.project, rendered: getDiscDocumentRenderedOwners(),
+        })
+        return prepared ? () => {
+          setDiscGuidedWorkflow(prepared.workflow)
+          activeDiscPreset.restoreActivePresetState(prepared.attachment)
+        } : null
+      },
+    })),
+  )
+
+  useLayoutEffect(() => connectCaseHistoryDiagnostic?.(direction => {
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'caseInsert') return 'unavailable'
+    return stepProjectedCaseHistory(applicationLifecycleRoot, direction, captured.project,
+      unstable_batchedUpdates, target => {
+        if (!target.metadata) return
+        setManualGameTitle(target.game.manualTitle)
+        setSelectedSteamGame(target.game.selectedSteamGame)
+        setProjectMetadata(target.metadata)
+        setProjectJewelCase(target.caseInsert)
+        const metadata = target.metadata
+        const enabled = shouldEnableCaseHistoryRating(target)
+        setProjectRatingBadge(current => updateRatingBadgeEnabledState(metadata, current, enabled).ratingBadge)
+      })
+  }))
 
   useLayoutEffect(() => {
     const destination = workspaceFocusRequestRef.current
@@ -2100,13 +2414,11 @@ function App() {
         applyDiscVisualDefaults: false,
         applyCaseInsertBackCoverDefaults: true,
       })
-      caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
     },
     handleFindMetadataCandidates: async () => {
       await handleFindAndApplySteamMetadataCandidates({
         applyDiscVisualDefaults: false,
       })
-      caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
     },
     handleApplyRatingCandidate: handleApplyCaseInsertRatingCandidate,
     handleApplyLegalCandidate: handleApplyCaseInsertLegalCandidate,
@@ -2127,6 +2439,7 @@ function App() {
     handleOpenLocalSteamScreenshotFolder,
     handleUseLocalSteamScreenshot,
     handleBackgroundUpload,
+    handlePickNativeBackgroundFile,
     isBackgroundArtworkEnabled,
     handleBackgroundArtworkEnabledChange,
     backgroundScale,
@@ -2134,6 +2447,7 @@ function App() {
     backgroundOffsetSliderRanges,
     handleBackgroundScaleChange,
     handleBackgroundOffsetChange,
+    backgroundRangeGesture,
     backgroundImageUrl,
     backgroundImageSource,
     handleResetBackground,
@@ -2207,7 +2521,7 @@ function App() {
     handleRatingBadgeEnabledChange,
     handleRatingBadgeLayoutChange,
     handleSupplementalUskRatingBadgeEnabledChange,
-    handleSupplementalUskRatingBadgeValueChange,
+    handleSupplementalUskRatingBadgeValueChange: handleDiscSupplementalUskValueChange,
     handleSupplementalUskRatingBadgeLayoutChange,
     handleClearRatingBadgeImage,
     handleResetRatingBadgeLayout,
@@ -2413,9 +2727,8 @@ function App() {
             selectedDiscTemplateId={selectedDiscTemplateId}
             selectedDiscTemplate={selectedDiscTemplate}
             isCustomDiscTemplate={isCustomDiscTemplate}
-            customDiscTemplate={customDiscTemplate}
             discTemplateOptions={discTemplateOptions}
-            customOuterDiameterMaxMm={customOuterDiameterMaxMm}
+            customDimensionFields={customDimensionFields}
             handleTemplateChange={handleTemplateChange}
             handleCustomDimensionChange={handleCustomDimensionChange}
           />

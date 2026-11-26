@@ -35,9 +35,9 @@ export type ConfirmDialog = (
   },
 ) => Promise<boolean>
 
-export type WriteBinaryFileCommand = (
+export type WritePngFileCommand = (
   path: string,
-  bytes: number[],
+  bytes: Uint8Array,
 ) => Promise<unknown>
 
 export type ApplicationPngExportPhysicalTarget =
@@ -60,7 +60,7 @@ type DiscExportPreflightParams = Parameters<typeof buildExportPreflightSummary>[
 type CaseInsertPngExportDependencies = {
   saveDialog: SaveDialog
   confirmDialog: ConfirmDialog
-  writeBinaryFileCommand: WriteBinaryFileCommand
+  writePngFileCommand: WritePngFileCommand
   buildPreflightSummary: typeof buildCaseInsertExportPreflightSummary
   exportPngBytes: typeof exportCaseInsertPngBytes
 }
@@ -68,7 +68,7 @@ type CaseInsertPngExportDependencies = {
 type DiscPngExportDependencies = {
   saveDialog: SaveDialog
   confirmDialog: ConfirmDialog
-  writeBinaryFileCommand: WriteBinaryFileCommand
+  writePngFileCommand: WritePngFileCommand
   buildPreflightSummary: typeof buildExportPreflightSummary
   exportPngBytes: typeof exportDiscLabelPngBytes
 }
@@ -144,7 +144,7 @@ export async function runCaseInsertPngExport({
   dpi = EXPORT_DPI,
   saveDialog,
   confirmDialog,
-  writeBinaryFileCommand,
+  writePngFileCommand,
   buildPreflightSummary,
   exportPngBytes,
   operation,
@@ -237,7 +237,7 @@ export async function runCaseInsertPngExport({
     await withOptionalScope(
       operation,
       'persistence.export-write',
-      () => writeBinaryFileCommand(path, result.bytes),
+      () => writePngFileCommand(path, result.bytes),
     )
   } catch (error) {
     return finalize(exportFailure('write', error))
@@ -262,7 +262,7 @@ export async function runDiscPngExport({
   getPreviewSize,
   saveDialog,
   confirmDialog,
-  writeBinaryFileCommand,
+  writePngFileCommand,
   buildPreflightSummary,
   exportPngBytes,
   operation,
@@ -344,7 +344,7 @@ export async function runDiscPngExport({
     await withOptionalScope(
       operation,
       'persistence.export-write',
-      () => writeBinaryFileCommand(path, result.bytes),
+      () => writePngFileCommand(path, result.bytes),
     )
   } catch (error) {
     return finalize(exportFailure('write', error))

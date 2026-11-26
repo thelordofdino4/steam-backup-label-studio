@@ -1,15 +1,23 @@
+import { isDiscBackgroundAsset, legacyDiscBackgroundAsset, readDiscBackgroundAsset, reuseDiscBackgroundAsset, type DiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import type {
   EditorProjectType,
   EditorWorkspace,
 } from '../editor/editorTypes.ts'
-import type { SavedProject } from '../project/projectTypes.ts'
+import type { SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
 import {
-  captureNormalizedProjectSnapshot,
+  captureDiscRemainderWithOwnedBackground,
+  captureLifecycleProjectSnapshot,
+  materializeDiscProject,
   createCanonicalProjectComparisonValue,
   getNormalizedProjectKind,
   normalizedProjectSnapshotsAreExactlyEqual,
+  projectContentsAreSemanticallyEqual,
+  preserveCapturedDiscBackground,
+  replaceCapturedDiscBackground,
   type CanonicalProjectComparisonValue,
-  type NormalizedPersistableProject,
+  type CapturedLifecycleProject,
+  type CapturedSavedDiscBackground,
+  type CommittedDiscProject,
 } from './canonicalProject.ts'
 import {
   caseInsertPresetSessionApplicationsAreEqual,
@@ -17,6 +25,8 @@ import {
   createInitialCaseInsertPresetSessionApplication,
   createRecoveredCaseInsertPresetSessionApplication,
   synchronizeCaseInsertPresetSessionApplication,
+  rebindCasePresetHistoryApplication,
+  type CasePresetHistorySemantics,
   type CaseInsertPresetSessionApplication,
 } from './caseInsertPresetSessionApplication.ts'
 import {
@@ -44,23 +54,20 @@ export type ProjectSessionEditorRoute =
   | CaseInsertEditorRoute
 
 export type ProjectCleanBaseline = Readonly<{
-  exactSnapshot: NormalizedPersistableProject
+  exactSnapshot: CapturedLifecycleProject
   comparisonValue: CanonicalProjectComparisonValue
 }>
 
-type NormalizedDiscProject = Extract<
-  NormalizedPersistableProject,
-  Readonly<{ template: Readonly<{ type: 'disc' }> }>
->
+type NormalizedDiscProject = CommittedDiscProject
 
 type NormalizedCaseInsertProject = Extract<
-  NormalizedPersistableProject,
+  CapturedLifecycleProject,
   Readonly<{ projectType: 'caseInsert' }>
 >
 
 type ProjectSessionBase<
   Kind extends EditorProjectType,
-  Project extends NormalizedPersistableProject,
+  Project extends CapturedLifecycleProject,
   Route extends ProjectSessionEditorRoute,
 > = Readonly<{
   id: ProjectSessionId
@@ -122,6 +129,7 @@ export type LoadedProjectSessionInput = ProjectSessionSeed & Readonly<{
   currentPath: string
   persistenceFormat: ProjectPersistenceFormat
   caseInsertPresetRecovery?: PreparedCaseInsertPresetProjectRecovery
+  stagedDiscBackground?: DiscBackgroundAsset
 }>
 
 export type AdoptSavedBaselineInput = Readonly<{
@@ -278,7 +286,7 @@ function captureEditorRoute(
 }
 
 function createBaseline(
-  snapshot: NormalizedPersistableProject,
+  snapshot: CapturedLifecycleProject,
 ): ProjectCleanBaseline {
   return Object.freeze({
     exactSnapshot: snapshot,
@@ -296,7 +304,7 @@ function captureBaseline(
     'session.cleanBaseline',
     ['exactSnapshot', 'comparisonValue'],
   )
-  const exactSnapshot = captureNormalizedProjectSnapshot(
+  const exactSnapshot = captureLifecycleProjectSnapshot(
     captured.exactSnapshot as SavedProject,
   )
   assertSameProjectKind(kind, exactSnapshot)
@@ -316,7 +324,7 @@ function requireActiveSession(state: ApplicationLifecycleState): ProjectSession 
 
 function assertSameProjectKind(
   expected: EditorProjectType,
-  project: NormalizedPersistableProject,
+  project: CapturedLifecycleProject,
 ) {
   const actual = getNormalizedProjectKind(project)
   if (actual !== expected) {
@@ -392,7 +400,7 @@ function advanceContentRevision(revision: number): number {
 
 function replaceSessionProject(
   session: ProjectSession,
-  project: NormalizedPersistableProject,
+  project: CapturedLifecycleProject,
 ): ProjectSession {
   const revision = advanceContentRevision(session.revision)
   if (session.kind === 'disc') {
@@ -409,6 +417,45 @@ function replaceSessionProject(
     revision,
     caseInsertPresetApplication: advanceCaseApplication(session, caseProject),
   })
+}
+
+/** Restore the already captured Disc content chosen by the history owner.
+ * Navigation and Save metadata belong to the current session, not to history.
+ * The successor is a new revision, never a rollback of the revision counter. */
+export function restoreHistoryDiscProject(
+  state: ApplicationLifecycleState,
+  expected: DiscProjectSession,
+  target: CommittedDiscProject,
+): ApplicationLifecycleState {
+  if (state.activeSession !== expected || state.visibleWorkspace !== 'disc' ||
+      target === expected.project) return state
+  const captured = captureLifecycleProjectSnapshot(target)
+  if (captured !== target || getNormalizedProjectKind(captured) !== 'disc') return state
+  return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
+}
+
+/** An import history step restores the document but keeps the *current*
+ * Case attachment, route and Save metadata. The assignment basis is rebound
+ * by the existing Case companion owner at a fresh monotonic revision. */
+export function restoreHistoryCaseProject(
+  state: ApplicationLifecycleState,
+  expected: CaseInsertProjectSession,
+  target: CapturedLifecycleProject,
+  semantic?: CasePresetHistorySemantics,
+): ApplicationLifecycleState {
+  if (state.activeSession !== expected || state.visibleWorkspace !== 'caseInsert' ||
+      target.projectType !== 'caseInsert' || (!semantic && target === expected.project)) return state
+  const captured = captureLifecycleProjectSnapshot(target)
+  if (captured !== target) return state
+  if (!semantic) return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
+  const rebound = rebindCasePresetHistoryApplication({
+    sessionId: expected.id, project: target, current: expected.caseInsertPresetApplication, semantic,
+  })
+  if (!rebound.ok) return state
+  return Object.freeze({ ...state, activeSession: Object.freeze({
+    ...expected, project: target, caseInsertPresetApplication: rebound.application,
+    revision: projectContentsAreSemanticallyEqual(target, expected.project) ? expected.revision : advanceContentRevision(expected.revision),
+  }) })
 }
 
 function routesAreEqual(
@@ -530,7 +577,7 @@ export function captureApplicationLifecycleState(
   }
 
   const id = requireSessionId(sessionShape.id)
-  const project = captureNormalizedProjectSnapshot(
+  const project = captureLifecycleProjectSnapshot(
     sessionShape.project as SavedProject,
   )
   assertSameProjectKind(kind, project)
@@ -600,7 +647,7 @@ export function createNewProjectSession(
 ): ApplicationLifecycleState {
   const captured = captureNewInput(input)
   const id = requireSessionId(captured.sessionId)
-  const project = captureNormalizedProjectSnapshot(captured.project as SavedProject)
+  const project = captureLifecycleProjectSnapshot(captured.project as SavedProject)
   const kind = getNormalizedProjectKind(project)
   const displayName = captured.displayName === undefined
     ? project.title
@@ -653,10 +700,14 @@ export function createLoadedProjectSession(
     input,
     'loadedProjectSessionInput',
     ['sessionId', 'project', 'currentPath', 'persistenceFormat'],
-    ['displayName', 'lastEditorRoute', 'caseInsertPresetRecovery'],
+    ['displayName', 'lastEditorRoute', 'caseInsertPresetRecovery', 'stagedDiscBackground'],
   )
   const id = requireSessionId(captured.sessionId)
-  const project = captureNormalizedProjectSnapshot(captured.project as SavedProject)
+  const stagedDiscBackground = captured.stagedDiscBackground
+  if (stagedDiscBackground !== undefined && !isDiscBackgroundAsset(stagedDiscBackground)) {
+    throw new TypeError('Invalid staged Disc background.')
+  }
+  const project = captureLifecycleProjectSnapshot(captured.project, stagedDiscBackground)
   const kind = getNormalizedProjectKind(project)
   const currentPath = requirePath(captured.currentPath)
   if (currentPath === null) {
@@ -695,6 +746,9 @@ export function createLoadedProjectSession(
       visibleWorkspace: 'disc',
     })
   }
+  if (captured.stagedDiscBackground !== undefined) {
+    throw new TypeError('A Case project cannot adopt a staged Disc background.')
+  }
   const caseProject = project as NormalizedCaseInsertProject
   return Object.freeze({
     activeSession: Object.freeze({
@@ -728,17 +782,129 @@ export function replaceActiveProjectContent(
   replacement: SavedProject,
 ): ApplicationLifecycleState {
   const session = requireActiveSession(state)
-  const project = captureNormalizedProjectSnapshot(replacement)
+  const project = captureLifecycleProjectSnapshot(replacement)
   assertSameProjectKind(session.kind, project)
 
-  if (createCanonicalProjectComparisonValue(project) ===
-      createCanonicalProjectComparisonValue(session.project)) {
+  if (projectContentsAreSemanticallyEqual(project, session.project)) {
     return state
   }
 
   return Object.freeze({
     ...state,
     activeSession: replaceSessionProject(session, project),
+  })
+}
+
+/** Disc-only typed transition; binds against the current session and content
+ * revision, not React render timing or project route. */
+export type DiscBackgroundOperation =
+  | Readonly<{ kind: 'transform'; scale: number; offset: DiscProjectSession['project']['background']['offset'] }>
+  | Readonly<{ kind: 'visibility'; enabled: boolean; scale: number; offset: DiscProjectSession['project']['background']['offset'] }>
+  | Readonly<{ kind: 'placement'; scale: number; offset: DiscProjectSession['project']['background']['offset'] }>
+  | Readonly<{ kind: 'asset'; background: CapturedSavedDiscBackground; stagedAsset?: DiscBackgroundAsset }>
+
+export type DiscBackgroundEdit = Readonly<{
+  sessionId: ProjectSessionId
+  expectedRevision: number
+  operation: DiscBackgroundOperation
+}>
+
+const discAssetFields = new Set(['imageDataUrl', 'scale', 'offset', 'note', 'enabled', 'imageSize', 'imageSource'])
+
+function checkedDiscAssetInput(candidate: CapturedSavedDiscBackground): CapturedSavedDiscBackground {
+  const prototype = Object.getPrototypeOf(candidate)
+  const descriptors = Object.getOwnPropertyDescriptors(candidate)
+  if ((prototype !== Object.prototype && prototype !== null) ||
+      Reflect.ownKeys(descriptors).some(key => typeof key !== 'string' || !discAssetFields.has(key) ||
+        !descriptors[key]?.enumerable || !('value' in descriptors[key]!)) ||
+      !descriptors.imageDataUrl || !descriptors.scale || !descriptors.offset) {
+    throw new TypeError('A closed Disc asset edit is required.')
+  }
+  const { imageDataUrl, scale, offset, imageSize, imageSource, enabled, note } = descriptors
+  if (imageDataUrl.value === undefined || typeof scale.value !== 'number' ||
+      !offset.value || typeof note?.value !== 'string') {
+    throw new TypeError('Incomplete Disc asset edit.')
+  }
+  return {
+    imageDataUrl: imageDataUrl.value,
+    scale: scale.value,
+    offset: offset.value,
+    note: note.value,
+    ...(imageSize ? { imageSize: imageSize.value } : {}),
+    ...(imageSource ? { imageSource: imageSource.value } : {}),
+    ...(enabled ? { enabled: enabled.value } : {}),
+  }
+}
+
+export function editDiscBackground(
+  state: ApplicationLifecycleState,
+  edit: DiscBackgroundEdit,
+): ApplicationLifecycleState {
+  const session = state.activeSession
+  if (!session || session.kind !== 'disc' || state.visibleWorkspace !== 'disc' ||
+      session.id !== edit.sessionId || session.revision !== edit.expectedRevision) return state
+  const current = session.project.background
+  const { operation } = edit
+  let background: typeof current
+  switch (operation.kind) {
+    case 'asset': {
+      const { imageDataUrl, ...ownedFields } = checkedDiscAssetInput(operation.background)
+      if (imageDataUrl !== null && typeof imageDataUrl !== 'string') {
+        throw new TypeError('An accepted Disc background source is required.')
+      }
+      const asset = operation.stagedAsset === undefined
+        ? legacyDiscBackgroundAsset(imageDataUrl) : operation.stagedAsset
+      if (!isDiscBackgroundAsset(asset) || readDiscBackgroundAsset(asset) !== imageDataUrl) {
+        throw new TypeError('Staged Disc source does not match the asset edit.')
+      }
+      const clean = session.cleanBaseline?.exactSnapshot
+      const retained = clean && 'background' in clean
+        ? reuseDiscBackgroundAsset(asset, clean.background.asset) : asset
+      background = { ...ownedFields, asset: retained }
+      break
+    }
+    case 'visibility':
+      background = { ...current, enabled: operation.enabled, scale: operation.scale, offset: operation.offset }
+      break
+    case 'placement':
+    case 'transform':
+      background = { ...current, scale: operation.scale, offset: operation.offset }
+      break
+    default:
+      throw new TypeError('Unknown Disc background operation.')
+  }
+  const project = replaceCapturedDiscBackground(session.project, background)
+  if (project === session.project) return state
+  return Object.freeze({ ...state, activeSession: replaceSessionProject(session, project) })
+}
+
+/** Accept checked sibling data and, if supplied, its scoped Background edit
+ * together. A prepared edit never advances or notifies the store by itself. */
+export function replaceActiveDiscRemainder(
+  state: ApplicationLifecycleState,
+  expected: DiscProjectSession,
+  remainder: unknown,
+  backgroundEdit?: DiscBackgroundEdit,
+): ApplicationLifecycleState {
+  if (state.activeSession !== expected) return state
+  let ownedProject = expected.project
+  if (backgroundEdit) {
+    if (backgroundEdit.sessionId !== expected.id ||
+        backgroundEdit.expectedRevision !== expected.revision ||
+        state.visibleWorkspace !== 'disc') return state
+    const prepared = editDiscBackground(state, backgroundEdit).activeSession
+    if (prepared?.kind !== 'disc') return state
+    ownedProject = prepared.project
+  }
+  const project = captureDiscRemainderWithOwnedBackground(remainder, ownedProject)
+  if (projectContentsAreSemanticallyEqual(project, expected.project)) return state
+  return Object.freeze({
+    ...state,
+    activeSession: Object.freeze({
+      ...expected,
+      project,
+      revision: advanceContentRevision(expected.revision),
+    }),
   })
 }
 
@@ -767,14 +933,22 @@ export function synchronizeActiveProjectContent(
     return state
   }
 
-  let project: NormalizedPersistableProject
+  let project: CapturedLifecycleProject
   try {
-    project = captureNormalizedProjectSnapshot(captured.project as SavedProject)
+    project = captureLifecycleProjectSnapshot(captured.project as SavedProject)
   } catch {
     return state
   }
   if (getNormalizedProjectKind(project) !== captured.kind) return state
-  return replaceActiveProjectContent(state, project as unknown as SavedProject)
+  if (session.kind === 'disc') {
+    try {
+      project = preserveCapturedDiscBackground(project as NormalizedDiscProject, session.project)
+    } catch {
+      return state
+    }
+  }
+  if (projectContentsAreSemanticallyEqual(project, session.project)) return state
+  return Object.freeze({ ...state, activeSession: replaceSessionProject(session, project) })
 }
 
 export function updateLastEditorRoute(
@@ -821,19 +995,66 @@ export function resumeProjectSession(
   return Object.freeze({ ...state, visibleWorkspace: session.kind })
 }
 
+const discSaveSnapshot: unique symbol = Symbol('discSaveSnapshot')
+
+/** A Save operation's handle to one already validated Disc revision. It is
+ * not an ingress project and must not be serialized or passed to the writer. */
+export type DiscSaveRevision = Readonly<{
+  sessionId: ProjectSessionId
+  revision: number
+  [discSaveSnapshot]: NormalizedDiscProject
+}>
+
+export function pinDiscSaveRevision(session: DiscProjectSession): DiscSaveRevision {
+  return Object.freeze({
+    sessionId: session.id,
+    revision: session.revision,
+    [discSaveSnapshot]: session.project,
+  })
+}
+
+/** Materialize the exact pinned R for the independent saved-file boundary. */
+export function projectPinnedDiscSave(pin: DiscSaveRevision): SavedDiscProject {
+  return materializeDiscProject(pin[discSaveSnapshot])
+}
+
+/** Apply only after a successful write. The current revision can be newer;
+ * adopt the exact pinned baseline without replacing that newer content. */
+export function adoptPinnedDiscSave(
+  state: ApplicationLifecycleState,
+  pin: DiscSaveRevision,
+  destination: string,
+): ApplicationLifecycleState {
+  const current = state.activeSession
+  if (current?.kind !== 'disc' || current.id !== pin.sessionId ||
+      current.revision < pin.revision) return state
+  return adoptCapturedProjectBaseline(state, current, pin[discSaveSnapshot], {
+    currentPath: destination,
+    persistenceFormat: 'sbls-package-v1',
+  })
+}
+
 export function adoptSavedProjectBaseline(
   state: ApplicationLifecycleState,
   input: AdoptSavedBaselineInput,
 ): ApplicationLifecycleState {
   const session = requireActiveSession(state)
-  const acceptedSnapshot = captureNormalizedProjectSnapshot(input.acceptedSnapshot)
+  const acceptedSnapshot = captureLifecycleProjectSnapshot(input.acceptedSnapshot)
+  return adoptCapturedProjectBaseline(state, session, acceptedSnapshot, input)
+}
+
+function adoptCapturedProjectBaseline(
+  state: ApplicationLifecycleState,
+  session: ProjectSession,
+  acceptedSnapshot: CapturedLifecycleProject,
+  input: Omit<AdoptSavedBaselineInput, 'acceptedSnapshot'>,
+): ApplicationLifecycleState {
   assertSameProjectKind(session.kind, acceptedSnapshot)
   const currentProject = input.currentProject
-    ? captureNormalizedProjectSnapshot(input.currentProject)
+    ? captureLifecycleProjectSnapshot(input.currentProject)
     : session.project
   assertSameProjectKind(session.kind, currentProject)
-  const contentAdvanced = createCanonicalProjectComparisonValue(currentProject) !==
-    createCanonicalProjectComparisonValue(session.project)
+  const contentAdvanced = !projectContentsAreSemanticallyEqual(currentProject, session.project)
   const contentSession = contentAdvanced
     ? replaceSessionProject(session, currentProject)
     : session
@@ -863,8 +1084,7 @@ export function closeProjectSession(
 
 export function isProjectSessionDirty(session: ProjectSession): boolean {
   return session.cleanBaseline === null ||
-    createCanonicalProjectComparisonValue(session.project) !==
-      session.cleanBaseline.comparisonValue
+    !projectContentsAreSemanticallyEqual(session.project, session.cleanBaseline.exactSnapshot)
 }
 
 export function hasEligibleSblsPath(path: string | null): path is string {

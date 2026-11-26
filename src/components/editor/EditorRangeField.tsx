@@ -1,8 +1,11 @@
 import {
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
+  type PointerEvent,
 } from 'react'
 import {
   formatEditorRangeFieldValue,
@@ -10,6 +13,13 @@ import {
   getEditorRangeFieldValue,
   normalizeEditorRangeFieldValue,
 } from './editorRangeFieldModel'
+
+export type EditorRangePointerGesture = Readonly<{
+  begin(key: string): boolean
+  update(key: string, value: number): void
+  finish(key: string): unknown
+  cancel(key: string): void
+}>
 
 export type EditorRangeFieldProps = {
   disabled?: boolean
@@ -19,6 +29,7 @@ export type EditorRangeFieldProps = {
   min: number | string
   onChange: (value: number) => void
   onInput?: (value: number) => void
+  pointerGesture?: EditorRangePointerGesture
   step: number | string
   unit?: ReactNode
   value: number
@@ -40,6 +51,7 @@ function EditorRangeInput({
   min,
   onChange,
   onInput,
+  pointerGesture,
   step,
   unit,
   value,
@@ -126,6 +138,40 @@ function EditorRangeInput({
     }
   }
 
+  const rangePointer = useRef<{ id: number; key: string; gesture: EditorRangePointerGesture; live: boolean } | null>(null)
+  useEffect(() => () => {
+    const active = rangePointer.current
+    if (active?.live) active.gesture.cancel(active.key)
+  }, [])
+
+  function beginRangePointer(event: PointerEvent<HTMLInputElement>) {
+    if (!pointerGesture || !event.isPrimary || event.button !== 0 || rangePointer.current) return
+    const key = `disc-background-range:${id}:${event.pointerId}`
+    const live = pointerGesture.begin(key)
+    rangePointer.current = { id: event.pointerId, key, gesture: pointerGesture, live }
+    // Preserve browser range mechanics; capture only delivers termination.
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function finishRangePointer(event: PointerEvent<HTMLInputElement>) {
+    const active = rangePointer.current
+    if (!active || active.id !== event.pointerId) return
+    rangePointer.current = null
+    if (!active.live) return
+    if (event.type === 'pointerup') active.gesture.finish(active.key)
+    else active.gesture.cancel(active.key)
+  }
+
+  function applyRangeValue(value: number, live: boolean) {
+    const active = rangePointer.current
+    if (active) {
+      if (active.live) active.gesture.update(active.key, value)
+      return
+    }
+    if (live) onInput?.(value)
+    else onChange(value)
+  }
+
   return (
     <span className="editor-range-field-control">
       <input
@@ -136,14 +182,18 @@ function EditorRangeInput({
         step={step}
         value={value}
         disabled={disabled}
+        onPointerDown={pointerGesture ? beginRangePointer : undefined}
+        onPointerUp={pointerGesture ? finishRangePointer : undefined}
+        onPointerCancel={pointerGesture ? finishRangePointer : undefined}
+        onLostPointerCapture={pointerGesture ? finishRangePointer : undefined}
         onInput={
-          onInput
+          onInput || pointerGesture
             ? (event) =>
-                onInput(getEditorRangeFieldValue(event.currentTarget.value))
+                applyRangeValue(getEditorRangeFieldValue(event.currentTarget.value), true)
             : undefined
         }
         onChange={(event) =>
-          onChange(getEditorRangeFieldValue(event.currentTarget.value))}
+          applyRangeValue(getEditorRangeFieldValue(event.currentTarget.value), false)}
       />
       <span className="editor-range-number-control" style={numberInputStyle}>
         <input
@@ -194,6 +244,7 @@ export function EditorRangeField({
   min,
   onChange,
   onInput,
+  pointerGesture,
   step,
   unit,
   value,
@@ -212,6 +263,7 @@ export function EditorRangeField({
         disabled={disabled}
         onInput={onInput}
         onChange={onChange}
+        pointerGesture={pointerGesture}
       />
     </div>
   )

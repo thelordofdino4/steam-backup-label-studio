@@ -124,29 +124,36 @@ export function updateCustomDiscTemplateDimension({
     }
   }
 
+  return commitCustomDiscTemplateDimensions({
+    state,
+    dimensions: { [field]: numericValue },
+    geometryGuardrailState,
+    validateGeometry,
+  })
+}
+
+/** Existing valid commit path, shared by single-field edits and validated drafts. */
+export function commitCustomDiscTemplateDimensions({
+  state,
+  dimensions,
+  geometryGuardrailState,
+  validateGeometry = validateDiscTemplateGeometryGuardrail,
+}: Omit<CustomDimensionUpdateInput, 'field' | 'value'> & {
+  dimensions: Partial<Pick<DiscTemplate, CustomDiscDimensionKey>>
+}) {
   const nextTemplate = normalizeCustomDiscTemplate({
     ...state.customDiscTemplate,
-    [field]: numericValue,
+    ...dimensions,
   })
   const geometryGuardrail = validateGeometry(nextTemplate, geometryGuardrailState)
-
   if (!geometryGuardrail.allowed) {
-    return {
-      state,
-      changed: false,
-      selectedTemplateToClamp: null,
-      statusMessage: formatBlockedCustomDiscGeometryMessage(geometryGuardrail),
-    }
+    return { state, changed: false, selectedTemplateToClamp: null,
+      statusMessage: formatBlockedCustomDiscGeometryMessage(geometryGuardrail) }
   }
-
   return {
-    state: {
-      ...state,
-      customDiscTemplate: nextTemplate,
-    },
+    state: { ...state, customDiscTemplate: nextTemplate },
     changed: true,
-    selectedTemplateToClamp:
-      state.selectedDiscTemplateId === 'custom' ? nextTemplate : null,
+    selectedTemplateToClamp: state.selectedDiscTemplateId === 'custom' ? nextTemplate : null,
     statusMessage: null,
   }
 }
