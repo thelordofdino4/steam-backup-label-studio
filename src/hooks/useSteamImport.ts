@@ -17,6 +17,7 @@ type UseSteamImportOptions = {
 
 type PrepareSteamGameImport = (
   importedState: SteamGameImportResult,
+  request: ProjectAsyncRequest,
 ) => Promise<() => undefined> | (() => undefined)
 
 export function useSteamImport({
@@ -64,7 +65,7 @@ export function useSteamImport({
       const importedState = await createSteamGameImport(appId)
       if (!asyncWork.isCurrent(request)) return
       // Preparation may download/decode, but cannot mutate project owners.
-      const applyPreparedImport = await prepareImportedState(importedState)
+      const applyPreparedImport = await prepareImportedState(importedState, request)
       asyncWork.commit(request, applyPreparedImport)
     } catch (error) {
       asyncWork.publish(request, () => {

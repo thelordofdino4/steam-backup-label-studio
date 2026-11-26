@@ -1,3 +1,5 @@
+import { readClosedDataFootprint } from './closedDocumentFootprint.ts'
+import { prepareDiscSteamImport, type DiscSteamImportAfterState } from './discSteamOperation.ts'
 import { beginLifecyclePerformanceSample, type LifecyclePerformanceObserver } from './lifecyclePerformanceObserver.ts'
 import {
   type ApplicationCommandCapability,
@@ -108,25 +110,6 @@ const discPresetSiblingKeys = [
   'platformMarks', 'technicalMarks', 'discText',
 ] as const
 
-function readClosedDataFootprint(
-  input: unknown,
-  allowed: ReadonlySet<string>,
-  mayBeUndefined?: ReadonlySet<string>,
-): Record<string, unknown> | null {
-  if (typeof input !== 'object' || input === null) return null
-  const prototype = Object.getPrototypeOf(input)
-  if (prototype !== Object.prototype && prototype !== null) return null
-  const descriptors = Object.getOwnPropertyDescriptors(input)
-  const entries: [string, unknown][] = []
-  for (const key of Reflect.ownKeys(descriptors)) {
-    if (typeof key !== 'string' || !allowed.has(key)) return null
-    const descriptor = descriptors[key]
-    if (!descriptor || !('value' in descriptor) || !descriptor.enumerable ||
-        (descriptor.value === undefined && !mayBeUndefined?.has(key))) return null
-    entries.push([key, descriptor.value])
-  }
-  return Object.fromEntries(entries)
-}
 
 const presetCompanionKeys = new Set(['kind', 'fields', 'guidedLayout'])
 const guidedCompanionKeys = new Set(['kind', 'guidedLayout'])
@@ -208,6 +191,7 @@ const discTemplateDocumentKeys = new Set([
 ])
 type DiscEditorDocumentEdit = Readonly<{ sessionId: ProjectSessionId; expectedGeneration: number }> &
   (Readonly<{ kind: 'template'; fields: DiscTemplateDocumentFields }> |
+   Readonly<{ kind: 'steam-import'; expectedRevision: number; after: DiscSteamImportAfterState }> |
    Readonly<{ kind: 'reset-guided-progress' }> |
    Readonly<{ kind: 'edit-guided-slot'; action: 'omit' | 'include' | 'show-again'; slotId: DiscGuidedSlotId }>)
 
@@ -631,6 +615,14 @@ export function createApplicationLifecycleCompositionRoot(
       if (session?.kind !== 'disc') return 'unavailable'
       try {
         if (edit.sessionId !== session.id || edit.expectedGeneration !== snapshot.generation) return 'stale'
+        if (edit.kind === 'steam-import') {
+          const prepared = prepareDiscSteamImport(snapshot.state, {
+            sessionId: edit.sessionId, expectedRevision: edit.expectedRevision, after: edit.after,
+          })
+          if (prepared.status !== 'prepared') return prepared.status
+          return stateStore.commitTransition(snapshot.generation, () => prepared.state,
+            'record-disc-transaction-with-projection').status
+        }
         const remainder = discRemainderOf(session.project)
         if (edit.kind === 'template') {
           const fields = readClosedDataFootprint(edit.fields, discTemplateDocumentKeys)

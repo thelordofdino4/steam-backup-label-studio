@@ -1,3 +1,4 @@
+import { planDiscSteamDocumentImport } from './appDiscSteamDocumentPlan.ts'
 import { readDiscEditorDocumentBasis, applyDiscEditorDocumentEdit, type DiscEditorDocumentOperation } from './appDiscEditorDocumentCommand.ts'
 import { planDiscTemplateDocumentEdit } from './appDiscTemplateDocumentPlan.ts'
 import type { DiscTemplateState } from '../templates/discTemplateStateModel.ts'
@@ -590,6 +591,8 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
     resolvedDiscTextTitle,
     getCurrentDiscTextContent,
     setDiscTextLayout,
+    setDiscTextValues,
+    setDiscTextValueSources,
     resetDiscTextState,
     restoreDiscTextState,
     planDiscTextLayoutClamp,
@@ -1060,7 +1063,7 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
       })
   }
 
-  function handleDiscGuidedDocumentEdit(operation: Exclude<DiscEditorDocumentOperation, { kind: 'template' }>) {
+  function handleDiscGuidedDocumentEdit(operation: Extract<DiscEditorDocumentOperation, { kind: 'reset-guided-progress' | 'edit-guided-slot' }>) {
     if (finishBackgroundDrag().status !== 'success') return
     const captured = captureCurrentLegacyProject()
     if (captured.kind !== 'disc') return
@@ -1683,7 +1686,7 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
 
     clearSelectedArtwork()
 
-    await runSteamImport(appId, async (importedState) => {
+    await runSteamImport(appId, async (importedState, request) => {
       const metadataCandidateResult = buildSteamMetadataCandidatesFromImportedGame(
         importedState.importedGame,
       )
@@ -1730,6 +1733,53 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
         : null
 
       return () => {
+        if (activeWorkspace === 'disc' && preparedDiscVisualImport && !options.applyCaseInsertBackCoverDefaults) {
+          const captured = captureCurrentLegacyProject()
+          if (captured.kind !== 'disc') return
+          // The async hook has just admitted the session/content revision. A
+          // same-content Save As can change generation while the PNG decodes.
+          const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+          if (!basis || basis.current.id !== request.sessionId ||
+              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return
+          const plan = planDiscSteamDocumentImport(preparedDiscVisualImport, {
+            isDifferentSelectedSteamGame, autoRatingCandidate, autoLegalCandidate, nextProjectMetadata,
+            shouldResetGameScopedRating, shouldResetGameScopedLegal, shouldUpdateCopyrightDiscTextSource,
+          }, getDiscDocumentRenderedOwners(), selectedDiscTemplate, steamLogoPlacement,
+          activeDiscPreset.getActivePresetState())
+          const committed = applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, {
+            kind: 'steam-import', expectedRevision: request.contentRevision, after: plan.after,
+          }, unstable_batchedUpdates, accepted => {
+            if (accepted.revision !== basis.current.revision) {
+              setSelectedSteamGame(importedState.importedGame)
+              setManualGameTitle(importedState.manualGameTitle)
+              setProjectMetadata(nextProjectMetadata)
+              setProjectTitleArtwork(plan.titleArtwork)
+              if (plan.platformMarks) setProjectPlatformMarks(plan.platformMarks)
+              if (plan.badge) setProjectRatingBadge(plan.badge)
+              setDiscTextSettings({ ...discTextSettings, copyright: plan.copyrightEnabled })
+              setDiscTextLayout({ ...discTextLayout, ...plan.layout })
+              setDiscTextValues({
+                ...discTextValues,
+                ...(plan.after.text?.appId !== undefined && { appId: plan.after.text.appId }),
+                ...(plan.after.text?.copyright !== undefined && { copyright: plan.after.text.copyright }),
+              })
+              setDiscTextValueSources({
+                ...discTextValueSources,
+                ...(plan.after.text?.copyrightSource && { copyright: plan.after.text.copyrightSource }),
+              })
+              setDiscGuidedWorkflow(restoreSavedDiscGuidedWorkflow(accepted.project.editor))
+              activeDiscPreset.restoreActivePresetState(plan.presetState)
+            }
+            loadImportedSteamMetadataCandidates(importedState.importedGame)
+            clearSteamSearchResults()
+          })
+          if (!committed) throw new Error('The checked Disc import could not be applied.')
+          announceStatus(importedState.statusMessage)
+          announceStatus(preparedDiscVisualImport.titleArtwork.statusMessage)
+          announceStatus(preparedDiscVisualImport.platform.statusMessage)
+          announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
+          return
+        }
         loadImportedSteamMetadataCandidates(importedState.importedGame)
         const discVisualImport = preparedDiscVisualImport
           ? applyPreparedSteamDiscVisualDefaultImport(preparedDiscVisualImport, {
@@ -2224,6 +2274,13 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
   useLayoutEffect(() => connectDiscHistoryDiagnostic?.(direction =>
     stepProjectedDiscHistory(applicationLifecycleRoot, direction, {
       batch: unstable_batchedUpdates,
+      setGame: ({ manualTitle, selectedSteamGame }) => {
+        setManualGameTitle(manualTitle)
+        setSelectedSteamGame(selectedSteamGame)
+      },
+      setMetadata: setProjectMetadata,
+      setDiscTextValues,
+      setDiscTextValueSources,
       setTemplate: restoreDiscTemplateState,
       setAdditionalArtwork: setProjectAdditionalArtwork,
       setRatingBadge: setProjectRatingBadge,

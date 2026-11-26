@@ -857,3 +857,70 @@ test('template and reset keep every earlier Disc operation reachable in the moun
     for (let past = 1; past <= 4; past++) current = await step(current, entries[past], 'redo', past, 4 - past)
   } finally { await page.close() }
 })
+
+test('Steam import after same-content Save As is one exact undoable edit', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => window.readDiscHistoryProject().editor?.guidedLayout)
+    await reveal(page, 'Game')
+    await reveal(page, 'Project File')
+    const read = () => page.evaluate(() => ({
+      state: window.readDiscHistoryDiagnostic(), project: window.readDiscHistoryProject(),
+    }))
+    const prior = await read()
+    assert.equal(prior.state.path, null)
+    assert.equal(prior.state.past, 1)
+    await start(page, older.id)
+    await start(page, newer.id)
+    await page.evaluate(() => window.armDiscHistoryOutput('before'))
+    await page.getByRole('button', { name: 'Save Project', exact: true }).click()
+    await page.waitForFunction(() => Boolean(window.readDiscHistoryDiagnostic().path) &&
+      !window.readDiscHistoryDiagnostic().dirty)
+    const saved = await read()
+    assert.equal(saved.state.revision, prior.state.revision)
+    assert.deepEqual(saved.project, prior.project)
+    assert.equal(await page.evaluate(id => window.discSteamTransportFixture.pending(id), newer.id), true)
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await page.waitForFunction(({ id, revision }) => {
+      const state = window.readDiscHistoryDiagnostic()
+      return !state.pending && state.revision === revision && window.readDiscHistoryProject().game.selectedSteamGame?.appId === id
+    }, { id: newer.id, revision: saved.state.revision + 1 }, { timeout: 12_000 })
+    const imported = await read()
+    assert.equal(imported.state.past, 2)
+    assert.equal(imported.state.path, saved.state.path)
+    assert.equal(imported.state.dirty, true)
+    assert.equal(imported.project.titleArtwork.imageDataUrl, newer.dataUrl)
+    assert.equal(imported.project.titleArtwork.defaultSteamLogo.imageDataUrl, newer.dataUrl)
+    assert.equal(imported.project.discText.values.appId, String(newer.id))
+    assert.equal(imported.project.discText.valueSources.copyright, 'metadata')
+    assert.ok(imported.project.editor.guidedLayout.completedSlotIds.includes('disc:guided:game-title:primary'))
+    const step = async (direction, expected, revision) => {
+      assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const state = window.readDiscHistoryDiagnostic()
+        return !state.pending && state.revision === revision
+      }, revision, { timeout: 8_000 })
+      const observed = await read()
+      assert.equal(observed.state.path, saved.state.path)
+      assert.equal(observed.state.dirty, expected.state.dirty)
+      assert.deepEqual(observed.project, expected.project)
+    }
+    await step('undo', saved, imported.state.revision + 1)
+    await step('redo', imported, imported.state.revision + 2)
+    const redone = await read()
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), older.id)
+    await page.waitForFunction(id => window.readDiscSteamArtworkPreparation().some(item => item.id === id), older.id)
+    await drain(page)
+    assert.deepEqual(await read(), redone, 'retired successful artwork cannot publish after Undo/Redo')
+  } finally { await page.close() }
+})

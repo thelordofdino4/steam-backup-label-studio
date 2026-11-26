@@ -8,6 +8,7 @@ import { ApplicationMenuBoundary } from '/src/app/ApplicationMenuBoundary.tsx'
 import { createApplicationMenuRuntime } from '/src/applicationMenu/applicationMenuRuntime.ts'
 import { createApplicationLifecycleCompositionRoot } from '/src/lifecycle/applicationLifecycleCompositionRoot.ts'
 import { createLifecyclePerformanceObserver } from '/src/lifecycle/lifecyclePerformanceObserver.ts'
+import { selectIsActiveProjectDirty } from '/src/lifecycle/projectSession.ts'
 import { materializeDiscProject } from '/src/lifecycle/canonicalProject.ts'
 import { InteractionPerformanceContext } from '/src/diagnostics/InteractionPerformanceContext.ts'
 import '/src/app/testing/discHistoryOutputFixture.mjs'
@@ -157,7 +158,8 @@ window.stepDiscHistoryDiagnostic = direction => {
 window.readDiscHistoryDiagnostic = () => {
   const { state, discHistory, discHistoryProjectionPending } = lifecycleRuntime.root.getStateSnapshot()
   return { revision: state.activeSession?.revision, pending: Boolean(discHistoryProjectionPending),
-    past: discHistory?.past.length, future: discHistory?.future.length }
+    past: discHistory?.past.length, future: discHistory?.future.length,
+    path: state.activeSession?.currentPath, dirty: selectIsActiveProjectDirty(state) }
 }
 window.readDiscHistoryProject = () => {
   const session = lifecycleRuntime.root.getStateSnapshot().state.activeSession

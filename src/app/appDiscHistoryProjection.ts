@@ -10,17 +10,24 @@ import type { ApplicationLifecycleCompositionRoot } from '../lifecycle/applicati
 import { isCommittedDiscProject, normalizedProjectValueMatches, type DeepReadonly } from '../lifecycle/canonicalProject.ts'
 import type { DiscProjectSession } from '../lifecycle/projectSession.ts'
 import { DISC_TEXT_KEYS } from '../discText/constants.ts'
-import type { DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings } from '../discText/types.ts'
+import type { DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues } from '../discText/types.ts'
+import { createDefaultDiscTextValueSources, type DiscTextValueSources } from '../project/metadataDiscText.ts'
+import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
+import type { SteamImportedGame } from '../steam/steamApi.ts'
 import { createSavedDiscGuidedLayout, restoreSavedDiscGuidedWorkflow } from '../project/projectGuidedWorkflow.ts'
 import type { DiscGuidedWorkflowState } from '../guidedPresets/discGuidedWorkflow.ts'
 import type {
   BackgroundImageSize, ProjectAdditionalArtwork, ProjectAdditionalLogoAsset, ProjectLogoAssets, ProjectLogoAssetsInput,
-  ProjectMediaMark, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarkAsset,
+  ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarkAsset,
   ProjectTechnicalMarks, ProjectTechnicalMarksInput, ProjectTitleArtwork,
 } from '../project/projectTypes.ts'
 
 type DiscHistoryProjection = Readonly<{
   /** Background already renders directly from the accepted lifecycle snapshot. */
+  game?: { manualTitle: string; selectedSteamGame: SteamImportedGame | null }
+  metadata?: ProjectMetadata
+  discTextValues?: DiscTextValues
+  discTextValueSources?: DiscTextValueSources
   template?: RestorableDiscTemplateState
   additionalArtwork?: ProjectAdditionalArtwork
   ratingBadge?: ProjectRatingBadge
@@ -53,6 +60,24 @@ export function prepareDiscHistoryProjection(
     const after = Reflect.get(target, key)
     if (before === after || normalizedProjectValueMatches(before, after)) continue
     switch (key) {
+      case 'title':
+      case 'game': {
+        const game = target.game
+        if (!game || typeof game.manualTitle !== 'string' || target.title !== game.manualTitle ||
+          !normalizedProjectValueMatches(game, { manualTitle: game.manualTitle, selectedSteamGame: game.selectedSteamGame }) ||
+          (game.selectedSteamGame !== null && (typeof game.selectedSteamGame?.title !== 'string' ||
+            !Number.isSafeInteger(game.selectedSteamGame.appId) || game.selectedSteamGame.appId < 1))) return null
+        plan.game = structuredClone(game) as DiscHistoryProjection['game']
+        break
+      }
+      case 'metadata': {
+        const metadata = target.metadata
+        const keys = Object.keys(createDefaultProjectMetadata()) as (keyof ProjectMetadata)[]
+        if (!metadata || !keys.every(key => typeof metadata[key] === 'string') ||
+          !['none', 'ESRB', 'PEGI', 'USK', 'custom'].includes(metadata.ratingSystem)) return null
+        plan.metadata = { ...metadata }
+        break
+      }
       case 'template': {
         const template = target.template
         const variant = template.variant
@@ -147,10 +172,24 @@ export function prepareDiscHistoryProjection(
         const previous = current.project.discText
         const next = target.discText
         if (!previous || !next) return null
-        const { layout: previousLayout, settings: previousSettings, ...previousText } = previous
-        const { layout, settings, ...nextText } = next
-        // Presets may write layout/settings, not the text, styles, or sources.
+        const { layout: previousLayout, settings: previousSettings,
+          values: previousValues, valueSources: previousSources, ...previousText } = previous
+        const { layout, settings, values, valueSources, ...nextText } = next
+        // Imports write raw values and sources; the browser draft, styles and
+        // HTML remain independent owners. Never regenerate values from Steam.
         if (!normalizedProjectValueMatches(previousText, nextText)) return null
+        if (!normalizedProjectValueMatches(previousValues, values)) {
+          if (!values || !DISC_TEXT_KEYS.filter(key => key !== 'title')
+            .every(key => typeof values[key] === 'string')) return null
+          plan.discTextValues = { ...values } as DiscTextValues
+        }
+        if (!normalizedProjectValueMatches(previousSources, valueSources)) {
+          if (!valueSources || !Object.keys(createDefaultDiscTextValueSources()).every(key => {
+            const source = valueSources[key as keyof DiscTextValueSources]
+            return source === 'manual' || source === 'metadata'
+          })) return null
+          plan.discTextValueSources = { ...valueSources } as DiscTextValueSources
+        }
         if (!normalizedProjectValueMatches(previousLayout, layout)) {
           if (!layout) return null
           const nextLayout = { ...layout }
@@ -177,7 +216,8 @@ export function prepareDiscHistoryProjection(
         return null
     }
   }
-  if (plan.template || !normalizedProjectValueMatches(current.project.editor, target.editor)) {
+  const guidedMayNeedRefit = plan.template || plan.game || plan.metadata || plan.discTextValues || plan.discTextValueSources
+  if (guidedMayNeedRefit || !normalizedProjectValueMatches(current.project.editor, target.editor)) {
     // Even with unchanged slot IDs, a new template invalidates the attachment.
     const workflow = restoreSavedDiscGuidedWorkflow(target.editor)
     const saved = createSavedDiscGuidedLayout(workflow)
@@ -294,6 +334,9 @@ export function prepareDiscHistoryGuidedAttachment({
       logoAssets: plan.logoAssets ?? rendered.logoAssets,
       discTextSettings: plan.discTextSettings ?? rendered.discTextSettings,
       discTextLayout: plan.discTextLayout ?? rendered.discTextLayout,
+      discTextValues: plan.discTextValues ?? rendered.discTextValues,
+      discTextValueSources: plan.discTextValueSources ?? rendered.discTextValueSources,
+      metadata: plan.metadata ?? rendered.metadata,
       background: {
         enabled: target.background.enabled ?? true,
         imageDataUrl: readDiscBackgroundAsset(target.background.asset),
@@ -315,6 +358,10 @@ export function stepProjectedDiscHistory(
   direction: 'undo' | 'redo',
   editor: Readonly<{
     batch(apply: () => void): void
+    setGame?(value: NonNullable<DiscHistoryProjection['game']>): void
+    setMetadata?(value: ProjectMetadata): void
+    setDiscTextValues?(value: DiscTextValues): void
+    setDiscTextValueSources?(value: DiscTextValueSources): void
     setTemplate?(value: RestorableDiscTemplateState): void
     setAdditionalArtwork?(value: ProjectAdditionalArtwork): void
     setRatingBadge(value: ProjectRatingBadge): void
@@ -342,6 +389,9 @@ export function stepProjectedDiscHistory(
       !isCommittedDiscProject(target)) return 'stale'
   const plan = prepareDiscHistoryProjection(current, target)
   if (!plan || (plan.template && !editor.setTemplate) ||
+      (plan.game && !editor.setGame) || (plan.metadata && !editor.setMetadata) ||
+      (plan.discTextValues && !editor.setDiscTextValues) ||
+      (plan.discTextValueSources && !editor.setDiscTextValueSources) ||
       (plan.additionalArtwork && !editor.setAdditionalArtwork)) return 'unavailable'
   const applyGuided = plan.guidedWorkflow ? editor.prepareGuidedAttachment?.(plan.guidedWorkflow, target, plan, current.project) : undefined
   if (plan.guidedWorkflow && !applyGuided) return 'unavailable'
@@ -354,6 +404,10 @@ export function stepProjectedDiscHistory(
     if (session?.kind !== 'disc' || session.id !== current.id ||
         session.revision !== current.revision + 1 || session.project !== target ||
         !accepted.discHistoryProjectionPending) return
+    if (plan.game) editor.setGame?.(plan.game)
+    if (plan.metadata) editor.setMetadata?.(plan.metadata)
+    if (plan.discTextValues) editor.setDiscTextValues?.(plan.discTextValues)
+    if (plan.discTextValueSources) editor.setDiscTextValueSources?.(plan.discTextValueSources)
     if (plan.template) editor.setTemplate?.(plan.template)
     if (plan.additionalArtwork) editor.setAdditionalArtwork?.(plan.additionalArtwork)
     if (plan.ratingBadge) editor.setRatingBadge(plan.ratingBadge)
