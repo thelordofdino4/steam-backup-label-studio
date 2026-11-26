@@ -1,3 +1,6 @@
+import type { LifecyclePerformanceObserver } from '../lifecycle/lifecyclePerformanceObserver.ts'
+import { createApplicationNativeTerminationCommandOwners } from './appNativeTerminationCommand.ts'
+import { createApplicationTerminationRuntime, type ApplicationTerminationRuntimeDependencies, type NativeTerminationFeedback } from './applicationTerminationRuntime.ts'
 import { createApplicationCommandDiagnostics, type ApplicationCommandDiagnostics } from '../diagnostics/applicationCommandDiagnostics.ts'
 import {
   createApplicationLifecycleCompositionRoot,
@@ -29,10 +32,13 @@ import {
   type ApplicationPngExportRuntimeDependencies,
 } from './appPngExportCommand.ts'
 import { createProjectAsyncWork, type ProjectAsyncWork } from '../lifecycle/projectAsyncWork.ts'
+import { onceAsyncCleanup } from '../utils/onceAsyncCleanup.ts'
+import type { ApplicationCaseInsertContinuousEditPort } from './applicationCaseInsertContinuousEditPort.ts'
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
   projectAsyncWork: ProjectAsyncWork
+  connectNativeTerminationIngress(feedback: NativeTerminationFeedback): () => void
   diagnostics: ApplicationCommandDiagnostics
   updateProjectOpenDependencies(
     dependencies: ApplicationProjectOpenRuntimeDependencies,
@@ -52,10 +58,16 @@ export type ApplicationLifecycleRuntime = Readonly<{
   updatePngExportDependencies(
     dependencies: ApplicationPngExportRuntimeDependencies,
   ): void
-  dispose(): void
+  updateDiscBackgroundContinuousEditPort(port: ApplicationCaseInsertContinuousEditPort | null): void
+  updateCaseInsertContinuousEditPort(port: ApplicationCaseInsertContinuousEditPort | null): void
+  dispose(): Promise<void>
 }>
 
 export type ApplicationLifecycleRuntimeOptions = Readonly<{
+  performanceObserver?: LifecyclePerformanceObserver
+  casePresetProjection?: boolean
+  documentHistoryLimit?: number
+  nativeTermination?: ApplicationTerminationRuntimeDependencies
   createRoot?: (
     options: ApplicationLifecycleCompositionRootOptions,
   ) => ApplicationLifecycleCompositionRoot
@@ -78,15 +90,24 @@ export function createApplicationLifecycleRuntime(
   let workspaceNavigationDependencies:
     ApplicationWorkspaceNavigationRuntimeDependencies | null = null
   let pngExportDependencies: ApplicationPngExportRuntimeDependencies | null = null
+  let discBackgroundContinuousEditPort: ApplicationCaseInsertContinuousEditPort | null = null
+  let caseInsertContinuousEditPort: ApplicationCaseInsertContinuousEditPort | null = null
   let disposed = false
   const createRoot = options.createRoot ??
     createApplicationLifecycleCompositionRoot
+  const getDiscBackgroundEdit = (): ApplicationCaseInsertContinuousEditPort | null =>
+    root.getLifecycleState().visibleWorkspace === 'disc' ? discBackgroundContinuousEditPort : null
+  const getCurrentEditorEdit = (): ApplicationCaseInsertContinuousEditPort | null =>
+    root.getLifecycleState().visibleWorkspace === 'disc'
+      ? getDiscBackgroundEdit() : caseInsertContinuousEditPort
   const saveOwners = createApplicationProjectSaveCommandOwners(
     () => projectSaveDependencies,
+    getCurrentEditorEdit,
   )
   const replacementGuard = createProjectReplacementGuard(
     () => projectReplacementDependencies,
     saveOwners.saveProjectWithinOperation,
+    getCurrentEditorEdit,
   )
   const newOwners = createApplicationProjectNewCommandOwners(
     () => projectNewDependencies,
@@ -95,14 +116,31 @@ export function createApplicationLifecycleRuntime(
   const workspaceNavigationOwners =
     createApplicationWorkspaceNavigationCommandOwners(
       () => workspaceNavigationDependencies,
+      getDiscBackgroundEdit,
     )
   const pngExportOwner = createApplicationPngExportCommandOwner(
     () => pngExportDependencies,
+    getDiscBackgroundEdit,
+  )
+  const terminationRuntime = createApplicationTerminationRuntime(
+    () => root, options.nativeTermination, () => projectAsyncWork.invalidateAll(),
+  )
+  const terminationOwners = createApplicationNativeTerminationCommandOwners(
+    terminationRuntime.handoff, replacementGuard, getCurrentEditorEdit,
   )
   const diagnostics = createApplicationCommandDiagnostics()
   const root = createRoot({
+    performanceObserver: options.performanceObserver,
+    ...(options.casePresetProjection ? { casePresetProjection: true } : {}),
+    ...(options.documentHistoryLimit === undefined ? {} : {
+      discHistoryLimit: options.documentHistoryLimit, caseHistoryLimit: options.documentHistoryLimit,
+    }),
+    getTerminationCapabilities: terminationRuntime.capabilities,
+    canAcceptCommands: () => !disposed && !terminationRuntime.isHandoffPending(),
     observeExecution: diagnostics.observeExecution,
     ports: {
+      closeWindow: terminationOwners.closeWindow,
+      quitApplication: terminationOwners.quitApplication,
       newDisc: newOwners.newDisc,
       newCase: newOwners.newCase,
       openProject: createApplicationProjectOpenCommandOwner(
@@ -117,12 +155,33 @@ export function createApplicationLifecycleRuntime(
     exportPng: pngExportOwner,
   })
 
-  const projectAsyncWork = createProjectAsyncWork(root.getStateSnapshot)
+  const projectAsyncWork = createProjectAsyncWork(root.getStateSnapshot, {
+    canAcceptWork: () => !disposed && !terminationRuntime.isHandoffPending(),
+  })
   const unsubscribeAsyncWork = root.subscribe(() => projectAsyncWork.observeLifecycle())
+
+  const dispose = onceAsyncCleanup(async () => {
+    disposed = true
+    projectOpenDependencies = null
+    projectSaveDependencies = null
+    projectReplacementDependencies = null
+    projectNewDependencies = null
+    workspaceNavigationDependencies = null
+    pngExportDependencies = null
+    discBackgroundContinuousEditPort = null
+    caseInsertContinuousEditPort = null
+    unsubscribeAsyncWork()
+    projectAsyncWork.dispose()
+    diagnostics.dispose()
+    const pending = terminationRuntime.dispose()
+    root.dispose()
+    await pending
+  })
 
   return Object.freeze({
     root,
     projectAsyncWork,
+    connectNativeTerminationIngress: terminationRuntime.connect,
     diagnostics,
     updateProjectOpenDependencies(dependencies) {
       if (disposed) {
@@ -170,19 +229,14 @@ export function createApplicationLifecycleRuntime(
         root.refreshCommandCapabilities()
       }
     },
-    dispose() {
-      if (disposed) return
-      disposed = true
-      projectOpenDependencies = null
-      projectSaveDependencies = null
-      projectReplacementDependencies = null
-      projectNewDependencies = null
-      workspaceNavigationDependencies = null
-      pngExportDependencies = null
-      unsubscribeAsyncWork()
-      projectAsyncWork.dispose()
-      diagnostics.dispose()
-      root.dispose()
+    updateDiscBackgroundContinuousEditPort(port) {
+      if (disposed) throw new Error('The application lifecycle runtime is disposed.')
+      discBackgroundContinuousEditPort = port
     },
+    updateCaseInsertContinuousEditPort(port) {
+      if (disposed) throw new Error('The application lifecycle runtime is disposed.')
+      caseInsertContinuousEditPort = port
+    },
+    dispose,
   })
 }

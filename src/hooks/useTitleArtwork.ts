@@ -1,6 +1,9 @@
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { InteractionPerformanceContext } from '../diagnostics/InteractionPerformanceContext.ts'
+import { observeInteraction } from '../diagnostics/interactionPerformanceObserver.ts'
+import { useContext, useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { ImportedImagePolicyError } from '../image/importedImagePolicy'
 import type { SteamLogoPlacement } from '../discText/index'
 import {
   completeDiscGuidedSlotWhenSatisfied,
@@ -39,6 +42,7 @@ type UseTitleArtworkOptions = {
   applyActivePresetPlacement?: (
     titleArtwork: ProjectTitleArtwork,
   ) => ProjectTitleArtwork | null
+  commitLayoutReset?: (layout: ProjectTitleArtwork['layout']) => boolean
   onDiscGuidedSlotCompleted?: DiscGuidedSlotCompletionHandler
 }
 
@@ -47,8 +51,10 @@ export function useTitleArtwork({
   steamLogoPlacement,
   announceStatus,
   applyActivePresetPlacement = (titleArtwork) => titleArtwork,
+  commitLayoutReset,
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseTitleArtworkOptions) {
+  const interactionObserver = useContext(InteractionPerformanceContext)
   const asyncWork = useProjectAsyncWork()
   const [projectTitleArtwork, setProjectTitleArtwork] = useState<ProjectTitleArtwork>(() =>
     createDefaultProjectTitleArtwork(selectedDiscTemplate, steamLogoPlacement),
@@ -112,6 +118,9 @@ export function useTitleArtwork({
     field: TitleArtworkLayoutField,
     value: boolean | number,
   ) {
+    const interaction = field === 'scale' && interactionObserver
+      ? observeInteraction(() => interactionObserver.begin('disc-title-artwork-scale')) : undefined
+    const previousScale = projectTitleArtworkRef.current.layout.scale
     const nextTitleArtwork = updateTitleArtworkLayoutField(
       projectTitleArtworkRef.current,
       field,
@@ -133,6 +142,10 @@ export function useTitleArtwork({
       commitProjectTitleArtwork(clampedTitleArtwork)
     }
 
+    if (interactionObserver && interaction) observeInteraction(() => interactionObserver.expect(
+      interaction, finalTitleArtwork, previousScale !== finalTitleArtwork.layout.scale,
+    ))
+
     if (field === 'enabled' && value === true) {
       completeDiscGuidedSlotWhenSatisfied(
         onDiscGuidedSlotCompleted,
@@ -143,8 +156,16 @@ export function useTitleArtwork({
   }
 
   function handleResetTitleArtworkLayout() {
-    asyncWork.invalidateAll()
-    resetTitleArtworkLayoutForPlacement(steamLogoPlacement)
+    if (commitLayoutReset) {
+      const reset = clampProjectTitleArtworkToSafeZone(
+        resetProjectTitleArtworkLayout(projectTitleArtworkRef.current, selectedDiscTemplate, steamLogoPlacement),
+        selectedDiscTemplate,
+      )
+      if (!commitLayoutReset(reset.layout)) return
+      asyncWork.invalidateAll()
+    } else {
+      resetTitleArtworkLayoutForPlacement(steamLogoPlacement)
+    }
     announceStatus('Reset title artwork layout.')
   }
 
@@ -198,9 +219,11 @@ export function useTitleArtwork({
         )
         announceStatus('Custom game logo artwork selected.')
       })
-    } catch {
+    } catch (error) {
       asyncWork.publish(request, () => {
-        announceStatus('Game logo image could not be read.')
+        announceStatus(error instanceof ImportedImagePolicyError
+          ? error.message
+          : 'Game logo image could not be read.')
       })
     }
   }

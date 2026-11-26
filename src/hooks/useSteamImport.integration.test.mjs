@@ -68,16 +68,18 @@ window.searchHarness = {
     await act(async () => { api[action]() })
   },
   async edit(query) { await act(async () => { api.setGameSearchQuery(query) }) },
-  async startImport(appId, stage = false) {
+  async startImport(appId, stage = false, adoption = 'committed') {
     deferImports = true
     await act(async () => {
       const completion = api.runSteamImport(appId, async result => {
         if (stage) await new Promise((resolve, reject) => preparations.push({ resolve, reject }))
         return () => {
           if (failApply) throw new Error('private-apply-path')
+          if (adoption !== 'committed') return adoption
           applied.push(result)
           api.setSelectedSteamGame(result.importedGame)
           statuses.push('Imported ' + result.importedGame.title)
+          return 'committed'
         }
       })
       imports.at(-1).completion = completion
@@ -100,8 +102,11 @@ window.searchHarness = {
   async changeProject() {
     await act(async () => {
       const session = runtime.root.getLifecycleState().activeSession
-      const project = { ...session.project, title: 'Edited while pending' }
-      runtime.root.synchronizeCurrentProject({ sessionId: session.id, kind: session.kind, project })
+      if (session?.kind !== 'disc') throw new Error('Expected the Disc fixture to be active')
+      const legacy = { ...session.project, title: 'Edited while pending' }
+      delete legacy.background
+      const outcome = runtime.root.synchronizeDiscLegacyProject({ sessionId: session.id, legacy })
+      if (outcome !== 'synchronized') throw new Error('Fixture edit failed to advance the Disc revision: ' + outcome)
     })
   },
   async importGame(fail) {
@@ -111,6 +116,7 @@ window.searchHarness = {
         applied.push(result)
         api.setSelectedSteamGame(result.importedGame)
         api.clearSteamSearchResults()
+        return 'committed'
       })
     })
   },
@@ -153,7 +159,7 @@ test.before(async () => {
   const address = server.httpServer?.address()
   if (!address || typeof address === 'string') throw new Error('Missing fixture server address')
   url = `http://127.0.0.1:${address.port}${fixturePath}`
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, chromiumSandbox: true })
 })
 test.beforeEach(async () => {
   page = await browser.newPage()
@@ -387,3 +393,18 @@ test('retired import preparation records cancellation and never success or a cur
   assert.equal(record.failureCode, undefined)
   assert.equal(record.stage, 'prepare')
 })
+
+for (const adoption of ['committed', 'no-op', 'declined']) {
+  test('Steam report distinguishes an admitted owner outcome: ' + adoption, async () => {
+    await page.evaluate(outcome => window.searchHarness.startImport(42, false, outcome), adoption)
+    await page.evaluate(() => window.searchHarness.settleImport(0, false))
+    const record = (await page.evaluate(() => window.searchHarness.diagnostics())).records.at(-1)
+    assert.equal(record.workflowId, 'steam.import')
+    assert.equal(record.stage, 'apply')
+    assert.equal(record.adoption, adoption)
+    assert.equal(record.status, adoption === 'declined' ? 'cancelled' : 'success')
+    const state = await snapshot()
+    assert.equal(state.applied.length, adoption === 'committed' ? 1 : 0)
+    if (adoption === 'declined') assert.equal(state.statuses.some(status => status.startsWith('Imported ')), false)
+  })
+}

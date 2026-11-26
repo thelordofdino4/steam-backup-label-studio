@@ -408,7 +408,6 @@ export function createApplicationMenuRuntime(
       try { ingress.dependencies.informational?.dismissForNavigation?.() }
       catch (error) {
         onDiagnostic({ code: 'application-menu.invocation-unexpected', detail: errorDetail(error) })
-        return false
       }
       void ingress.dependencies.workflowNavigation.navigate(resolution.intent)
         .then((result) => {

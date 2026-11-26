@@ -1,9 +1,9 @@
 import { useApplicationDiagnostics } from './useApplicationDiagnostics.ts'
 import { commandFailed, commandSucceeded, type ApplicationCommandResult } from '../lifecycle/applicationCommandTypes.ts'
-import { observeSteamWorkflowSafely, steamWorkflowError, type SteamWorkflowStage } from '../steam/steamWorkflowDiagnostics.ts'
+import { observeSteamWorkflowSafely, steamWorkflowError, type SteamWorkflowStage, type SteamImportAdoption } from '../steam/steamWorkflowDiagnostics.ts'
 import { useRef, useState } from 'react'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
-import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
+import { commitProjectAsyncValue, type ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import {
   searchSteamStore,
   type SteamImportedGame,
@@ -20,7 +20,8 @@ type UseSteamImportOptions = {
 
 type PrepareSteamGameImport = (
   importedState: SteamGameImportResult,
-) => Promise<() => undefined> | (() => undefined)
+  request: ProjectAsyncRequest,
+) => Promise<() => SteamImportAdoption> | (() => SteamImportAdoption)
 
 export function useSteamImport({
   announceStatus,
@@ -64,6 +65,7 @@ export function useSteamImport({
     const observation = observeSteamWorkflowSafely(diagnostics.observeSteamWorkflow, { workflowId: 'steam.import', requestId: request.requestId })
     let stage: SteamWorkflowStage = 'fetch-and-normalize'
     let outcome: ApplicationCommandResult<unknown> = { status: 'cancelled', reason: 'operation-cancelled' }
+    let adoption: SteamImportAdoption | undefined
     setPendingImport(request)
     announceStatus(`Importing Steam App ID ${appId}...`)
 
@@ -73,10 +75,11 @@ export function useSteamImport({
       // Preparation may download/decode, but cannot mutate project owners.
       stage = 'prepare'
       observation.stage(stage)
-      const applyPreparedImport = await prepareImportedState(importedState)
+      const applyPreparedImport = await prepareImportedState(importedState, request)
       stage = 'apply'
       observation.stage(stage)
-      if (asyncWork.commit(request, applyPreparedImport)) outcome = commandSucceeded(undefined)
+      adoption = commitProjectAsyncValue(asyncWork, request, applyPreparedImport)
+      if (adoption === 'committed' || adoption === 'no-op') outcome = commandSucceeded(undefined)
     } catch (cause) {
       const error = steamWorkflowError('steam.import', stage, cause)
       outcome = commandFailed(error)
@@ -84,7 +87,7 @@ export function useSteamImport({
         outcome = { status: 'cancelled', reason: 'operation-cancelled' }
       }
     } finally {
-      observation.complete(outcome)
+      observation.complete(outcome, adoption)
     }
   }
 

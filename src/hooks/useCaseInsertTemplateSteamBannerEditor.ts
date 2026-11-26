@@ -1,3 +1,4 @@
+import { ImportedImagePolicyError } from '../image/importedImagePolicy'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
 import { commitProjectAsyncValue } from '../lifecycle/projectAsyncWork.ts'
 import type {
@@ -80,9 +81,11 @@ export function useCaseInsertTemplateSteamBannerEditor({
         )
         announceStatus(`Using ${file.name} as the Steam banner lockup.`)
       })
-    } catch {
+    } catch (error) {
       asyncWork.publish(request, () => {
-        announceStatus('The Steam banner lockup image could not be read.')
+        announceStatus(error instanceof ImportedImagePolicyError
+          ? error.message
+          : 'The Steam banner lockup image could not be read.')
       })
     }
   }

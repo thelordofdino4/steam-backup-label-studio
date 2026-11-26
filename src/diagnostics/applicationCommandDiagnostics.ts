@@ -80,6 +80,7 @@ const MAX_ELAPSED_MS = 86_400_000
 
 type Outcome = Readonly<{
   status: ApplicationCommandResult<unknown>['status'] | 'running' | 'started' | 'unavailable' | 'failed' | 'disposed' | 'reported'
+  adoption?: 'committed' | 'no-op' | 'declined'
   diagnosticCode?: string
   failureCode?: string
   stage?: string
@@ -189,11 +190,15 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
         stage = steamStages.has(value) ? value : 'unclassified'
         update({ status: 'running', stage }, false)
       },
-      complete(result) {
+      complete(result, adoption) {
         let outcome: Outcome
         try { outcome = projectOutcome(result) }
         catch { outcome = { status: 'failure', failureCode: 'unclassified' } }
-        update({ stage, ...outcome })
+        const acceptedAdoption = operation.workflowId === 'steam.import' && stage === 'apply' && (
+          (outcome.status === 'success' && (adoption === 'committed' || adoption === 'no-op')) ||
+          (outcome.status === 'cancelled' && adoption === 'declined')
+        )
+        update({ stage, ...outcome, ...(acceptedAdoption ? { adoption } : {}) })
       },
     })
   }

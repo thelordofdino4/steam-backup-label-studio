@@ -18,9 +18,11 @@ export function steamWorkflowError(workflowId: SteamWorkflowId, stage: SteamWork
   return Object.freeze({ code, userMessage: STEAM_WORKFLOW_FAILURES[code].userMessage, recoverable: true, cause })
 }
 
+export type SteamImportAdoption = 'committed' | 'no-op' | 'declined'
+
 export type SteamWorkflowObservation = Readonly<{
   stage(stage: SteamWorkflowStage): void
-  complete(result: ApplicationCommandResult<unknown>): void
+  complete(result: ApplicationCommandResult<unknown>, adoption?: SteamImportAdoption): void
 }>
 export type SteamWorkflowObserver = (operation: Readonly<{
   workflowId: SteamWorkflowId
@@ -33,6 +35,6 @@ export function observeSteamWorkflowSafely(observer: SteamWorkflowObserver, oper
   try { observation = observer(operation) } catch { /* Observation only. */ }
   return Object.freeze({
     stage(value) { try { observation?.stage(value) } catch { /* Observation only. */ } },
-    complete(result) { try { observation?.complete(result) } catch { /* Observation only. */ } },
+    complete(result, adoption) { try { observation?.complete(result, adoption) } catch { /* Observation only. */ } },
   })
 }

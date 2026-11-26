@@ -9,6 +9,7 @@ import {
   applySteamPlatformMarksImport,
 } from '../steam/steamPlatformMarks.ts'
 import type {
+  SteamPlatformMarkImportResult,
   SteamPlatformMarkImportStatus,
 } from '../steam/steamPlatformMarks.ts'
 import type {
@@ -48,11 +49,22 @@ export type RunSteamDiscVisualDefaultImportParams = {
   projectPlatformMarks: ProjectPlatformMarks
   selectedDiscTemplate: DiscTemplate
   selectedSteamGame: SteamImportedGame | null
-  applySteamImportedDiscTextValues: ApplySteamImportedDiscTextValues
   prepareSteamTitleArtworkImport: (game: SteamImportedGame) => Promise<SteamTitleArtworkImportResult>
-  applySteamTitleArtworkImport: ApplySteamTitleArtworkImport
   applyPlatformMarksImport?: typeof applySteamPlatformMarksImport
 }
+
+export type PreparedSteamDiscVisualImport = Readonly<{
+  importedGame: SteamImportedGame
+  nextProjectMetadata: ProjectMetadata
+  useMetadataCopyright: boolean
+  titleArtwork: SteamTitleArtworkImportResult
+  platform: SteamPlatformMarkImportResult
+}>
+
+type SteamDiscVisualApplyPorts = Readonly<{
+  applySteamImportedDiscTextValues: ApplySteamImportedDiscTextValues
+  applySteamTitleArtworkImport: ApplySteamTitleArtworkImport
+}>
 
 export async function prepareSteamDiscVisualDefaultImport({
   importedGame,
@@ -61,11 +73,9 @@ export async function prepareSteamDiscVisualDefaultImport({
   projectPlatformMarks,
   selectedDiscTemplate,
   selectedSteamGame,
-  applySteamImportedDiscTextValues,
   prepareSteamTitleArtworkImport,
-  applySteamTitleArtworkImport,
   applyPlatformMarksImport = applySteamPlatformMarksImport,
-}: RunSteamDiscVisualDefaultImportParams): Promise<() => SteamDiscVisualDefaultImport> {
+}: RunSteamDiscVisualDefaultImportParams): Promise<PreparedSteamDiscVisualImport> {
   const preparedTitleArtwork = await prepareSteamTitleArtworkImport(importedGame)
   const platformMarkImport = applyPlatformMarksImport({
     importedGame,
@@ -74,19 +84,33 @@ export async function prepareSteamDiscVisualDefaultImport({
     previousSelectedSteamGame: selectedSteamGame,
   })
 
-  return () => {
-    const nextDiscTextResolution = applySteamImportedDiscTextValues(
-      importedGame,
-      nextProjectMetadata,
-      { useMetadataCopyright: shouldUpdateCopyrightDiscTextSource },
-    )
-    const titleArtworkImport = applySteamTitleArtworkImport(preparedTitleArtwork)
-    return {
-      nextDiscTextResolution,
-      titleArtworkStatusMessage: titleArtworkImport.statusMessage,
-      platformMarkImportStatus: platformMarkImport.status,
-      platformMarkStatusMessage: platformMarkImport.statusMessage,
-      platformMarks: platformMarkImport.platformMarks,
-    }
+  return Object.freeze({
+    importedGame,
+    nextProjectMetadata,
+    useMetadataCopyright: shouldUpdateCopyrightDiscTextSource,
+    titleArtwork: preparedTitleArtwork,
+    platform: platformMarkImport,
+  })
+}
+
+/** Compatibility apply port: callers must already hold the accepted request.
+ * Preparation never receives mirror or editor mutation ports.
+ */
+export function applyPreparedSteamDiscVisualDefaultImport(
+  prepared: PreparedSteamDiscVisualImport,
+  { applySteamImportedDiscTextValues, applySteamTitleArtworkImport }: SteamDiscVisualApplyPorts,
+): SteamDiscVisualDefaultImport {
+  const nextDiscTextResolution = applySteamImportedDiscTextValues(
+    prepared.importedGame,
+    prepared.nextProjectMetadata,
+    { useMetadataCopyright: prepared.useMetadataCopyright },
+  )
+  const titleArtworkImport = applySteamTitleArtworkImport(prepared.titleArtwork)
+  return {
+    nextDiscTextResolution,
+    titleArtworkStatusMessage: titleArtworkImport.statusMessage,
+    platformMarkImportStatus: prepared.platform.status,
+    platformMarkStatusMessage: prepared.platform.statusMessage,
+    platformMarks: prepared.platform.platformMarks,
   }
 }

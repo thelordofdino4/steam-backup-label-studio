@@ -1,4 +1,10 @@
 import assert from 'node:assert/strict'
+import { makeDiscSteamPngFixtures } from '../app/testing/discSteamPngFixtures.mjs'
+import { createApplicationLifecycleCompositionRoot } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
+import { applyCaseSteamDocumentImport, readCaseSteamDocumentBasis } from '../app/appCaseSteamDocumentCommand.ts'
+import { prepareCaseSteamImport } from '../lifecycle/caseSteamOperation.ts'
+import { createLoadedProjectSession, selectIsActiveProjectDirty, updateLastEditorRoute } from '../lifecycle/projectSession.ts'
+import { planCaseSteamDocumentImport } from '../app/appCaseSteamDocumentPlan.ts'
 import test from 'node:test'
 import {
   createDefaultCaseInsertImageSlot,
@@ -7,6 +13,7 @@ import {
 import {
   applyCaseInsertBackCoverLegalText,
   applySteamBackCoverImportToCaseInsert,
+  getSteamBackCoverImportStatus,
 } from './steamBackCoverImport.ts'
 import {
   applyCaseInsertSteamImportBrandingDefaults,
@@ -15,6 +22,10 @@ import {
 import {
   applySteamImportDefaultsToCaseInsert,
 } from './steamImportDefaults.ts'
+import {
+  createCaseInsertProjectSnapshot,
+  restoreCaseInsertProjectStateFromContents,
+} from '../project/caseInsertProjectAdapters.ts'
 import type {
   CaseInsertTitleArtworkImportSeed,
 } from './titleArtwork.ts'
@@ -134,6 +145,87 @@ function getTrayTextList(
 
   return textList
 }
+
+function prepareImport(caseInsert = createDefaultProjectJewelCaseState(), game = createSteamGame()) {
+  const prepared = applySteamImportDefaultsToCaseInsert({
+    caseInsert, importedGame: game, legalText: game.legalNotice ?? '',
+    replaceExisting: false, titleArtworkSeed: null, ratingCandidate: null,
+    brandingSources: createBrandingSources(),
+  })
+  return { caseInsert: prepared, statusMessage: getSteamBackCoverImportStatus(prepared) }
+}
+
+for (const enabled of [false, true]) {
+  test(`Case import preserves ${enabled ? 'enabled' : 'disabled'} text and describes the exact prepared after-state`, () => {
+    const source = createDefaultProjectJewelCaseState()
+    source.templates.tray.textBlocks.forEach((block) => { block.enabled = enabled })
+    source.templates.tray.textLists.forEach((list) => { list.enabled = enabled })
+    const before = structuredClone(source)
+    const result = prepareImport(source)
+    assert.deepEqual(source, before)
+    assert.ok(result.caseInsert.templates.tray.textBlocks.every((block) => block.enabled === enabled))
+    assert.ok(result.caseInsert.templates.tray.textLists.every((list) => list.enabled === enabled))
+    assert.equal(result.statusMessage, getSteamBackCoverImportStatus(result.caseInsert))
+    if (enabled) {
+      assert.equal(result.statusMessage, 'Steam back-cover text: 5 enabled, 0 hidden. Existing visibility settings were preserved.')
+    } else {
+      assert.equal(result.statusMessage, 'Steam back-cover text: 0 enabled, 5 hidden. To show hidden text, open Back and enable it under Game Description Text, Feature Bullets / Callouts, System Requirements, Legal Info.')
+    }
+    const repeated = prepareImport(result.caseInsert)
+    assert.deepEqual(repeated.caseInsert, result.caseInsert)
+    assert.equal(repeated.statusMessage, result.statusMessage)
+  })
+}
+
+test('fresh-default import truthfully reports hidden text without enabling unrelated content', () => {
+  const result = prepareImport()
+  assert.match(result.statusMessage, /0 enabled, 5 hidden/)
+  assert.equal(getTrayTextBlock(result.caseInsert, 'tray-description').enabled, false)
+  assert.equal(getTrayTextBlock(result.caseInsert, 'tray-description').source, 'steam')
+})
+
+test('mixed visibility guides only to sections with non-empty hidden Steam text', () => {
+  const source = createDefaultProjectJewelCaseState()
+  getTrayTextBlock(source, 'tray-description').enabled = true
+  getTrayTextList(source, 'tray-feature-bullets').enabled = true
+  const result = prepareImport(source)
+  assert.equal(result.statusMessage, 'Steam back-cover text: 2 enabled, 3 hidden. To show hidden text, open Back and enable it under System Requirements, Legal Info.')
+})
+
+test('preserved manual overrides are not falsely reported as imported hidden content', () => {
+  const source = createDefaultProjectJewelCaseState()
+  const description = getTrayTextBlock(source, 'tray-description')
+  description.source = 'manual'
+  description.value = 'My own description.'
+  description.enabled = true
+  const result = prepareImport(source)
+  assert.deepEqual(getTrayTextBlock(result.caseInsert, 'tray-description'), description)
+  assert.match(result.statusMessage, /0 enabled, 4 hidden/)
+  assert.doesNotMatch(result.statusMessage, /Game Description Text/)
+})
+
+test('empty import does not invent available or visible text', () => {
+  const result = prepareImport(undefined, createSteamGame({
+    shortDescription: '', detailedDescription: '', minimumRequirements: '',
+    recommendedRequirements: '', legalNotice: '', categories: [], genres: [],
+  }))
+  assert.equal(result.statusMessage, 'No non-empty Steam back-cover text is available. Text visibility settings were preserved.')
+})
+
+test('Case save/load retains imported hidden copy, enabled copy, and manual override choices', () => {
+  const source = createDefaultProjectJewelCaseState()
+  const description = getTrayTextBlock(source, 'tray-description')
+  description.value = 'Manual description'
+  description.source = 'manual'
+  description.enabled = false
+  getTrayTextBlock(source, 'tray-minimum-requirements').enabled = true
+  const result = prepareImport(source)
+  const saved = createCaseInsertProjectSnapshot({ caseInsert: result.caseInsert, manualGameTitle: 'Portal 2' })
+  const restored = restoreCaseInsertProjectStateFromContents(JSON.stringify(saved)).caseInsert
+  assert.deepEqual(restored.templates.tray.textBlocks, result.caseInsert.templates.tray.textBlocks)
+  assert.deepEqual(restored.templates.tray.textLists, result.caseInsert.templates.tray.textLists)
+  assert.equal(getSteamBackCoverImportStatus(restored), result.statusMessage)
+})
 
 test('Steam Case defaults preserve Tray artwork and never provision preset screenshot slots', () => {
   const source = createDefaultProjectJewelCaseState('Portal 2')
@@ -480,4 +572,159 @@ test('Steam import defaults apply tray copy, title artwork seed, and cover ratin
   assert.equal(state.templates.tray.markSlots.length, 0)
   assert.equal(state.spine.left.markSlots.length, 0)
   assert.equal(state.spine.right.markSlots.length, 0)
+})
+
+test('Case Steam document plan keeps authored owners and matches the current defaults-plus-sync sequence', () => {
+  const source = createDefaultProjectJewelCaseState('Previous title')
+  source.templates.tray.additionalArtworkEnabled = true
+  source.templates.tray.artworkSlots = [createDefaultCaseInsertImageSlot(
+    'tray-artwork-author', 'Authored supporting art', { enabled: true },
+  )]
+  const current = createCaseInsertProjectSnapshot({
+    caseInsert: source, savedAt: '2020-01-01T00:00:00.000Z', activeCaseInsertTemplatePane: 'tray',
+    projectMetadata: { ...createDefaultProjectMetadata(), subtitle: 'Keep this edition' },
+  })
+  const before = structuredClone(current)
+  const currentSources = createBrandingSources()
+  const importedGame = createSteamGame()
+  const autoRatingCandidate = createEsrbRatingCandidate()
+  const { newer: png } = makeDiscSteamPngFixtures(1, importedGame.appId)
+  const titleArtworkSeed: CaseInsertTitleArtworkImportSeed = {
+    status: 'seeded', statusMessage: 'Imported test PNG',
+    image: { imageDataUrl: png.dataUrl, imageSize: { width: png.width, height: png.height, contentBounds: png.bounds } },
+    steamArtworkAsset: { id: 'fixture-logo', label: 'Fixture Steam logo',
+      url: 'https://example.invalid/fixture.png', kind: 'logo' },
+  }
+  const projectMetadata = { ...current.metadata!, title: importedGame.title, steamAppId: '620',
+    ratingSystem: 'ESRB' as const, ratingValue: 'M', copyrightText: 'Copyright Valve.' }
+  const metadataPlan = {
+    isDifferentSelectedSteamGame: true, autoRatingCandidate, autoLegalCandidate: null,
+    nextProjectMetadata: projectMetadata, shouldResetGameScopedRating: true,
+    shouldResetGameScopedLegal: true, shouldUpdateCopyrightDiscTextSource: false,
+  }
+  const result = planCaseSteamDocumentImport({
+    current, importedGame, titleArtworkSeed, metadataPlan, brandingSources: currentSources,
+  })
+  assert.deepEqual(current, before)
+  const sources = { ...currentSources, projectMetadata, projectRatingBadge: result.ratingBadge }
+  const expected = syncProjectJewelCaseBrandingMarkSlots(applySteamImportDefaultsToCaseInsert({
+    caseInsert: current.caseInsert, importedGame, legalText: projectMetadata.copyrightText,
+    replaceExisting: true, titleArtworkSeed, ratingCandidate: autoRatingCandidate, brandingSources: sources,
+  }), sources)
+  const expectedSnapshot = createCaseInsertProjectSnapshot({
+    caseInsert: expected, activeCaseInsertTemplatePane: 'tray', savedAt: current.savedAt,
+    manualGameTitle: importedGame.title, selectedSteamGame: importedGame, projectMetadata,
+  })
+  assert.deepEqual(result.project, expectedSnapshot)
+  assert.equal(result.project.editor?.activeCaseInsertTemplatePane, 'tray')
+  assert.equal(result.project.metadata?.subtitle, 'Keep this edition')
+  assert.equal(result.project.game.selectedSteamGame?.appId, 620)
+  assert.deepEqual(result.project.caseInsert.templates.tray.artworkSlots, before.caseInsert.templates.tray.artworkSlots)
+  assert.strictEqual(result.project.caseInsertLayoutPreset, current.caseInsertLayoutPreset)
+
+  const state = updateLastEditorRoute(createLoadedProjectSession({
+    sessionId: 'case-fixture', project: current, currentPath: 'saved.sbls',
+    persistenceFormat: 'sbls-package-v1',
+  }), { workspace: 'caseInsert', surface: 'spine' })
+  const session = state.activeSession
+  assert.equal(session?.kind, 'caseInsert')
+  const input = { sessionId: 'case-fixture', expectedRevision: session.revision, proposed: result.project }
+  assert.deepEqual(prepareCaseSteamImport(state, { ...input, expectedRevision: session.revision + 1 }), { status: 'stale' })
+  assert.deepEqual(prepareCaseSteamImport(state, { ...input, proposed: {
+    ...result.project, metadata: { ...projectMetadata, subtitle: 'Denied rewrite' },
+  } }), { status: 'invalid' })
+  assert.deepEqual(prepareCaseSteamImport(state, { ...input, proposed: {
+    ...result.project, caseInsert: { ...result.project.caseInsert, export: { ...current.caseInsert.export, guideIds: ['frontSafe'] } },
+  } }), { status: 'invalid' })
+  assert.deepEqual(prepareCaseSteamImport(state, { ...input, proposed: {
+    ...result.project, game: { ...result.project.game, selectedSteamGame: { ...importedGame, appId: 621 } },
+  } }), { status: 'invalid' })
+  const tray = result.project.caseInsert.templates.tray
+  assert.deepEqual(prepareCaseSteamImport(state, { ...input, proposed: { ...result.project, caseInsert: {
+    ...result.project.caseInsert, templates: {
+      ...result.project.caseInsert.templates, tray: { ...tray, artworkSlots: [] },
+    },
+  } } }), { status: 'invalid' })
+  const prepared = prepareCaseSteamImport(state, {
+    ...input, proposed: { ...input.proposed, editor: { activeCaseInsertTemplatePane: 'cover' } },
+  })
+  assert.equal(prepared.status, 'prepared')
+  const next = prepared.state.activeSession
+  assert.equal(next?.kind, 'caseInsert')
+  assert.equal(next.revision, session.revision + 1)
+  assert.equal(next.currentPath, session.currentPath)
+  assert.equal(next.cleanBaseline, session.cleanBaseline)
+  assert.deepEqual(next.lastEditorRoute, session.lastEditorRoute)
+  assert.deepEqual(next.project.editor, session.project.editor)
+  assert.deepEqual(next.project.caseInsert, expectedSnapshot.caseInsert)
+  assert.equal(next.project.game.selectedSteamGame?.appId, 620)
+  for (const surface of [next.project.caseInsert.templates.cover, next.project.caseInsert.templates.tray,
+    next.project.caseInsert.spine.left, next.project.caseInsert.spine.right]) {
+    assert.equal(surface.titleArtwork.imageDataUrl, png.dataUrl)
+    assert.equal(surface.titleArtwork.defaultSteamLogo?.imageDataUrl, png.dataUrl)
+  }
+  assert.equal(next.caseInsertPresetApplication.applicationRevision, session.caseInsertPresetApplication.applicationRevision + 1)
+  assert.equal(selectIsActiveProjectDirty(state), false)
+  assert.equal(selectIsActiveProjectDirty(prepared.state), true)
+  assert.deepEqual(prepareCaseSteamImport(prepared.state, input), { status: 'stale' })
+  assert.deepEqual(prepareCaseSteamImport(prepared.state, { ...input, expectedRevision: next.revision }), { status: 'no-op' })
+
+  const root = createApplicationLifecycleCompositionRoot({ initialState: state, caseHistoryLimit: 2 })
+  const basis = readCaseSteamDocumentBasis(root, current)
+  assert.ok(basis)
+  assert.equal(readCaseSteamDocumentBasis(root, result.project), null)
+  const observed: unknown[] = []
+  const stop = root.subscribe(({ lifecycle, capabilities }) => {
+    if (!root.getStateSnapshot().caseSteamProjectionPending) return
+    const session = lifecycle.activeSession
+    assert.equal(session?.kind, 'caseInsert')
+    observed.push(session.revision, session.project.game.selectedSteamGame?.appId,
+      capabilities['export.png'].reasonCode, capabilities['case.layoutPreset.apply'].reasonCode,
+      root.synchronizeCurrentProject({ sessionId: session.id, kind: 'caseInsert', project: current }))
+    observed.push(root.acknowledgeCaseSteamProjection({
+      sessionId: session.id, expectedGeneration: root.getStateSnapshot().generation, projection: current,
+    }))
+  })
+  assert.equal(applyCaseSteamDocumentImport(root, { ...input, expectedGeneration: basis.expectedGeneration },
+    run => run(), changed => { assert.equal(changed, true); observed.push('mirrored') }), true)
+  stop()
+  assert.deepEqual(observed, [next.revision, 620, 'export.case-steam-projection-pending',
+    'case.layoutPreset.projection-pending', 'stale-session', 'invalid', 'mirrored'])
+  assert.equal(root.acknowledgeCaseSteamProjection({
+    sessionId: next.id, expectedGeneration: root.getStateSnapshot().generation, projection: result.project,
+  }), 'committed')
+  assert.equal(root.getStateSnapshot().caseSteamProjectionPending, undefined)
+  assert.ok(readCaseSteamDocumentBasis(root, result.project))
+  const committedSession = root.getLifecycleState().activeSession
+  assert.equal(committedSession?.kind, 'caseInsert')
+  assert.deepEqual(root.getStateSnapshot().caseHistory?.past, [session.project])
+  const step = (direction: 'undo' | 'redo', projection: typeof current) => {
+    assert.equal(root.stepCaseDocumentHistory({
+      sessionId: session.id, expectedGeneration: root.getStateSnapshot().generation, direction,
+    }), 'committed')
+    assert.equal(root.getStateSnapshot().caseSteamProjectionPending, true)
+    assert.equal(root.acknowledgeCaseSteamProjection({
+      sessionId: session.id, expectedGeneration: root.getStateSnapshot().generation, projection,
+    }), 'committed')
+    const accepted = root.getLifecycleState().activeSession
+    assert.equal(accepted?.kind, 'caseInsert')
+    assert.equal(accepted.currentPath, session.currentPath)
+    assert.deepEqual(accepted.cleanBaseline, session.cleanBaseline)
+    assert.deepEqual(accepted.lastEditorRoute, session.lastEditorRoute)
+    assert.equal(accepted.caseInsertPresetApplication.attachment.status, 'unattached')
+    return accepted
+  }
+  const undone = step('undo', current)
+  assert.equal(undone.project, session.project)
+  assert.equal(undone.revision, committedSession.revision + 1)
+  assert.equal(undone.caseInsertPresetApplication.applicationRevision,
+    committedSession.caseInsertPresetApplication.applicationRevision + 1)
+  assert.equal(selectIsActiveProjectDirty(root.getLifecycleState()), false)
+  const redone = step('redo', result.project)
+  assert.equal(redone.project, committedSession.project)
+  assert.equal(redone.revision, undone.revision + 1)
+  assert.equal(redone.caseInsertPresetApplication.applicationRevision,
+    undone.caseInsertPresetApplication.applicationRevision + 1)
+  assert.equal(selectIsActiveProjectDirty(root.getLifecycleState()), true)
+  root.dispose()
 })

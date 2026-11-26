@@ -384,13 +384,13 @@ test('Background adapter exposes direct refs and controlled Local file state', (
 test('presentation controls forward ordinary ref and controlled-panel props', () => {
   assert.match(backgroundSource, /enableControlRef\?: Ref<HTMLInputElement>/)
   assert.match(backgroundSource, /ref=\{enableControlRef\}/)
-  assert.match(backgroundSource, /localUploadControlRef\?: Ref<HTMLInputElement>/)
+  assert.match(backgroundSource, /localUploadControlRef\?: RefCallback<HTMLInputElement \| HTMLButtonElement>/)
   assert.match(backgroundSource, /open=\{localFilePanelOpen\}/)
   assert.match(
     backgroundSource,
     /onOpenChange=\{onLocalFilePanelOpenChange\}/,
   )
-  assert.match(localFileSource, /uploadControlRef\?: Ref<HTMLInputElement>/)
+  assert.match(localFileSource, /uploadControlRef\?: RefCallback<HTMLInputElement \| HTMLButtonElement>/)
   assert.match(localFileSource, /open=\{open\}/)
   assert.match(localFileSource, /onOpenChange=\{onOpenChange\}/)
   assert.match(localFileSource, /ref=\{uploadControlRef\}/)
