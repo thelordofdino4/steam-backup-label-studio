@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { makeDiscSteamPngFixtures } from '../app/testing/discSteamPngFixtures.mjs'
 import { createApplicationLifecycleCompositionRoot } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
 import { applyCaseSteamDocumentImport, readCaseSteamDocumentBasis } from '../app/appCaseSteamDocumentCommand.ts'
 import { prepareCaseSteamImport } from '../lifecycle/caseSteamOperation.ts'
@@ -502,6 +503,13 @@ test('Case Steam document plan keeps authored owners and matches the current def
   const currentSources = createBrandingSources()
   const importedGame = createSteamGame()
   const autoRatingCandidate = createEsrbRatingCandidate()
+  const { newer: png } = makeDiscSteamPngFixtures(1, importedGame.appId)
+  const titleArtworkSeed: CaseInsertTitleArtworkImportSeed = {
+    status: 'seeded', statusMessage: 'Imported test PNG',
+    image: { imageDataUrl: png.dataUrl, imageSize: { width: png.width, height: png.height, contentBounds: png.bounds } },
+    steamArtworkAsset: { id: 'fixture-logo', label: 'Fixture Steam logo',
+      url: 'https://example.invalid/fixture.png', kind: 'logo' },
+  }
   const projectMetadata = { ...current.metadata!, title: importedGame.title, steamAppId: '620',
     ratingSystem: 'ESRB' as const, ratingValue: 'M', copyrightText: 'Copyright Valve.' }
   const metadataPlan = {
@@ -510,13 +518,13 @@ test('Case Steam document plan keeps authored owners and matches the current def
     shouldResetGameScopedLegal: true, shouldUpdateCopyrightDiscTextSource: false,
   }
   const result = planCaseSteamDocumentImport({
-    current, importedGame, titleArtworkSeed: null, metadataPlan, brandingSources: currentSources,
+    current, importedGame, titleArtworkSeed, metadataPlan, brandingSources: currentSources,
   })
   assert.deepEqual(current, before)
   const sources = { ...currentSources, projectMetadata, projectRatingBadge: result.ratingBadge }
   const expected = syncProjectJewelCaseBrandingMarkSlots(applySteamImportDefaultsToCaseInsert({
     caseInsert: current.caseInsert, importedGame, legalText: projectMetadata.copyrightText,
-    replaceExisting: true, titleArtworkSeed: null, ratingCandidate: autoRatingCandidate, brandingSources: sources,
+    replaceExisting: true, titleArtworkSeed, ratingCandidate: autoRatingCandidate, brandingSources: sources,
   }), sources)
   const expectedSnapshot = createCaseInsertProjectSnapshot({
     caseInsert: expected, activeCaseInsertTemplatePane: 'tray', savedAt: current.savedAt,
@@ -565,13 +573,18 @@ test('Case Steam document plan keeps authored owners and matches the current def
   assert.deepEqual(next.project.editor, session.project.editor)
   assert.deepEqual(next.project.caseInsert, expectedSnapshot.caseInsert)
   assert.equal(next.project.game.selectedSteamGame?.appId, 620)
+  for (const surface of [next.project.caseInsert.templates.cover, next.project.caseInsert.templates.tray,
+    next.project.caseInsert.spine.left, next.project.caseInsert.spine.right]) {
+    assert.equal(surface.titleArtwork.imageDataUrl, png.dataUrl)
+    assert.equal(surface.titleArtwork.defaultSteamLogo?.imageDataUrl, png.dataUrl)
+  }
   assert.equal(next.caseInsertPresetApplication.applicationRevision, session.caseInsertPresetApplication.applicationRevision + 1)
   assert.equal(selectIsActiveProjectDirty(state), false)
   assert.equal(selectIsActiveProjectDirty(prepared.state), true)
   assert.deepEqual(prepareCaseSteamImport(prepared.state, input), { status: 'stale' })
   assert.deepEqual(prepareCaseSteamImport(prepared.state, { ...input, expectedRevision: next.revision }), { status: 'no-op' })
 
-  const root = createApplicationLifecycleCompositionRoot({ initialState: state })
+  const root = createApplicationLifecycleCompositionRoot({ initialState: state, caseHistoryLimit: 2 })
   const basis = readCaseSteamDocumentBasis(root, current)
   assert.ok(basis)
   assert.equal(readCaseSteamDocumentBasis(root, result.project), null)
@@ -597,5 +610,36 @@ test('Case Steam document plan keeps authored owners and matches the current def
   }), 'committed')
   assert.equal(root.getStateSnapshot().caseSteamProjectionPending, undefined)
   assert.ok(readCaseSteamDocumentBasis(root, result.project))
+  const committedSession = root.getLifecycleState().activeSession
+  assert.equal(committedSession?.kind, 'caseInsert')
+  assert.deepEqual(root.getStateSnapshot().caseHistory?.past, [session.project])
+  const step = (direction: 'undo' | 'redo', projection: typeof current) => {
+    assert.equal(root.stepCaseDocumentHistory({
+      sessionId: session.id, expectedGeneration: root.getStateSnapshot().generation, direction,
+    }), 'committed')
+    assert.equal(root.getStateSnapshot().caseSteamProjectionPending, true)
+    assert.equal(root.acknowledgeCaseSteamProjection({
+      sessionId: session.id, expectedGeneration: root.getStateSnapshot().generation, projection,
+    }), 'committed')
+    const accepted = root.getLifecycleState().activeSession
+    assert.equal(accepted?.kind, 'caseInsert')
+    assert.equal(accepted.currentPath, session.currentPath)
+    assert.deepEqual(accepted.cleanBaseline, session.cleanBaseline)
+    assert.deepEqual(accepted.lastEditorRoute, session.lastEditorRoute)
+    assert.equal(accepted.caseInsertPresetApplication.attachment.status, 'unattached')
+    return accepted
+  }
+  const undone = step('undo', current)
+  assert.equal(undone.project, session.project)
+  assert.equal(undone.revision, committedSession.revision + 1)
+  assert.equal(undone.caseInsertPresetApplication.applicationRevision,
+    committedSession.caseInsertPresetApplication.applicationRevision + 1)
+  assert.equal(selectIsActiveProjectDirty(root.getLifecycleState()), false)
+  const redone = step('redo', result.project)
+  assert.equal(redone.project, committedSession.project)
+  assert.equal(redone.revision, undone.revision + 1)
+  assert.equal(redone.caseInsertPresetApplication.applicationRevision,
+    undone.caseInsertPresetApplication.applicationRevision + 1)
+  assert.equal(selectIsActiveProjectDirty(root.getLifecycleState()), true)
   root.dispose()
 })

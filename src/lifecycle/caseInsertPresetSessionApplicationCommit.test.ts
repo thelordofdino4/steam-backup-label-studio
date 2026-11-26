@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { prepareCaseSteamImport } from './caseSteamOperation.ts'
+import { adoptSavedProjectBaseline } from './projectSession.ts'
+import { createCaseInsertProjectSaveSnapshot } from '../project/caseInsertPresetProjectPersistence.ts'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
@@ -922,6 +925,35 @@ test('aggregate-unchanged Detach remains a committed attachment release, not a n
   )
   assert.equal(evidence.applicationAdoptionStatus, 'not-adopted')
   assert.equal(isProjectSessionDirty(result.session), isProjectSessionDirty(source))
+
+  // Simulate a Steam result prepared before Detach and Save As, both of
+  // which preserve the admitted content revision. The proposal cannot
+  // restore the old preset settings or the old Save destination.
+  const proposed = createCaseInsertProjectSaveSnapshot(source.project, source.caseInsertPresetApplication)
+  assert.equal(proposed.caseInsertLayoutPreset.attachment.status, 'attached')
+  const game = { appId: 27, title: 'Fixture game', developer: [], publisher: [],
+    genres: [], categories: [], artwork: [], storeUrl: 'https://example.invalid/fixture' }
+  proposed.title = game.title
+  proposed.game = { manualTitle: game.title, selectedSteamGame: game }
+  assert.ok(proposed.metadata)
+  proposed.metadata = { ...proposed.metadata, title: game.title, steamAppId: String(game.appId) }
+  const saveAsState = adoptSavedProjectBaseline({ activeSession: result.session, visibleWorkspace: 'caseInsert' }, {
+    acceptedSnapshot: result.session.project as unknown as SavedCaseInsertProject,
+    currentPath: 'new-case-fixture.sbls',
+    persistenceFormat: 'sbls-package-v1',
+  })
+  assert.equal(saveAsState.activeSession?.revision, source.revision)
+  const imported = prepareCaseSteamImport(saveAsState, {
+    sessionId: source.id, expectedRevision: source.revision, proposed,
+  })
+  assert.equal(imported.status, 'prepared')
+  const importedSession = requireCaseSession(imported.state)
+  assert.equal(importedSession.revision, source.revision + 1)
+  assert.equal(importedSession.currentPath, 'new-case-fixture.sbls')
+  assert.equal(importedSession.caseInsertPresetApplication.attachment.status, 'unattached')
+  const saved = createCaseInsertProjectSaveSnapshot(importedSession.project, importedSession.caseInsertPresetApplication)
+  assert.equal(saved.caseInsertLayoutPreset.attachment.status, 'unattached')
+  assert.equal(saved.game.selectedSteamGame?.appId, 27)
 })
 
 test('prepared authorization and committed output are detached, deeply immutable, and deterministic', () => {

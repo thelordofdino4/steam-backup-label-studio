@@ -97,6 +97,7 @@ export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   performanceObserver?: LifecyclePerformanceObserver
   initialState?: ApplicationLifecycleState
   discHistoryLimit?: number
+  caseHistoryLimit?: number
   ports?: ApplicationLifecycleCommandPorts
   exportPng?: ApplicationPngExportCommandOwner
   termination?: ApplicationTerminationCapabilities
@@ -220,6 +221,9 @@ export interface ApplicationLifecycleCompositionRoot {
     input?: unknown,
   ): Promise<ApplicationCommandDispatchResult<Value>>
   commitDiscSupplementalUsk(edit: DiscSupplementalUskEdit): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
+  stepCaseDocumentHistory(input: Readonly<{
+    sessionId: ProjectSessionId; expectedGeneration: number; direction: 'undo' | 'redo'
+  }>): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
   commitCaseSteamImport(edit: CaseSteamImport & Readonly<{ expectedGeneration: number }>): ReturnType<ApplicationLifecycleCompositionRoot['commitDiscBackground']>
   acknowledgeCaseSteamProjection(input: Readonly<{
     sessionId: ProjectSessionId; expectedGeneration: number; projection: SavedCaseInsertProject
@@ -295,6 +299,7 @@ export function createApplicationLifecycleCompositionRoot(
   const stateStore = createApplicationLifecycleStateStore({
     ...(options.initialState ? { initialState: options.initialState } : {}),
     ...(options.discHistoryLimit === undefined ? {} : { discHistoryLimit: options.discHistoryLimit }),
+    ...(options.caseHistoryLimit === undefined ? {} : { caseHistoryLimit: options.caseHistoryLimit }),
     ...(options.onSubscriberError
       ? { onSubscriberError: options.onSubscriberError }
       : {}),
@@ -616,6 +621,18 @@ export function createApplicationLifecycleCompositionRoot(
       return stateStore.stepDiscHistory(snapshot.generation, input.direction).status
     },
     canCommitDiscBackground,
+    stepCaseDocumentHistory(input: Parameters<ApplicationLifecycleCompositionRoot['stepCaseDocumentHistory']>[0]) {
+      const snapshot = stateStore.getSnapshot()
+      if (options.caseHistoryLimit === undefined || disposed || options.canAcceptCommands?.() === false ||
+          snapshot.caseSteamProjectionPending || snapshot.state.visibleWorkspace !== 'caseInsert' ||
+          busyCoordinator.getState().occupiedScopes.includes('project.mutation')) return 'unavailable'
+      if (input.sessionId !== snapshot.state.activeSession?.id ||
+          input.expectedGeneration !== snapshot.generation) return 'stale'
+      if (input.direction !== 'undo' && input.direction !== 'redo') return 'invalid'
+      try {
+        return stateStore.stepCaseHistory(snapshot.generation, input.direction).status
+      } catch { return 'invalid' }
+    },
     commitCaseSteamImport({ expectedGeneration, ...edit }: Parameters<ApplicationLifecycleCompositionRoot['commitCaseSteamImport']>[0]) {
       const snapshot = stateStore.getSnapshot()
       if (disposed || options.canAcceptCommands?.() === false || snapshot.caseSteamProjectionPending ||

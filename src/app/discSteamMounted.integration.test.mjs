@@ -1072,6 +1072,10 @@ test('Case Steam import publishes game, artwork, and back-cover in one accepted 
     await page.goto(origin + route)
     await page.locator('[data-smoke-id="home-new-case-insert"]').click()
     await reveal(page, 'Game')
+    await reveal(page, 'Additional metadata')
+    const title = page.getByRole('textbox', { name: 'Label title', exact: true })
+    await title.waitFor({ timeout: 5_000 })
+    const visibleBefore = await title.inputValue()
     const before = await page.evaluate(() => window.readCaseSteamDiagnostic())
     await start(page, newer.id)
     assert.deepEqual(await page.evaluate(() => window.readCaseSteamDiagnostic()), before,
@@ -1091,6 +1095,21 @@ test('Case Steam import publishes game, artwork, and back-cover in one accepted 
     const legalBlock = after.project.caseInsert.templates.tray.textBlocks.find(block => block.id === 'tray-copyright-text')
     assert.equal(legalBlock?.value, legal)
     assert.deepEqual(after.project.caseInsert.export, before.project.caseInsert.export)
-    assert.equal(await page.getByRole('textbox', { name: 'Label title', exact: true }).inputValue(), 'Incoming Fixture Game')
+    assert.equal(await title.inputValue(), 'Incoming Fixture Game')
+    const step = async (direction, expected, revision, past, future, visibleTitle) => {
+      assert.equal(await page.evaluate(direction => window.stepCaseHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const settled = window.readCaseSteamDiagnostic()
+        return settled && !settled.pending && settled.revision === revision
+      }, revision, { timeout: 8_000 })
+      const observed = await page.evaluate(() => window.readCaseSteamDiagnostic())
+      assert.deepEqual(observed.project, expected.project)
+      assert.equal(observed.past, past)
+      assert.equal(observed.future, future)
+      assert.equal(observed.applicationRevision, after.applicationRevision + revision - after.revision)
+      assert.equal(await title.inputValue(), visibleTitle)
+    }
+    await step('undo', before, after.revision + 1, 0, 1, visibleBefore)
+    await step('redo', after, after.revision + 2, 1, 0, 'Incoming Fixture Game')
   } finally { await page.close() }
 })

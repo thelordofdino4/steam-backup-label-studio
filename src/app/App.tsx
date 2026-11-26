@@ -1,4 +1,6 @@
-import { applyCaseSteamDocumentImport, readCaseSteamDocumentBasis } from './appCaseSteamDocumentCommand.ts'
+import {
+  applyCaseSteamDocumentImport, readCaseSteamDocumentBasis, stepProjectedCaseHistory, shouldEnableCaseHistoryRating,
+} from './appCaseSteamDocumentCommand.ts'
 import { planCaseSteamDocumentImport } from './appCaseSteamDocumentPlan.ts'
 import { planDiscSteamDocumentImport } from './appDiscSteamDocumentPlan.ts'
 import { readDiscEditorDocumentBasis, applyDiscEditorDocumentEdit, type DiscEditorDocumentOperation } from './appDiscEditorDocumentCommand.ts'
@@ -298,7 +300,14 @@ type DiscHistoryDiagnostic = (
   step: (direction: 'undo' | 'redo') => ReturnType<typeof stepProjectedDiscHistory>,
 ) => () => void
 
-function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: DiscHistoryDiagnostic } = {}) {
+type CaseHistoryDiagnostic = (
+  step: (direction: 'undo' | 'redo') => ReturnType<typeof stepProjectedCaseHistory>,
+) => () => void
+
+function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
+  connectDiscHistoryDiagnostic?: DiscHistoryDiagnostic
+  connectCaseHistoryDiagnostic?: CaseHistoryDiagnostic
+} = {}) {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
   const [discGuidedWorkflow, setDiscGuidedWorkflow] =
@@ -2322,6 +2331,22 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
       },
     })),
   )
+
+  useLayoutEffect(() => connectCaseHistoryDiagnostic?.(direction => {
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'caseInsert') return 'unavailable'
+    return stepProjectedCaseHistory(applicationLifecycleRoot, direction, captured.project,
+      unstable_batchedUpdates, target => {
+        if (!target.metadata) return
+        setManualGameTitle(target.game.manualTitle)
+        setSelectedSteamGame(target.game.selectedSteamGame)
+        setProjectMetadata(target.metadata)
+        setProjectJewelCase(target.caseInsert)
+        const metadata = target.metadata
+        const enabled = shouldEnableCaseHistoryRating(target)
+        setProjectRatingBadge(current => updateRatingBadgeEnabledState(metadata, current, enabled).ratingBadge)
+      })
+  }))
 
   useLayoutEffect(() => {
     const destination = workspaceFocusRequestRef.current

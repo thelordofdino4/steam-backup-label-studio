@@ -1,3 +1,4 @@
+import { getEnabledCaseInsertMarkSlotForKind } from '../caseInsert/brandingMarkPlacement.ts'
 import type { ApplicationLifecycleCompositionRoot as Root } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
 import { captureNormalizedProjectSnapshot, projectContentsAreSemanticallyEqual } from '../lifecycle/canonicalProject.ts'
 import type { CaseSteamImport } from '../lifecycle/caseSteamOperation.ts'
@@ -36,4 +37,50 @@ export function applyCaseSteamDocumentImport(
     applied = true
   })
   return applied
+}
+
+/** Presentation-only restoration. The target and cursor stay owned by the
+ * lifecycle store, which binds a new Case assignment identity when required. */
+export function stepProjectedCaseHistory(
+  root: Root,
+  direction: 'undo' | 'redo',
+  rendered: SavedCaseInsertProject,
+  batch: (run: () => void) => void,
+  mirror: (target: SavedCaseInsertProject) => void,
+) {
+  const basis = readCaseSteamDocumentBasis(root, rendered)
+  if (!basis) return 'unavailable'
+  const history = root.getStateSnapshot().caseHistory
+  const target = direction === 'undo' ? history?.past.at(-1) : history?.future[0]
+  if (!target) return 'no-op'
+  if (target.projectType !== 'caseInsert' || !target.metadata) return 'invalid'
+  // Clone only the live mirror; the bounded history retains accepted
+  // immutable references rather than a second copy of the image assets.
+  const projection = structuredClone(target) as unknown as SavedCaseInsertProject
+  let status: ReturnType<Root['stepCaseDocumentHistory']> = 'unavailable'
+  batch(() => {
+    status = root.stepCaseDocumentHistory({
+      direction, sessionId: basis.current.id, expectedGeneration: basis.expectedGeneration,
+    })
+    if (status !== 'committed') return
+    const snapshot = root.getStateSnapshot()
+    const accepted = snapshot.state.activeSession
+    if (accepted?.kind !== 'caseInsert' || accepted.id !== basis.current.id ||
+        accepted.revision !== basis.current.revision + 1 || accepted.project !== target ||
+        !snapshot.caseSteamProjectionPending) {
+      status = 'stale'
+      return
+    }
+    mirror(projection)
+  })
+  return status
+}
+
+/** Case mark ownership, not any previous hidden Disc donor, controls the
+ * restored primary rating toggle. */
+export function shouldEnableCaseHistoryRating(project: SavedCaseInsertProject): boolean {
+  const { templates, spine } = project.caseInsert
+  return [templates.cover, templates.tray, spine.left, spine.right].some(
+    surface => !!getEnabledCaseInsertMarkSlotForKind(surface.markSlots, 'rating'),
+  )
 }

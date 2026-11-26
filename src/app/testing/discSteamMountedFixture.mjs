@@ -76,7 +76,7 @@ function summarize(session) {
 const lifecycleRuntime = createApplicationLifecycleRuntime({
   performanceObserver: observer,
   createRoot(options) {
-    const root = createApplicationLifecycleCompositionRoot({ ...options, discHistoryLimit: 4 })
+    const root = createApplicationLifecycleCompositionRoot({ ...options, discHistoryLimit: 4, caseHistoryLimit: 4 })
     root.subscribe(snapshot => {
       const session = snapshot.lifecycle.activeSession
       if (!session || session.kind !== 'disc') return
@@ -161,12 +161,23 @@ window.readDiscHistoryDiagnostic = () => {
     past: discHistory?.past.length, future: discHistory?.future.length,
     path: state.activeSession?.currentPath, dirty: selectIsActiveProjectDirty(state) }
 }
+let stepCaseHistory
+const connectCaseHistoryDiagnostic = step => {
+  stepCaseHistory = step
+  return () => { if (stepCaseHistory === step) stepCaseHistory = undefined }
+}
+window.stepCaseHistoryDiagnostic = direction => {
+  if (direction !== 'undo' && direction !== 'redo') throw Error('Expected Undo or Redo')
+  return stepCaseHistory?.(direction)
+}
 window.readCaseSteamDiagnostic = () => {
-  const { state, caseSteamProjectionPending } = lifecycleRuntime.root.getStateSnapshot()
+  const { state, caseSteamProjectionPending, caseHistory } = lifecycleRuntime.root.getStateSnapshot()
   const session = state.activeSession
   if (session?.kind !== 'caseInsert') return null
   return { sessionId: session.id, revision: session.revision, project: session.project,
-    path: session.currentPath, dirty: selectIsActiveProjectDirty(state), pending: Boolean(caseSteamProjectionPending) }
+    path: session.currentPath, dirty: selectIsActiveProjectDirty(state), pending: Boolean(caseSteamProjectionPending),
+    past: caseHistory?.past.length, future: caseHistory?.future.length,
+    applicationRevision: session.caseInsertPresetApplication.applicationRevision }
 }
 window.readDiscHistoryProject = () => {
   const session = lifecycleRuntime.root.getStateSnapshot().state.activeSession
@@ -177,7 +188,7 @@ window.readDiscHistoryProject = () => {
 createRoot(appNode).render(createElement(ApplicationLifecycleBoundary, { runtime: lifecycleRuntime },
   createElement(ApplicationMenuBoundary, { runtime: menuRuntime },
     createElement(StrictMode, null, createElement(InteractionPerformanceContext.Provider,
-      { value: undefined }, createElement(App, { connectDiscHistoryDiagnostic }))))))
+      { value: undefined }, createElement(App, { connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }))))))
 window.readDiscSteamReceipt = () => ({
   overflow,
   revisions: structuredClone(revisions),

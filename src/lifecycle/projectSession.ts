@@ -432,6 +432,21 @@ export function restoreHistoryDiscProject(
   return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
 }
 
+/** An import history step restores the document but keeps the *current*
+ * Case attachment, route and Save metadata. The assignment basis is rebound
+ * by the existing Case companion owner at a fresh monotonic revision. */
+export function restoreHistoryCaseProject(
+  state: ApplicationLifecycleState,
+  expected: CaseInsertProjectSession,
+  target: CapturedLifecycleProject,
+): ApplicationLifecycleState {
+  if (state.activeSession !== expected || state.visibleWorkspace !== 'caseInsert' ||
+      target === expected.project || target.projectType !== 'caseInsert') return state
+  const captured = captureLifecycleProjectSnapshot(target)
+  if (captured !== target) return state
+  return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
+}
+
 function routesAreEqual(
   first: ProjectSessionEditorRoute,
   second: ProjectSessionEditorRoute,
