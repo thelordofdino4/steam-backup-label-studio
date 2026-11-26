@@ -5,6 +5,7 @@ import { testCommands, testFiles } from './test-file-list.mjs'
 const [mode, lane, ...extra] = process.argv.slice(2)
 // These files exercise the Chromium sandbox on the ordinary Windows runner.
 const sandboxedBrowserTestFiles = [
+  'scripts/integration/disc-background-canvas.integration.test.mjs',
   'src/app/discSteamMounted.integration.test.mjs',
   'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
   'src/export/discBackgroundLifetime.integration.test.mjs',

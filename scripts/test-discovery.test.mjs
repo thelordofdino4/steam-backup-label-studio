@@ -53,6 +53,7 @@ test('explicit CI lanes partition the complete suite without skipping a sandboxe
   const remaining = list('--exclude-sandboxed-browser')
   const sandboxed = list('--sandboxed-browser-only')
   assert.deepEqual(sandboxed, [
+    'scripts/integration/disc-background-canvas.integration.test.mjs',
     'src/app/discSteamMounted.integration.test.mjs',
     'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
     'src/export/discBackgroundLifetime.integration.test.mjs',
