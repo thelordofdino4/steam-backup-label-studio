@@ -6,6 +6,7 @@ const [mode, lane, ...extra] = process.argv.slice(2)
 // These files exercise the Chromium sandbox on the ordinary Windows runner.
 const sandboxedBrowserTestFiles = [
   'src/app/discSteamMounted.integration.test.mjs',
+  'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
   'src/components/testing/applicationHelpIntegration.test.mjs',
   'src/export/discBackgroundLifetime.integration.test.mjs',
   'src/hooks/useSteamImport.integration.test.mjs',
