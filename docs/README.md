@@ -14,6 +14,8 @@ This map is the entry point for repository documentation. If two documents disag
 
 Native codec maintenance: [`NATIVE_CODEC_MAINTENANCE.md`](NATIVE_CODEC_MAINTENANCE.md) owns update/advisory review and source replay; it separates observed toolchain evidence from unverified release/platform claims.
 
+Candidate dimension provenance and its validation limits: [Image Candidate Evidence](IMAGE_CANDIDATE_EVIDENCE.md) (#169).
+
 ## Authority And Time
 
 Use these four classes at document or section level. A status header saying “authoritative” identifies who owns a rule; it does not prove that a target requirement has shipped.
