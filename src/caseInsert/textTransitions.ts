@@ -109,17 +109,6 @@ export function updateCaseInsertTextBlockLayout(
   textBlock: ProjectCaseInsertTextBlock,
   layout: ProjectCaseInsertLayout,
 ): ProjectCaseInsertTextBlock {
-  if (
-    textBlock.layout.x === layout.x &&
-    textBlock.layout.y === layout.y &&
-    textBlock.layout.scale === layout.scale &&
-    textBlock.layout.rotation === layout.rotation &&
-    textBlock.layout.fontSizePt === layout.fontSizePt &&
-    textBlock.layout.width === layout.width
-  ) {
-    return textBlock
-  }
-
   return {
     ...textBlock,
     layout,
@@ -131,8 +120,6 @@ export function updateCaseInsertTextBlockLayoutField(
   field: CaseInsertLayoutField,
   value: number,
 ): ProjectCaseInsertTextBlock {
-  if (textBlock.layout[field] === value) return textBlock
-
   return updateCaseInsertTextBlockLayout(textBlock, {
     ...textBlock.layout,
     [field]: value,
@@ -143,10 +130,6 @@ export function updateCaseInsertTextBlockLayoutPosition(
   textBlock: ProjectCaseInsertTextBlock,
   point: CaseInsertLayoutPoint,
 ): ProjectCaseInsertTextBlock {
-  if (textBlock.layout.x === point.x && textBlock.layout.y === point.y) {
-    return textBlock
-  }
-
   return updateCaseInsertTextBlockLayout(textBlock, {
     ...textBlock.layout,
     x: point.x,
@@ -279,17 +262,6 @@ export function updateCaseInsertTextListLayout(
   textList: ProjectCaseInsertTextList,
   layout: ProjectCaseInsertLayout,
 ): ProjectCaseInsertTextList {
-  if (
-    textList.layout.x === layout.x &&
-    textList.layout.y === layout.y &&
-    textList.layout.scale === layout.scale &&
-    textList.layout.rotation === layout.rotation &&
-    textList.layout.fontSizePt === layout.fontSizePt &&
-    textList.layout.width === layout.width
-  ) {
-    return textList
-  }
-
   return {
     ...textList,
     layout,
@@ -300,10 +272,6 @@ export function updateCaseInsertTextListLayoutPosition(
   textList: ProjectCaseInsertTextList,
   point: CaseInsertLayoutPoint,
 ): ProjectCaseInsertTextList {
-  if (textList.layout.x === point.x && textList.layout.y === point.y) {
-    return textList
-  }
-
   return updateCaseInsertTextListLayout(textList, {
     ...textList.layout,
     x: point.x,

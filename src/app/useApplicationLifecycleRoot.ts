@@ -1,10 +1,8 @@
 import { useContext, useLayoutEffect } from 'react'
+import type { ApplicationCaseInsertContinuousEditPort } from './applicationCaseInsertContinuousEditPort.ts'
 import type {
   ApplicationLifecycleCompositionRoot,
 } from '../lifecycle/applicationLifecycleCompositionRoot.ts'
-import type {
-  CaseInsertPresetSessionEditorApplyPort,
-} from '../lifecycle/caseInsertPresetSessionApplicationCommand.ts'
 import type {
   ApplicationProjectOpenRuntimeDependencies,
 } from './appProjectOpenCommand.ts'
@@ -26,9 +24,6 @@ import {
 import type {
   ApplicationPngExportRuntimeDependencies,
 } from './appPngExportCommand.ts'
-import type {
-  ApplicationCaseInsertContinuousEditPort,
-} from './applicationCaseInsertContinuousEditPort.ts'
 
 /**
  * Supplies committed-render dependencies through a ref owned outside React.
@@ -43,7 +38,6 @@ export function useApplicationLifecycleRoot(
     newProject: ApplicationProjectNewRuntimeDependencies
     workspaceNavigation: ApplicationWorkspaceNavigationRuntimeDependencies
     exportPng: ApplicationPngExportRuntimeDependencies
-    caseInsertPresetEditorApply: CaseInsertPresetSessionEditorApplyPort
     caseInsertContinuousEdit?: ApplicationCaseInsertContinuousEditPort | null
   }>,
 ): ApplicationLifecycleCompositionRoot {
@@ -61,12 +55,7 @@ export function useApplicationLifecycleRoot(
       dependencies.workspaceNavigation,
     )
     runtime.updatePngExportDependencies(dependencies.exportPng)
-    runtime.updateCaseInsertPresetEditorApply(
-      dependencies.caseInsertPresetEditorApply,
-    )
-    runtime.updateCaseInsertContinuousEditPort(
-      dependencies.caseInsertContinuousEdit ?? null,
-    )
+    runtime.updateCaseInsertContinuousEditPort(dependencies.caseInsertContinuousEdit ?? null)
   }, [dependencies, runtime])
 
   return runtime.root

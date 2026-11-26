@@ -64,15 +64,11 @@ export function updateProjectJewelCaseSpineSide(
     spineSide: ProjectJewelCaseSpineSideState,
   ) => ProjectJewelCaseSpineSideState,
 ): ProjectJewelCaseState {
-  const currentSide = state.spine[side]
-  const nextSide = updater(currentSide)
-  if (nextSide === currentSide) return state
-
   return {
     ...state,
     spine: {
       ...state.spine,
-      [side]: nextSide,
+      [side]: updater(state.spine[side]),
     },
   }
 }
@@ -111,12 +107,10 @@ export function updateJewelCaseSpineTitle(
   side: JewelCaseSpineSide,
   updater: (title: ProjectCaseInsertTextBlock) => ProjectCaseInsertTextBlock,
 ): ProjectJewelCaseState {
-  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => {
-    const nextTitle = updater(spineSide.title)
-    return nextTitle === spineSide.title
-      ? spineSide
-      : { ...spineSide, title: nextTitle }
-  })
+  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => ({
+    ...spineSide,
+    title: updater(spineSide.title),
+  }))
 }
 
 function updateTextBlockById(
@@ -130,9 +124,8 @@ function updateTextBlockById(
       return textBlock
     }
 
-    const nextTextBlock = updater(textBlock)
-    if (nextTextBlock !== textBlock) didUpdate = true
-    return nextTextBlock
+    didUpdate = true
+    return updater(textBlock)
   })
 
   return didUpdate ? nextTextBlocks : textBlocks
@@ -144,16 +137,14 @@ export function updateJewelCaseSpineTextBlock(
   textBlockId: string,
   updater: (textBlock: ProjectCaseInsertTextBlock) => ProjectCaseInsertTextBlock,
 ): ProjectJewelCaseState {
-  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => {
-    const nextTextBlocks = updateTextBlockById(
+  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => ({
+    ...spineSide,
+    textBlocks: updateTextBlockById(
       spineSide.textBlocks,
       textBlockId,
       updater,
-    )
-    return nextTextBlocks === spineSide.textBlocks
-      ? spineSide
-      : { ...spineSide, textBlocks: nextTextBlocks }
-  })
+    ),
+  }))
 }
 
 export function updateJewelCaseSpineImageSlot(
@@ -162,13 +153,10 @@ export function updateJewelCaseSpineImageSlot(
   slotKey: JewelCaseSpineImageSlotKey,
   updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
 ): ProjectJewelCaseState {
-  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => {
-    const currentSlot = spineSide[slotKey]
-    const nextSlot = updater(currentSlot)
-    return nextSlot === currentSlot
-      ? spineSide
-      : { ...spineSide, [slotKey]: nextSlot }
-  })
+  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => ({
+    ...spineSide,
+    [slotKey]: updater(spineSide[slotKey]),
+  }))
 }
 
 export function setJewelCaseSpineAdditionalArtworkEnabled(
@@ -189,18 +177,11 @@ export function updateJewelCaseSpineImageSlotInGroup(
   slotId: string,
   updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
 ): ProjectJewelCaseState {
-  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => {
-    let changed = false
-    const nextSlots = spineSide[slotKey].map((slot) => {
-      if (slot.id !== slotId) return slot
-      const nextSlot = updater(slot)
-      if (nextSlot !== slot) changed = true
-      return nextSlot
-    })
-    return changed
-      ? { ...spineSide, [slotKey]: nextSlots }
-      : spineSide
-  })
+  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => ({
+    ...spineSide,
+    [slotKey]: spineSide[slotKey].map((slot) =>
+      slot.id === slotId ? updater(slot) : slot),
+  }))
 }
 
 export function addJewelCaseSpineImageSlot(

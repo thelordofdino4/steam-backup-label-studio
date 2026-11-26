@@ -68,9 +68,6 @@ import type { PointerDragActivationOptions } from './usePointerDrag.ts'
 import {
   getCaseInsertArtworkViewportDragPlacement,
 } from './caseInsertArtworkViewportDrag.ts'
-import type {
-  CaseInsertContinuousEditPresentationPort,
-} from './caseInsertContinuousEditPresentationPort.ts'
 
 type CaseInsertDragRange = 'offset' | 'percent' | DragPointRange
 
@@ -161,8 +158,6 @@ export type CaseInsertTemplatePreviewPointerHandlers = {
     paneId: CaseInsertTemplatePaneId,
     textListId: string,
   ) => void
-  handleTemplateLostPointerCapture: (event: PointerEvent<Element>) => void
-  handleTemplatePointerCancel: (event: PointerEvent<Element>) => void
   handleTemplatePointerMove: (event: PointerEvent<Element>) => void
   handleTemplatePointerUp: (event: PointerEvent<Element>) => void
 }
@@ -188,8 +183,6 @@ export type CaseInsertSpinePreviewPointerHandlers = {
     side: JewelCaseSpineSide,
     textBlockId: string,
   ) => void
-  handleSpineLostPointerCapture: (event: PointerEvent<Element>) => void
-  handleSpinePointerCancel: (event: PointerEvent<Element>) => void
   handleSpinePointerMove: (event: PointerEvent<Element>) => void
   handleSpinePointerUp: (event: PointerEvent<Element>) => void
 }
@@ -200,7 +193,6 @@ export type CaseInsertPreviewPointerHandlers = {
 }
 
 type UseCaseInsertPreviewPointerDragOptions = {
-  continuousEdit: CaseInsertContinuousEditPresentationPort
   preview: {
     caseInsertPreviewRef: RefObject<HTMLDivElement | null>
     activeTemplatePane: CaseInsertTemplatePaneId
@@ -219,68 +211,6 @@ function getCaseInsertDragPointRange(
   return range === 'offset'
     ? OFFSET_DRAG_POINT_RANGE
     : PERCENT_DRAG_POINT_RANGE
-}
-
-function getCaseInsertDragTargetId(target: CaseInsertDragTarget) {
-  switch (target.scope) {
-    case 'templatePrimaryImage':
-      return JSON.stringify([
-        'case-preview-drag',
-        target.scope,
-        target.paneId,
-        target.slotKey,
-      ])
-    case 'templateGroupedImage':
-      return JSON.stringify([
-        'case-preview-drag',
-        target.scope,
-        target.paneId,
-        target.slotKey,
-        target.slotId,
-      ])
-    case 'templateTextBlock':
-      return JSON.stringify([
-        'case-preview-drag',
-        target.scope,
-        target.paneId,
-        target.textBlockId,
-      ])
-    case 'templateTextList':
-      return JSON.stringify([
-        'case-preview-drag',
-        target.scope,
-        target.paneId,
-        target.textListId,
-      ])
-    case 'spinePrimaryImage':
-      return JSON.stringify([
-        'case-preview-drag',
-        target.scope,
-        target.side,
-        target.slotKey,
-      ])
-    case 'spineGroupedImage':
-      return JSON.stringify([
-        'case-preview-drag',
-        target.scope,
-        target.side,
-        target.slotKey,
-        target.slotId,
-      ])
-    case 'spineTitle':
-      return JSON.stringify([
-        'case-preview-drag',
-        target.scope,
-        target.side,
-      ])
-    case 'spineTextBlock':
-      return JSON.stringify([
-        'case-preview-drag',
-        target.scope,
-        target.side,
-        target.textBlockId,
-      ])
-  }
 }
 
 function getRegionBounds(
@@ -448,16 +378,13 @@ function updateCaseInsertDragTargetPosition(
       return updateProjectJewelCaseSpineSides(
         state,
         target.side,
-        (spineSide) => {
-          const currentSlot = spineSide[target.slotKey]
-          const nextSlot = updateCaseInsertImageSlotLayoutPosition(
+        (spineSide) => ({
+          ...spineSide,
+          [target.slotKey]: updateCaseInsertImageSlotLayoutPosition(
             spineSide[target.slotKey],
             point,
-          )
-          return nextSlot === currentSlot
-            ? spineSide
-            : { ...spineSide, [target.slotKey]: nextSlot }
-        },
+          ),
+        }),
       )
     case 'spineGroupedImage':
       return updateProjectJewelCaseSpineSides(
@@ -466,35 +393,26 @@ function updateCaseInsertDragTargetPosition(
         (spineSide, side) => {
           const slotId = getJewelCaseSpineSideScopedId(side, target.slotId)
 
-          let changed = false
-          const nextSlots = spineSide[target.slotKey].map((slot) => {
-            if (slot.id !== slotId) return slot
-            const nextSlot = updateCaseInsertImageSlotLayoutPosition(
-              slot,
-              point,
-            )
-            if (nextSlot !== slot) changed = true
-            return nextSlot
-          })
-
-          return changed
-            ? { ...spineSide, [target.slotKey]: nextSlots }
-            : spineSide
+          return {
+            ...spineSide,
+            [target.slotKey]: spineSide[target.slotKey].map((slot) =>
+              slot.id === slotId
+                ? updateCaseInsertImageSlotLayoutPosition(slot, point)
+                : slot),
+          }
         },
       )
     case 'spineTitle':
       return updateProjectJewelCaseSpineSides(
         state,
         target.side,
-        (spineSide) => {
-          const nextTitle = updateCaseInsertTextBlockLayoutPosition(
+        (spineSide) => ({
+          ...spineSide,
+          title: updateCaseInsertTextBlockLayoutPosition(
             spineSide.title,
             point,
-          )
-          return nextTitle === spineSide.title
-            ? spineSide
-            : { ...spineSide, title: nextTitle }
-        },
+          ),
+        }),
       )
     case 'spineTextBlock':
       return updateProjectJewelCaseSpineSides(
@@ -506,20 +424,13 @@ function updateCaseInsertDragTargetPosition(
             target.textBlockId,
           )
 
-          let changed = false
-          const nextTextBlocks = spineSide.textBlocks.map((textBlock) => {
-            if (textBlock.id !== textBlockId) return textBlock
-            const nextTextBlock = updateCaseInsertTextBlockLayoutPosition(
-              textBlock,
-              point,
-            )
-            if (nextTextBlock !== textBlock) changed = true
-            return nextTextBlock
-          })
-
-          return changed
-            ? { ...spineSide, textBlocks: nextTextBlocks }
-            : spineSide
+          return {
+            ...spineSide,
+            textBlocks: spineSide.textBlocks.map((textBlock) =>
+              textBlock.id === textBlockId
+                ? updateCaseInsertTextBlockLayoutPosition(textBlock, point)
+                : textBlock),
+          }
         },
       )
     default:
@@ -589,7 +500,6 @@ function findSpineTextBlock(
 }
 
 export function useCaseInsertPreviewPointerDrag({
-  continuousEdit,
   preview,
   caseInsert,
   setProjectJewelCase,
@@ -602,46 +512,25 @@ export function useCaseInsertPreviewPointerDrag({
     ),
     [activeTemplatePane, caseInsert.templateType],
   )
-  const finishCaseInsertPointerDrag = useCallback(
-    (dragState: CaseInsertDragState) => {
-      continuousEdit.finish(getCaseInsertDragTargetId(dragState.target))
-    },
-    [continuousEdit],
-  )
-  const releaseCaseInsertPointerDrag = useCallback(
-    (dragState: CaseInsertDragState) => {
-      continuousEdit.release(getCaseInsertDragTargetId(dragState.target))
-    },
-    [continuousEdit],
-  )
   const caseInsertPointerDrag = usePercentPointerDrag<
     CaseInsertDragState,
     Element
   >({
     stopPropagation: true,
     getBounds: (dragState) => dragState.bounds,
-    onDragCancel: finishCaseInsertPointerDrag,
-    onDragEnd: finishCaseInsertPointerDrag,
-    onDragRelease: releaseCaseInsertPointerDrag,
     onDraggedPoint: (dragState, point) => {
       const draggedPoint = clampDragPointToRange(
         point,
         dragState.pointRange,
       )
 
-      continuousEdit.update({
-        targetId: getCaseInsertDragTargetId(dragState.target),
-        value: draggedPoint,
-        project: (latestPoint) => {
-          setProjectJewelCase((currentCaseInsert) =>
-            updateCaseInsertDragTargetPosition(
-              currentCaseInsert,
-              dragState.target,
-              latestPoint,
-            ),
-          )
-        },
-      })
+      setProjectJewelCase((currentCaseInsert) =>
+        updateCaseInsertDragTargetPosition(
+          currentCaseInsert,
+          dragState.target,
+          draggedPoint,
+        ),
+      )
     },
   })
 
@@ -928,9 +817,6 @@ export function useCaseInsertPreviewPointerDrag({
         handleTemplateGroupedImageSlotPointerDown,
         handleTemplateTextBlockPointerDown,
         handleTemplateTextListPointerDown,
-        handleTemplateLostPointerCapture:
-          caseInsertPointerDrag.cancelPointerDrag,
-        handleTemplatePointerCancel: caseInsertPointerDrag.cancelPointerDrag,
         handleTemplatePointerMove: caseInsertPointerDrag.handlePointerMove,
         handleTemplatePointerUp: caseInsertPointerDrag.endPointerDrag,
       },
@@ -939,8 +825,6 @@ export function useCaseInsertPreviewPointerDrag({
         handleSpineGroupedImageSlotPointerDown,
         handleSpineTitlePointerDown,
         handleSpineTextBlockPointerDown,
-        handleSpineLostPointerCapture: caseInsertPointerDrag.cancelPointerDrag,
-        handleSpinePointerCancel: caseInsertPointerDrag.cancelPointerDrag,
         handleSpinePointerMove: caseInsertPointerDrag.handlePointerMove,
         handleSpinePointerUp: caseInsertPointerDrag.endPointerDrag,
       },

@@ -1,3 +1,4 @@
+import { useCaseInsertBrandingSyncQueue } from './useCaseInsertBrandingSyncQueue.ts'
 import { useEffect, useRef, type ChangeEvent, type Dispatch, type SetStateAction } from 'react'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone.ts'
 import {
@@ -75,6 +76,7 @@ type UseCaseInsertBrandingMarkSyncOptions = {
   handleProjectMetadataFieldsChange: (fields: Partial<ProjectMetadata>) => void
   handleRatingBadgeUpload: (
     event: ChangeEvent<HTMLInputElement>,
+    onImported?: (state: ProjectRatingBadge) => void,
   ) => ProjectRatingBadge | null | void | Promise<ProjectRatingBadge | null | void>
   handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
   handleRatingBadgeEnabledChange: (enabled: boolean) => void
@@ -83,6 +85,7 @@ type UseCaseInsertBrandingMarkSyncOptions = {
   handleClearRatingBadgeImage: () => void
   handleMediaMarkUpload: (
     event: ChangeEvent<HTMLInputElement>,
+    onImported?: (state: ProjectMediaMark) => void,
   ) => ProjectMediaMark | null | void | Promise<ProjectMediaMark | null | void>
   handleMediaMarkValueChange: (value: MediaMarkValue) => void
   handleMediaMarkSourceChange: (source: MediaMarkSource) => void
@@ -93,6 +96,7 @@ type UseCaseInsertBrandingMarkSyncOptions = {
   handlePlatformMarkUpload: (
     value: PlatformMarkValue,
     event: ChangeEvent<HTMLInputElement>,
+    onImported?: (state: ProjectPlatformMarks) => void,
   ) => ProjectPlatformMarks | null | void | Promise<ProjectPlatformMarks | null | void>
   handlePlatformMarkSourceChange: (
     value: PlatformMarkValue,
@@ -113,6 +117,7 @@ type UseCaseInsertBrandingMarkSyncOptions = {
     value: TechnicalMarkValue,
     event: ChangeEvent<HTMLInputElement>,
     assetId?: string | null,
+    onImported?: (state: ProjectTechnicalMarks) => void,
   ) => ProjectTechnicalMarks | null | void | Promise<ProjectTechnicalMarks | null | void>
   handleTechnicalMarkSourceChange: (
     value: TechnicalMarkValue,
@@ -175,6 +180,8 @@ export function useCaseInsertBrandingMarkSync({
   handleAddTechnicalMarkAsset,
   handleRemoveTechnicalMarkAsset,
 }: UseCaseInsertBrandingMarkSyncOptions) {
+  const { scheduleCaseInsertBrandingMarkSlotSync, scheduleCaseInsertBrandingMarkSlotSyncForTarget } =
+    useCaseInsertBrandingSyncQueue(brandingSources, setProjectJewelCase)
   const brandingSourcesRef =
     useRef<CaseInsertBrandingSourceCatalog>(brandingSources)
 
@@ -193,13 +200,7 @@ export function useCaseInsertBrandingMarkSync({
     )
   }
 
-  function scheduleCaseInsertBrandingMarkSlotSync(
-    overrides: Partial<CaseInsertBrandingSourceCatalog> = {},
-  ) {
-    globalThis.setTimeout(() => {
-      syncCaseInsertBrandingMarkSlots(overrides)
-    }, 0)
-  }
+
 
   function syncAfter(
     update: () => void,
@@ -230,14 +231,7 @@ export function useCaseInsertBrandingMarkSync({
     )
   }
 
-  function scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-    target: CaseInsertBrandingMarkTarget,
-    overrides: Partial<CaseInsertBrandingSourceCatalog> = {},
-  ) {
-    globalThis.setTimeout(() => {
-      syncCaseInsertBrandingMarkSlotsForTarget(target, overrides)
-    }, 0)
-  }
+
 
   function setCaseInsertBrandingMarkTargetKindEnabled(
     target: CaseInsertBrandingMarkTarget,
@@ -305,12 +299,9 @@ export function useCaseInsertBrandingMarkSync({
   async function handleCaseInsertRatingBadgeUpload(
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const nextProjectRatingBadge = await handleRatingBadgeUpload(event)
-
-    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
-      nextProjectRatingBadge,
-      (projectRatingBadge) => ({ projectRatingBadge }),
-    )
+    await handleRatingBadgeUpload(event, (projectRatingBadge) => {
+      syncCaseInsertBrandingMarkSlots({ projectRatingBadge })
+    })
   }
 
   function handleCaseInsertRatingBadgeSourceChange(source: RatingBadgeSource) {
@@ -353,12 +344,9 @@ export function useCaseInsertBrandingMarkSync({
   async function handleCaseInsertMediaMarkUpload(
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const nextProjectMediaMark = await handleMediaMarkUpload(event)
-
-    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
-      nextProjectMediaMark,
-      (projectMediaMark) => ({ projectMediaMark }),
-    )
+    await handleMediaMarkUpload(event, (projectMediaMark) => {
+      syncCaseInsertBrandingMarkSlots({ projectMediaMark })
+    })
   }
 
   function handleCaseInsertMediaMarkValueChange(value: MediaMarkValue) {
@@ -388,13 +376,9 @@ export function useCaseInsertBrandingMarkSync({
     value: PlatformMarkValue,
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const nextProjectPlatformMarks =
-      await handlePlatformMarkUpload(value, event)
-
-    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
-      nextProjectPlatformMarks,
-      (projectPlatformMarks) => ({ projectPlatformMarks }),
-    )
+    await handlePlatformMarkUpload(value, event, (projectPlatformMarks) => {
+      syncCaseInsertBrandingMarkSlots({ projectPlatformMarks })
+    })
   }
 
   function handleCaseInsertPlatformMarkToggle(
@@ -435,13 +419,9 @@ export function useCaseInsertBrandingMarkSync({
     event: ChangeEvent<HTMLInputElement>,
     assetId?: string | null,
   ) {
-    const nextProjectTechnicalMarks =
-      await handleTechnicalMarkUpload(value, event, assetId)
-
-    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
-      nextProjectTechnicalMarks,
-      (projectTechnicalMarks) => ({ projectTechnicalMarks }),
-    )
+    await handleTechnicalMarkUpload(value, event, assetId, (projectTechnicalMarks) => {
+      syncCaseInsertBrandingMarkSlots({ projectTechnicalMarks })
+    })
   }
 
   function handleCaseInsertTechnicalMarkToggle(
@@ -585,16 +565,6 @@ export function useCaseInsertBrandingMarkSync({
       scheduleTargetBrandingMarkSlotSync(overrides)
     }
 
-    function syncTargetAfterSharedUpload<T>(
-      upload: T | null | void | Promise<T | null | void>,
-      getOverrides: (nextState: T) => Partial<CaseInsertBrandingSourceCatalog>,
-    ) {
-      return Promise.resolve(upload).then((nextState) =>
-        scheduleTargetBrandingMarkSlotSync(
-          nextState ? getOverrides(nextState) : {},
-        ),
-      )
-    }
 
     function handleTargetProjectMetadataFieldsChange(
       fields: Partial<ProjectMetadata>,
@@ -621,10 +591,12 @@ export function useCaseInsertBrandingMarkSync({
     function handleTargetRatingBadgeUpload(
       event: ChangeEvent<HTMLInputElement>,
     ) {
-      return syncTargetAfterSharedUpload(
-        handleRatingBadgeUpload(event),
-        (projectRatingBadge) => ({ projectRatingBadge }),
-      )
+      return handleRatingBadgeUpload(event, (projectRatingBadge) => {
+        syncCaseInsertBrandingMarkSlotsForTarget(target, {
+          ...targetBrandingSources,
+          projectRatingBadge,
+        })
+      })
     }
 
     function handleTargetRatingBadgeSourceChange(source: RatingBadgeSource) {
@@ -709,10 +681,12 @@ export function useCaseInsertBrandingMarkSync({
     }
 
     function handleTargetMediaMarkUpload(event: ChangeEvent<HTMLInputElement>) {
-      return syncTargetAfterSharedUpload(
-        handleMediaMarkUpload(event),
-        (projectMediaMark) => ({ projectMediaMark }),
-      )
+      return handleMediaMarkUpload(event, (projectMediaMark) => {
+        syncCaseInsertBrandingMarkSlotsForTarget(target, {
+          ...targetBrandingSources,
+          projectMediaMark,
+        })
+      })
     }
 
     function handleTargetMediaMarkValueChange(value: MediaMarkValue) {
@@ -788,10 +762,12 @@ export function useCaseInsertBrandingMarkSync({
       value: PlatformMarkValue,
       event: ChangeEvent<HTMLInputElement>,
     ) {
-      return syncTargetAfterSharedUpload(
-        handlePlatformMarkUpload(value, event),
-        (projectPlatformMarks) => ({ projectPlatformMarks }),
-      )
+      return handlePlatformMarkUpload(value, event, (projectPlatformMarks) => {
+        syncCaseInsertBrandingMarkSlotsForTarget(target, {
+          ...targetBrandingSources,
+          projectPlatformMarks,
+        })
+      })
     }
 
     function handleTargetPlatformMarkToggle(
@@ -892,9 +868,7 @@ export function useCaseInsertBrandingMarkSync({
       event: ChangeEvent<HTMLInputElement>,
       assetId?: string | null,
     ) {
-      return Promise.resolve(
-        handleTechnicalMarkUpload(value, event, assetId),
-      ).then((nextProjectTechnicalMarks) => {
+      return handleTechnicalMarkUpload(value, event, assetId, (nextProjectTechnicalMarks) => {
         const nextTargetProjectTechnicalMarks =
           getTechnicalMarksAfterCaseInsertTargetUpload(
             targetProjectTechnicalMarks,
@@ -904,7 +878,8 @@ export function useCaseInsertBrandingMarkSync({
             assetId,
           )
 
-        scheduleTargetBrandingMarkSlotSync({
+        syncCaseInsertBrandingMarkSlotsForTarget(target, {
+          ...targetBrandingSources,
           projectTechnicalMarks: nextTargetProjectTechnicalMarks,
         })
       })
@@ -1090,6 +1065,7 @@ export function useCaseInsertBrandingMarkSync({
   }
 
   return {
+    syncCaseInsertBrandingMarkSlots,
     scheduleCaseInsertBrandingMarkSlotSync,
     getCaseInsertBrandingControlsForTarget,
     handleCaseInsertProjectMetadataChange,

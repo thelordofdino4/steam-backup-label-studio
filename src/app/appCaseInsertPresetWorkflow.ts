@@ -33,7 +33,6 @@ import {
   resolveCaseInsertPresetAssignments,
 } from '../presets/caseInsertPresetAssignmentResolution.ts'
 import {
-  createCaseInsertPresetAttachedEndpoint,
   createCaseInsertPresetUnattachedEndpoint,
 } from '../presets/caseInsertPresetAttachmentEndpoint.ts'
 import {
@@ -268,10 +267,6 @@ export type AppCaseInsertPresetWorkflowDependencies = Readonly<{
 
 export interface AppCaseInsertPresetWorkflowOwner {
   inspectCurrent(): AppCaseInsertPresetInspectionResult
-  applySelected(input: Readonly<{
-    selectedPreset: AppCaseInsertPresetSelection
-    requestedScope: CaseInsertPresetApplicationScope
-  }>): Promise<AppCaseInsertPresetWorkflowCompletionResult>
   beginApply(input: Readonly<{
     selectedPreset: AppCaseInsertPresetSelection
     requestedScope: CaseInsertPresetApplicationScope
@@ -546,78 +541,6 @@ function projectApplyCatalogStatus(
     : deepFreezeCaseInsertPresetValue({ status: 'current' as const })
 }
 
-function applicationAttachmentEndpoint(
-  application: CaseInsertPresetApplicationSnapshot,
-) {
-  return application.attachment.status === 'unattached'
-    ? createCaseInsertPresetUnattachedEndpoint()
-    : createCaseInsertPresetAttachedEndpoint(
-        application.attachment.configuration.configurationIdentity,
-      )
-}
-
-const ONE_SHOT_LAYOUT_FIELD_ACTIONS = new Set([
-  'set-layout-x',
-  'set-layout-y',
-  'set-layout-scale',
-  'set-layout-width',
-])
-
-const ONE_SHOT_PRESERVATION_CATEGORIES = new Set([
-  'image-bytes',
-  'image-provenance',
-  'text-content',
-  'rich-text-content',
-  'metadata-source-and-manual-override',
-  'branding-selection-and-custom-assets',
-  'enablement-and-disabled-payload',
-  'repeated-object-identity',
-  'frame-material-and-style',
-  'fit-crop-and-rotation',
-  'untargeted-object-fields',
-  'owners-outside-requested-scope',
-])
-
-/**
- * Fail closed before one Apply activation authorizes its immutable plan. The
- * current one-shot product surface may change only the planner's closed
- * layout/framing/presence vocabulary; a future action or consent category must
- * earn a new explicit product decision before this adapter can dispatch it.
- */
-function isContentPreservingOneShotApply(
-  review: AppCaseInsertPresetApplyReview,
-): boolean {
-  const plan = review.plan
-  return plan.requestedScope.kind === 'complete' &&
-    plan.blockers.length === 0 &&
-    plan.fieldActions.every(({ kind, preservationClassification }) =>
-      ONE_SHOT_LAYOUT_FIELD_ACTIONS.has(kind) &&
-      preservationClassification === 'layout-only-preserve-content') &&
-    plan.objectCreationActions.every((action) =>
-      action.kind === 'create-empty-repeated-artwork-slot' &&
-      action.before.presence === 'absent' &&
-      action.canonicalInitialObject.imageDataUrl === null &&
-      action.canonicalInitialObject.enabled === false) &&
-    plan.artworkViewportActions.every((action) =>
-      action.kind === 'adopt-reserved-artwork-viewport' &&
-      action.preservedFieldIds.includes('image-data') &&
-      action.preservedFieldIds.includes('image-provenance') &&
-      action.preservedFieldIds.includes('image-dimensions') &&
-      action.preservedFieldIds.includes('label') &&
-      action.preservedFieldIds.includes('enabled') &&
-      action.preservedFieldIds.includes('frame') &&
-      action.preservedFieldIds.includes('layout-rotation')) &&
-    plan.preservationDecisions.length > 0 &&
-    plan.preservationDecisions.every(({ category, classification }) =>
-      ONE_SHOT_PRESERVATION_CATEGORIES.has(category) &&
-      classification === 'preserved') &&
-    plan.preservationDecisions.some(({ category }) =>
-      category === 'owners-outside-requested-scope') &&
-    plan.materialConsentRequirements.every(({ kind }) =>
-      kind === 'multiple-concrete-regions' ||
-      kind === 'material-visible-clipping')
-}
-
 function transitionFailure(
   operation: CaseInsertPresetApplicationAdoptionOperation,
   result: { status: string; code?: string },
@@ -680,6 +603,13 @@ export function createAppCaseInsertPresetWorkflowOwner(
     if (isWorkflowFailure(session)) return session
     const application = projectApplication(session, owners, operation)
     if (isWorkflowFailure(application)) return application
+    if (application.attachment.status !== 'unattached') {
+      return failure(
+        'already-attached',
+        'case.layoutPreset.apply.already-attached',
+        operation,
+      )
+    }
     if (!validSelection(input?.selectedPreset)) {
       return failure(
         'invalid-request',
@@ -875,10 +805,9 @@ export function createAppCaseInsertPresetWorkflowOwner(
     })
   }
 
-  async function executePrepared(
+  async function complete(
     review: AppCaseInsertPresetWorkflowReview,
-    decision: AppCaseInsertPresetWorkflowDecision | null,
-    executionMode: 'reviewed' | 'one-shot-content-preserving',
+    decision: AppCaseInsertPresetWorkflowDecision,
   ): Promise<AppCaseInsertPresetWorkflowCompletionResult> {
     const operation = review?.operation
     if (operation !== 'apply' && operation !== 'reapply' &&
@@ -896,46 +825,36 @@ export function createAppCaseInsertPresetWorkflowOwner(
         operation,
       )
     }
-    if (executionMode === 'one-shot-content-preserving' &&
-        operation !== 'apply') {
+    if (!decision || decision.operation !== operation ||
+        decision.reviewIdentity !== review.reviewIdentity) {
       return failure(
         'invalid-decision',
-        'case.layoutPreset.one-shot-operation-invalid',
+        'case.layoutPreset.decision-review-mismatch',
         operation,
       )
     }
-    if (executionMode === 'reviewed') {
-      if (!decision || decision.operation !== operation ||
-          decision.reviewIdentity !== review.reviewIdentity) {
-        return failure(
-          'invalid-decision',
-          'case.layoutPreset.decision-review-mismatch',
-          operation,
-        )
-      }
-      if (decision.decision !== 'cancel' && decision.decision !== 'confirm') {
-        return failure(
-          'invalid-decision',
-          'case.layoutPreset.decision-incomplete-or-mismatched',
-          operation,
-        )
-      }
-      if (decision.decision === 'confirm' &&
-          (!selectedPresetMatches(
-            review.selectedPreset,
-            decision.selectedPreset,
-          ) ||
-          !exactSetMatch(review.warningIds, decision.reviewedWarningIds) ||
-          !exactSetMatch(
-            review.materialConsentRequirementIds,
-            decision.acceptedMaterialConsentRequirementIds,
-          ))) {
-        return failure(
-          'invalid-decision',
-          'case.layoutPreset.decision-incomplete-or-mismatched',
-          operation,
-        )
-      }
+    if (decision.decision !== 'cancel' && decision.decision !== 'confirm') {
+      return failure(
+        'invalid-decision',
+        'case.layoutPreset.decision-incomplete-or-mismatched',
+        operation,
+      )
+    }
+    if (decision.decision === 'confirm' &&
+        (!selectedPresetMatches(
+          review.selectedPreset,
+          decision.selectedPreset,
+        ) ||
+        !exactSetMatch(review.warningIds, decision.reviewedWarningIds) ||
+        !exactSetMatch(
+          review.materialConsentRequirementIds,
+          decision.acceptedMaterialConsentRequirementIds,
+        ))) {
+      return failure(
+        'invalid-decision',
+        'case.layoutPreset.decision-incomplete-or-mismatched',
+        operation,
+      )
     }
 
     const session = captureCurrentCaseSession(dependencies.lifecycle, operation)
@@ -957,7 +876,7 @@ export function createAppCaseInsertPresetWorkflowOwner(
         application,
       )
     }
-    if (executionMode === 'reviewed' && decision?.decision === 'cancel') {
+    if (decision.decision === 'cancel') {
       return deepFreezeCaseInsertPresetValue({
         ok: true as const,
         status: 'cancelled' as const,
@@ -971,14 +890,19 @@ export function createAppCaseInsertPresetWorkflowOwner(
       | CaseInsertPresetReapplyTransitionResult
       | CaseInsertPresetDetachTransitionResult
     if (review.operation === 'apply') {
-      const commonApplyInput = {
+      const acceptances = review.plan.materialConsentRequirements.map(
+        ({ id }) =>
+          createCaseInsertPresetMaterialConsentAcceptance(review.plan, id),
+      ).filter((value): value is CaseInsertPresetMaterialConsentAcceptance =>
+        value !== null)
+      transition = owners.applyTransition({
         planningResult: deepFreezeCaseInsertPresetValue({
-          ok: true as const,
+          ok: true,
           status: review.planningStatus,
           plan: review.plan,
         }),
         source: {
-          projectKind: 'caseInsert' as const,
+          projectKind: 'caseInsert',
           aggregate: current.aggregate,
           snapshotIdentity: application.snapshot.identity,
           preset: {
@@ -987,27 +911,11 @@ export function createAppCaseInsertPresetWorkflowOwner(
           },
           requestedScope: review.plan.requestedScope,
         },
-        attachment: applicationAttachmentEndpoint(application),
-      }
-      if (executionMode === 'one-shot-content-preserving') {
-        transition = owners.applyTransition({
-          ...commonApplyInput,
-          executionMode,
-        })
-      } else {
-        const acceptances = review.plan.materialConsentRequirements.map(
-          ({ id }) =>
-            createCaseInsertPresetMaterialConsentAcceptance(review.plan, id),
-        ).filter((value): value is CaseInsertPresetMaterialConsentAcceptance =>
-          value !== null)
-        transition = owners.applyTransition({
-          ...commonApplyInput,
-          executionMode,
-          reviewApproval:
-            createCaseInsertPresetApplyReviewApproval(review.plan),
-          materialConsentAcceptances: acceptances,
-        })
-      }
+        attachment: createCaseInsertPresetUnattachedEndpoint(),
+        reviewApproval:
+          createCaseInsertPresetApplyReviewApproval(review.plan),
+        materialConsentAcceptances: acceptances,
+      })
     } else if (review.operation === 'reapply') {
       const acceptances = review.plan.materialConsentRequirements.map(
         ({ id }) => createCaseInsertPresetReapplyConsentAcceptance(
@@ -1198,37 +1106,8 @@ export function createAppCaseInsertPresetWorkflowOwner(
     })
   }
 
-  async function complete(
-    review: AppCaseInsertPresetWorkflowReview,
-    decision: AppCaseInsertPresetWorkflowDecision,
-  ): Promise<AppCaseInsertPresetWorkflowCompletionResult> {
-    return executePrepared(review, decision, 'reviewed')
-  }
-
-  async function applySelected(input: Readonly<{
-    selectedPreset: AppCaseInsertPresetSelection
-    requestedScope: CaseInsertPresetApplicationScope
-  }>): Promise<AppCaseInsertPresetWorkflowCompletionResult> {
-    const planned = beginApply(input)
-    if (!planned.ok) return planned
-    if (!isContentPreservingOneShotApply(planned.review)) {
-      return failure(
-        'planning-failed',
-        'case.layoutPreset.apply.content-preservation-unverified',
-        'apply',
-        planned.review.plan,
-      )
-    }
-    return executePrepared(
-      planned.review,
-      null,
-      'one-shot-content-preserving',
-    )
-  }
-
   return Object.freeze({
     inspectCurrent,
-    applySelected,
     beginApply,
     beginReapply,
     beginDetach,

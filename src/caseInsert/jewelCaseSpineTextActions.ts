@@ -115,12 +115,10 @@ function updateJewelCaseSpineTitleForEditedSides(
   return updateProjectJewelCaseSpineSides(
     state,
     side,
-    (spineSide, targetSide) => {
-      const nextTitle = updater(spineSide.title, targetSide)
-      return nextTitle === spineSide.title
-        ? spineSide
-        : { ...spineSide, title: nextTitle }
-    },
+    (spineSide, targetSide) => ({
+      ...spineSide,
+      title: updater(spineSide.title, targetSide),
+    }),
   )
 }
 
@@ -136,17 +134,13 @@ function updateJewelCaseSpineTextBlockForEditedSides(
       textBlockId,
     )
 
-    let changed = false
-    const nextTextBlocks = spineSide.textBlocks.map((textBlock) => {
-      if (textBlock.id !== targetTextBlockId) return textBlock
-      const nextTextBlock = updater(textBlock)
-      if (nextTextBlock !== textBlock) changed = true
-      return nextTextBlock
-    })
-
-    return changed
-      ? { ...spineSide, textBlocks: nextTextBlocks }
-      : spineSide
+    return {
+      ...spineSide,
+      textBlocks: spineSide.textBlocks.map((textBlock) =>
+        textBlock.id === targetTextBlockId
+          ? updater(textBlock)
+          : textBlock),
+    }
   })
 }
 

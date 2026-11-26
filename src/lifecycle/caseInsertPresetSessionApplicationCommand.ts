@@ -12,7 +12,6 @@ import type {
   ApplicationLifecycleDefinitionContext,
 } from './applicationLifecycleCommandDefinitions.ts'
 import type {
-  ApplicationLifecycleStateCommitResult,
   ApplicationLifecycleStateSnapshot,
 } from './applicationLifecycleStateStore.ts'
 import {
@@ -110,12 +109,6 @@ export type CaseInsertPresetSessionApplicationCapabilityContext = Readonly<{
   busy: CommandBusyState
 }>
 
-export type CaseInsertPresetSessionEditorApplyPort = Readonly<{
-  commitLifecycleAndApply(
-    commitLifecycle: () => ApplicationLifecycleStateCommitResult,
-  ): ApplicationLifecycleStateCommitResult
-}>
-
 function enabled(): ApplicationCommandCapability {
   return Object.freeze({ canExecute: true })
 }
@@ -136,6 +129,9 @@ export function getCaseInsertPresetSessionApplicationCommandCapability(
       'case.layoutPreset.no-active-case-session',
       'Open a Case project before applying a Case layout preset.',
     )
+  }
+  if (context.stateSnapshot.caseSteamProjectionPending) {
+    return disabled('case.layoutPreset.projection-pending', 'Wait for the Case import to finish updating the editor.')
   }
   if (hasBusyScopeConflict(
     CASE_INSERT_PRESET_PROJECT_MUTATION_SCOPE,
@@ -224,7 +220,6 @@ function executeInstallation(
   commandId: CaseInsertPresetApplicationCommandId,
   context: ApplicationLifecycleDefinitionContext,
   successorSnapshot: unknown,
-  editorApply: CaseInsertPresetSessionEditorApplyPort | undefined,
 ): ApplicationCommandResult<CaseInsertPresetSessionApplicationCommandSuccess> {
   const expectedOperation = OPERATION_BY_COMMAND[commandId]
   const current = context.getCurrentStateSnapshot()
@@ -232,7 +227,7 @@ function executeInstallation(
 
   let storeResult
   try {
-    const commitLifecycle = () => context.commitState(current.generation, (state) => {
+    storeResult = context.commitState(current.generation, (state) => {
       const commit = commitCaseInsertPresetSessionApplication({
         currentSession: state.activeSession,
         successorSnapshot,
@@ -252,9 +247,6 @@ function executeInstallation(
         activeSession: commit.session,
       })
     })
-    storeResult = editorApply
-      ? editorApply.commitLifecycleAndApply(commitLifecycle)
-      : commitLifecycle()
   } catch (error) {
     const userMessage = 'The Case layout preset result could not be installed.'
     return commandFailed({
@@ -324,9 +316,7 @@ function executeInstallation(
   })
 }
 
-export function createCaseInsertPresetSessionApplicationCommandDefinitions(
-  editorApply?: CaseInsertPresetSessionEditorApplyPort,
-):
+export function createCaseInsertPresetSessionApplicationCommandDefinitions():
 readonly ApplicationCommandDefinition<
   ApplicationLifecycleDefinitionContext,
   unknown,
@@ -342,7 +332,7 @@ readonly ApplicationCommandDefinition<
       execute: (
         context: ApplicationLifecycleDefinitionContext,
         input: unknown,
-      ) => executeInstallation(id, context, input, editorApply),
+      ) => executeInstallation(id, context, input),
       feedbackPolicy: RETURN_ONLY_FEEDBACK,
     })))
 }

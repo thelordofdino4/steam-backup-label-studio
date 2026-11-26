@@ -10,6 +10,7 @@ import { commandSucceeded } from '../lifecycle/applicationCommandTypes.ts'
 import {
   createNewProjectSession,
   returnProjectSessionHome,
+  type DiscProjectSession,
 } from '../lifecycle/projectSession.ts'
 import {
   createApplicationPngExportCommandOwner,
@@ -22,11 +23,13 @@ import type {
 function discAdapter(
   calls: string[],
   overrides: Partial<RunDiscPngExportParams> = {},
+  observeCapture: (session: DiscProjectSession) => void = () => {},
 ): ApplicationPngExportAdapter {
   return Object.freeze({
     kind: 'disc',
     physicalTarget: 'disc-label',
-    captureInvocation: () => {
+    captureInvocation: session => {
+      observeCapture(session)
       calls.push('capture')
       return {
         preflight: {} as RunDiscPngExportParams['preflight'],
@@ -44,9 +47,9 @@ function discAdapter(
         },
         exportPngBytes: async () => {
           calls.push('render')
-          return { bytes: [1, 2], width: 300, height: 300 }
+          return { bytes: new Uint8Array([1, 2]), width: 300, height: 300 }
         },
-        writeBinaryFileCommand: async () => {
+        writePngFileCommand: async () => {
           calls.push('write')
         },
         ...overrides,
@@ -200,74 +203,6 @@ test('export.png captures one invocation, owns shared scopes, and returns typed 
   assert.equal(root.getLifecycleState(), lifecycleBefore)
 })
 
-test('export.png finishes continuous edits and reacquires the current adapter before capture', async () => {
-  const staleCalls: string[] = []
-  const currentCalls: string[] = []
-  let dependencies = dependenciesFor(discAdapter(staleCalls))
-  let finishCount = 0
-  const owner = createApplicationPngExportCommandOwner(
-    () => dependencies,
-    () => ({
-      finish() {
-        finishCount += 1
-        dependencies = dependenciesFor(discAdapter(currentCalls))
-        return Object.freeze({ status: 'success', value: undefined })
-      },
-    }),
-  )
-  const root = createApplicationLifecycleCompositionRoot({
-    initialState: createNewProjectSession({
-      sessionId: 'finish-before-export',
-      project: createBlankDiscSavedProject(),
-    }),
-    exportPng: owner,
-  })
-
-  const result = await root.dispatch('export.png')
-
-  assert.equal(result.disposition, 'executed')
-  assert.equal(finishCount, 1)
-  assert.deepEqual(staleCalls, [])
-  assert.deepEqual(currentCalls, ['capture', 'destination', 'render', 'write'])
-})
-
-test('export.png aborts before adapter capture when continuous-edit finish fails', async () => {
-  const calls: string[] = []
-  const root = createApplicationLifecycleCompositionRoot({
-    initialState: createNewProjectSession({
-      sessionId: 'finish-failed-export',
-      project: createBlankDiscSavedProject(),
-    }),
-    exportPng: createApplicationPngExportCommandOwner(
-      () => dependenciesFor(discAdapter(calls)),
-      () => ({
-        finish: () => Object.freeze({
-          status: 'failure',
-          error: Object.freeze({
-            code: 'case.continuous-edit-stale-session',
-            userMessage: 'The edit belongs to a replaced project.',
-            recoverable: true,
-          }),
-        }),
-      }),
-    ),
-  })
-
-  const result = await root.dispatch('export.png')
-
-  assert.equal(result.disposition, 'executed')
-  if (result.disposition === 'executed') {
-    assert.equal(result.result.status, 'failure')
-    if (result.result.status === 'failure') {
-      assert.equal(
-        result.result.error.code,
-        'case.continuous-edit-stale-session',
-      )
-    }
-  }
-  assert.deepEqual(calls, [])
-})
-
 test('repeated export activation while a warning dialog is pending performs one operation', async () => {
   const calls: string[] = []
   let releaseConfirmation!: (accepted: boolean) => void
@@ -362,4 +297,83 @@ test('export conflicts with lifecycle transitions and blocks workspace navigatio
   releaseConfirmation(false)
   await activeExport
   assert.deepEqual(root.getBusyState().occupiedScopes, [])
+})
+
+
+test('Disc PNG pins the accepted snapshot after finish and never recaptures during the dialog', async () => {
+  const calls: string[] = []
+  const captured: DiscProjectSession[] = []
+  let releaseDestination!: (path: string) => void
+  const destination = new Promise<string>((resolve) => { releaseDestination = resolve })
+  const adapter = discAdapter(calls, {
+    saveDialog: () => { calls.push('destination'); return destination },
+    exportPngBytes: async () => {
+      assert.deepEqual(captured.map(session => session.project.background.scale), [1.25])
+      calls.push('render')
+      return { bytes: new Uint8Array([1, 2]), width: 300, height: 300 }
+    },
+  }, session => captured.push(session))
+  const state = createNewProjectSession({ sessionId: 'capture-r', project: createBlankDiscSavedProject() })
+  const initial = state.activeSession
+  assert.equal(initial?.kind, 'disc')
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: state,
+    exportPng: createApplicationPngExportCommandOwner(() => dependenciesFor(adapter), () => ({
+      finish() {
+        assert.ok(initial)
+        assert.equal(root.commitDiscBackground({
+          sessionId: initial.id, expectedRevision: initial.revision,
+          operation: { kind: 'transform', scale: 1.25, offset: { x: 4, y: -3 } },
+        }), 'committed')
+        return commandSucceeded(undefined)
+      },
+    })),
+  })
+  const exportRequest = root.dispatch('export.png')
+  try {
+    const accepted = root.getLifecycleState().activeSession
+    assert.ok(accepted?.kind === 'disc' && initial)
+    assert.equal(accepted.revision, initial.revision + 1)
+    assert.deepEqual(captured, [accepted])
+    assert.equal(root.commitDiscBackground({
+      sessionId: accepted.id, expectedRevision: accepted.revision,
+      operation: { kind: 'transform', scale: 2, offset: { x: 12, y: 7 } },
+    }), 'committed')
+  } finally {
+    releaseDestination('disc.png')
+  }
+  const result = await exportRequest
+  assert.equal(result.disposition === 'executed' && result.result.status, 'success')
+  assert.deepEqual(calls, ['capture', 'destination', 'render', 'write'])
+  assert.equal(captured.length, 1)
+  assert.equal(root.getLifecycleState().activeSession?.revision, initial!.revision + 2)
+})
+
+test('Case export captures its original zero-argument adapter once', async () => {
+  let captures = 0
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createNewProjectSession({ sessionId: 'case-export', project: createBlankJewelCaseSavedProject(),
+      lastEditorRoute: { workspace: 'caseInsert', surface: 'front' } }),
+    exportPng: createApplicationPngExportCommandOwner(() => dependenciesFor({
+      kind: 'caseInsert',
+      physicalTarget: 'case-cover-sheet',
+      captureInvocation(...args: unknown[]) {
+        assert.deepEqual(args, [])
+        captures++
+        return {
+          activeTemplatePane: 'cover',
+          caseInsert: createBlankJewelCaseSavedProject().caseInsert,
+          brandingSources: {} as never,
+          buildPreflightSummary: () => ({ message: 'clean', hasWarnings: false, warnings: [] }),
+          confirmDialog: async () => true,
+          saveDialog: async () => null,
+          writePngFileCommand: async () => { throw new Error('unexpected write') },
+          exportPngBytes: async () => { throw new Error('unexpected render') },
+        }
+      },
+    })),
+  })
+  const result = await root.dispatch('export.png')
+  assert.equal(result.disposition === 'executed' && result.result.status, 'cancelled')
+  assert.equal(captures, 1)
 })

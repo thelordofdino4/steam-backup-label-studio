@@ -49,6 +49,7 @@ export function BackgroundLayer({
           onPointerMove={handleBackgroundPointerMove}
           onPointerUp={handleBackgroundPointerUp}
           onPointerCancel={handleBackgroundPointerUp}
+          onLostPointerCapture={handleBackgroundPointerUp}
         >
           <ContentBoundedImage
             src={backgroundImageUrl}

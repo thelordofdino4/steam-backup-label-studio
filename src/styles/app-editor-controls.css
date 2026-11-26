@@ -102,9 +102,6 @@
   display: grid;
   gap: 8px;
   margin-top: 10px;
-  max-width: 100%;
-  min-width: 0;
-  width: 100%;
 }
 
 .editor-control-grid > label,
@@ -116,16 +113,10 @@
   gap: 8px;
   color: #9ca3af;
   font-size: 12px;
-  max-width: 100%;
-  min-width: 0;
-  width: 100%;
 }
 
 .editor-range-field {
-  box-sizing: border-box;
-  max-width: 100%;
   min-width: 0;
-  width: 100%;
 }
 
 .editor-range-field > label {
@@ -138,36 +129,23 @@
   grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
   gap: 8px;
-  max-width: 100%;
   min-width: 0;
-  width: 100%;
-}
-
-.editor-range-field-control > input[type="range"] {
-  max-width: 100%;
-  min-width: 0;
-  width: 100%;
 }
 
 .editor-range-number-control {
   display: grid;
-  grid-template-columns: max-content auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px;
   justify-self: end;
   min-width: 0;
-  white-space: nowrap;
 }
 
-.editor-range-number-control > .editor-range-number-input {
-  box-sizing: border-box;
+.editor-range-number-input {
   width: calc(
     (var(--editor-range-number-input-character-capacity, 4) * 1ch) + 28px
   );
   min-width: calc(
-    (var(--editor-range-number-input-character-capacity, 4) * 1ch) + 28px
-  );
-  max-width: calc(
     (var(--editor-range-number-input-character-capacity, 4) * 1ch) + 28px
   );
   min-height: 32px;
@@ -180,7 +158,6 @@
   color: #9ca3af;
   font-size: 11px;
   font-weight: 700;
-  white-space: nowrap;
 }
 
 .editor-style-grid {

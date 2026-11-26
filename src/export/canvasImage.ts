@@ -1,3 +1,4 @@
+import { encodePngPhysicalResolution } from './pngPhysicalResolution.ts'
 import type { BackgroundImageSize, ImageContentBounds } from '../project/projectTypes.ts'
 import {
   getImageContentBounds,
@@ -14,8 +15,8 @@ export type CanvasImageRect = {
   height: number
 }
 
-export function canvasToPngBytes(canvas: HTMLCanvasElement) {
-  return new Promise<number[]>((resolve, reject) => {
+export function canvasToPngBytes(canvas: HTMLCanvasElement, dpi: number) {
+  return new Promise<Uint8Array>((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
         reject(new Error('Could not create PNG blob.'))
@@ -24,7 +25,9 @@ export function canvasToPngBytes(canvas: HTMLCanvasElement) {
 
       blob
         .arrayBuffer()
-        .then((buffer) => resolve(Array.from(new Uint8Array(buffer))))
+        .then((buffer) => resolve(encodePngPhysicalResolution(
+          new Uint8Array(buffer), dpi, { width: canvas.width, height: canvas.height },
+        )))
         .catch(reject)
     }, 'image/png')
   })

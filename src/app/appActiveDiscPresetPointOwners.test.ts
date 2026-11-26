@@ -55,9 +55,49 @@ import {
 } from './appActiveDiscPresetPointOwners.ts'
 import {
   applySupplementalUskRatingCandidate,
+  planDiscSupplementalUskEdit,
 } from './appSupplementalUskRatingCandidate.ts'
 
 const template = discTemplates.standardPrintableDisc
+
+test('authored USK choice and suggestion prepare independently of the active preset owner', () => {
+  const original = createRatingBadge()
+  const metadata = { ratingSystem: 'PEGI' as const, ratingValue: '12' }
+  const chosen = planDiscSupplementalUskEdit(original, { kind: 'choose-value', ratingValue: '16' })
+  assert.deepEqual(chosen.badge, { ...original, uskBadge: { ...original.uskBadge, ratingValue: '16' } })
+  assert.equal(chosen.placementApplication, null)
+  assert.equal(planDiscSupplementalUskEdit(chosen.badge, { kind: 'choose-value', ratingValue: '0' })
+    .badge.uskBadge.ratingValue, '0')
+
+  for (const enabled of [false, true]) {
+    for (const presetState of [null, createActivePresetState()]) {
+      const ratingBadge = { ...original, layout: { ...original.layout, enabled } }
+      const before = structuredClone(ratingBadge)
+      const result = planDiscSupplementalUskEdit(ratingBadge, {
+        kind: 'apply-suggestion', ratingValue: '16', metadata,
+        selectedDiscTemplate: template, presetState,
+      })
+      const prior = applySupplementalUskRatingCandidate({
+        ratingBadge, metadata, supplementalRatingValue: '16', selectedDiscTemplate: template,
+        applyActivePrimaryRatingPlacement: badge => {
+          const fit = applyActiveDiscPresetToRatingBadgeState({
+            presetState, selectedDiscTemplate: template, metadata, ratingBadge: badge,
+          })
+          return isActiveDiscPresetPointFitImpossible(fit.application, 'rating.primary')
+            ? null
+            : fit.ratingBadge
+        },
+      })
+      assert.deepEqual(result.badge, prior)
+      assert.deepEqual(ratingBadge, before)
+      assert.equal(result.badge.uskBadge.ratingValue, '16')
+      assert.equal(result.badge.uskBadge.layout.enabled, true)
+      assert.equal(result.badge.layout.enabled, true)
+      assert.equal(Boolean(result.placementApplication), !enabled && presetState !== null)
+      if (enabled) assert.equal(result.badge.layout, ratingBadge.layout)
+    }
+  }
+})
 
 function createActivePresetState(selectedTemplate: DiscTemplate = template) {
   const resolution = resolveDiscPresetDefinition({

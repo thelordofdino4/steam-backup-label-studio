@@ -1,3 +1,6 @@
+import type { LifecyclePerformanceObserver } from '../lifecycle/lifecyclePerformanceObserver.ts'
+import { createApplicationNativeTerminationCommandOwners } from './appNativeTerminationCommand.ts'
+import { createApplicationTerminationRuntime, type ApplicationTerminationRuntimeDependencies, type NativeTerminationFeedback } from './applicationTerminationRuntime.ts'
 import {
   createApplicationLifecycleCompositionRoot,
   type ApplicationLifecycleCompositionRoot,
@@ -27,15 +30,14 @@ import {
   createApplicationPngExportCommandOwner,
   type ApplicationPngExportRuntimeDependencies,
 } from './appPngExportCommand.ts'
-import type {
-  CaseInsertPresetSessionEditorApplyPort,
-} from '../lifecycle/caseInsertPresetSessionApplicationCommand.ts'
-import type {
-  ApplicationCaseInsertContinuousEditPort,
-} from './applicationCaseInsertContinuousEditPort.ts'
+import { createProjectAsyncWork, type ProjectAsyncWork } from '../lifecycle/projectAsyncWork.ts'
+import { onceAsyncCleanup } from '../utils/onceAsyncCleanup.ts'
+import type { ApplicationCaseInsertContinuousEditPort } from './applicationCaseInsertContinuousEditPort.ts'
 
 export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
+  projectAsyncWork: ProjectAsyncWork
+  connectNativeTerminationIngress(feedback: NativeTerminationFeedback): () => void
   updateProjectOpenDependencies(
     dependencies: ApplicationProjectOpenRuntimeDependencies,
   ): void
@@ -54,16 +56,16 @@ export type ApplicationLifecycleRuntime = Readonly<{
   updatePngExportDependencies(
     dependencies: ApplicationPngExportRuntimeDependencies,
   ): void
-  updateCaseInsertPresetEditorApply(
-    editorApply: CaseInsertPresetSessionEditorApplyPort,
-  ): void
-  updateCaseInsertContinuousEditPort(
-    port: ApplicationCaseInsertContinuousEditPort | null,
-  ): void
-  dispose(): void
+  updateDiscBackgroundContinuousEditPort(port: ApplicationCaseInsertContinuousEditPort | null): void
+  updateCaseInsertContinuousEditPort(port: ApplicationCaseInsertContinuousEditPort | null): void
+  dispose(): Promise<void>
 }>
 
 export type ApplicationLifecycleRuntimeOptions = Readonly<{
+  performanceObserver?: LifecyclePerformanceObserver
+  casePresetProjection?: boolean
+  documentHistoryLimit?: number
+  nativeTermination?: ApplicationTerminationRuntimeDependencies
   createRoot?: (
     options: ApplicationLifecycleCompositionRootOptions,
   ) => ApplicationLifecycleCompositionRoot
@@ -86,21 +88,24 @@ export function createApplicationLifecycleRuntime(
   let workspaceNavigationDependencies:
     ApplicationWorkspaceNavigationRuntimeDependencies | null = null
   let pngExportDependencies: ApplicationPngExportRuntimeDependencies | null = null
-  let caseInsertPresetEditorApply:
-    CaseInsertPresetSessionEditorApplyPort | null = null
-  let caseInsertContinuousEditPort:
-    ApplicationCaseInsertContinuousEditPort | null = null
+  let discBackgroundContinuousEditPort: ApplicationCaseInsertContinuousEditPort | null = null
+  let caseInsertContinuousEditPort: ApplicationCaseInsertContinuousEditPort | null = null
   let disposed = false
   const createRoot = options.createRoot ??
     createApplicationLifecycleCompositionRoot
+  const getDiscBackgroundEdit = (): ApplicationCaseInsertContinuousEditPort | null =>
+    root.getLifecycleState().visibleWorkspace === 'disc' ? discBackgroundContinuousEditPort : null
+  const getCurrentEditorEdit = (): ApplicationCaseInsertContinuousEditPort | null =>
+    root.getLifecycleState().visibleWorkspace === 'disc'
+      ? getDiscBackgroundEdit() : caseInsertContinuousEditPort
   const saveOwners = createApplicationProjectSaveCommandOwners(
     () => projectSaveDependencies,
-    () => caseInsertContinuousEditPort,
+    getCurrentEditorEdit,
   )
   const replacementGuard = createProjectReplacementGuard(
     () => projectReplacementDependencies,
     saveOwners.saveProjectWithinOperation,
-    () => caseInsertContinuousEditPort,
+    getCurrentEditorEdit,
   )
   const newOwners = createApplicationProjectNewCommandOwners(
     () => projectNewDependencies,
@@ -109,14 +114,29 @@ export function createApplicationLifecycleRuntime(
   const workspaceNavigationOwners =
     createApplicationWorkspaceNavigationCommandOwners(
       () => workspaceNavigationDependencies,
-      () => caseInsertContinuousEditPort,
+      getDiscBackgroundEdit,
     )
   const pngExportOwner = createApplicationPngExportCommandOwner(
     () => pngExportDependencies,
-    () => caseInsertContinuousEditPort,
+    getDiscBackgroundEdit,
+  )
+  const terminationRuntime = createApplicationTerminationRuntime(
+    () => root, options.nativeTermination, () => projectAsyncWork.invalidateAll(),
+  )
+  const terminationOwners = createApplicationNativeTerminationCommandOwners(
+    terminationRuntime.handoff, replacementGuard, getCurrentEditorEdit,
   )
   const root = createRoot({
+    performanceObserver: options.performanceObserver,
+    ...(options.casePresetProjection ? { casePresetProjection: true } : {}),
+    ...(options.documentHistoryLimit === undefined ? {} : {
+      discHistoryLimit: options.documentHistoryLimit, caseHistoryLimit: options.documentHistoryLimit,
+    }),
+    getTerminationCapabilities: terminationRuntime.capabilities,
+    canAcceptCommands: () => !disposed && !terminationRuntime.isHandoffPending(),
     ports: {
+      closeWindow: terminationOwners.closeWindow,
+      quitApplication: terminationOwners.quitApplication,
       newDisc: newOwners.newDisc,
       newCase: newOwners.newCase,
       openProject: createApplicationProjectOpenCommandOwner(
@@ -129,22 +149,34 @@ export function createApplicationLifecycleRuntime(
       resumeProject: workspaceNavigationOwners.resumeProject,
     },
     exportPng: pngExportOwner,
-    caseInsertPresetEditorApply: {
-      commitLifecycleAndApply(commitLifecycle) {
-        if (!caseInsertPresetEditorApply) {
-          throw new Error(
-            'The Case preset editor apply adapter is not configured.',
-          )
-        }
-        return caseInsertPresetEditorApply.commitLifecycleAndApply(
-          commitLifecycle,
-        )
-      },
-    },
+  })
+
+  const projectAsyncWork = createProjectAsyncWork(root.getStateSnapshot, {
+    canAcceptWork: () => !disposed && !terminationRuntime.isHandoffPending(),
+  })
+  const unsubscribeAsyncWork = root.subscribe(() => projectAsyncWork.observeLifecycle())
+
+  const dispose = onceAsyncCleanup(async () => {
+    disposed = true
+    projectOpenDependencies = null
+    projectSaveDependencies = null
+    projectReplacementDependencies = null
+    projectNewDependencies = null
+    workspaceNavigationDependencies = null
+    pngExportDependencies = null
+    discBackgroundContinuousEditPort = null
+    caseInsertContinuousEditPort = null
+    unsubscribeAsyncWork()
+    projectAsyncWork.dispose()
+    const pending = terminationRuntime.dispose()
+    root.dispose()
+    await pending
   })
 
   return Object.freeze({
     root,
+    projectAsyncWork,
+    connectNativeTerminationIngress: terminationRuntime.connect,
     updateProjectOpenDependencies(dependencies) {
       if (disposed) {
         throw new Error('The application lifecycle runtime is disposed.')
@@ -191,30 +223,14 @@ export function createApplicationLifecycleRuntime(
         root.refreshCommandCapabilities()
       }
     },
-    updateCaseInsertPresetEditorApply(editorApply) {
-      if (disposed) {
-        throw new Error('The application lifecycle runtime is disposed.')
-      }
-      caseInsertPresetEditorApply = editorApply
+    updateDiscBackgroundContinuousEditPort(port) {
+      if (disposed) throw new Error('The application lifecycle runtime is disposed.')
+      discBackgroundContinuousEditPort = port
     },
     updateCaseInsertContinuousEditPort(port) {
-      if (disposed) {
-        throw new Error('The application lifecycle runtime is disposed.')
-      }
+      if (disposed) throw new Error('The application lifecycle runtime is disposed.')
       caseInsertContinuousEditPort = port
     },
-    dispose() {
-      if (disposed) return
-      disposed = true
-      projectOpenDependencies = null
-      projectSaveDependencies = null
-      projectReplacementDependencies = null
-      projectNewDependencies = null
-      workspaceNavigationDependencies = null
-      pngExportDependencies = null
-      caseInsertPresetEditorApply = null
-      caseInsertContinuousEditPort = null
-      root.dispose()
-    },
+    dispose,
   })
 }

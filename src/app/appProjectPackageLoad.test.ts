@@ -219,7 +219,8 @@ test('production composition restores representative full Disc package state imm
   assert.equal(Object.isFrozen(result.value.restoredProject), true)
   assert.doesNotMatch(
     JSON.stringify(result.value.normalizedProject),
-    /packageVersion|manifest\.json|bindings|archiveEntry|assetId/i,
+    // Match package metadata keys, not the valid hydrated steamArtworkAssetId.
+    /"(?:packageVersion|manifest\.json|bindings|archiveEntry|assetId)"\s*:/i,
   )
 })
 

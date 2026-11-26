@@ -24,10 +24,6 @@ import type {
 import {
   applyDiscGuidedLayout,
   clearDiscGuidedWorkflow,
-  omitDiscGuidedSlot,
-  resetDiscGuidedProgress,
-  restoreCompletedDiscGuidedSlot,
-  restoreDiscGuidedSlot,
   type DiscGuidedWorkflowState,
 } from '../guidedPresets/discGuidedWorkflow.ts'
 
@@ -71,11 +67,15 @@ export function useDiscGuidedPlaceholderPreview({
   workflow,
   updateWorkflow,
   activePresetState,
+  resetProgress,
+  editSlot,
 }: {
   state: DiscGuidedSlotState
   workflow: DiscGuidedWorkflowState
   updateWorkflow: DiscGuidedWorkflowUpdater
   activePresetState: ActiveDiscPresetState | null
+  resetProgress(): void
+  editSlot(action: 'omit' | 'include' | 'show-again', slotId: DiscGuidedSlotId): void
 }) {
   const recordPresetApplication = useCallback((
     presetId: string,
@@ -91,29 +91,9 @@ export function useDiscGuidedPlaceholderPreview({
     )
   }, [state, updateWorkflow])
 
-  const omitSlot = useCallback((slotId: DiscGuidedSlotId) => {
-    updateWorkflow((currentWorkflow) =>
-      omitDiscGuidedSlot(currentWorkflow, slotId).state,
-    )
-  }, [updateWorkflow])
-
-  const includeSlot = useCallback((slotId: DiscGuidedSlotId) => {
-    updateWorkflow((currentWorkflow) =>
-      restoreDiscGuidedSlot(currentWorkflow, slotId).state,
-    )
-  }, [updateWorkflow])
-
-  const showSlotAgain = useCallback((slotId: DiscGuidedSlotId) => {
-    updateWorkflow((currentWorkflow) =>
-      restoreCompletedDiscGuidedSlot(currentWorkflow, slotId).state,
-    )
-  }, [updateWorkflow])
-
-  const resetProgress = useCallback(() => {
-    updateWorkflow((currentWorkflow) =>
-      resetDiscGuidedProgress(currentWorkflow).state,
-    )
-  }, [updateWorkflow])
+  const omitSlot = (slotId: DiscGuidedSlotId) => editSlot('omit', slotId)
+  const includeSlot = (slotId: DiscGuidedSlotId) => editSlot('include', slotId)
+  const showSlotAgain = (slotId: DiscGuidedSlotId) => editSlot('show-again', slotId)
 
   const activeLayoutId = activePresetState
     ? getDiscGuidedLayoutIdForRolePreset(activePresetState.ref.id)

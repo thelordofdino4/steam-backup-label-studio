@@ -199,7 +199,6 @@ export function InlinePreviewTextEditor({
   onValueChange,
   onMoveHandlePointerDown,
   onMoveHandlePointerMove,
-  onMoveHandlePointerCancel,
   onMoveHandlePointerUp,
   onRichTextKeyboardCommand,
   onDone,
@@ -630,9 +629,8 @@ export function InlinePreviewTextEditor({
       event.stopPropagation()
       onMoveHandlePointerMove(event as never)
     }
-    const completeDocumentMovePointer = (
+    const handleDocumentMovePointerEnd = (
       event: globalThis.PointerEvent,
-      complete: InlinePreviewTextEditorProps['onMoveHandlePointerUp'],
     ) => {
       if (activeMoveHandlePointerIdRef.current !== event.pointerId) {
         return
@@ -641,16 +639,8 @@ export function InlinePreviewTextEditor({
       activeMoveHandlePointerIdRef.current = null
       activeMoveEdgePointerIdRef.current = null
       setIsMoveHandleDragging(false)
-      complete(event as never)
+      onMoveHandlePointerUp(event as never)
     }
-    const handleDocumentMovePointerEnd = (event: globalThis.PointerEvent) =>
-      completeDocumentMovePointer(event, onMoveHandlePointerUp)
-    const handleDocumentMovePointerCancel = (
-      event: globalThis.PointerEvent,
-    ) => completeDocumentMovePointer(
-      event,
-      onMoveHandlePointerCancel ?? onMoveHandlePointerUp,
-    )
 
     document.addEventListener(
       'pointermove',
@@ -660,12 +650,7 @@ export function InlinePreviewTextEditor({
     document.addEventListener('pointerup', handleDocumentMovePointerEnd, true)
     document.addEventListener(
       'pointercancel',
-      handleDocumentMovePointerCancel,
-      true,
-    )
-    document.addEventListener(
-      'lostpointercapture',
-      handleDocumentMovePointerCancel,
+      handleDocumentMovePointerEnd,
       true,
     )
 
@@ -682,20 +667,11 @@ export function InlinePreviewTextEditor({
       )
       document.removeEventListener(
         'pointercancel',
-        handleDocumentMovePointerCancel,
-        true,
-      )
-      document.removeEventListener(
-        'lostpointercapture',
-        handleDocumentMovePointerCancel,
+        handleDocumentMovePointerEnd,
         true,
       )
     }
-  }, [
-    onMoveHandlePointerCancel,
-    onMoveHandlePointerMove,
-    onMoveHandlePointerUp,
-  ])
+  }, [onMoveHandlePointerMove, onMoveHandlePointerUp])
 
   useEffect(() => {
     const textarea = textareaRef.current

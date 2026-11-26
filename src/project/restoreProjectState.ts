@@ -226,18 +226,25 @@ function restoreSteamBannerLockupImage(
 
 function restoreSteamBannerLockupImageSource(
   project: SavedDiscProject,
+  restoredImageUrl: string | null,
 ): ProjectImageAssetProvenance | null {
-  const lockupImageDataUrl = normalizeNullableString(
-    project.steamBackupLogo.lockupImageDataUrl,
-  )
-  const fallback = lockupImageDataUrl
-    ? isDataImageUrl(lockupImageDataUrl)
-      ? createEmbeddedProjectImageAssetProvenance('Custom Steam banner lockup')
-      : createProjectImageAssetProvenance({
+  const savedImage = project.steamBackupLogo.lockupImageDataUrl
+  const lockupImageDataUrl = normalizeNullableString(savedImage)
+  // Sparse legacy banners restore the app default. Keep that identity so the
+  // normal snapshot omits its runtime URL; never reclassify saved custom evidence.
+  const restoredDefault = !lockupImageDataUrl &&
+    (savedImage == null || typeof savedImage === 'string') &&
+    project.steamBackupLogo.lockupImageSize == null &&
+    project.steamBackupLogo.lockupImageSource == null &&
+    Boolean(restoredImageUrl)
+  const fallback = lockupImageDataUrl && isDataImageUrl(lockupImageDataUrl)
+    ? createEmbeddedProjectImageAssetProvenance('Custom Steam banner lockup')
+    : lockupImageDataUrl || restoredDefault
+      ? createProjectImageAssetProvenance({
           source: 'built-in',
           sourceLabel: 'Default Steam banner lockup',
         })
-    : null
+      : null
 
   return normalizeProjectImageAssetProvenance(
     project.steamBackupLogo.lockupImageSource,
@@ -421,7 +428,10 @@ export async function restoreSavedProjectState(
     steamLogoPlacement: project.steamBackupLogo.placement,
     steamBannerColors: project.steamBackupLogo.bannerColors ?? DEFAULT_STEAM_BANNER_COLORS,
     steamBannerLockupImageUrl: steamBannerLockupImage.imageUrl,
-    steamBannerLockupImageSource: restoreSteamBannerLockupImageSource(project),
+    steamBannerLockupImageSource: restoreSteamBannerLockupImageSource(
+      project,
+      steamBannerLockupImage.imageUrl,
+    ),
     steamBannerLockupImageSize: steamBannerLockupImage.imageSize,
     steamBannerLockupLayout:
       project.steamBackupLogo.lockupLayout ?? DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,

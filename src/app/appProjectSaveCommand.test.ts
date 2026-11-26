@@ -1,3 +1,6 @@
+import { DiscBackgroundRaster, readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
+import { captureNormalizedProjectSnapshot } from '../lifecycle/canonicalProject.ts'
+import { createProjectPackageCommandFailure } from '../tauri/packageProjectFile.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -23,7 +26,8 @@ import {
 import {
   createProjectFileCommandFailure,
 } from '../tauri/projectFileFailure.ts'
-import type { ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
+import { createProjectPackageWriteRequest, type ProjectPackageWritePort } from '../tauri/projectPackageWrite.ts'
+import { createProjectPackageCapturePlan } from '../package/projectPackageCapturePlan.ts'
 import {
   createBlankJewelCaseSavedProject,
 } from '../project/caseInsertProjectAdapters.ts'
@@ -43,9 +47,6 @@ import {
   getDefaultPackageFileName,
   type ApplicationProjectSaveRuntimeDependencies,
 } from './appProjectSaveCommand.ts'
-import type {
-  ApplicationCaseInsertContinuousEditFinishResult,
-} from './applicationCaseInsertContinuousEditPort.ts'
 
 function discProject(
   title = 'Save Disc',
@@ -128,8 +129,6 @@ function createHarness(options: Readonly<{
   state: ApplicationLifecycleState
   dialogResult?: string | null
   write?: (input: WriteInput) => Promise<ProjectFileCommandSuccess>
-  finishContinuousEdit?: () =>
-    ApplicationCaseInsertContinuousEditFinishResult
 }>) {
   const dialogCalls: Array<Parameters<
     ApplicationProjectSaveRuntimeDependencies['saveDialog']
@@ -149,12 +148,7 @@ function createHarness(options: Readonly<{
       },
     },
   }
-  const owners = createApplicationProjectSaveCommandOwners(
-    () => dependencies,
-    () => options.finishContinuousEdit
-      ? Object.freeze({ finish: options.finishContinuousEdit })
-      : null,
-  )
+  const owners = createApplicationProjectSaveCommandOwners(() => dependencies)
   const root = createApplicationLifecycleCompositionRoot({
     initialState: options.state,
     ports: {
@@ -335,66 +329,6 @@ test('direct Save uses the lifecycle-owned project without an editor capture por
   if (result.disposition === 'executed') {
     assert.equal(result.result.status, 'success')
   }
-})
-
-test('Save synchronously finishes a continuous Case edit before lifecycle capture', async () => {
-  const calls: string[] = []
-  const harness: ReturnType<typeof createHarness> = createHarness({
-    state: stateFor(
-      createBlankJewelCaseSavedProject('Before finish'),
-      'sbls-package-v1',
-      'continuous-edit.sbls',
-    ),
-    finishContinuousEdit: () => {
-      calls.push('finish')
-      assert.equal(
-        harness.synchronizeCurrentProject(
-          createBlankJewelCaseSavedProject('Exact final value'),
-        ),
-        'synchronized',
-      )
-      return Object.freeze({ status: 'success', value: undefined })
-    },
-    write: async (input) => {
-      calls.push(`write:${input.normalizedProject.title}`)
-      return Object.freeze({ status: 'success' })
-    },
-  })
-
-  const result = await harness.root.dispatch('project.save')
-
-  assert.equal(result.disposition, 'executed')
-  assert.deepEqual(calls, ['finish', 'write:Exact final value'])
-  assert.equal(harness.writeCalls[0].normalizedProject.title, 'Exact final value')
-})
-
-test('Save contains continuous-edit finish exceptions and performs no capture or write', async () => {
-  const harness = createHarness({
-    state: stateFor(
-      createBlankJewelCaseSavedProject('Unchanged'),
-      'sbls-package-v1',
-      'unchanged.sbls',
-    ),
-    finishContinuousEdit: () => {
-      throw new Error('finish boundary rejected the interaction')
-    },
-  })
-  const before = harness.root.getStateSnapshot()
-
-  const result = await harness.root.dispatch('project.save')
-
-  assert.equal(result.disposition, 'executed')
-  if (result.disposition === 'executed') {
-    assert.equal(result.result.status, 'failure')
-    if (result.result.status === 'failure') {
-      assert.equal(
-        result.result.error.code,
-        'case.continuous-edit-finish-failed',
-      )
-    }
-  }
-  assert.equal(harness.writeCalls.length, 0)
-  assert.equal(harness.root.getStateSnapshot(), before)
 })
 
 test('Case Save preserves lifecycle-owned reserved artwork viewport and asset evidence in the package write input', async () => {
@@ -620,6 +554,107 @@ test('an edit made while snapshot R writes remains current and dirty', async () 
   assert.equal(selectIsActiveProjectDirty(harness.root.getLifecycleState()), true)
 })
 
+test('Disc revision pin separates immutable R from the package projection and refuses a foreign session', async () => {
+  // This seam is exercised independently of the Save-command writer port.
+  const { pinDiscSaveRevision, projectPinnedDiscSave, adoptPinnedDiscSave } =
+    await import('../lifecycle/projectSession.ts')
+  const source = discProject('Pinned R')
+  source.background = { ...source.background,
+    imageDataUrl: 'data:image/png;base64,AA==',
+    imageSource: { source: 'uploaded', sourceLabel: 'Fixture', sourceId: null },
+    imageSize: { width: 1, height: 1 },
+  }
+  const start = stateFor(source, 'sbls-package-v1', 'before.sbls')
+  const r = start.activeSession
+  assert.ok(r?.kind === 'disc')
+  const pin = pinDiscSaveRevision(r)
+  const payload = projectPinnedDiscSave(pin)
+  assert.notEqual(payload, r.project)
+  assert.equal(payload.background.imageDataUrl, source.background.imageDataUrl)
+  assert.equal(Object.hasOwn(payload.background, 'asset'), false)
+  assert.ok(Object.isFrozen(payload))
+  assert.deepEqual(createProjectPackageWriteRequest(payload, createProjectPackageCapturePlan(payload)),
+    createProjectPackageWriteRequest(
+      captureNormalizedProjectSnapshot(source) as SavedDiscProject,
+      createProjectPackageCapturePlan(captureNormalizedProjectSnapshot(source) as SavedDiscProject)))
+  const harness = createHarness({state:start})
+  assert.equal(harness.root.commitDiscBackground({sessionId:r.id, expectedRevision:r.revision,
+    operation:{kind:'transform', scale:1.2, offset:{x:2,y:3}}}), 'committed')
+  const current = harness.root.getLifecycleState()
+  const currentProject = current.activeSession!.project
+  const saved = adoptPinnedDiscSave(current,pin,'after.sbls')
+  assert.equal(saved.activeSession!.project,currentProject)
+  assert.equal(saved.activeSession!.cleanBaseline!.exactSnapshot,r.project)
+  assert.equal(saved.activeSession!.currentPath,'after.sbls')
+  assert.equal(selectIsActiveProjectDirty(saved),true)
+  const replacement = createNewProjectSession({sessionId:'replacement',project:source})
+  assert.equal(adoptPinnedDiscSave(replacement,pin,'must-not-adopt.sbls'),replacement)
+})
+
+test('an in-flight Disc Save writes exact Background R; success or failure never overwrites R+1', async () => {
+  for (const failWrite of [false, true]) {
+    let finishWrite!: () => void
+    const writeGate = new Promise<void>(resolve => { finishWrite = resolve })
+    const source = discProject('Asset R')
+    source.background = { ...source.background,
+      imageDataUrl: 'data:image/png;base64,AA==',
+      imageSource: { source: 'uploaded', sourceLabel: 'Fixture R', sourceId: null },
+      imageSize: { width: 1, height: 1 },
+    }
+    const storedR = await DiscBackgroundRaster.stageAcceptedSource(source.background.imageDataUrl)
+    assert.ok(DiscBackgroundRaster.owns(storedR))
+    const harness = createHarness({
+      state: createLoadedProjectSession({sessionId:'stable-session',project:source,
+        currentPath:'before.json',persistenceFormat:'legacy-json',stagedDiscBackground:storedR}),
+      dialogResult: 'after.sbls',
+      write: async () => {
+        await writeGate
+        if (failWrite) throw createProjectFileCommandFailure(
+          'project.atomic-write.replace-destination', 'permission-denied',
+          'project.atomic-write.replace-destination')
+        return {status:'success'}
+      },
+    })
+    const r = harness.root.getLifecycleState().activeSession!
+    assert.ok(r.kind === 'disc')
+    assert.equal(r.project.background.asset, storedR)
+    const save = harness.root.dispatch('project.save')
+    let advancedState!: ApplicationLifecycleState
+    try {
+      await new Promise<void>(resolve => setImmediate(resolve))
+      const [written] = harness.writeCalls
+      assert.ok(written)
+      assert.notEqual(written.normalizedProject, r.project)
+      assert.equal(written.normalizedProject.background.imageDataUrl, source.background.imageDataUrl)
+      assert.deepEqual(createProjectPackageWriteRequest(written.normalizedProject, written.capturePlan),
+        createProjectPackageWriteRequest(
+          captureNormalizedProjectSnapshot(source) as SavedDiscProject,
+          createProjectPackageCapturePlan(captureNormalizedProjectSnapshot(source) as SavedDiscProject)))
+      const replacementSource = 'data:image/png;base64,AQ=='
+      const stagedAsset = await DiscBackgroundRaster.stageAcceptedSource(replacementSource)
+      assert.equal(harness.root.commitDiscBackground({sessionId:r.id, expectedRevision:r.revision,
+        operation:{kind:'asset',stagedAsset,background:{...source.background,
+          imageDataUrl:replacementSource, scale:1.2}}}), 'committed')
+      advancedState = harness.root.getLifecycleState()
+    } finally {
+      finishWrite()
+    }
+    const result = await save
+    assert.equal(result.disposition, 'executed')
+    if (result.disposition !== 'executed') throw new Error('Expected a completed Save.')
+    assert.equal(result.result.status, failWrite ? 'failure' : 'success')
+    const active = harness.root.getLifecycleState().activeSession
+    assert.ok(active?.kind === 'disc')
+    assert.equal(readDiscBackgroundAsset(active.project.background.asset), 'data:image/png;base64,AQ==')
+    assert.equal(active.revision,r.revision+1)
+    assert.equal(selectIsActiveProjectDirty(harness.root.getLifecycleState()),true)
+    assert.equal(active.cleanBaseline!.exactSnapshot,failWrite ? r.cleanBaseline!.exactSnapshot : r.project)
+    if (failWrite) assert.equal(harness.root.getLifecycleState(), advancedState)
+    assert.equal(active.currentPath, failWrite ? 'before.json' : 'after.sbls')
+    assert.equal(active.persistenceFormat, failWrite ? 'legacy-json' : 'sbls-package-v1')
+  }
+})
+
 test('a replaced session cannot adopt path, format, or baseline after commit', async () => {
   const initial = stateFor(
     discProject('Written session'),
@@ -724,4 +759,55 @@ test('ASCII case-insensitive .sbls eligibility is exact and never rewrites names
     'name.sbls ',
     'name',
   ]) assert.equal(hasEligibleSblsPath(path), false, String(path))
+})
+
+
+test('capacity rejection gives recovery guidance and preserves the session', async () => {
+  const expected = createProjectFileCommandFailure(
+    'project.file-too-large', 'size-limit-exceeded', 'project-package-write-request',
+  )
+  const harness = createHarness({
+    state: stateFor(discProject('Capacity'), 'sbls-package-v1', 'existing.sbls'),
+    write: async () => { throw expected },
+  })
+  const before = harness.root.getStateSnapshot()
+  const result = await harness.root.dispatch('project.save')
+  assert.equal(harness.root.getStateSnapshot(), before)
+  assert.equal(result.disposition, 'executed')
+  if (result.disposition === 'executed' && result.result.status === 'failure') {
+    assert.equal(result.result.error.cause, expected)
+    assert.match(result.result.error.userMessage, /Reduce image dimensions.*save again/)
+  } else assert.fail('Expected a safe capacity failure')
+})
+
+test('unsupported legacy image save gives replacement guidance without changing session or source path', async () => {
+  const expected = createProjectPackageCommandFailure('project.package.asset-type-unsupported', 'asset-capture')
+  const harness = createHarness({
+    state: stateFor(discProject('Legacy vector'), 'legacy-json', 'original.sbls.json'),
+    dialogResult: 'converted.sbls',
+    write: async () => { throw expected },
+  })
+  const before = harness.root.getStateSnapshot()
+  const result = await harness.root.dispatch('project.save')
+  assert.equal(harness.root.getStateSnapshot(), before)
+  if (result.disposition === 'executed' && result.result.status === 'failure') {
+    assert.equal(result.result.error.cause, expected)
+    assert.match(result.result.error.userMessage, /Convert SVG.*PNG/)
+  } else assert.fail('Expected a safe unsupported-image failure')
+})
+
+test('noncanonical legacy image rejection also explains how to replace the image', async () => {
+  const expected = createProjectPackageCommandFailure('project.package.asset-type-invalid', 'asset-capture')
+  const harness = createHarness({
+    state: stateFor(discProject('Legacy image'), 'legacy-json', 'original.sbls.json'),
+    dialogResult: 'converted.sbls',
+    write: async () => { throw expected },
+  })
+  const before = harness.root.getStateSnapshot()
+  const result = await harness.root.dispatch('project.save')
+  assert.equal(harness.root.getStateSnapshot(), before)
+  if (result.disposition === 'executed' && result.result.status === 'failure') {
+    assert.equal(result.result.error.cause, expected)
+    assert.match(result.result.error.userMessage, /Re-export.*PNG/)
+  } else assert.fail('Expected a safe image-format failure')
 })

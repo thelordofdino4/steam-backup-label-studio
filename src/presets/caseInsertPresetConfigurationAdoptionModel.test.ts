@@ -879,13 +879,11 @@ test('legal relationship registry permits only coherent attach, replace, and rel
     CASE_INSERT_PRESET_APPLICATION_ADOPTION_RELATIONSHIPS.apply,
     {
       operation: 'apply',
-      requiredCurrentAttachment:
-        'authoritative-absence-or-exact-source-configuration',
-      sourceConfigurationIdentity:
-        'absent-or-must-match-current-attachment-exactly',
+      requiredCurrentAttachment: 'authoritative-absence',
+      sourceConfigurationIdentity: 'must-be-absent',
       aggregateResult: 'exact-transition-result',
       successorAttachment: 'exact-successor-configuration',
-      attachmentAction: 'attached-or-replaced',
+      attachmentAction: 'attached',
       replayRule: 'changed-source-state-is-conflict',
       outOfOrderRule:
         'session-revision-template-or-attachment-mismatch-is-conflict',
@@ -912,7 +910,7 @@ test('legal relationship registry permits only coherent attach, replace, and rel
     CASE_INSERT_PRESET_APPLICATION_ADOPTION_RELATIONSHIPS), true)
 })
 
-test('attachment-edge classification accepts exact Apply attach or replacement and rejects stale state', () => {
+test('attachment-edge classification rejects replay, missing, and different-source state', () => {
   const fixture = buildEvidenceFixture()
   const attached = createCaseInsertPresetAttachedState(
     fixture.firstConfiguration,
@@ -937,28 +935,6 @@ test('attachment-edge classification accepts exact Apply attach or replacement a
       'evidence-validated-pure-adoption-transition-required')
   }
 
-  const replacementApply =
-    classifyCaseInsertPresetApplicationAdoptionRelationship({
-      operation: 'apply',
-      currentAttachment: attached.state,
-      evidenceEdge: {
-        sourceConfigurationIdentity,
-        successorConfigurationIdentity: sourceConfigurationIdentity,
-      },
-    })
-  assert.equal(replacementApply.ok, true)
-  if (replacementApply.ok) {
-    assert.equal(replacementApply.attachmentAction, 'replaced')
-    assert.equal(
-      replacementApply.sourceConfigurationIdentity,
-      sourceConfigurationIdentity,
-    )
-    assert.equal(
-      replacementApply.successorConfigurationIdentity,
-      sourceConfigurationIdentity,
-    )
-  }
-
   const replayedApply = classifyCaseInsertPresetApplicationAdoptionRelationship({
     operation: 'apply',
     currentAttachment: attached.state,
@@ -969,21 +945,7 @@ test('attachment-edge classification accepts exact Apply attach or replacement a
   })
   assert.equal(replayedApply.ok, false)
   if (!replayedApply.ok) {
-    assert.equal(replayedApply.status, 'invalid-source-configuration')
-  }
-
-  const staleApply = classifyCaseInsertPresetApplicationAdoptionRelationship({
-    operation: 'apply',
-    currentAttachment: attached.state,
-    evidenceEdge: {
-      sourceConfigurationIdentity:
-        'case:preset-applied-configuration:v1:different',
-      successorConfigurationIdentity: sourceConfigurationIdentity,
-    },
-  })
-  assert.equal(staleApply.ok, false)
-  if (!staleApply.ok) {
-    assert.equal(staleApply.status, 'configuration-identity-mismatch')
+    assert.equal(replayedApply.status, 'unexpected-source-attachment')
   }
 
   const crossDomainApply =
@@ -1229,34 +1191,6 @@ test('adoption identity projection is deterministic but is not a receipt', () =>
   assert.equal(changedResult.ok, true)
   if (original.ok && changedResult.ok) {
     assert.notEqual(original.adoptionIdentity, changedResult.adoptionIdentity)
-  }
-
-  const replacementApply = structuredClone(identityInput('apply')) as
-    MutableRecord
-  const replacementApplySource = replacementApply.source as MutableRecord
-  const replacementApplySuccessor = replacementApply.successor as MutableRecord
-  replacementApplySource.attachment = structuredClone(
-    replacementApplySuccessor.attachment,
-  )
-  replacementApply.sourceConfigurationIdentity =
-    replacementApply.successorConfigurationIdentity
-  replacementApply.attachmentAction = 'replaced'
-  const replacementApplyProjection =
-    projectCaseInsertPresetApplicationAdoptionIdentity(replacementApply)
-  assert.equal(replacementApplyProjection.ok, true)
-
-  const staleReplacementApply = structuredClone(replacementApply) as
-    MutableRecord
-  staleReplacementApply.sourceConfigurationIdentity =
-    'case:preset-applied-configuration:v1:stale'
-  const staleReplacementApplyProjection =
-    projectCaseInsertPresetApplicationAdoptionIdentity(staleReplacementApply)
-  assert.equal(staleReplacementApplyProjection.ok, false)
-  if (!staleReplacementApplyProjection.ok) {
-    assert.equal(
-      staleReplacementApplyProjection.status,
-      'unsupported-state-transition',
-    )
   }
 
   const typedApply = structuredClone(identityInput('apply')) as MutableRecord

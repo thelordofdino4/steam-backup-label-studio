@@ -1,3 +1,4 @@
+import { IMPORTED_IMAGE_ACCEPT } from '../../image/importedImagePolicy'
 import type { ChangeEvent, ReactNode, Ref } from 'react'
 import type {
   LogoAlignmentPreset,
@@ -27,7 +28,6 @@ export type EditorLogoLayoutField = {
   max: number
   min: number
   onChange: (value: number) => void
-  onInput?: (value: number) => void
   step: number
   value: number
 }
@@ -104,7 +104,7 @@ export function EditorLogoAssetControls({
         id={uploadId}
         className="logo-file-input"
         type="file"
-        accept="image/*"
+        accept={IMPORTED_IMAGE_ACCEPT}
         onChange={(event) => void onUpload(event)}
       />
 
@@ -173,7 +173,6 @@ export function EditorLogoAssetControls({
           max={field.max}
           step={field.step}
           value={field.value}
-          onInput={field.onInput}
           onChange={field.onChange}
         />
       ))}

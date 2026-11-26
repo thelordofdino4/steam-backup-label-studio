@@ -17,7 +17,6 @@ export type ContentBoundedImageProps = {
   style?: CSSProperties
   editableAttributes?: Record<string, string>
   draggable?: boolean
-  onLostPointerCapture?: PointerEventHandler<Element>
   onPointerDown?: PointerEventHandler<Element>
   onPointerMove?: PointerEventHandler<Element>
   onPointerUp?: PointerEventHandler<Element>
@@ -82,7 +81,6 @@ export function ContentBoundedImage({
   style,
   editableAttributes,
   draggable = false,
-  onLostPointerCapture,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -103,7 +101,6 @@ export function ContentBoundedImage({
         alt={alt}
         {...editableAttributes}
         draggable={draggable}
-        onLostPointerCapture={onLostPointerCapture}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -128,7 +125,6 @@ export function ContentBoundedImage({
       draggable={draggable}
       role={alt ? 'img' : undefined}
       aria-label={alt || undefined}
-      onLostPointerCapture={onLostPointerCapture}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

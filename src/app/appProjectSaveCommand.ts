@@ -1,3 +1,4 @@
+import { imageImportFailureMessage } from '../image/importedImagePolicy.ts'
 import {
   commandFailed,
   commandSucceeded,
@@ -10,9 +11,13 @@ import type {
   SaveProjectCommandOwner,
 } from '../lifecycle/applicationLifecycleCommandPorts.ts'
 import {
+  adoptPinnedDiscSave,
   adoptSavedProjectBaseline,
   canSaveProjectSessionDirectly,
   hasEligibleSblsPath,
+  pinDiscSaveRevision,
+  projectPinnedDiscSave,
+  type ApplicationLifecycleState,
 } from '../lifecycle/projectSession.ts'
 import {
   captureNormalizedProjectSnapshot,
@@ -106,7 +111,16 @@ function writeFailure(error: unknown): ApplicationCommandResult<never> {
     isProjectPackageDestinationFailure(error)) {
     return failure(
       error.code,
-      error.message,
+      error.code === 'project.file-too-large' ||
+        error.code === 'project.package.resource-limit-exceeded' ||
+        error.code === 'project.package.archive-too-large'
+        ? `${error.message} Reduce image dimensions or remove unneeded artwork and metadata, then save again.`
+        : error.code === 'project.package.asset-type-invalid' ||
+          error.code === 'project.package.asset-type-unsupported' ||
+          error.code === 'project.package.asset-jpeg-profile-unsupported' ||
+          error.code === 'project.package.asset-bmp-profile-unsupported'
+          ? imageImportFailureMessage(error)
+          : error.message,
       `The package write boundary returned ${error.code}.`,
       error,
     )
@@ -142,25 +156,29 @@ async function runSave(
   // R is the immutable lifecycle-owned aggregate accepted by this operation.
   // Later editor synchronization may advance the same session to R+1 without
   // changing the bytes or baseline associated with this write.
-  let writtenProject: ReturnType<typeof captureNormalizedProjectSnapshot>
   let persistedProject: SavedProject
   let capturePlan: ReturnType<typeof createProjectPackageCapturePlan>
+  let adoptWrittenRevision: (state: ApplicationLifecycleState, path: string) => ApplicationLifecycleState
   try {
-    writtenProject = captureNormalizedProjectSnapshot(
-      session.project as unknown as SavedProject,
-    )
-    persistedProject = session.kind === 'caseInsert'
-      ? createCaseInsertProjectSaveSnapshot(
-          writtenProject as Extract<
-            typeof writtenProject,
-            Readonly<{ projectType: 'caseInsert' }>
-          >,
-          session.caseInsertPresetApplication,
-        )
-      : writtenProject as unknown as SavedProject
-    capturePlan = createProjectPackageCapturePlan(
-      persistedProject,
-    )
+    if (session.kind === 'disc') {
+      const pin = pinDiscSaveRevision(session)
+      persistedProject = projectPinnedDiscSave(pin)
+      adoptWrittenRevision = (state, path) => adoptPinnedDiscSave(state, pin, path)
+    } else {
+      const writtenProject = captureNormalizedProjectSnapshot(
+        session.project as unknown as SavedProject,
+      )
+      persistedProject = createCaseInsertProjectSaveSnapshot(
+        writtenProject as Extract<typeof writtenProject, Readonly<{ projectType: 'caseInsert' }>>,
+        session.caseInsertPresetApplication,
+      )
+      adoptWrittenRevision = (state, path) => adoptSavedProjectBaseline(state, {
+        acceptedSnapshot: writtenProject as unknown as SavedProject,
+        currentPath: path,
+        persistenceFormat: 'sbls-package-v1',
+      })
+    }
+    capturePlan = createProjectPackageCapturePlan(persistedProject)
   } catch {
     return failure(
       'project.package.asset-capture-failed',
@@ -220,14 +238,9 @@ async function runSave(
       )
     }
 
-    const adoption = context.commitState(beforeAdoption.generation, (state) => {
-      if (state.activeSession?.id !== session.id) return state
-      return adoptSavedProjectBaseline(state, {
-        acceptedSnapshot: writtenProject as unknown as SavedProject,
-        currentPath: destination,
-        persistenceFormat: 'sbls-package-v1',
-      })
-    })
+    const adoption = context.commitState(beforeAdoption.generation, state =>
+      state.activeSession?.id === session.id ? adoptWrittenRevision(state, destination) : state,
+    )
     if (adoption.status === 'stale') {
       return failure(
         'project.save-stale-session',

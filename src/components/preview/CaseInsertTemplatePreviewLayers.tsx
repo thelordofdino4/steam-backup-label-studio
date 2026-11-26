@@ -89,7 +89,6 @@ function CaseInsertTemplateImageSlot({
   mixedLegacyAboveTitle?: boolean
 }) {
   const pointerProps = {
-    onLostPointerCapture: pointerHandlers.handleTemplateLostPointerCapture,
     onPointerDown: (event: PointerEvent<Element>) =>
       dragTarget.kind === 'primary'
         ? pointerHandlers.handleTemplatePrimaryImageSlotPointerDown(
@@ -103,7 +102,6 @@ function CaseInsertTemplateImageSlot({
             dragTarget.slotKey,
             dragTarget.slotId,
           ),
-    onPointerCancel: pointerHandlers.handleTemplatePointerCancel,
     onPointerMove: pointerHandlers.handleTemplatePointerMove,
     onPointerUp: pointerHandlers.handleTemplatePointerUp,
   }
@@ -251,8 +249,6 @@ export function CaseInsertTemplateBackgroundLayer({
           paneId,
           'background',
         )}
-      onLostPointerCapture={pointerHandlers.handleTemplateLostPointerCapture}
-      onPointerCancel={pointerHandlers.handleTemplatePointerCancel}
       onPointerMove={pointerHandlers.handleTemplatePointerMove}
       onPointerUp={pointerHandlers.handleTemplatePointerUp}
       style={getRectStyle(backgroundFit.region, layout)}

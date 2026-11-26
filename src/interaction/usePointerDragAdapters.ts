@@ -11,9 +11,6 @@ import { usePointerDrag } from './usePointerDrag'
 
 type PercentPointerDragOptions<TDragState extends PercentDragState> = {
   getBounds: (dragState: TDragState) => DragBounds | null | undefined
-  onDragCancel?: (dragState: TDragState) => void
-  onDragEnd?: (dragState: TDragState) => void
-  onDragRelease?: (dragState: TDragState) => void
   onDraggedPoint: (dragState: TDragState, draggedPoint: DragPoint) => void
   stopPropagation?: boolean
 }
@@ -29,41 +26,28 @@ export function usePercentPointerDrag<
   TElement extends Element = Element,
 >({
   getBounds,
-  onDragCancel,
-  onDragEnd,
-  onDragRelease,
   onDraggedPoint,
   stopPropagation = true,
 }: PercentPointerDragOptions<TDragState>) {
-  const projectPointerEvent = (
-    dragState: TDragState,
-    event: PointerEvent<TElement>,
-  ) => {
-    const bounds = getBounds(dragState)
-
-    if (!bounds) return false
-
-    onDraggedPoint(
-      dragState,
-      getDraggedPercentPoint(
-        dragState,
-        event.clientX,
-        event.clientY,
-        bounds,
-      ),
-    )
-    return true
-  }
-
   return usePointerDrag<TDragState, TElement>({
     stopPropagation,
-    onDragMove: projectPointerEvent,
-    onDragEnd: (dragState, event) => {
-      projectPointerEvent(dragState, event)
-      onDragEnd?.(dragState)
+    onDragMove: (dragState, event: PointerEvent<TElement>) => {
+      const bounds = getBounds(dragState)
+
+      if (!bounds) {
+        return
+      }
+
+      onDraggedPoint(
+        dragState,
+        getDraggedPercentPoint(
+          dragState,
+          event.clientX,
+          event.clientY,
+          bounds,
+        ),
+      )
     },
-    onDragCancel,
-    onDragRelease,
   })
 }
 
