@@ -1231,7 +1231,9 @@ test('Case cover artwork settles at the release point without replaying it', { t
     // Remove the real capture target through its owning feature control while the
     // pointer stays down. The extra release must not alter the hidden artwork.
     await reveal(page, 'Game Title')
+    await reveal(page, 'Game Logo')
     const visibility = page.getByRole('checkbox', { name: 'Show game logo', exact: true })
+    await visibility.waitFor({ state: 'visible', timeout: 5_000 })
     assert.equal(await visibility.isChecked(), true)
     const originalNode = await artwork.elementHandle()
     assert.ok(originalNode)
