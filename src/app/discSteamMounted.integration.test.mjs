@@ -1227,5 +1227,48 @@ test('Case cover artwork settles at the release point without replaying it', { t
     await page.mouse.up()
     await drain(page)
     assert.deepEqual(await read(), final, 'release and lost capture must not publish again')
+
+    // Remove the real capture target through its owning feature control while the
+    // pointer stays down. The extra release must not alter the hidden artwork.
+    await reveal(page, 'Game Title')
+    const visibility = page.getByRole('checkbox', { name: 'Show game logo', exact: true })
+    assert.equal(await visibility.isChecked(), true)
+    const originalNode = await artwork.elementHandle()
+    assert.ok(originalNode)
+    const shifted = await artwork.boundingBox()
+    assert.ok(shifted)
+    const heldX = Math.round(shifted.x + shifted.width / 2)
+    const heldY = Math.round(shifted.y + shifted.height / 2)
+    await page.mouse.move(heldX, heldY)
+    await page.mouse.down()
+    assert.equal(await artwork.evaluate((node, id) => node.hasPointerCapture(id), pointerId), true)
+    await visibility.evaluate(control => control.click())
+    await artwork.waitFor({ state: 'detached', timeout: 5_000 })
+    assert.equal(await originalNode.evaluate(node => node.isConnected), false)
+    await drain(page)
+    const hidden = await read()
+    assert.deepEqual(layout(hidden), layout(final), 'hiding artwork preserves accepted placement')
+    await page.mouse.move(heldX + 14, heldY + 8)
+    await page.mouse.up()
+    await drain(page)
+    assert.deepEqual(await read(), hidden, 'no stale pointer gesture may publish after target removal')
+
+    await visibility.evaluate(control => control.click())
+    await artwork.waitFor({ state: 'visible', timeout: 5_000 })
+    const restored = await read()
+    assert.deepEqual(layout(restored), layout(final), 'restoring artwork keeps its position')
+    const restoredBox = await artwork.boundingBox()
+    assert.ok(restoredBox)
+    const restoredX = Math.round(restoredBox.x + restoredBox.width / 2)
+    const restoredY = Math.round(restoredBox.y + restoredBox.height / 2)
+    await page.mouse.move(restoredX, restoredY)
+    await page.mouse.down()
+    assert.equal(await artwork.evaluate((node, id) => node.hasPointerCapture(id), pointerId), true)
+    await page.mouse.move(restoredX - 12, restoredY - 6)
+    await page.mouse.up()
+    await page.waitForFunction(previous => {
+      const current = window.readCaseSteamDiagnostic().project.caseInsert.templates.cover.titleArtwork.layout
+      return current.x < previous.x && current.y < previous.y
+    }, layout(restored), { timeout: 4_000 })
   } finally { await page.close() }
 })
