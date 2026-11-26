@@ -601,7 +601,7 @@ Package-domain codec boundary:
   (`e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564`)
   archives, license/patent notices, source provenance, allocator overlays, and
   patch rationale are checked in under `vendor/`. The root `LICENSE` contains
-  MIT text; the application manifest leaves `license` empty. Release metadata
+  MIT text; the application manifest does not specify `license` metadata. Release metadata
   reconciliation remains under #381/#376; this does not change licensing policy.
   The child manifest currently declares
   `MIT AND BSD-3-Clause AND IJG`; checked-in upstream notices remain
