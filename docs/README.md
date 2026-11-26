@@ -12,6 +12,8 @@
 
 This map is the entry point for repository documentation. If two documents disagree, use the conflict rule listed here rather than treating older status reports, audits, or implementation plans as current truth.
 
+Native codec maintenance: [`NATIVE_CODEC_MAINTENANCE.md`](NATIVE_CODEC_MAINTENANCE.md) owns update/advisory review and source replay; it separates observed toolchain evidence from unverified release/platform claims.
+
 ## Always Read
 
 | Document | Status | Purpose | Read when | Conflict rule |
