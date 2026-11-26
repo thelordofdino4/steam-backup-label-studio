@@ -3,7 +3,7 @@ import {
   createEmptyApplicationLifecycleState, restoreHistoryCaseProject, restoreHistoryDiscProject, type ApplicationLifecycleState,
 } from './projectSession.ts'
 import {
-  createDocumentHistory, recordDocumentTransition, stepDocumentHistory, type DocumentHistory,
+  createDocumentHistory, recordDocumentTransition, stepDocumentHistory, type CasePresetHistoryEdge, type DocumentHistory,
 } from './documentHistory.ts'
 import type { CommittedDiscProject } from './canonicalProject.ts'
 
@@ -14,6 +14,7 @@ export type ApplicationLifecycleStateSnapshot = Readonly<{
   caseHistory?: DocumentHistory
   discHistoryProjectionPending?: true
   caseSteamProjectionPending?: true
+  casePresetProjectionPending?: true
 }>
 export type ApplicationLifecycleStateTransition = (current: ApplicationLifecycleState) => ApplicationLifecycleState
 export type ApplicationLifecycleStateCommitResult = Readonly<{
@@ -25,12 +26,14 @@ export type ApplicationLifecycleStateStoreOptions = Readonly<{
   initialState?: ApplicationLifecycleState
   discHistoryLimit?: number
   caseHistoryLimit?: number
+  casePresetProjection?: boolean
   onSubscriberError?: (error: unknown) => void
 }>
 
 type Projection = 'disc' | 'caseInsert'
+type ProjectionFence = Projection | 'casePreset'
 type DocumentCommitPolicy = 'record-disc-transaction' | 'record-disc-transaction-with-projection' |
-  'case-steam-transaction-with-projection'
+  'case-steam-transaction-with-projection' | 'case-preset-transaction'
 
 export interface ApplicationLifecycleStateStore {
   getSnapshot(): ApplicationLifecycleStateSnapshot
@@ -45,12 +48,13 @@ export interface ApplicationLifecycleStateStore {
   dispose(): void
 }
 
-function makeSnapshot(generation: number, state: ApplicationLifecycleState, history?: DocumentHistory, pending?: Projection) {
+function makeSnapshot(generation: number, state: ApplicationLifecycleState, history?: DocumentHistory, pending?: ProjectionFence) {
   return Object.freeze({
     generation, state,
     ...(history ? state.activeSession?.kind === 'caseInsert' ? { caseHistory: history } : { discHistory: history } : {}),
     ...(pending === 'disc' ? { discHistoryProjectionPending: true as const } : {}),
-    ...(pending === 'caseInsert' ? { caseSteamProjectionPending: true as const } : {}),
+    ...(pending === 'caseInsert' || pending === 'casePreset' ? { caseSteamProjectionPending: true as const } : {}),
+    ...(pending === 'casePreset' ? { casePresetProjectionPending: true as const } : {}),
   })
 }
 
@@ -75,7 +79,7 @@ export function createApplicationLifecycleStateStore(
     Object.freeze({ status, snapshot: at })
 
   function publish(
-    basis: ApplicationLifecycleStateSnapshot, state: ApplicationLifecycleState, history?: DocumentHistory, pending?: Projection,
+    basis: ApplicationLifecycleStateSnapshot, state: ApplicationLifecycleState, history?: DocumentHistory, pending?: ProjectionFence,
   ): ApplicationLifecycleStateCommitResult {
     if (basis !== snapshot) return result('stale')
     const committed = makeSnapshot(basis.generation + 1, state, history, pending)
@@ -102,9 +106,11 @@ export function createApplicationLifecycleStateStore(
       return result('no-op')
     const history = stepDocumentHistory(priorHistory, current.id, current.project, direction)
     if (history === priorHistory) return result('no-op')
+    const edge = direction === 'undo' ? priorHistory.pastCaseEdges.at(-1) : priorHistory.futureCaseEdges[0]
+    const attachment = direction === 'undo' ? edge?.before : edge?.after
     const restored = current.kind === 'disc'
       ? restoreHistoryDiscProject(state, current, history.current as CommittedDiscProject)
-      : restoreHistoryCaseProject(state, current, history.current)
+      : restoreHistoryCaseProject(state, current, history.current, attachment)
     if (restored === state) return result('no-op')
     return publish(basis, captureApplicationLifecycleState(restored), history, kind)
   }
@@ -130,29 +136,39 @@ export function createApplicationLifecycleStateStore(
         if (limit !== undefined) {
           const old = current.kind === 'disc' ? basis.discHistory : basis.caseHistory
           if (old && prior?.kind === current.kind && prior.id === current.id) {
-            if (prior.revision === current.revision && prior.project === current.project) history = old
-            else if (current.revision === prior.revision + 1 &&
+            let edge: CasePresetHistoryEdge | undefined
+            if (current.kind === 'caseInsert' && prior.kind === 'caseInsert' && historyPolicy === 'case-preset-transaction' &&
+                current.caseInsertPresetApplication.applicationRevision === prior.caseInsertPresetApplication.applicationRevision + 1) {
+              const semantic = ({ attachment, recoveryStatus }: typeof prior.caseInsertPresetApplication) =>
+                Object.freeze({ attachment, recoveryStatus })
+              edge = Object.freeze({
+                before: semantic(prior.caseInsertPresetApplication),
+                after: semantic(current.caseInsertPresetApplication),
+              })
+            }
+            if (edge || (current.revision === prior.revision + 1 &&
                 (current.kind === 'disc'
                   ? historyPolicy === 'record-disc-transaction' || historyPolicy === 'record-disc-transaction-with-projection'
-                  : historyPolicy === 'case-steam-transaction-with-projection')) {
-              const recorded = recordDocumentTransition(old, current.id, prior.project, current.project)
+                  : historyPolicy === 'case-steam-transaction-with-projection'))) {
+              const recorded = recordDocumentTransition(old, current.id, prior.project, current.project, edge)
               if (recorded !== old) history = recorded
-            }
+            } else if (prior.revision === current.revision && prior.project === current.project) history = old
           }
           // New/Open and edits without a registered document history policy
           // cannot resurrect earlier content. Only the active session has history.
           history ??= createDocumentHistory(current.id, current.project, limit)
         }
       }
-      let pending: Projection | undefined
+      let pending: ProjectionFence | undefined
       if (prior && current && prior.kind === current.kind && prior.id === current.id) {
         if (current.revision === prior.revision + 1 &&
             ((current.kind === 'disc' && historyPolicy === 'record-disc-transaction-with-projection') ||
-             (current.kind === 'caseInsert' && historyPolicy === 'case-steam-transaction-with-projection'))) {
-          pending = current.kind
+             (current.kind === 'caseInsert' && (historyPolicy === 'case-steam-transaction-with-projection' ||
+               (historyPolicy === 'case-preset-transaction' && options.casePresetProjection))))) {
+          pending = historyPolicy === 'case-preset-transaction' ? 'casePreset' : current.kind
         } else if (prior.revision === current.revision && prior.project === current.project &&
             (basis.discHistoryProjectionPending || basis.caseSteamProjectionPending)) {
-          pending = current.kind
+          pending = basis.casePresetProjectionPending ? 'casePreset' : current.kind
         }
       }
       return publish(basis, next, history, pending)

@@ -75,6 +75,7 @@ function summarize(session) {
 }
 const lifecycleRuntime = createApplicationLifecycleRuntime({
   performanceObserver: observer,
+  casePresetProjection: true,
   createRoot(options) {
     const root = createApplicationLifecycleCompositionRoot({ ...options, discHistoryLimit: 4, caseHistoryLimit: 4 })
     root.subscribe(snapshot => {
@@ -177,7 +178,8 @@ window.readCaseSteamDiagnostic = () => {
   return { sessionId: session.id, revision: session.revision, project: session.project,
     path: session.currentPath, dirty: selectIsActiveProjectDirty(state), pending: Boolean(caseSteamProjectionPending),
     past: caseHistory?.past.length, future: caseHistory?.future.length,
-    applicationRevision: session.caseInsertPresetApplication.applicationRevision }
+    applicationRevision: session.caseInsertPresetApplication.applicationRevision,
+    attached: session.caseInsertPresetApplication.attachment.status === 'attached' }
 }
 window.readDiscHistoryProject = () => {
   const session = lifecycleRuntime.root.getStateSnapshot().state.activeSession

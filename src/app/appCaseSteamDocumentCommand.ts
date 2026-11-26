@@ -66,7 +66,7 @@ export function stepProjectedCaseHistory(
     const snapshot = root.getStateSnapshot()
     const accepted = snapshot.state.activeSession
     if (accepted?.kind !== 'caseInsert' || accepted.id !== basis.current.id ||
-        accepted.revision !== basis.current.revision + 1 || accepted.project !== target ||
+        accepted.revision !== basis.current.revision + (projectContentsAreSemanticallyEqual(basis.current.project, target) ? 0 : 1) || accepted.project !== target ||
         !snapshot.caseSteamProjectionPending) {
       status = 'stale'
       return

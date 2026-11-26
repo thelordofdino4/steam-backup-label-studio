@@ -63,6 +63,7 @@ export type ApplicationLifecycleRuntime = Readonly<{
 
 export type ApplicationLifecycleRuntimeOptions = Readonly<{
   performanceObserver?: LifecyclePerformanceObserver
+  casePresetProjection?: boolean
   nativeTermination?: ApplicationTerminationRuntimeDependencies
   createRoot?: (
     options: ApplicationLifecycleCompositionRootOptions,
@@ -126,6 +127,7 @@ export function createApplicationLifecycleRuntime(
   )
   const root = createRoot({
     performanceObserver: options.performanceObserver,
+    ...(options.casePresetProjection ? { casePresetProjection: true } : {}),
     getTerminationCapabilities: terminationRuntime.capabilities,
     canAcceptCommands: () => !disposed && !terminationRuntime.isHandoffPending(),
     ports: {

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createApplicationLifecycleCompositionRoot } from './applicationLifecycleCompositionRoot.ts'
 import { prepareCaseSteamImport } from './caseSteamOperation.ts'
 import { adoptSavedProjectBaseline } from './projectSession.ts'
 import { createCaseInsertProjectSaveSnapshot } from '../project/caseInsertPresetProjectPersistence.ts'
@@ -1380,5 +1381,56 @@ test('commit adapter has no operation, store, persistence, UI, catalog, renderer
   ]
   for (const pattern of forbidden) {
     assert.doesNotMatch(source, pattern, String(pattern))
+  }
+})
+
+
+test('real Case preset Apply and attachment-only Detach use the same bounded Undo/Redo owner', async () => {
+  for (const operation of ['apply', 'detach'] as const) {
+    const { source, snapshot } = operationFixture(operation, 32)
+    const root = createApplicationLifecycleCompositionRoot({
+      initialState: { activeSession: source, visibleWorkspace: 'caseInsert' }, caseHistoryLimit: 3,
+    })
+    const session = () => requireCaseSession(root.getLifecycleState())
+    const original = session()
+    const initialAttachment = original.caseInsertPresetApplication.attachment.status
+    const projection = () => createCaseInsertProjectSaveSnapshot(session().project, session().caseInsertPresetApplication)
+    const acknowledge = () => {
+      const basis = root.getStateSnapshot()
+      if (basis.caseSteamProjectionPending) {
+        assert.equal(root.acknowledgeCaseSteamProjection({
+          sessionId: original.id, expectedGeneration: basis.generation, projection: projection(),
+        }), 'committed')
+      }
+    }
+    const dispatched = await root.dispatch(`case.layoutPreset.${operation}`, snapshot)
+    assert.equal(dispatched.disposition, 'executed')
+    assert.equal(dispatched.result.status, 'success')
+    acknowledge()
+    const applied = session()
+    assert.equal(applied.revision, original.revision + (operation === 'apply' ? 1 : 0))
+    assert.equal(applied.caseInsertPresetApplication.attachment.status, operation === 'apply' ? 'attached' : 'unattached')
+    assert.deepEqual(root.getStateSnapshot().caseHistory?.past, [original.project])
+    assert.equal(root.getStateSnapshot().caseHistory?.pastCaseEdges.at(-1)?.before.attachment.status, initialAttachment)
+    const step = (direction: 'undo' | 'redo', target: CaseInsertProjectSession) => {
+      const prior = session()
+      assert.equal(root.stepCaseDocumentHistory({
+        sessionId: prior.id, expectedGeneration: root.getStateSnapshot().generation, direction,
+      }), 'committed')
+      acknowledge()
+      const restored = session()
+      assert.strictEqual(restored.project, target.project)
+      assert.equal(restored.revision, prior.revision + (operation === 'apply' ? 1 : 0))
+      assert.equal(restored.caseInsertPresetApplication.applicationRevision,
+        prior.caseInsertPresetApplication.applicationRevision + 1)
+      assert.equal(projection().caseInsertLayoutPreset.attachment.status, target.caseInsertPresetApplication.attachment.status)
+      assert.equal(restored.currentPath, original.currentPath)
+      assert.deepEqual(restored.lastEditorRoute, original.lastEditorRoute)
+      return restored
+    }
+    const undone = step('undo', original)
+    assert.equal(isProjectSessionDirty(undone), isProjectSessionDirty(original))
+    step('redo', applied)
+    root.dispose()
   }
 })

@@ -1113,3 +1113,62 @@ test('Case Steam import publishes game, artwork, and back-cover in one accepted 
     await step('redo', after, after.revision + 2, 1, 0, 'Incoming Fixture Game')
   } finally { await page.close() }
 })
+
+test('Case Apply and Detach are separate history steps with exact content and attachment', { timeout: 120_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-case-insert"]').click()
+    await reveal(page, 'Case Layout Presets')
+    const read = () => page.evaluate(() => window.readCaseSteamDiagnostic())
+    const settle = (past, future, attached) => page.waitForFunction(({ past, future, attached }) => {
+      const item = window.readCaseSteamDiagnostic()
+      return item && !item.pending && item.past === past && item.future === future && item.attached === attached
+    }, { past, future, attached }, { timeout: 12_000 })
+    await settle(0, 0, false)
+    const before = await read()
+    const confirmReview = async operation => {
+      const label = operation === 'Apply' ? 'Review complete preset' : 'Review Detach'
+      await page.getByRole('button', { name: label, exact: true }).click()
+      const review = page.getByRole('region', { name: label, exact: true })
+      await review.waitFor({ timeout: 6_000 })
+      for (const checkbox of await review.getByRole('checkbox').all()) await checkbox.check()
+      await review.getByRole('button', { name: 'Confirm ' + operation, exact: true }).click({ timeout: 6_000 })
+    }
+    const selector = page.locator('#case-layout-preset-selector')
+    await selector.selectOption({ label: 'Jewel Case Essentials (revision 2)' })
+    await confirmReview('Apply')
+    await settle(1, 0, true)
+    const applied = await read()
+    assert.equal(applied.revision, before.revision + 1)
+    assert.equal(applied.applicationRevision, before.applicationRevision + 1)
+    assert.notDeepEqual(applied.project.caseInsert, before.project.caseInsert)
+    await confirmReview('Detach')
+    await settle(2, 0, false)
+    const detached = await read()
+    assert.equal(detached.revision, applied.revision)
+    assert.equal(detached.applicationRevision, applied.applicationRevision + 1)
+    assert.deepEqual(detached.project, applied.project)
+    let previous = detached
+    const step = async (direction, expected, past, future, contentChanged) => {
+      assert.equal(await page.evaluate(direction => window.stepCaseHistoryDiagnostic(direction), direction), 'committed')
+      await settle(past, future, expected.attached)
+      const observed = await read()
+      assert.deepEqual(observed.project, expected.project)
+      assert.equal(observed.applicationRevision, previous.applicationRevision + 1)
+      assert.equal(observed.revision, previous.revision + (contentChanged ? 1 : 0))
+      const label = expected.attached ? 'Attached' : 'Detached'
+      await page.getByText(label, { exact: true }).waitFor({ timeout: 6_000 })
+      previous = observed
+    }
+    await step('undo', applied, 1, 1, false)
+    await step('undo', before, 0, 2, true)
+    await step('redo', applied, 1, 1, true)
+    await step('redo', detached, 2, 0, false)
+  } finally { await page.close() }
+})

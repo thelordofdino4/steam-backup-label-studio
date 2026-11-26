@@ -28,7 +28,7 @@ function mountApplication() {
   const interactionObserver = isInteractionTimingEnabled(
     import.meta.env.DEV, import.meta.env.VITE_SBLS_INTERACTION_TIMING,
   ) ? createInteractionPerformanceObserver() : undefined
-  const lifecycleRuntime = createApplicationLifecycleRuntime({ performanceObserver })
+  const lifecycleRuntime = createApplicationLifecycleRuntime({ performanceObserver, casePresetProjection: true })
   const unbindInteractionSession = bindInteractionSession(interactionObserver, lifecycleRuntime.root)
   const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
 

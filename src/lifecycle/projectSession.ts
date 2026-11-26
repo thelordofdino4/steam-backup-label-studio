@@ -1,3 +1,4 @@
+import type { CasePresetHistorySemantics } from './documentHistory.ts'
 import { isDiscBackgroundAsset, legacyDiscBackgroundAsset, readDiscBackgroundAsset, reuseDiscBackgroundAsset, type DiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import type {
   EditorProjectType,
@@ -25,6 +26,7 @@ import {
   createInitialCaseInsertPresetSessionApplication,
   createRecoveredCaseInsertPresetSessionApplication,
   synchronizeCaseInsertPresetSessionApplication,
+  rebindCasePresetHistoryApplication,
   type CaseInsertPresetSessionApplication,
 } from './caseInsertPresetSessionApplication.ts'
 import {
@@ -439,12 +441,21 @@ export function restoreHistoryCaseProject(
   state: ApplicationLifecycleState,
   expected: CaseInsertProjectSession,
   target: CapturedLifecycleProject,
+  semantic?: CasePresetHistorySemantics,
 ): ApplicationLifecycleState {
   if (state.activeSession !== expected || state.visibleWorkspace !== 'caseInsert' ||
-      target === expected.project || target.projectType !== 'caseInsert') return state
+      target.projectType !== 'caseInsert' || (!semantic && target === expected.project)) return state
   const captured = captureLifecycleProjectSnapshot(target)
   if (captured !== target) return state
-  return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
+  if (!semantic) return Object.freeze({ ...state, activeSession: replaceSessionProject(expected, captured) })
+  const rebound = rebindCasePresetHistoryApplication({
+    sessionId: expected.id, project: target, current: expected.caseInsertPresetApplication, semantic,
+  })
+  if (!rebound.ok) return state
+  return Object.freeze({ ...state, activeSession: Object.freeze({
+    ...expected, project: target, caseInsertPresetApplication: rebound.application,
+    revision: projectContentsAreSemanticallyEqual(target, expected.project) ? expected.revision : advanceContentRevision(expected.revision),
+  }) })
 }
 
 function routesAreEqual(

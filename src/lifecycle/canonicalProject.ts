@@ -399,7 +399,7 @@ export function normalizedProjectSnapshotsAreExactlyEqual(
   return sameJsonValue(first as unknown as JsonValue, second as unknown as JsonValue)
 }
 
-/** Compare exact semantic content without serializing unchanged Disc artwork. */
+/** Compare exact semantic content without encoding artwork just to compare it. */
 export function projectContentsAreSemanticallyEqual(
   first: CapturedLifecycleProject,
   second: CapturedLifecycleProject,
@@ -407,7 +407,11 @@ export function projectContentsAreSemanticallyEqual(
   if (first === second) return true
   if (!isCommittedDiscProject(first) || !isCommittedDiscProject(second)) {
     if (isCommittedDiscProject(first) || isCommittedDiscProject(second)) return false
-    return createCanonicalProjectComparisonValue(first) === createCanonicalProjectComparisonValue(second)
+    // Case history retains multiple committed projects. A structural check
+    // prevents a cached JSON copy of their unchanged encoded artworks.
+    const kind = getNormalizedProjectKind(first)
+    if (kind !== getNormalizedProjectKind(second)) return false
+    return sameJsonValue(createComparisonProjection(first, kind), createComparisonProjection(second, kind))
   }
   if (!committedDiscBackgroundsAreExactlyEqual(first.background, second.background)) return false
   const a = discRemainders.get(first)!

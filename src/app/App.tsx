@@ -2177,6 +2177,16 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
       workflow: caseInsertPresetWorkflowOwner,
       catalog: CASE_INSERT_PRESET_CATALOG,
       publishDispatchFeedback: (dispatch) => {
+        if (dispatch.disposition === 'executed' && dispatch.result.status === 'success') {
+          const accepted = applicationLifecycleRoot.getStateSnapshot()
+          const session = accepted.state.activeSession
+          const receipt = dispatch.result.value as { sessionId?: string; projectRevision?: number; applicationRevision?: number } | undefined
+          if (accepted.casePresetProjectionPending && session?.kind === 'caseInsert' &&
+              receipt?.sessionId === session.id && receipt.projectRevision === session.revision &&
+              receipt.applicationRevision === session.caseInsertPresetApplication.applicationRevision) {
+            setProjectJewelCase(structuredClone(session.project.caseInsert) as typeof projectJewelCase)
+          }
+        }
         publishApplicationCommandFeedback(dispatch, {
           announceStatus,
           setHomeStatusMessage,

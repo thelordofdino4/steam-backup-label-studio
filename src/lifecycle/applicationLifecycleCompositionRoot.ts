@@ -98,6 +98,7 @@ export type ApplicationLifecycleCompositionRootOptions = Readonly<{
   initialState?: ApplicationLifecycleState
   discHistoryLimit?: number
   caseHistoryLimit?: number
+  casePresetProjection?: boolean
   ports?: ApplicationLifecycleCommandPorts
   exportPng?: ApplicationPngExportCommandOwner
   termination?: ApplicationTerminationCapabilities
@@ -300,6 +301,7 @@ export function createApplicationLifecycleCompositionRoot(
     ...(options.initialState ? { initialState: options.initialState } : {}),
     ...(options.discHistoryLimit === undefined ? {} : { discHistoryLimit: options.discHistoryLimit }),
     ...(options.caseHistoryLimit === undefined ? {} : { caseHistoryLimit: options.caseHistoryLimit }),
+    ...(options.casePresetProjection === undefined ? {} : { casePresetProjection: options.casePresetProjection }),
     ...(options.onSubscriberError
       ? { onSubscriberError: options.onSubscriberError }
       : {}),
@@ -439,7 +441,9 @@ export function createApplicationLifecycleCompositionRoot(
       stateSnapshot,
       getCurrentStateSnapshot: () => stateStore.getSnapshot(),
       commitState: (expectedGeneration, transition) =>
-        stateStore.commitTransition(expectedGeneration, transition),
+        stateStore.commitTransition(expectedGeneration, transition,
+          commandId === 'case.layoutPreset.apply' || commandId === 'case.layoutPreset.reapply' ||
+          commandId === 'case.layoutPreset.detach' ? 'case-preset-transaction' : undefined),
       createSessionId,
     })
 
