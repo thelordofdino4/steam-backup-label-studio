@@ -29,6 +29,7 @@ function parseProject(bytes, view) {
   const planLength = view.getUint32(8, false)
   const projectLength = view.getUint32(12, false)
   const assetCount = view.getUint32(16, false)
+  const plan = JSON.parse(decoder.decode(bytes.subarray(20, 20 + planLength)))
   let offset = 20 + planLength
   const project = JSON.parse(decoder.decode(bytes.subarray(offset, offset + projectLength)))
   offset += projectLength
@@ -42,7 +43,7 @@ function parseProject(bytes, view) {
   if (offset !== bytes.byteLength) throw Error('Unexpected package framing length')
   // Save records its own time and changes the baseline/path; those are not content.
   delete project.savedAt
-  return { project, assetUrls }
+  return { project, assetUrls, plan }
 }
 
 async function decodePng(bytes) {

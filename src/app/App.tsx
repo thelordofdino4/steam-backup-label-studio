@@ -802,6 +802,7 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
     steamLogoPlacement,
     announceStatus,
     applyActivePresetPlacement: applyActiveTitleArtworkPresetPlacement,
+    commitLayoutReset: handleDiscTitleArtworkLayoutReset,
     onDiscGuidedSlotCompleted: completeActiveDiscGuidedSlot,
   })
   const {
@@ -1073,6 +1074,20 @@ function App({ connectDiscHistoryDiagnostic }: { connectDiscHistoryDiagnostic?: 
       unstable_batchedUpdates, (accepted) => {
         if (accepted.revision !== basis.current.revision) {
           setDiscGuidedWorkflow(restoreSavedDiscGuidedWorkflow(accepted.project.editor))
+        }
+      })
+  }
+
+  function handleDiscTitleArtworkLayoutReset(layout: typeof projectTitleArtwork.layout) {
+    if (finishBackgroundDrag().status !== 'success') return false
+    const captured = captureCurrentLegacyProject()
+    if (captured.kind !== 'disc') return false
+    const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
+    if (!basis) return false
+    return applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, { kind: 'reset-title-artwork-layout', layout },
+      unstable_batchedUpdates, accepted => {
+        if (accepted.revision !== basis.current.revision) {
+          setProjectTitleArtwork({ ...projectTitleArtwork, layout })
         }
       })
   }

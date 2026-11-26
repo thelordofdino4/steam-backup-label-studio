@@ -12,6 +12,7 @@ import type {
 } from '../project/projectTypes.ts'
 import { readDiscEditorDocumentBasis, applyDiscEditorDocumentEdit } from './appDiscEditorDocumentCommand.ts'
 import { prepareDiscHistoryProjection, readDiscHistoryTemplate } from './appDiscHistoryProjection.ts'
+import { makeDiscSteamPngFixtures } from './testing/discSteamPngFixtures.mjs'
 import { planDiscTemplateDocumentEdit } from './appDiscTemplateDocumentPlan.ts'
 
 const guidedLayout = { id: 'disc:guided-layout:classic-top-title', version: 1,
@@ -127,4 +128,61 @@ test('same-session omission and Reset Guided Progress keep the earlier Apply und
     assert.equal(read().project, expected)
     assert.equal(acknowledge(), 'committed')
   }
+})
+
+test('game logo layout reset retains artwork and earlier history, and refuses a hidden visibility change', () => {
+  const saved = createBlankDiscSavedProject()
+  const { newer } = makeDiscSteamPngFixtures(1, 2)
+  const asset = { imageDataUrl: newer.dataUrl, sourceLabel: 'Fixture logo',
+    steamArtworkAssetId: 'fixture-logo', imageSize: { width: newer.width, height: newer.height } }
+  const previousLayout = { enabled: true, scale: 1.4, x: 52, y: 20 }
+  saved.titleArtwork = { ...asset, source: 'steam', defaultSteamLogo: asset, layout: previousLayout }
+  const root = createApplicationLifecycleCompositionRoot({
+    initialState: createLoadedProjectSession({
+      sessionId: 'disc', project: saved, currentPath: 'test.sbls', persistenceFormat: 'sbls-package-v1',
+    }),
+    discHistoryLimit: 4,
+  })
+  const read = () => {
+    const session = root.getStateSnapshot().state.activeSession
+    assert.equal(session?.kind, 'disc')
+    return session
+  }
+  const fresh = () => ({ sessionId: read().id, expectedGeneration: root.getStateSnapshot().generation })
+  const acknowledge = () => {
+    const { background, ...projection } = materializeDiscProject(read().project)
+    void background
+    assert.equal(root.acknowledgeDiscHistoryProjection({ ...fresh(), projection }), 'committed')
+  }
+  const initial = read()
+  assert.equal(root.commitDiscBackgroundCompound({ sessionId: initial.id, expectedRevision: initial.revision,
+    operation: { kind: 'visibility', enabled: false, scale: 1, offset: { x: 0, y: 0 } },
+  }, { kind: 'preset', fields: {}, guidedLayout }), 'committed')
+  const applied = read()
+  const layout = { enabled: true, scale: 1, x: 48, y: 25 }
+  const reset = { kind: 'reset-title-artwork-layout' as const, layout }
+  const beforeReset = root.getStateSnapshot()
+  assert.equal(root.commitDiscEditorDocumentEdit({ ...fresh(), ...reset, layout: { ...layout, enabled: false } }), 'invalid')
+  assert.equal(root.getStateSnapshot(), beforeReset)
+  assert.equal(root.commitDiscEditorDocumentEdit({ ...fresh(), ...reset }), 'committed')
+  const ready = read()
+  assert.equal(ready.revision, applied.revision + 1)
+  assert.deepEqual(ready.project.titleArtwork, { ...applied.project.titleArtwork, layout })
+  assert.equal(materializeDiscProject(ready.project).titleArtwork?.imageDataUrl, newer.dataUrl)
+  assert.equal(materializeDiscProject(ready.project).titleArtwork?.defaultSteamLogo?.imageDataUrl, newer.dataUrl)
+  assert.equal(ready.project.background, applied.project.background)
+  assert.deepEqual(root.getStateSnapshot().discHistory?.past, [initial.project, applied.project])
+  acknowledge()
+  assert.equal(root.commitDiscEditorDocumentEdit({ ...fresh(), ...reset }), 'no-op')
+  assert.equal(root.stepDiscDocumentHistory({ ...fresh(), direction: 'undo' }), 'committed')
+  assert.equal(read().project, applied.project)
+  acknowledge()
+  assert.equal(root.stepDiscDocumentHistory({ ...fresh(), direction: 'undo' }), 'committed')
+  assert.equal(read().project, initial.project)
+  acknowledge()
+  assert.equal(root.stepDiscDocumentHistory({ ...fresh(), direction: 'redo' }), 'committed')
+  assert.equal(read().project, applied.project)
+  acknowledge()
+  assert.equal(root.stepDiscDocumentHistory({ ...fresh(), direction: 'redo' }), 'committed')
+  assert.equal(read().project, ready.project)
 })

@@ -49,7 +49,7 @@ import { createSavedDiscGuidedLayout, restoreSavedDiscGuidedWorkflow } from '../
 import type { DiscTextLayoutSettings } from '../discText/types.ts'
 import { normalizeUskRatingValue } from '../project/projectMetadata.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
-import type { RatingBadgeLayout, SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject } from '../project/projectTypes.ts'
+import type { RatingBadgeLayout, SavedDiscGuidedLayoutState, SavedDiscProject, SavedProject, TitleArtworkLayout } from '../project/projectTypes.ts'
 import {
   synchronizeActiveProjectContent,
   editDiscBackground,
@@ -117,10 +117,10 @@ const optionalGuidedKey = new Set(['guidedLayout'])
 const presetSiblingFootprint = new Set<string>(discPresetSiblingKeys)
 const presetTextFootprint = new Set(['layout', 'settings'])
 const presetRatingFootprint = new Set(['layout', 'uskLayout'])
-const ratingLayoutFootprint = new Set(['enabled', 'scale', 'x', 'y'])
+const discPointLayoutFootprint = new Set(['enabled', 'scale', 'x', 'y'])
 
-function readPresetRatingLayout(input: unknown): DiscPresetRatingLayoutPatch | null {
-  const layout = readClosedDataFootprint(input, ratingLayoutFootprint)
+function readDiscPointLayout(input: unknown): DiscPresetRatingLayoutPatch | null {
+  const layout = readClosedDataFootprint(input, discPointLayoutFootprint)
   if (!layout || (Object.hasOwn(layout, 'enabled') && typeof layout.enabled !== 'boolean') ||
       typeof layout.scale !== 'number' || !Number.isFinite(layout.scale) || layout.scale <= 0 ||
       typeof layout.x !== 'number' || !Number.isFinite(layout.x) ||
@@ -192,6 +192,7 @@ const discTemplateDocumentKeys = new Set([
 type DiscEditorDocumentEdit = Readonly<{ sessionId: ProjectSessionId; expectedGeneration: number }> &
   (Readonly<{ kind: 'template'; fields: DiscTemplateDocumentFields }> |
    Readonly<{ kind: 'steam-import'; expectedRevision: number; after: DiscSteamImportAfterState }> |
+   Readonly<{ kind: 'reset-title-artwork-layout'; layout: TitleArtworkLayout }> |
    Readonly<{ kind: 'reset-guided-progress' }> |
    Readonly<{ kind: 'edit-guided-slot'; action: 'omit' | 'include' | 'show-again'; slotId: DiscGuidedSlotId }>)
 
@@ -630,6 +631,13 @@ export function createApplicationLifecycleCompositionRoot(
           if (normalizedProjectValueMatches(session.project.template, fields.template)) return 'no-op'
           const { discTextLayout, ...owners } = fields
           Object.assign(remainder, owners, { discText: { ...session.project.discText, layout: discTextLayout } })
+        } else if (edit.kind === 'reset-title-artwork-layout') {
+          const artwork = session.project.titleArtwork
+          const layout = readDiscPointLayout(edit.layout)
+          if (!artwork?.layout || !layout || typeof layout.enabled !== 'boolean' ||
+              layout.enabled !== artwork.layout.enabled) return 'invalid'
+          if (normalizedProjectValueMatches(artwork.layout, layout)) return 'no-op'
+          Object.assign(remainder, { titleArtwork: { ...artwork, layout } })
         } else if (edit.kind === 'reset-guided-progress' || edit.kind === 'edit-guided-slot') {
           const workflow = restoreSavedDiscGuidedWorkflow(session.project.editor)
           const result = edit.kind === 'reset-guided-progress' ? resetDiscGuidedProgress(workflow) :
@@ -668,8 +676,8 @@ export function createApplicationLifecycleCompositionRoot(
         let supplemental = current?.uskBadge?.layout ?? defaults.uskBadge.layout
         if (Object.hasOwn(fields, 'placement')) {
           const patch = readClosedDataFootprint(fields.placement, presetRatingFootprint)
-          const layout = readPresetRatingLayout(patch?.layout)
-          const uskLayout = readPresetRatingLayout(patch?.uskLayout)
+          const layout = readDiscPointLayout(patch?.layout)
+          const uskLayout = readDiscPointLayout(patch?.uskLayout)
           if (!layout || !uskLayout || !layout.enabled || !uskLayout.enabled) return 'invalid'
           primary = { ...layout, enabled: true }
           supplemental = { ...uskLayout, enabled: true }
@@ -720,8 +728,8 @@ export function createApplicationLifecycleCompositionRoot(
           }
           if (Object.hasOwn(fields, 'ratingBadge')) {
             const rating = readClosedDataFootprint(ratingBadge, presetRatingFootprint)
-            const layout = readPresetRatingLayout(rating?.layout)
-            const uskLayout = readPresetRatingLayout(rating?.uskLayout)
+            const layout = readDiscPointLayout(rating?.layout)
+            const uskLayout = readDiscPointLayout(rating?.uskLayout)
             if (!layout || !uskLayout) return 'invalid'
             const defaults = createDefaultProjectRatingBadge()
             const accepted = session.project.ratingBadge

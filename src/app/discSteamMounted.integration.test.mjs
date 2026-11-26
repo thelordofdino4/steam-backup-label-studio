@@ -1,5 +1,5 @@
 // Actual Disc App and controls in sandboxed Chromium. Native substitutes are limited
-// to fixture Steam transport and validation of the two generated PNGs.
+// to fixture Steam transport, PNG validation, and Save/export destinations.
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -917,5 +917,134 @@ test('Steam import after same-content Save As is one exact undoable edit', { tim
     await step('undo', saved, imported.state.revision + 1)
     await step('redo', imported, imported.state.revision + 2)
     assert.equal(await page.evaluate(() => window.discSteamTransportFixture.requested()), 1)
+  } finally { await page.close() }
+})
+
+test('imported artwork preview, package write, and PNG agree through Undo and Redo', { timeout: 120_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Layout Presets')
+    await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await page.waitForFunction(() => {
+      const state = window.readDiscHistoryDiagnostic()
+      return state.past === 1 && !state.pending
+    })
+    await reveal(page, 'Game')
+    await reveal(page, 'Project File')
+    const art = page.locator('[data-smoke-id="disc-preview"]')
+      .getByRole('img', { name: 'Game title artwork', exact: true })
+    const capture = async (label, expectedArtwork) => {
+      if (expectedArtwork) {
+        await art.waitFor({ timeout: 8_000 })
+        assert.deepEqual(await art.evaluate(async element => {
+          const image = element instanceof HTMLImageElement ? element : element.querySelector('img')
+          await image.decode()
+          return { source: image.getAttribute('src'), width: image.naturalWidth }
+        }), { source: expectedArtwork, width: newer.width })
+      } else await art.waitFor({ state: 'detached', timeout: 8_000 })
+      const priorExports = (await receipt(page)).commands.samples
+        .filter(sample => sample.boundary === 'export.png' && sample.outcome === 'success').length
+      await page.evaluate(label => window.armDiscHistoryOutput(label), label)
+      await page.getByRole('button', { name: 'Save Project', exact: true }).click()
+      await page.waitForFunction(label => window.readDiscHistoryOutput(label)?.project &&
+        !window.readDiscHistoryDiagnostic().dirty, label, { timeout: 12_000 })
+      await page.getByRole('button', { name: 'Export PNG', exact: true }).click()
+      await page.waitForFunction(({ label, priorExports }) => window.readDiscHistoryOutput(label)?.png &&
+        window.readDiscSteamReceipt().commands.samples
+          .filter(sample => sample.boundary === 'export.png' && sample.outcome === 'success').length === priorExports + 1,
+      { label, priorExports }, { timeout: 12_000 })
+      await page.evaluate(label => window.finishDiscHistoryOutput(label), label)
+      return page.evaluate(label => window.readDiscHistoryOutput(label), label)
+    }
+    const before = await capture('before', null)
+    await start(page, newer.id)
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await page.waitForFunction(id => {
+      const state = window.readDiscHistoryDiagnostic()
+      return !state.pending && state.past === 2 && window.readDiscHistoryProject().game.selectedSteamGame?.appId === id
+    }, newer.id, { timeout: 12_000 })
+    const imported = await capture('applied', newer.dataUrl)
+    assert.equal(imported.project.project.game.selectedSteamGame.appId, newer.id)
+    assert.equal(imported.project.assetUrls.filter(url => url === newer.dataUrl).length, 1,
+      'both title roles share one asset in the encoded write request')
+    assert.ok(!before.project.assetUrls.includes(newer.dataUrl))
+    const assetIndex = imported.project.assetUrls.indexOf(newer.dataUrl)
+    for (const ownerId of ['disc.title.current', 'disc.title.default']) {
+      const [binding, extra] = imported.project.plan.captures.filter(item => item.ownerId === ownerId)
+      assert.equal(extra, undefined)
+      assert.equal(binding?.decision.dataUrlIndex, assetIndex)
+    }
+    assert.notEqual(imported.png.pixels, before.png.pixels)
+    const step = async direction => {
+      const previous = await page.evaluate(() => window.readDiscHistoryDiagnostic().revision)
+      assert.equal(await page.evaluate(direction => window.stepDiscHistoryDiagnostic(direction), direction), 'committed')
+      await page.waitForFunction(revision => {
+        const current = window.readDiscHistoryDiagnostic()
+        return current.revision === revision && !current.pending
+      }, previous + 1, { timeout: 8_000 })
+    }
+    await step('undo')
+    const undone = await capture('undo', null)
+    assert.deepEqual(undone.project, before.project)
+    assert.equal(undone.png.pixels, before.png.pixels)
+    await step('redo')
+    const redone = await capture('redo', newer.dataUrl)
+    assert.deepEqual(redone.project, imported.project)
+    assert.equal(redone.png.pixels, imported.png.pixels)
+  } finally { await page.close() }
+})
+
+test('mounted logo layout Reset preserves the import and preset Undo steps', { timeout: 90_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-disc"]').click()
+    await reveal(page, 'Game')
+    await reveal(page, 'Layout Presets')
+    await reveal(page, 'Game Title')
+    const current = () => page.evaluate(() => window.readDiscHistoryProject())
+    const settle = (past, future) => page.waitForFunction(({ past, future }) => {
+      const state = window.readDiscHistoryDiagnostic()
+      return !state.pending && state.past === past && state.future === future
+    }, { past, future }, { timeout: 8_000 })
+    const original = await current()
+    await start(page, newer.id)
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await settle(1, 0)
+    const imported = await current()
+    assert.equal(imported.game.selectedSteamGame?.appId, newer.id)
+    await page.getByLabel('Preset', { exact: true }).selectOption('centered-logo-archive')
+    await page.getByRole('button', { name: 'Apply preset', exact: true }).click()
+    await settle(2, 0)
+    const applied = await current()
+    await page.getByRole('button', { name: 'Reset game logo layout', exact: true }).click()
+    await settle(3, 0)
+    const reset = await current()
+    assert.notDeepEqual(reset.titleArtwork.layout, applied.titleArtwork.layout)
+    assert.equal(reset.titleArtwork.imageDataUrl, newer.dataUrl)
+    assert.deepEqual(reset, { ...applied, titleArtwork: { ...applied.titleArtwork, layout: reset.titleArtwork.layout } })
+    for (const [index, expected] of [applied, imported, original].entries()) {
+      assert.equal(await page.evaluate(() => window.stepDiscHistoryDiagnostic('undo')), 'committed')
+      await settle(2 - index, index + 1)
+      assert.deepEqual(await current(), expected)
+    }
+    for (const [index, expected] of [imported, applied, reset].entries()) {
+      assert.equal(await page.evaluate(() => window.stepDiscHistoryDiagnostic('redo')), 'committed')
+      await settle(index + 1, 2 - index)
+      assert.deepEqual(await current(), expected)
+    }
   } finally { await page.close() }
 })
