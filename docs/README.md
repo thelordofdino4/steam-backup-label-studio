@@ -12,6 +12,11 @@
 
 This map is the entry point for repository documentation. If two documents disagree, use the conflict rule listed here rather than treating older status reports, audits, or implementation plans as current truth.
 
+Native codec maintenance: [`NATIVE_CODEC_MAINTENANCE.md`](NATIVE_CODEC_MAINTENANCE.md) owns update/advisory review and source replay; it separates observed toolchain evidence from unverified release/platform claims.
+
+Candidate dimension provenance and its validation limits are documented in
+[`IMAGE_CANDIDATE_EVIDENCE.md`](IMAGE_CANDIDATE_EVIDENCE.md) for #169.
+
 ## Always Read
 
 | Document | Status | Purpose | Read when | Conflict rule |
@@ -54,8 +59,7 @@ Windows PNG evidence: [`PNG_PHYSICAL_WINDOWS_ACCEPTANCE.md`](PNG_PHYSICAL_WINDOW
 records six saved outputs, the original-byte correction of an unsupported Tray
 content-loss interpretation, and the remaining physical/platform gates for #359.
 
-Candidate dimension provenance and its validation limits are documented in
-[`IMAGE_CANDIDATE_EVIDENCE.md`](IMAGE_CANDIDATE_EVIDENCE.md) for #169.
+Case back copy review preparation: [`CASE_BACK_COPY_FIT_REVIEW.md`](CASE_BACK_COPY_FIT_REVIEW.md) records the read-only #181 owner, estimated fit evidence, and remaining Game planning/application gates.
 
 | Document | Status | Purpose | Read when | Conflict rule |
 | --- | --- | --- | --- | --- |
