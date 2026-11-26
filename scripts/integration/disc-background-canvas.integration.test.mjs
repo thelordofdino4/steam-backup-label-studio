@@ -55,7 +55,7 @@ test('trusted Disc background canvas cancellation restores placement; release co
     assert.equal(await layer.count(), 1)
     await page.waitForFunction(() => {
       const v = globalThis.discCanvasFixture.read()
-      return v.artLoaded && v.placement !== null && v.ratio > 0
+      return v.artLoaded && v.translation !== null && v.ratio > 0
     })
     await settle(page)
 
@@ -85,20 +85,20 @@ test('trusted Disc background canvas cancellation restores placement; release co
         await touch('touchMove',[point(start.x+dx,start.y+dy)])
         await page.waitForFunction(old=>{
           const v=globalThis.discCanvasFixture.read()
-          return v.captured && !!v.placement && v.placement.x!==old.x && v.placement.y!==old.y
-        },before.placement)
+          return v.captured && v.translation?.x!==old.x && v.translation?.y!==old.y
+        },before.translation)
         const held = await read(page)
         assert.equal(held.id,before.id)
         assert.equal(held.revision,before.revision)
         assert.deepEqual(held.offset,before.offset)
         assert.equal(held.ratio,before.ratio)
         const expected={x:dx/before.ratio,y:dy/before.ratio}
-        for (const axis of ['x','y']) near(held.placement[axis]-before.placement[axis],expected[axis],`held ${axis}`)
+        for (const axis of ['x','y']) near(held.translation[axis]-before.translation[axis],expected[axis],`held ${axis}`)
         await touch(gestureEnd,[])
-        await page.waitForFunction(({ rev, restoring, placement })=>{
+        await page.waitForFunction(({ rev, restoring, transform })=>{
           const v=globalThis.discCanvasFixture.read()
-          return v.revision===rev && !v.captured && (!restoring || v.placement && Object.keys(placement).every(key=>Math.abs(v.placement[key]-placement[key]) < .01))
-        },{rev:before.revision+delta,restoring:delta===0,placement:before.placement})
+          return v.revision===rev && !v.captured && (!restoring || v.transform===transform)
+        },{rev:before.revision+delta,restoring:delta===0,transform:before.transform})
         await settle(page)
         const end = await read(page)
         const proof = await page.evaluate(() => globalThis.discCanvasFixture.drain())
@@ -109,7 +109,7 @@ test('trusted Disc background canvas cancellation restores placement; release co
         assert.equal(end.scale,before.scale)
         if (!delta) {
           assert.deepEqual(end.offset,before.offset)
-          for (const key of ['x','y','width','height']) near(end.placement[key],before.placement[key],"restored placement")
+          assert.equal(end.transform,before.transform)
         } else {
           const [{from,to}] = proof.transitions
           assert.equal(from.id,before.id)
@@ -118,7 +118,7 @@ test('trusted Disc background canvas cancellation restores placement; release co
           assert.equal(to.revision,before.revision+1)
           for (const axis of ['x','y']) {
             near(end.offset[axis]-before.offset[axis],expected[axis],`committed offset ${axis}`)
-            near(end.placement[axis]-before.placement[axis],expected[axis],`retained preview ${axis}`)
+            near(end.translation[axis]-before.translation[axis],expected[axis],`retained preview ${axis}`)
           }
         }
       }

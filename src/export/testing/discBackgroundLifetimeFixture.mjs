@@ -3,7 +3,6 @@ import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { BackgroundLayer } from '/src/components/preview/BackgroundLayer.tsx'
-import { resolveBackgroundImageLayout } from '/src/image/backgroundImage.ts'
 import { createBlankDiscSavedProject } from '/src/project/blankDiscProject.ts'
 import { restoreProjectStateFromContents } from '/src/project/restoreProjectState.ts'
 import { createUploadedBackgroundImageImport } from '/src/image/backgroundImageImport.ts'
@@ -55,7 +54,7 @@ window.runLifetimeRegression = async ({ size, gifBase64 }) => {
   const paint = ({ background }) => {
     const input = captureDiscBackgroundExportInput(background)
     flushSync(() => mounted.render(createElement(BackgroundLayer, {
-      ...input, layout: resolveBackgroundImageLayout(input.backgroundImageSize, input.backgroundScale, input.backgroundOffset, 600),
+      ...input, backgroundPreviewSize: { width: '600px', height: '600px' },
       handleBackgroundPointerDown: noop, handleBackgroundPointerMove: noop, handleBackgroundPointerUp: noop,
     })))
   }

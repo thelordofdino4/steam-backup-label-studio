@@ -3,9 +3,10 @@ import { repositoryRoot } from './discover-tests.mjs'
 import { testCommands, testFiles } from './test-file-list.mjs'
 
 const [mode, lane, ...extra] = process.argv.slice(2)
-// These fixtures exercise the Chromium sandbox on the ordinary Windows runner.
+// These files exercise the Chromium sandbox on the ordinary Windows runner.
 const sandboxedBrowserTestFiles = [
   'src/app/discSteamMounted.integration.test.mjs',
+  'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
   'src/export/discBackgroundLifetime.integration.test.mjs',
   'src/image/backgroundLayout.integration.test.mjs',
 ]

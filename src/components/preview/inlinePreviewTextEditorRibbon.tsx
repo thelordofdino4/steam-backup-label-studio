@@ -77,6 +77,8 @@ export function InlinePreviewTextEditorRibbon({
         ref={tabsRef}
         className="contextual-text-ribbon-tabs"
         data-smoke-id="inline-text-tabs"
+        role="group"
+        aria-label="Text formatting categories"
         onClick={stopInlineTextEditorClick}
         onPointerDownCapture={onRetainTextareaSelectionForCommands}
         onPointerDown={keepInlineTextEditorFocus}
@@ -91,6 +93,7 @@ export function InlinePreviewTextEditorRibbon({
             data-smoke-id={`inline-text-tab-${tab.id}`}
             title={tab.label}
             type="button"
+            aria-pressed={activeTab === tab.id}
             onClick={(event) => {
               event.stopPropagation()
               onTabChange(tab.id)

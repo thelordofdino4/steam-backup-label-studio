@@ -1,3 +1,4 @@
+import { getSteamBackCoverImportStatus } from '../caseInsert/steamBackCoverImport.ts'
 import { syncProjectJewelCaseBrandingMarkSlots } from '../caseInsert/brandingMarkSlots.ts'
 import {
   applySteamImportDefaultsToCaseInsert,
@@ -26,6 +27,7 @@ export function planCaseSteamDocumentImport({
 }>): Readonly<{
   project: SavedCaseInsertProject
   ratingBadge: ProjectRatingBadge
+  backCoverStatus: string
 }> {
   const projectMetadata = metadataPlan.nextProjectMetadata
   const ratingBadge = getCaseInsertRatingBadgeForSteamImport({
@@ -50,5 +52,6 @@ export function planCaseSteamDocumentImport({
   return {
     project: { ...project, caseInsertLayoutPreset: current.caseInsertLayoutPreset },
     ratingBadge,
+    backCoverStatus: getSteamBackCoverImportStatus(project.caseInsert),
   }
 }

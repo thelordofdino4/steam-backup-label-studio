@@ -51,28 +51,13 @@ test.before(async () => {
     function Component({ config }) {
       const previewRef = React.useRef(null)
       const [offset, setOffset] = React.useState(config.offset)
-      const gesture = React.useRef(null)
       const coordinateSize = useDiscPreviewSize({ activeWorkspace: 'disc', discPreviewRef: previewRef })
       const layout = resolveBackgroundImageLayout(config.imageSize, config.scale, offset, coordinateSize)
       const defaults = createBlankDiscSavedProject()
       const binding = (value) => ({ value, setValue: () => {} })
       const handlers = useDiscPreviewPointerDrag({
         preview: { discPreviewRef: previewRef, selectedDiscTemplate: discTemplates.standardPrintableDisc },
-        background: {
-          imageUrl: config.url, imageSize: config.imageSize, scale: config.scale, offset,
-          begin(key) {
-            if (gesture.current) return false
-            gesture.current = { key, initial: offset }
-            return true
-          },
-          updateOffset(key, next) { if (gesture.current?.key === key) setOffset(next) },
-          finish(key) { if (gesture.current?.key === key) gesture.current = null },
-          cancel(key) {
-            if (!gesture.current || (key !== undefined && gesture.current.key !== key)) return
-            setOffset(gesture.current.initial)
-            gesture.current = null
-          },
-        },
+        background: { imageUrl: config.url, imageSize: config.imageSize, scale: config.scale, offset, setOffset },
         discText: { layout: defaults.discText.layout, styles: defaults.discText.styles, getTextContent: () => '', setLayout: () => {} },
         logoAssets: binding(defaults.logoAssets), titleArtwork: binding(defaults.titleArtwork),
         additionalArtwork: binding(defaults.additionalArtwork),

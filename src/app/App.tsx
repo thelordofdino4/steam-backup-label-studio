@@ -1825,10 +1825,10 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
           })
           if (!committed) throw new Error('The checked Case import could not be applied.')
           announceStatus(importedState.statusMessage)
-          announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
           caseInsertBackCoverCopyFit?.warnings.forEach(warning => announceStatus(warning))
           if (caseInsertTitleArtworkSeed) announceStatus(caseInsertTitleArtworkSeed.statusMessage)
           announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
+          announceStatus(plan.backCoverStatus)
           return
         }
         loadImportedSteamMetadataCandidates(importedState.importedGame)
