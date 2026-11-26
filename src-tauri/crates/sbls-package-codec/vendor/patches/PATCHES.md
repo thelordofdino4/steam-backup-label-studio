@@ -12,7 +12,10 @@ units and one header with checked-in overlays:
 | `libwebp-1.6.0/src/dsp/cpu.h` | `272cb2a8aa81d6355afecdea7ea344c90c2df58e6f51e01aa8bc4bf866d0be59` | `vendor/overlays/libwebp/src/dsp/cpu.h` — `8f077d3bb09747cd796aa94b2be789d04a881a116b044a579ce4fed0d710d369` | Require `SBLS_WEBP_GENERIC_ONLY` before enabling SSE2, SSE4.1, AVX2, NEON, MIPS32/DSP, or MSA, then fail compilation if any platform/thread path is present. This closes the MSVC ARM/ARM64/ARM64EC and MIPS post-`-U` redefinition paths as well as ordinary compiler auto-detection. |
 
 The `.patch` files in this directory show the security-significant source
-changes in familiar unified-diff form. The overlays are the build inputs and
+changes for review. The first two use abbreviated `@@` hunks and are not
+applyable patches. The maintenance rehearsal generates complete byte-exact
+diffs from the verified originals and overlays; do not blindly rebase the
+review notes. The overlays are the build inputs and
 retain the upstream copyright/license headers. `build.rs` verifies both the
 pristine source-unit digests and compiled overlay digests before invoking the C
 compiler. The generic-only review patch is

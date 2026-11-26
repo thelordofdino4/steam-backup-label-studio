@@ -1,3 +1,6 @@
+import { shouldRenderTitleArtwork } from '../../project/projectTitleArtwork'
+import { isDiscTextHtmlEnabled } from '../../discText/index'
+import { useDiscInteractionCommit } from '../../diagnostics/useDiscInteractionCommit.ts'
 import { Fragment, useMemo, useState, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextAlignment, DiscTextArcSide, DiscTextKey, DiscTextLayout, DiscTextLayoutNumericField, DiscTextLayoutSettings, DiscTextHtmlSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
 import type { DiscTextStyleField, DiscTextStyleSettings, DiscTextStyleValue } from '../../discText/styles'
@@ -250,6 +253,9 @@ export function DiscPreview({
   guideOverlay,
   editorAffordances,
 }: DiscPreviewProps) {
+  useDiscInteractionCommit(artwork.titleArtwork, discText.values,
+    shouldRenderTitleArtwork(artwork.titleArtwork),
+    discText.settings.customNote && !isDiscTextHtmlEnabled(discText.htmlSources, 'customNote'))
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
   const { guideLegendClosedSize, previewAreaRef } =
