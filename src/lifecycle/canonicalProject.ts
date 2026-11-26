@@ -56,7 +56,7 @@ export type CapturedLifecycleProject = CommittedDiscProject | NormalizedCaseInse
 
 // An identity for the already validated unmigrated fields, shared by successive
 // background-only revisions. Weak keys give it the lifetime of pinned snapshots.
-type DiscRemainderIdentity = { comparison?: string }
+type DiscRemainderIdentity = object
 const discRemainders = new WeakMap<object, DiscRemainderIdentity>()
 
 const FORBIDDEN_ROOT_PROJECT_KEYS = new Set([
@@ -418,14 +418,16 @@ export function projectContentsAreSemanticallyEqual(
   const b = discRemainders.get(second)!
   if (a === b) return true
 
-  function compareRemainder(project: CommittedDiscProject, identity: DiscRemainderIdentity) {
-    if (identity.comparison !== undefined) return identity.comparison
-    const projection = cloneRecord(project as unknown as JsonObject)
-    delete projection.savedAt
-    delete projection.background
-    return identity.comparison = JSON.stringify(projection)
-  }
-  return compareRemainder(first, a) === compareRemainder(second, b)
+  // The first two checks retain the constant-time path for Background-only
+  // transitions. Independent remainders compare canonical values directly
+  // rather than retaining a second complete JSON copy of imported artwork.
+  const firstRemainder = cloneRecord(first as unknown as JsonObject)
+  const secondRemainder = cloneRecord(second as unknown as JsonObject)
+  delete firstRemainder.savedAt
+  delete secondRemainder.savedAt
+  delete firstRemainder.background
+  delete secondRemainder.background
+  return sameJsonValue(firstRemainder, secondRemainder)
 }
 
 function committedDiscBackgroundsAreExactlyEqual(

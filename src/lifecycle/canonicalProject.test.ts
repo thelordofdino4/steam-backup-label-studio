@@ -364,3 +364,19 @@ test('Case content comparison does not serialize asset data for independent hist
   assert.equal(equal, true)
   assert.equal(changed, false)
 })
+
+test('Disc independent remainders compare exact artwork without encoding another JSON copy', () => {
+  const before = createDiscProject({ titleArtwork: { imageDataUrl: 'data:image/png;base64,YXNzZXQ=' } })
+  const same = { ...structuredClone(before), savedAt: '2026-09-01T12:00:01.000Z' }
+  const changed = { ...structuredClone(same), titleArtwork: { imageDataUrl: 'data:image/png;base64,Y2hhbmdlZA==' } }
+  const captures = [before, same, changed].map(item => captureLifecycleProjectSnapshot(item))
+  const serialize = JSON.stringify
+  let equal: boolean, different: boolean
+  try {
+    JSON.stringify = () => { throw new Error('unexpected Disc artwork serialization') }
+    equal = projectContentsAreSemanticallyEqual(captures[0]!, captures[1]!)
+    different = projectContentsAreSemanticallyEqual(captures[0]!, captures[2]!)
+  } finally { JSON.stringify = serialize }
+  assert.equal(equal, true)
+  assert.equal(different, false)
+})

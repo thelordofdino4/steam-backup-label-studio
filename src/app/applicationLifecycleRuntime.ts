@@ -64,6 +64,7 @@ export type ApplicationLifecycleRuntime = Readonly<{
 export type ApplicationLifecycleRuntimeOptions = Readonly<{
   performanceObserver?: LifecyclePerformanceObserver
   casePresetProjection?: boolean
+  documentHistoryLimit?: number
   nativeTermination?: ApplicationTerminationRuntimeDependencies
   createRoot?: (
     options: ApplicationLifecycleCompositionRootOptions,
@@ -128,6 +129,9 @@ export function createApplicationLifecycleRuntime(
   const root = createRoot({
     performanceObserver: options.performanceObserver,
     ...(options.casePresetProjection ? { casePresetProjection: true } : {}),
+    ...(options.documentHistoryLimit === undefined ? {} : {
+      discHistoryLimit: options.documentHistoryLimit, caseHistoryLimit: options.documentHistoryLimit,
+    }),
     getTerminationCapabilities: terminationRuntime.capabilities,
     canAcceptCommands: () => !disposed && !terminationRuntime.isHandoffPending(),
     ports: {

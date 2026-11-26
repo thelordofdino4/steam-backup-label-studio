@@ -58,7 +58,7 @@ projects typed terminal results to Home and editor status surfaces with active
 deduplication-key enforcement. The native File menu now resolves and dispatches
 the same seven implemented lifecycle owners through descriptor semantic targets
 and that shared feedback boundary. The #360 source checkpoint also connects
-Close Window/Quit as described below. Close Project and history remain absent;
+Close Window/Quit as described below. Close Project and public Undo/Redo entry points remain absent;
 current menu/accelerator facts are maintained in the menu contract.
 
 Production Open exposes `.sbls` and `.json` chooser affordances, uses a focused
@@ -198,8 +198,8 @@ slice.
 | Production Open calls a focused native content recognizer, then either the legacy text reader or the bounded native package reader/codec. The package branch transports only hydrated JSON bytes, applies fatal UTF-8 decoding, and delegates to the same immutable Disc/Case staging owner as legacy Open without fallback after a package failure. | `src-tauri/src/project_format_recognition.rs`, `src-tauri/src/commands/project_files.rs`, `src-tauri/src/commands/project_packages.rs`, `src/tauri/projectFileFormat.ts`, `src/tauri/packageProjectFile.ts`, `src/app/appProjectLoad.ts`, focused tests | Package security and transport remain native/codec-owned while schema parsing, restoration, and lifecycle commit stay shared. Extensions affect chooser visibility and Save eligibility, never Open identity. |
 | New, Open, Save, Return Home, and Resume controls dispatch through one application adapter that consumes `ApplicationCommandDispatchResult`, selects at most one `ApplicationCommandFeedbackIntent`, enforces active deduplication keys in the shared status owner, and mirrors accepted feedback to Home. | `src/app/appApplicationCommandFeedback.ts`, `src/hooks/useStatusToasts.ts`, `src/components/home/HomeScreen.tsx`, `src/app/App.tsx`, focused tests | Home-originated Open cancellation/failure is now visible and announced. Issue #300 remains open on GitHub but its source acceptance gap is resolved by this checkpoint. |
 | Rust project writes delegate opaque bytes to a focused same-directory temporary-write-and-replace owner. The package write command fully encodes first, then passes the owned package buffer directly to that writer; conversion adds native source/destination identity preflight and a final pre-commit recheck. | `src-tauri/src/commands/project_packages.rs`, `src-tauri/src/legacy_project_identity.rs`, `src-tauri/src/project_file.rs`, focused Rust tests | #312 remains the atomic primitive owner; the new composition does not move package or lifecycle semantics into filesystem code. |
-| `src/main.tsx` constructs one application-scoped command/lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed lifecycle and PNG-export adapters without recreating the root, registry, dispatcher, or busy coordinator. New Disc, New Case, Open, Save, Save As, Return Home, Resume, Close Window, Quit, and `export.png` are production ports. One committed-render menu ingress resolves those ten File targets from the descriptor and publishes every typed outcome through the shared feedback owner. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/ApplicationMenuBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, `src/app/useApplicationMenuLifecycleIngress.ts`, `src/applicationMenu/applicationMenuLifecycleRouting.ts`, focused tests | `export.png` shares application command infrastructure without entering the lifecycle-only ID subset or mutating lifecycle state. Close Project, recovery, and history remain unimplemented. Native termination acceptance is pending under #360. |
-| Text controls have browser/native editing behavior, but no application-level project history owner exists. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
+| `src/main.tsx` constructs one application-scoped command/lifecycle runtime outside React Strict Mode and gives its boundary disposal ownership. A dependency-ref hook supplies current committed lifecycle and PNG-export adapters without recreating the root, registry, dispatcher, or busy coordinator. New Disc, New Case, Open, Save, Save As, Return Home, Resume, Close Window, Quit, and `export.png` are production ports. One committed-render menu ingress resolves those ten File targets from the descriptor and publishes every typed outcome through the shared feedback owner. | `src/main.tsx`, `src/app/ApplicationLifecycleBoundary.tsx`, `src/app/ApplicationMenuBoundary.tsx`, `src/app/applicationLifecycleRuntime.ts`, `src/app/useApplicationLifecycleRoot.ts`, `src/app/useApplicationMenuLifecycleIngress.ts`, `src/applicationMenu/applicationMenuLifecycleRouting.ts`, focused tests | `export.png` shares application command infrastructure without entering the lifecycle-only ID subset or mutating lifecycle state. Close Project and recovery remain unimplemented. Scoped document history is owned by the same lifecycle store. Native termination acceptance is pending under #360. |
+| Text controls retain browser/native editing behavior independently of the document history owner. | `src/text`, preview text adapters, repository search | Native text undo must not be described as application Undo/Redo. |
 | PNG export dispatches one registered `export.png` application command. It builds preflight before destination, confirms only warnings, returns typed outcomes, and uses the shared capability/busy/feedback boundaries for Disc and Case. | `src/app/appPngExportCommand.ts`, `src/app/appPngExport.ts`, menu routing, focused tests | [`EXPORT_WORKFLOW_CONTRACT.md`](EXPORT_WORKFLOW_CONTRACT.md) owns export semantics. `export.png` is intentionally excluded from this contract's lifecycle-only minimum catalog. |
 | The runtime Case navigation identity is Front/Back/Spine, while saved project data retains the coarser Cover/Tray compatibility field. A committed-render route adapter synchronizes the exact surface into session-only `lastEditorRoute`; equality, stale sessions, and wrong kinds are no-ops. | `src/editor/editorNavigationShell.ts`, `src/app/App.tsx`, `src/lifecycle/projectSession.ts`, `src/project/projectTypes.ts` | Return Home/Resume now restores Back versus Spine exactly without changing project revision, dirty comparison, schema, or persisted compatibility data. |
 | The Guide Legend is currently a collapsed preview-local panel for both Disc and Case Insert previews, not a Disc sidebar panel. | `src/components/preview/DiscPreview.tsx`, `src/components/preview/CaseInsertPreview.tsx` | Stale sidebar descriptions must not be copied into command or menu design. |
@@ -800,21 +800,31 @@ permit or bypass token; the resulting native close event consumes that permit
 instead of re-opening the guard. Failure to hand off clears the permit and
 returns a typed failure.
 
-## 15. Future Undo/Redo Integration Boundary
+## 15. Document History And Future Presentation Adapters
 
-Application Undo/Redo is not implemented and is not specified in detail here.
-Future history work must satisfy these lifecycle boundaries:
+The lifecycle store owns scoped document history for the active Disc or Case
+session. The production runtime retains at most 16 undo entries. Entries use
+accepted immutable document references, not duplicate encoded artwork or an
+independent mutable project. Renderer owners acknowledge the exact accepted
+projection before legacy synchronization or PNG capture can consume it.
 
-- project mutations declare transaction and coalescing boundaries;
-- New and Open replace the document aggregate and reset history;
-- Save and Save As change session metadata/baseline only and create no content
-  history entry;
-- dirty after Undo/Redo remains derived by comparing current canonical project
-  content with the saved baseline;
-- returning exactly to the baseline through Undo may therefore become clean;
-- focused browser/native text undo remains distinct from application history;
-- future `canExecute` for Undo/Redo comes from the history owner, never from a
-  toolbar, menu, or shortcut component.
+- Disc history covers classified Background operations, layout presets,
+  template geometry and clamps, Guided progress, game-logo layout reset,
+  supplemental USK changes, and accepted Steam import.
+- Case history covers accepted Steam import and layout-preset adoption,
+  including Apply, Reapply, and attachment-only Detach. Preset edges preserve
+  semantic attachment data; playback derives a fresh application identity and
+  does not rewind the application revision. Undo of an attachment-only change
+  does not advance the content revision.
+- A stale, invalid, or no-op operation does not create an entry. A new accepted
+  edit discards the redo branch. Unclassified persisted edits invalidate the
+  prior stack rather than replaying through owners that have not migrated.
+- New and Open replace the aggregate and reset history. Save and Save As pin
+  their accepted revision without recording path or baseline changes. Home and
+  Resume preserve history. Restoring the exact saved content becomes clean;
+  transient focus, navigation and viewport are not history.
+- Focused browser/native text undo stays separate. Public keyboard/menu
+  Undo/Redo remains future work and must use this owner, not a second stack.
 
 ## 16. Testable Invariants And Future Validation Layers
 
@@ -921,7 +931,7 @@ Dependency-focused implementation order:
 9. Native Close Window/Quit adapter with one-use termination authorization is
    implemented under #360; native acceptance remains required.
 10. Shortcut router, #298 focus behavior, and future menu adapters.
-11. Transaction/history owner when separately designed.
+11. Scoped document transaction and history owner; public Undo/Redo adapters remain separate.
 
 ## 18. Exclusions And Explicitly Unresolved Questions
 
