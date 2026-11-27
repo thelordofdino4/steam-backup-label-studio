@@ -411,3 +411,5 @@ The previous disposable startup fault failed before the application's reporter: 
 
 ### 2026-11-27 #379 artwork diagnostics preflight
 The first source build stopped before UI execution because the new observer used a cancellation reason outside the existing command-result union. Use its existing operation-cancelled reason; retain retired-request semantics and rerun source checks with the same locked dependencies. No native or browser run occurred.
+
+Exact CI 46051950820 Linux job 140685175008 passed 257 tests in the failing batch. The picker source-contract assertion expected the old upload signature and discarded return value. Update the assertion to require the phase observer on the shared import, adoption inside the existing request commit, and success only after commit and adoption. Preserve the separate stale-result and modal assertions. The Windows browser lane passed; this was not a native acceptance run.
