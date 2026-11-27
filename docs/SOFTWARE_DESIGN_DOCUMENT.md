@@ -1056,7 +1056,7 @@ Ribbon placement and layout:
 - #265 separates outer-card allocation from contained-control usefulness.
   Peer columns share the largest required minimum and divide the available
   card region equally after reserved actions and gaps. Stacked cards fill their
-  column; insufficient space uses whole-column overflow at the usable floor.
+  column; insufficient space scrolls across the full control region without shrinking cards below their usable floor.
   Dense Font and Paragraph control bodies retain content-derived capacities
   and fixed internal gaps. After controls reach their useful caps, additional
   outer-card width becomes balanced space around the cohesive body. This

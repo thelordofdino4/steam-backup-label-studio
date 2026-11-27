@@ -12,7 +12,6 @@ import {
   CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT,
   getContextualTextRibbonActiveWidth,
   getContextualTextRibbonColumnWidths,
-  getContextualTextRibbonColumnViewportWidth,
   getContextualTextRibbonLayoutModel,
   getContextualTextRibbonReservedHeight,
   getContextualTextRibbonToastOffset,
@@ -352,14 +351,4 @@ test('equal ribbon columns fill fractional space beyond control caps and preserv
   assert.equal(widths.reduce((a, b) => a + b, 4), 1000.5)
   assert.deepEqual(getContextualTextRibbonColumnWidths({ availableWidth: Number.NaN, columns }), [200, 200])
   assert.deepEqual(getContextualTextRibbonColumnWidths({ availableWidth: 0, columns: [] }), [])
-})
-
-
-test('overflow viewport exposes whole minimum columns and retains constrained-card scrolling', () => {
-  const columns = Array.from({ length: 3 }, () => ({ min: 220, preferred: 280, max: 360 }))
-  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 650, columns, gap: 4 }), 444)
-  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 667, columns, gap: 4 }), 444)
-  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 668, columns, gap: 4 }), 668)
-  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 1000, columns, gap: 4 }), 1000)
-  assert.equal(getContextualTextRibbonColumnViewportWidth({ availableWidth: 200, columns, gap: 4 }), 200)
 })

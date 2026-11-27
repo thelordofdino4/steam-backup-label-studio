@@ -207,21 +207,6 @@ export function getContextualTextRibbonColumnWidths({
   return columns.map(() => width)
 }
 
-// When all columns cannot fit, expose complete minimum-width columns. At an
-// externally constrained width smaller than one card, retain its usable floor
-// and allow scrolling; that viewport cannot establish supported-size acceptance.
-export function getContextualTextRibbonColumnViewportWidth({
-  availableWidth, columns, gap = 0,
-}: ContextualTextRibbonColumnWidthInput) {
-  const available = Number.isFinite(availableWidth) ? Math.max(0, availableWidth) : 0
-  const columnGap = Number.isFinite(gap) ? Math.max(0, gap) : 0
-  const minimum = Math.max(0, ...columns.map(column => column.min))
-  if (!columns.length || minimum <= 0 || available < minimum) return available
-  if (columns.length * minimum + columnGap * (columns.length - 1) <= available) return available
-  const visible = Math.max(1, Math.floor((available + columnGap) / (minimum + columnGap)))
-  return visible * minimum + columnGap * (visible - 1)
-}
-
 function maxRibbonWidthProfile(
   first: ContextualTextRibbonWidthProfile,
   second: ContextualTextRibbonWidthProfile,

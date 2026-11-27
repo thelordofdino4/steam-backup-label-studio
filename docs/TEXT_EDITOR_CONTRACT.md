@@ -109,7 +109,7 @@ tested, and the remaining divergences are recorded.
   Dense Font and Paragraph control bodies remain content-fitted and bounded.
   Additional column width becomes balanced space around the cohesive body,
   with fixed internal gaps. If all columns cannot fit at the shared minimum,
-  preserve usable card widths and use whole-column horizontal overflow.
+  preserve usable card widths and allow horizontal scrolling across the full space before the pinned actions.
 - Compact select fields in dense groups follow the same target-width rule even
   when they do not have a paired field. For example, Text > Paragraph alignment
   sizes from the widest supported alignment label plus the dropdown affordance,

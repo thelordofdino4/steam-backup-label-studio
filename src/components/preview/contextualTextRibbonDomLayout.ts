@@ -2,7 +2,6 @@ import { getContextualTextRibbonContrastMinWidth } from './contextualTextRibbonS
 import { getContextualRibbonInnerGroupWidths, ribbonInnerGroupProfile } from './contextualTextRibbonInnerGroups'
 import {
   getContextualTextRibbonColumnWidths,
-  getContextualTextRibbonColumnViewportWidth,
   packContextualTextRibbonColumns,
   type ContextualTextRibbonWidthProfile,
 } from './contextualTextRibbonModel'
@@ -459,11 +458,6 @@ export function applyColumnPackedGroupWidths(element: Element | null) {
       - (actions?.getBoundingClientRect().width ?? 0) - (actions ? getHorizontalGap(controls) : 0))
     : element.clientWidth
   const input = { availableWidth, columns: columns.map(column => column.profile), gap }
-  const viewportWidth = getContextualTextRibbonColumnViewportWidth(input)
-  element.style.width = `${viewportWidth}px`
-  element.style.maxWidth = `${viewportWidth}px`
-  element.style.scrollSnapType = 'x mandatory'
-  element.style.scrollPaddingInline = '0'
   const columnWidths = getContextualTextRibbonColumnWidths(input)
 
   columns.forEach((column, columnIndex) => {
@@ -479,7 +473,6 @@ export function applyColumnPackedGroupWidths(element: Element | null) {
       )
       element.style.width = widthValue
       element.style.maxWidth = widthValue
-      element.style.scrollSnapAlign = 'start'
       element.style.gridColumn = fillsRow ? '1 / -1' : String(columnIndex + 1)
       element.style.gridRow = rowSpan === 2
         ? `${rowStart} / span ${rowSpan}`

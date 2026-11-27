@@ -221,7 +221,11 @@ async function cardGeometry() {
       return { id: card.dataset.ribbonGroup, column: card.dataset.ribbonColumnIndex,
         width: rect.width, x: rect.x, y: rect.y, height: rect.height, bodyWidth: body.width }
     })
+    const rowBox = row.getBoundingClientRect()
+    const actions = row.parentElement.querySelector('.contextual-text-ribbon-actions')
+    const expectedRight = actions.getBoundingClientRect().left - parseFloat(getComputedStyle(row.parentElement).columnGap)
     return { cards, available: row.clientWidth, scroll: row.scrollLeft,
+      scrollWidth: row.scrollWidth, edgeGap: expectedRight - rowBox.right,
       previewY: document.getElementById('preview-sentinel').getBoundingClientRect().top }
   })
 }
@@ -266,7 +270,7 @@ test('active numeric editing freezes geometry and scroll until focus leaves the 
   assert.deepEqual(errors, [])
 })
 
-test('overflow exposes complete columns and numeric interaction retains the scroll offset', async () => {
+test('overflow fills the lane, reveals the next column, and preserves numeric editing scroll', async () => {
   const style = await page.addStyleTag({ content: '[data-ribbon-group="contrast"] select { font-family: monospace; font-size: 18px; letter-spacing: 0.7px; }' })
   try {
     await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setExpanded(true); window.__contrast.setWidth(650) })
@@ -279,7 +283,16 @@ test('overflow exposes complete columns and numeric interaction retains the scro
     assert.ok(columnWidth >= 220)
     const visibleColumns = (row.available + 4) / (columnWidth + 4)
     assert.ok(visibleColumns >= 1 && visibleColumns < 3)
-    assert.ok(Math.abs(visibleColumns - Math.round(visibleColumns)) < 0.01, JSON.stringify(row))
+    assert.ok(Math.abs(row.edgeGap) < 1, JSON.stringify(row))
+    assert.ok(row.scrollWidth > row.available, JSON.stringify(row))
+    assert.ok(Math.abs(visibleColumns - Math.round(visibleColumns)) > 0.01, JSON.stringify(row))
+    await page.evaluate(() => {
+      const row = document.querySelector('.contextual-text-ribbon-control-row')
+      row.scrollLeft = row.scrollWidth
+    })
+    const end = await cardGeometry()
+    assert.ok(Math.abs(end.scroll - (end.scrollWidth - end.available)) <= 1, JSON.stringify(end))
+    await page.evaluate(() => { document.querySelector('.contextual-text-ribbon-control-row').scrollLeft = 0 })
     await select().selectOption('strokeShadow')
     const contrast = await bounds()
     assert.ok(contrast.usableWidth >= contrast.textWidth, JSON.stringify(contrast))
@@ -379,6 +392,19 @@ for (const target of ['disc-straight', 'disc-curved', 'case-cover', 'case-tray',
           }).map(node => ({ card: card.dataset.ribbonGroup, control: node.dataset.smokeId ?? node.getAttribute('aria-label') }))
         }))
         assert.deepEqual(errors, [], JSON.stringify({ target, tab, width, errors }))
+        const lane = await page.evaluate(() => {
+          const row = document.querySelector('.contextual-text-ribbon-control-row')
+          const actions = row.parentElement.querySelector('.contextual-text-ribbon-actions')
+          const expectedRight = actions.getBoundingClientRect().left - parseFloat(getComputedStyle(row.parentElement).columnGap)
+          const original = row.scrollLeft
+          row.scrollLeft = row.scrollWidth
+          const last = row.scrollLeft
+          row.scrollLeft = original
+          return { edgeGap: expectedRight - row.getBoundingClientRect().right, last,
+            max: row.scrollWidth - row.clientWidth }
+        })
+        assert.ok(Math.abs(lane.edgeGap) < 1, JSON.stringify({ target, tab, width, lane }))
+        assert.ok(Math.abs(lane.last - lane.max) <= 1, JSON.stringify({ target, tab, width, lane }))
       }
     }
     assert.deepEqual(errors, [])
