@@ -10,6 +10,8 @@ export type ImportedImageAsset = {
   fileName?: string
 }
 
+export type ImportedImagePreparationStage = 'validate' | 'decode'
+
 export function isImageFile(file: File) {
   return file.type.startsWith('image/')
 }
@@ -18,8 +20,11 @@ export async function createImportedImageAssetFromDataUrl(
   imageDataUrl: string,
   fileName?: string,
   dependencies = { validate: validateImportedImageDataUrl, load: loadImage, inspect: createImageSizeWithDetectedContentBounds },
+  onStage?: (stage: ImportedImagePreparationStage) => void,
 ): Promise<ImportedImageAsset> {
+  onStage?.('validate')
   const acceptedDataUrl = await dependencies.validate(imageDataUrl)
+  onStage?.('decode')
   const image = await dependencies.load(acceptedDataUrl, fileName ?? 'imported image')
 
   return {

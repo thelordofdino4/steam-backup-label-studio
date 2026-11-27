@@ -1,4 +1,6 @@
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { useApplicationDiagnostics } from './useApplicationDiagnostics.ts'
+import { startArtworkWorkflow } from '../diagnostics/artworkWorkflowDiagnostics.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useCallback, useState } from 'react'
 import {
@@ -29,7 +31,7 @@ export type WebArtworkDiscoveryState = {
 type UseWebArtworkDiscoveryParams = {
   selectedSteamGame: SteamImportedGame | null
   projectMetadata: ProjectMetadata
-  applyBackgroundImageImport: (importedBackground: BackgroundImageImportResult) => void
+  applyBackgroundImageImport: (importedBackground: BackgroundImageImportResult) => boolean | void
   announceStatus: (message: string) => void
 }
 
@@ -41,10 +43,6 @@ const EMPTY_WEB_ARTWORK_DISCOVERY: WebArtworkDiscoveryState = {
   error: null,
   hasSearched: false,
   inputKey: null,
-}
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function hasUsefulNames(names: string[], metadataName: string) {
@@ -81,6 +79,7 @@ export function useWebArtworkDiscovery({
   announceStatus,
 }: UseWebArtworkDiscoveryParams) {
   const asyncWork = useProjectAsyncWork()
+  const { observeArtworkWorkflow } = useApplicationDiagnostics()
   const [pendingSearch, setPendingSearch] = useState<ProjectAsyncRequest | null>(null)
   const [pendingApply, setPendingApply] = useState<ProjectAsyncRequest | null>(null)
   const [webArtworkDiscovery, setWebArtworkDiscovery] =
@@ -112,6 +111,7 @@ export function useWebArtworkDiscovery({
       return
     }
 
+    const observation = startArtworkWorkflow(observeArtworkWorkflow, 'artwork.discovery', request.requestId, 'discover')
     setWebArtworkDiscovery((currentState) => ({
       ...(currentState.inputKey === discoveryInputKey && currentState.sessionId === request.sessionId
         ? currentState
@@ -133,7 +133,8 @@ export function useWebArtworkDiscovery({
           }),
         ),
       )
-      asyncWork.publish(request, () => {
+      let outcome: 'success' | 'failure' | 'partial' = 'success'
+      const accepted = asyncWork.publish(request, () => {
         const fulfilledResults = settledResults.flatMap((result) =>
           result.status === 'fulfilled' ? [result.value] : [],
         )
@@ -143,8 +144,10 @@ export function useWebArtworkDiscovery({
         const sourceStatuses = dedupeSourceStatuses(
           fulfilledResults.flatMap((result) => result.sourceStatuses),
         )
-        const firstFailure = settledResults.find((result) => result.status === 'rejected')
-        const error = firstFailure?.status === 'rejected' ? getErrorMessage(firstFailure.reason) : null
+        const sourceFailed = settledResults.some(result => result.status === 'rejected')
+          || fulfilledResults.some(result => result.sourceStatuses.some(source => source.status === 'error'))
+        outcome = sourceFailed ? (candidates.length === 0 ? 'failure' : 'partial') : 'success'
+        const error = outcome === 'failure' ? observation.failureMessage() : null
 
         setWebArtworkDiscovery((currentState) => ({
           ...currentState,
@@ -158,13 +161,14 @@ export function useWebArtworkDiscovery({
         announceStatus(
           candidates.length > 0
             ? `Found ${candidates.length} web artwork candidate${candidates.length === 1 ? '' : 's'}.`
-            : 'No web artwork candidates found. Steam artwork and local upload are still available.',
+            : error ?? 'No web artwork candidates found. Steam artwork and local upload are still available.',
         )
 
       })
-    } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      observation.finish(accepted, outcome)
+    } catch {
+      const accepted = asyncWork.publish(request, () => {
+        const message = observation.failureMessage()
         setWebArtworkDiscovery((currentState) => ({
           ...currentState,
           candidates: [],
@@ -174,14 +178,16 @@ export function useWebArtworkDiscovery({
           inputKey: discoveryInputKey,
           sessionId: request.sessionId,
         }))
-        announceStatus(`Web artwork search failed: ${message}`)
+        announceStatus(message)
 
       })
+      observation.finish(accepted, 'failure')
     }
-  }, [asyncWork, announceStatus, discoveryInputKey, projectMetadata, selectedSteamGame])
+  }, [asyncWork, announceStatus, discoveryInputKey, observeArtworkWorkflow, projectMetadata, selectedSteamGame])
 
   const applyWebArtworkCandidate = useCallback(async (candidate: RemoteLogoCandidate) => {
     const request = asyncWork.begin('background-artwork')
+    const observation = startArtworkWorkflow(observeArtworkWorkflow, 'artwork.import', request.requestId, 'download')
     setPendingApply(request)
     setWebArtworkDiscovery((currentState) => ({
       ...currentState,
@@ -202,9 +208,12 @@ export function useWebArtworkDiscovery({
           sourceUrl: candidate.url,
         }),
         candidate.id,
+        observation.stage,
       )
-      asyncWork.commit(request, () => {
-        applyBackgroundImageImport(importedBackground)
+      observation.stage('apply')
+      let applied = false
+      const accepted = asyncWork.commit(request, () => {
+        applied = applyBackgroundImageImport(importedBackground) !== false
         setWebArtworkDiscovery((currentState) => ({
           ...currentState,
           isApplying: false,
@@ -212,19 +221,21 @@ export function useWebArtworkDiscovery({
         }))
 
       })
-    } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      observation.finish(accepted && applied)
+    } catch {
+      const accepted = asyncWork.publish(request, () => {
+        const message = observation.failureMessage()
         setWebArtworkDiscovery((currentState) => ({
           ...currentState,
           isApplying: false,
           error: message,
         }))
-        announceStatus(`Web artwork import failed: ${message}`)
+        announceStatus(message)
 
       })
+      observation.finish(accepted, 'failure')
     }
-  }, [asyncWork, announceStatus, applyBackgroundImageImport])
+  }, [asyncWork, announceStatus, applyBackgroundImageImport, observeArtworkWorkflow])
 
   return {
     webArtworkDiscovery: webArtworkDiscovery.inputKey === discoveryInputKey &&

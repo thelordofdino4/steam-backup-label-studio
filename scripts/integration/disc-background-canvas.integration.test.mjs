@@ -127,6 +127,21 @@ test('trusted Disc background canvas cancellation restores placement; release co
     } finally {
       await client.detach()
     }
+    const committed = await read(page)
+    await page.locator('#background-upload').setInputFiles({
+      name: 'private-artwork-sample.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+    })
+    await page.waitForFunction(() => globalThis.discCanvasFixture.diagnostics().at(-1)?.status === 'failure')
+    const failures = await page.evaluate(() => globalThis.discCanvasFixture.diagnostics())
+    assert.equal(failures.length,1)
+    assert.equal(failures[0].stage,'validate')
+    assert.equal(failures[0].failureCode,'image.validation-failed')
+    assert.doesNotMatch(JSON.stringify(failures),/private-artwork|image\/svg|base64/)
+    const afterRejectedUpload = await read(page)
+    assert.equal(afterRejectedUpload.revision,committed.revision)
+    assert.deepEqual(afterRejectedUpload.offset,committed.offset)
     assert.deepEqual(errors,[])
   } finally {
     await browser?.close()

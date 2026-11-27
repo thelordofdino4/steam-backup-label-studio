@@ -85,5 +85,5 @@ test('picker command stays modal-owned and routes through shared import and stal
   assert.equal(handler.match(/commands::disc_background_picker::pick_disc_background_image/g)?.length, 1)
   assert.match(panel,/canUseNativeDiscBackgroundPicker\(\)[\s\S]*<button[\s\S]*handlePickNativeBackgroundFile\(\)[\s\S]*type="file"[\s\S]*onChange=\{handleBackgroundUpload\}/)
   assert.match(hook,/importBackgroundUpload\(file\)[\s\S]*selectNativeBackgroundFile\(asyncWork, pickDiscBackgroundFile,[\s\S]*importBackgroundUpload\(file\)/)
-  assert.match(hook,/begin\('background-artwork'\)[\s\S]*createUploadedBackgroundImageImport\(file\)[\s\S]*commit\(request, \(\) => \{ applyBackgroundImageImport\(imported\)/)
+  assert.match(hook,/begin\('background-artwork'\)[\s\S]*createUploadedBackgroundImageImport\(file, observation\.stage\)[\s\S]*commit\(request, \(\) => \{ applied = applyBackgroundImageImport\(imported\) \}\)[\s\S]*observation\.finish\(accepted && applied\)/)
 })

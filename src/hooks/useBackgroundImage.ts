@@ -1,4 +1,5 @@
 import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
+import { startArtworkWorkflow } from '../diagnostics/artworkWorkflowDiagnostics.ts'
 import { commitPreparedDiscBackgroundCompound } from '../app/appDiscBackgroundCompoundCommand.ts'
 import { useDiscBackgroundDraft } from './useDiscBackgroundDraft.ts'
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
@@ -86,6 +87,7 @@ export function useBackgroundImage({
   const runtime = useContext(ApplicationLifecycleRuntimeContext)
   if (!runtime) throw new Error('ApplicationLifecycleBoundary is required.')
   const root = runtime.root
+  const diagnostics = runtime.diagnostics
   const { binding: draft, transform } = useDiscBackgroundDraft(runtime)
   function getDiscSession() {
     const session = root.getLifecycleState().activeSession
@@ -168,7 +170,7 @@ export function useBackgroundImage({
 
   function applyBackgroundImageImport(importedBackground: BackgroundImageImportResult) {
     const session = getDiscSession()
-    if (!session || !root.canCommitDiscBackground()) return
+    if (!session || !root.canCommitDiscBackground()) return false
     const { next: nextBackground, acceptPlacement } = applySemanticBackgroundChange({
       enabled: true,
       imageDataUrl: importedBackground.background.imageUrl,
@@ -181,13 +183,16 @@ export function useBackgroundImage({
     const operation: DiscBackgroundOperation = { kind: 'asset', stagedAsset: importedBackground.stagedAsset, background: {
       ...nextBackground, note: session.project.background.note,
     } }
+    let applied = false
     const accepted = () => {
+      applied = true
       acceptPlacement?.()
       setSelectedArtworkId(importedBackground.selectedArtworkId)
       announceStatus(importedBackground.statusMessage)
     }
     submitWithGuidedCompanion(session, operation,
       isDiscGuidedBackgroundOwnerSatisfied(nextBackground), accepted)
+    return applied
   }
 
   function submitWithGuidedCompanion(
@@ -249,14 +254,20 @@ export function useBackgroundImage({
 
   async function importBackgroundUpload(file: File) {
     const request = asyncWork.begin('background-artwork')
+    const observation = startArtworkWorkflow(diagnostics.observeArtworkWorkflow,
+      'image.disc-background-import', request.requestId, 'read')
     setPendingArtwork(request)
     try {
-      const imported = await createUploadedBackgroundImageImport(file)
-      asyncWork.commit(request, () => { applyBackgroundImageImport(imported) })
+      const imported = await createUploadedBackgroundImageImport(file, observation.stage)
+      observation.stage('apply')
+      let applied = false
+      const accepted = asyncWork.commit(request, () => { applied = applyBackgroundImageImport(imported) })
+      observation.finish(accepted && applied)
     } catch (error) {
-      asyncWork.publish(request, () => {
+      const accepted = asyncWork.publish(request, () => {
         reportBackgroundUploadFailure(error)
       })
+      observation.finish(accepted, 'failure')
     }
   }
 

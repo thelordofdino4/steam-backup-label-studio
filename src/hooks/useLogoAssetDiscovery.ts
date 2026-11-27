@@ -1,4 +1,6 @@
 import { useProjectAsyncWork } from './useProjectAsyncWork.ts'
+import { useApplicationDiagnostics } from './useApplicationDiagnostics.ts'
+import { startArtworkWorkflow } from '../diagnostics/artworkWorkflowDiagnostics.ts'
 import type { ProjectAsyncRequest } from '../lifecycle/projectAsyncWork.ts'
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
 import {
@@ -88,10 +90,6 @@ function getLogoEntityLabel(
   return names[0] ?? logoKey
 }
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
-}
-
 export function useLogoAssetDiscovery({
   selectedSteamGame,
   projectMetadata,
@@ -102,6 +100,7 @@ export function useLogoAssetDiscovery({
   onDiscGuidedSlotCompleted = ignoreDiscGuidedSlotCompletion,
 }: UseLogoAssetDiscoveryParams) {
   const asyncWork = useProjectAsyncWork()
+  const { observeArtworkWorkflow } = useApplicationDiagnostics()
   const [logoCandidateDiscovery, setLogoCandidateDiscovery] =
     useState<LogoCandidateDiscoveryState>(() => createInitialDiscoveryState())
   const discoveryInputKey = [
@@ -122,6 +121,7 @@ export function useLogoAssetDiscovery({
 
   const findLogoCandidates = useCallback(async (logoKey: LogoAssetKey) => {
     const request = asyncWork.begin(`logo-discovery:${logoKey}`)
+    const observation = startArtworkWorkflow(observeArtworkWorkflow, 'company-logo.discovery', request.requestId, 'discover')
     const lastSearchedLabel = getLogoEntityLabel(logoKey, selectedSteamGame, projectMetadata)
 
     updateSlot(logoKey, (slot) => ({
@@ -142,8 +142,12 @@ export function useLogoAssetDiscovery({
         selectedSteamGame,
         projectMetadata,
       })
-      asyncWork.publish(request, () => {
+      let outcome: 'success' | 'failure' | 'partial' = 'success'
+      const accepted = asyncWork.publish(request, () => {
         const { candidates, artworkCandidates, sourceStatuses } = discoveryResult
+        const sourceFailed = sourceStatuses.some(source => source.status === 'error')
+        outcome = sourceFailed ? (candidates.length === 0 ? 'failure' : 'partial') : 'success'
+        const message = outcome === 'failure' ? observation.failureMessage() : null
 
         updateSlot(logoKey, (slot) => ({
           ...slot,
@@ -151,31 +155,33 @@ export function useLogoAssetDiscovery({
           artworkCandidates,
           sourceStatuses,
           isLoading: false,
-          error: null,
+          error: message,
           inputKey: discoveryInputKey,
         }))
 
         announceStatus(
           candidates.length > 0
             ? `Found ${candidates.length} logo candidate${candidates.length === 1 ? '' : 's'} for ${lastSearchedLabel}.`
-            : `No logo candidates found for ${lastSearchedLabel}. Manual upload is still available.`,
+            : message ?? `No logo candidates found for ${lastSearchedLabel}. Manual upload is still available.`,
         )
 
       })
-    } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      observation.finish(accepted, outcome)
+    } catch {
+      const accepted = asyncWork.publish(request, () => {
+        const message = observation.failureMessage()
         updateSlot(logoKey, (slot) => ({
           ...slot,
           isLoading: false,
           error: message,
           inputKey: discoveryInputKey,
         }))
-        announceStatus(`Logo candidate search failed: ${message}`)
+        announceStatus(message)
 
       })
+      observation.finish(accepted, 'failure')
     }
-  }, [asyncWork, announceStatus, discoveryInputKey, projectMetadata, selectedSteamGame, updateSlot])
+  }, [asyncWork, announceStatus, discoveryInputKey, observeArtworkWorkflow, projectMetadata, selectedSteamGame, updateSlot])
 
   const applyLogoCandidate = useCallback(async (
     logoKey: LogoAssetKey,
@@ -183,6 +189,7 @@ export function useLogoAssetDiscovery({
     additionalLogoId?: string,
   ) => {
     const request = asyncWork.begin(`image:logo:${logoKey}:${additionalLogoId ?? "primary"}`)
+    const observation = startArtworkWorkflow(observeArtworkWorkflow, 'company-logo.import', request.requestId, 'download')
     updateSlot(logoKey, (slot) => ({
       ...slot,
       isApplying: true,
@@ -192,8 +199,9 @@ export function useLogoAssetDiscovery({
 
     try {
       const { importedImage, imageSource } =
-        await importRemoteLogoCandidateAsset(candidate)
-      asyncWork.commit(request, () => {
+        await importRemoteLogoCandidateAsset(candidate, observation.stage)
+      observation.stage('apply')
+      const accepted = asyncWork.commit(request, () => {
 
         if (applyLogoAssetImport) {
           applyLogoAssetImport(
@@ -233,22 +241,25 @@ export function useLogoAssetDiscovery({
         )
 
       })
-    } catch (error) {
-      asyncWork.publish(request, () => {
-        const message = getErrorMessage(error)
+      observation.finish(accepted)
+    } catch {
+      const accepted = asyncWork.publish(request, () => {
+        const message = observation.failureMessage()
         updateSlot(logoKey, (slot) => ({
           ...slot,
           isApplying: false,
           error: message,
         }))
-        announceStatus(`Logo candidate import failed: ${message}`)
+        announceStatus(message)
 
       })
+      observation.finish(accepted, 'failure')
     }
   }, [asyncWork,
     announceStatus,
     applyLogoAssetImport,
     onDiscGuidedSlotCompleted,
+    observeArtworkWorkflow,
     selectedDiscTemplate,
     setProjectLogoAssets,
     updateSlot,

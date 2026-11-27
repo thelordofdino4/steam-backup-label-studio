@@ -7,6 +7,7 @@ import { readLocalImageAsDataUrl, type LocalSteamScreenshotAsset } from '../loca
 import { downloadSteamArtworkAsDataUrl, type SteamArtworkAsset } from '../steam/steamApi'
 import {
   createImportedImageAssetFromDataUrl,
+  type ImportedImagePreparationStage,
 } from '../utils/importedImageAsset'
 import { readImageFileAsDataUrl } from '../utils/imageFile'
 import { ImportedImagePolicyError } from './importedImagePolicy'
@@ -38,8 +39,9 @@ export async function createBackgroundImageImportFromDataUrl(
   statusMessage: string,
   imageSource: ProjectImageAssetProvenance,
   selectedArtworkId: string | null = null,
+  onStage?: (stage: ImportedImagePreparationStage) => void,
 ): Promise<BackgroundImageImportResult> {
-  const importedImage = await createImportedImageAssetFromDataUrl(imageDataUrl)
+  const importedImage = await createImportedImageAssetFromDataUrl(imageDataUrl, undefined, undefined, onStage)
 
   // Image preparation already validated and canonicalized these exact bytes.
   const stagedAsset = await DiscBackgroundRaster.stageAcceptedSource(importedImage.imageDataUrl)
@@ -58,6 +60,7 @@ export async function createBackgroundImageImportFromDataUrl(
 
 export async function createUploadedBackgroundImageImport(
   file: File,
+  onStage?: (stage: ImportedImagePreparationStage) => void,
 ): Promise<BackgroundImageImportResult> {
   let imageDataUrl: string
 
@@ -76,6 +79,8 @@ export async function createUploadedBackgroundImageImport(
         source: 'uploaded',
         sourceLabel: file.name,
       }),
+      null,
+      onStage,
     )
   } catch (error) {
     if (error instanceof ImportedImagePolicyError) throw error

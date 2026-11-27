@@ -34,7 +34,7 @@ PNG export retains the existing typed failure, raw PNG transport, and user-feedb
 | Save / Save As | [save command](../src/app/appProjectSaveCommand.ts), existing package/file ports | Terminal outcome/timing observed; finer nested stage timing and native acceptance remain. |
 | PNG export | [export adapter](../src/app/appPngExport.ts), [command](../src/app/appPngExportCommand.ts) | Report projects typed stages rather than exception text; native render/write/report acceptance remains. |
 | Steam search/import | [existing hook](../src/hooks/useSteamImport.ts) and domain import owners | Reconciled #304/#367 owners now record safe typed terminal outcomes and coarse fetch/normalize, prepare and apply stages; native acceptance and finer transport/decode categories remain. |
-| Image/discovery jobs | Existing feature hooks and native image/Steam/official-site commands | Not yet connected to this command-only observer; reuse their result/request owners rather than logging raw inputs. |
+| Image/discovery jobs | Disc background, web artwork and company-logo request owners; shared image preparation | The local report observes Disc background uploads and web/official artwork and company-logo candidate discovery/adoption. Other upload owners, including Case local uploads and auxiliary Disc marks, still need coverage. |
 | Startup/menu readiness | [entry point](../src/main.tsx), existing menu runtime | Menu prerequisites and safe projection-failure categories connected in production. React mount/lifecycle construction, native process startup before WebView, finer readiness timing and report access before/after startup failure remain. |
 | Local report delivery | Existing Help/menu and application dialog contracts | Read-only offline Help snapshot, keyboard selection/copy, explicit refresh and Home fallback implemented with focused component diagnostics. Native focus/keyboard/copy, packaged accessibility and full workflow coverage remain. |
 
@@ -45,6 +45,12 @@ The existing [Steam hook](../src/hooks/useSteamImport.ts) retains the #304 query
 Import reports success only after the existing checked commit returns true. Current failures publish safe copy through the existing checked feedback completion, including synchronous application failures. A retired search/import records `cancelled` and cannot replace current UI status or become a success. Here cancellation means acceptance authority was retired; it does not claim the native transport was aborted. Pending records show elapsed time until transport/preparation completes, including work whose authority was retired meanwhile. Diagnostics do not extend that authority. The existing async boundary still is not an arbitrary-setter rollback transaction; #366 remains a separate gate.
 
 `fetch-and-normalize` deliberately includes native fetch plus response normalization; finer transport/parse attribution is not yet available at this owner. `prepare` includes artwork/metadata preparation, and `apply` is the existing synchronous checked callback. Optional enrichment failures swallowed by existing domain fallback policy are not falsely reported as whole-import failures. Other discovery/image hooks still need coverage and safe-copy reconciliation.
+
+## Image import and artwork discovery
+
+The existing session-bound owner still grants publish/commit authority. The report begins with the owner's numeric request ID; it never captures the lane string, project ID, file name, download URL, candidate label, raw error, or bytes. Import observations distinguish file read or download, validation, decode/preparation, and application when the corresponding owner reaches that stage. A retired request is cancelled, not a reported app failure; a declined background adoption is not a success. The native picker itself is outside the image preparation observation.
+
+Discovery distinguishes an ordinary empty result from a failed search. If one source fails while another yields candidates, the candidates remain selectable and the report marks the successful result as partial. An unavailable optional source is not itself a failure. No source or candidate identity is included in the report. Discovery uses a safe message for a failed search; the existing content lookup, selection, and commit owners are unchanged.
 
 ## Executed source checks
 

@@ -2,6 +2,7 @@ import {
   STEAM_WORKFLOW_IDS, STEAM_WORKFLOW_STAGES, STEAM_WORKFLOW_FAILURES,
   type SteamWorkflowId, type SteamWorkflowObserver,
 } from '../steam/steamWorkflowDiagnostics.ts'
+import { ARTWORK_WORKFLOW_IDS, ARTWORK_WORKFLOW_FAILURES, type ArtworkWorkflowId, type ArtworkWorkflowObserver } from './artworkWorkflowDiagnostics.ts'
 import {
   APPLICATION_MENU_STARTUP_STAGES,
   projectApplicationMenuDiagnostic,
@@ -81,6 +82,7 @@ const MAX_ELAPSED_MS = 86_400_000
 type Outcome = Readonly<{
   status: ApplicationCommandResult<unknown>['status'] | 'running' | 'started' | 'unavailable' | 'failed' | 'disposed' | 'reported'
   adoption?: 'committed' | 'no-op' | 'declined'
+  partial?: true
   diagnosticCode?: string
   failureCode?: string
   stage?: string
@@ -88,7 +90,7 @@ type Outcome = Readonly<{
 type Identity = Readonly<{
   commandId?: ApplicationCommandId | 'unknown'
   operationId?: string
-  workflowId?: SteamWorkflowId | 'unknown'
+  workflowId?: SteamWorkflowId | ArtworkWorkflowId | 'unknown'
   requestId?: number
   component?: 'application-menu'
   event?: 'startup' | 'diagnostic'
@@ -202,6 +204,32 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
       },
     })
   }
+  const artworkWorkflows = new Set<string>(ARTWORK_WORKFLOW_IDS)
+  const artworkStages = new Set<string>(Object.keys(ARTWORK_WORKFLOW_FAILURES))
+  const observeArtworkWorkflow: ArtworkWorkflowObserver = operation => {
+    const update = begin(Object.freeze({
+      workflowId: artworkWorkflows.has(operation.workflowId) ? operation.workflowId : 'unknown',
+      ...(Number.isSafeInteger(operation.requestId) && operation.requestId > 0 ? { requestId: operation.requestId } : {}),
+    }))
+    if (!update) return
+    let stage = 'unclassified'
+    return Object.freeze({
+      stage(value) {
+        stage = artworkStages.has(value) ? value : 'unclassified'
+        update({ status: 'running', stage }, false)
+      },
+      complete(result, partial) {
+        const status = result.status === 'success' || result.status === 'cancelled' || result.status === 'declined'
+          ? result.status : 'failure'
+        const failure = ARTWORK_WORKFLOW_FAILURES[stage as keyof typeof ARTWORK_WORKFLOW_FAILURES]
+        const partialDiscovery = partial === true && status === 'success' && stage === 'discover' &&
+          (operation.workflowId === 'artwork.discovery' || operation.workflowId === 'company-logo.discovery')
+        update({ status, stage, ...(partialDiscovery ? { partial: true as const } : {}), ...(status === 'failure' ? {
+          failureCode: result.status === 'failure' && failure?.code === result.error.code ? failure.code : 'unclassified',
+        } : {}) })
+      },
+    })
+  }
   const startupStages = new Set<string>(APPLICATION_MENU_STARTUP_STAGES)
   const startupResults = new Set(['started', 'unavailable', 'failed', 'disposed'])
   const observeMenuStartup: ApplicationMenuStartupObserver = () => {
@@ -235,7 +263,7 @@ export function createApplicationCommandDiagnostics(options: Readonly<{
       })),
     })
   }
-  return Object.freeze({ observeExecution, observeMenuStartup, recordMenuDiagnostic, observeSteamWorkflow, snapshot,
+  return Object.freeze({ observeExecution, observeMenuStartup, recordMenuDiagnostic, observeSteamWorkflow, observeArtworkWorkflow, snapshot,
     toJson: () => JSON.stringify(snapshot(), null, 2),
     clear() { entries = []; evicted = 0 },
     dispose() { disposed = true; entries = []; evicted = 0 },

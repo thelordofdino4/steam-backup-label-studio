@@ -71,16 +71,32 @@ window.discoveryHarness={
  async settle(index,fail=false) {
   await act(async()=>{
    const request=requests[index]
-   if(fail)request.reject(new Error('discovery failed'))
+   if(fail)request.reject(new Error('discovery failed https://private.invalid/art.png'))
    else request.resolve(window.discoveryResult(request.kind,'result-'+index))
    await request.completion
+  })
+ },
+ async settleSources(mode) {
+  await act(async()=>{
+   const first=requests[0]
+   const second=requests[1]
+   if(mode==='rejected-partial') {
+    first.reject(new Error('private discovery failure'))
+    second.resolve(window.discoveryResult('images','usable-result'))
+   } else {
+    const base={candidates:[],artworkCandidates:[],sourceStatuses:[]}
+    first.resolve({...base,sourceStatuses:[{source:'official-site',label:'private label',
+      status:mode==='empty'?'unavailable':'error',detail:'private detail'}]})
+    second.resolve(mode==='source-partial'?window.discoveryResult('images','usable-result'):base)
+   }
+   await first.completion
   })
  },
  async change(kind) {
   await act(async()=>{
    if(kind==='session')await runtime.root.dispatch('project.new-disc')
    else {
-    metadata={...metadata,steamAppId:'2',developer:kind==='empty'?'':'Developer B'}
+    metadata={...metadata,steamAppId:'2',developer:kind==='empty'?'':'Developer B',publisher:kind==='both'?'Publisher B':''}
     render()
    }
   })
@@ -88,7 +104,8 @@ window.discoveryHarness={
  snapshot(kind) {
   return {state:kind==='logo'?api.logo.logoCandidateDiscovery.developer:
    kind==='web'?api.web.webArtworkDiscovery:api.assistance.steamMetadataAssistance,
-   sessionId:runtime.projectAsyncWork.getCurrentSessionId(),statuses:[...statuses]}
+   sessionId:runtime.projectAsyncWork.getCurrentSessionId(),statuses:[...statuses],
+   diagnostics:runtime.diagnostics.snapshot().records.filter(row=>row.workflowId)}
  }
 }
 </script>`
@@ -144,7 +161,14 @@ for(const kind of ['logo','web','metadata']) {
    await settle(1,true)
    const failed=await snapshot(kind)
    assert.equal(failed.state.isLoading,false)
-   assert.match(failed.state.error,/discovery failed/)
+   assert.match(failed.state.error,kind==='metadata'?/discovery failed/:/Artwork search could not be completed/)
+   if(kind!=='metadata'){
+    const report=failed.diagnostics.at(-1)
+    assert.equal(report.status,'failure')
+    assert.equal(report.stage,'discover')
+    assert.equal(report.failureCode,'artwork.discovery-failed')
+    assert.doesNotMatch(JSON.stringify(report),/private|Developer/)
+   }
    assert.ok(arrays(kind,failed.state).every(array=>array.length===0))
    await start(kind);await settle(2)
    const current=await snapshot(kind)
@@ -169,4 +193,29 @@ test('web: missing discovery targets do not resurrect old accepted artwork',asyn
  assert.equal(result.isLoading,false)
  assert.match(result.error,/enter developer\/publisher metadata/)
  assert.ok(arrays('web',result).every(array=>array.length===0))
+})
+for (const mode of ['rejected-partial','source-partial','source-failed','empty']) {
+ test('web: '+mode+' records a safe outcome without hiding usable candidates',async()=>{
+  await page.evaluate(()=>window.discoveryHarness.change('both'))
+  await start('web')
+  await page.evaluate(mode=>window.discoveryHarness.settleSources(mode),mode)
+  const {state,diagnostics}=await snapshot('web')
+  const partial=mode.endsWith('-partial')
+  assert.equal(state.candidates.length,partial?1:0)
+  assert.equal(Boolean(state.error),mode==='source-failed')
+  assert.equal(diagnostics.length,1)
+  const record=diagnostics[0]
+  assert.equal(record.status,mode==='source-failed'?'failure':'success')
+  assert.equal(record.partial,partial?true:undefined)
+  assert.equal(record.stage,'discover')
+  assert.doesNotMatch(JSON.stringify(record),/private|usable-result|Publisher/)
+ })
+}
+test('web: a retired discovery records cancellation, not a failure with private input',async()=>{
+ await start('web'); await start('web'); await settle(1); await settle(0,true)
+ const {state,diagnostics}=await snapshot('web')
+ assert.equal(state.candidates[0].id,'result-1')
+ assert.equal(state.error,null)
+ assert.deepEqual(diagnostics.map(row=>row.status),['cancelled','success'])
+ assert.doesNotMatch(JSON.stringify(diagnostics),/private|result-1/)
 })

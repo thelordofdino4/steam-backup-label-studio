@@ -35,3 +35,17 @@ test('accepted bytes use existing display dimensions and active-pixel inspection
 test('over-limit files fail before FileReader allocation', async () => {
   await assert.rejects(readImageFileAsDataUrl({ size: 67_108_865, name: 'large.png' } as File), /at most 64 MiB/)
 })
+
+test('image preparation attributes validation and decode failures to the actual last stage', async () => {
+  for (const failedStage of ['validate','decode'] as const) {
+    const stages: string[] = []
+    const input = 'data:image/png;base64,AA=='
+    const fail = () => { throw new Error('private decoder detail') }
+    await assert.rejects(createImportedImageAssetFromDataUrl(input, 'private.png', {
+      validate: async () => failedStage === 'validate' ? fail() : input,
+      load: async () => fail(),
+      inspect: () => { assert.fail('failing preparation never inspects pixels') },
+    }, stage => stages.push(stage)))
+    assert.deepEqual(stages, failedStage === 'validate' ? ['validate'] : ['validate', 'decode'])
+  }
+})
