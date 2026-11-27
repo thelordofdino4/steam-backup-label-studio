@@ -87,14 +87,14 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
   // Budget the shared label, track, number, unit, gaps and card padding
   // at the widest slider track minimum rather than clipping card contents.
   'background': {
-    min: 240,
+    min: 248,
     preferred: 292,
     max: 360,
     grows: true,
     rowSpan: 2,
   },
   'border': {
-    min: 240,
+    min: 248,
     preferred: 264,
     max: 328,
     grows: true,

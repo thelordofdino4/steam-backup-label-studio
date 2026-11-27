@@ -33,3 +33,8 @@ test('number capacity reserves sign and supported precision independent of curre
   assert.equal(capacity([{ min: 0, max: 999.999, step: 0.01 }]), 8)
   assert.equal(capacity([undefined]), 4)
 })
+
+test('straight range capacity includes fractions from manual entry despite the arrow step', () => {
+  assert.equal(capacity([{ min: -100, max: 100, step: 1 }], 2), 8)
+  assert.equal(capacity([{ min: 0, max: 100, step: 1 }], 2), 7)
+})

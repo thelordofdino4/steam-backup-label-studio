@@ -47,11 +47,12 @@ export function getContextualRibbonInnerGroupWidths(
 // displays at most two fraction digits; reserve that capacity before editing.
 export function getRibbonRangeValueCapacityCh(
   controls: readonly ({ min: number; max: number; step?: number } | undefined)[],
+  fractionalDigitsFloor = 0,
 ) {
   return controls.reduce((capacity, control) => {
     if (!control) return capacity
     const values = [control.min, control.max, control.step ?? 1]
-    const decimals = Math.max(...values.map(value =>
+    const decimals = Math.max(fractionalDigitsFloor, ...values.map(value =>
       (value.toFixed(2).replace(/0+$/, '').split('.')[1] ?? '').length))
     const magnitude = Number(Math.max(Math.abs(control.min), Math.abs(control.max)).toFixed(2))
     const digits = magnitude < 1 ? 1 : Math.floor(Math.log10(magnitude)) + 1
