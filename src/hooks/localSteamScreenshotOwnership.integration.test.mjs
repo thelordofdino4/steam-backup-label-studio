@@ -68,7 +68,7 @@ window.screenshotHarness={
   if(kind==='session')await runtime.root.dispatch('project.new-disc')
   else steam.setSelectedSteamGame(kind==='none'?null:{appId:kind==='same'?1:2,title:kind==='same'?'Renamed A':'Game B'})
  })},
- async startImport(){await act(async()=>{const completion=steam.runSteamImport(2,result=>()=>steam.setSelectedSteamGame(result.importedGame));imports.at(-1).completion=completion})},
+ async startImport(){await act(async()=>{const completion=steam.runSteamImport(2,result=>()=>{steam.setSelectedSteamGame(result.importedGame);return 'committed'});imports.at(-1).completion=completion})},
  async finishImport(outcome){await act(async()=>{const request=imports.at(-1)
   if(outcome==='cancel')runtime.projectAsyncWork.invalidate('steam-game')
   if(outcome==='failure')request.reject(new Error('import failed'))

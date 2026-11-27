@@ -101,3 +101,7 @@ The composition root also gates all semantic commands, including native menu,
 export and Case ingress, after the original termination busy scope is released.
 See [Native termination acceptance](NATIVE_TERMINATION_ACCEPTANCE.md) for the
 protocol, primary continuous-edit integration boundary and native gates.
+
+## Diagnostic observation
+
+The reconciled source stack lets Steam search/import report bounded timing and typed outcomes to the existing application runtime collector. Observation is outside request authorization: it cannot acquire, renew, commit or publish a request. Import success comes from the synchronous adoption owner, not merely request admission. Records distinguish a checked commit, an accepted no-op, and a declined owner from cancellation before the owner ran; current failure copy still uses `publish`; retired completions record cancellation without changing current UI feedback. See [RELEASE_DIAGNOSTICS.md](RELEASE_DIAGNOSTICS.md) for the allowlisted fields and coarse stages. Diagnostic observation does not establish native acceptance or replace the #366 transaction owner.

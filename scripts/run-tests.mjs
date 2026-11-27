@@ -10,6 +10,7 @@ const sandboxedBrowserTestFiles = [
   'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
   'src/components/testing/applicationHelpIntegration.test.mjs',
   'src/export/discBackgroundLifetime.integration.test.mjs',
+  'src/hooks/useSteamImport.integration.test.mjs',
 ]
 const validModes = ['--list', '--node-only', '--rust-only']
 const validLanes = ['--exclude-sandboxed-browser', '--sandboxed-browser-only']
