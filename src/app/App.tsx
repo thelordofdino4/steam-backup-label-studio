@@ -10,6 +10,8 @@ import { prepareDiscHistoryGuidedAttachment, readDiscHistoryTemplate, stepProjec
 import { captureDiscBackgroundExportInput } from '../lifecycle/canonicalProject.ts'
 import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
+
+import { useApplicationHelp } from './useApplicationHelp'
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { buildSteamMetadataCandidatesFromImportedGame } from '../steam/steamMetadataCandidates'
 import {
@@ -1747,21 +1749,23 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
       return () => {
         if (activeWorkspace === 'disc' && preparedDiscVisualImport && !options.applyCaseInsertBackCoverDefaults) {
           const captured = captureCurrentLegacyProject()
-          if (captured.kind !== 'disc') return
+          if (captured.kind !== 'disc') return 'declined' as const
           // The async hook has just admitted the session/content revision. A
           // same-content Save As can change generation while the PNG decodes.
           const basis = readDiscEditorDocumentBasis(applicationLifecycleRoot, captured.project)
           if (!basis || basis.current.id !== request.sessionId ||
-              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return
+              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return 'declined' as const
           const plan = planDiscSteamDocumentImport(preparedDiscVisualImport, {
             isDifferentSelectedSteamGame, autoRatingCandidate, autoLegalCandidate, nextProjectMetadata,
             shouldResetGameScopedRating, shouldResetGameScopedLegal, shouldUpdateCopyrightDiscTextSource,
           }, getDiscDocumentRenderedOwners(), selectedDiscTemplate, steamLogoPlacement,
           activeDiscPreset.getActivePresetState())
+          let changed = false
           const committed = applyDiscEditorDocumentEdit(applicationLifecycleRoot, basis, {
             kind: 'steam-import', expectedRevision: request.contentRevision, after: plan.after,
           }, unstable_batchedUpdates, accepted => {
-            if (accepted.revision !== basis.current.revision) {
+            changed = accepted.revision !== basis.current.revision
+            if (changed) {
               setSelectedSteamGame(importedState.importedGame)
               setManualGameTitle(importedState.manualGameTitle)
               setProjectMetadata(nextProjectMetadata)
@@ -1790,14 +1794,14 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
           announceStatus(preparedDiscVisualImport.titleArtwork.statusMessage)
           announceStatus(preparedDiscVisualImport.platform.statusMessage)
           announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
-          return
+          return changed ? 'committed' as const : 'no-op' as const
         }
         if (options.applyCaseInsertBackCoverDefaults) {
           const captured = captureCurrentLegacyProject()
-          if (captured.kind !== 'caseInsert') return
+          if (captured.kind !== 'caseInsert') return 'declined' as const
           const basis = readCaseSteamDocumentBasis(applicationLifecycleRoot, captured.project)
           if (!basis || basis.current.id !== request.sessionId ||
-              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return
+              basis.current.revision !== request.contentRevision || importedState.importedGame.appId !== appId) return 'declined' as const
           const plan = planCaseSteamDocumentImport({
             current: captured.project, importedGame: importedState.importedGame,
             titleArtworkSeed: caseInsertTitleArtworkSeed,
@@ -1809,10 +1813,12 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
               projectMetadata, projectLogoAssets, projectRatingBadge, projectMediaMark, projectPlatformMarks, projectTechnicalMarks,
             },
           })
+          let acceptedChange = false
           const committed = applyCaseSteamDocumentImport(applicationLifecycleRoot, {
             sessionId: request.sessionId, expectedRevision: request.contentRevision,
             expectedGeneration: basis.expectedGeneration, proposed: plan.project,
           }, unstable_batchedUpdates, changed => {
+            acceptedChange = changed
             if (changed) {
               setSelectedSteamGame(importedState.importedGame)
               setManualGameTitle(importedState.manualGameTitle)
@@ -1829,7 +1835,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
           if (caseInsertTitleArtworkSeed) announceStatus(caseInsertTitleArtworkSeed.statusMessage)
           announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, { applyDiscVisualDefaults })
           announceStatus(plan.backCoverStatus)
-          return
+          return acceptedChange ? 'committed' as const : 'no-op' as const
         }
         loadImportedSteamMetadataCandidates(importedState.importedGame)
         const discVisualImport = preparedDiscVisualImport
@@ -1882,6 +1888,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
         announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, {
           applyDiscVisualDefaults,
         })
+        return 'committed' as const
       }
     })
   }
@@ -2229,10 +2236,19 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
       applicationLifecycleRoot.refreshCommandCapabilities,
   })
   useApplicationTerminationIngress({ announceStatus, setHomeStatusMessage, applicationModalActive })
+
+  const applicationHelp = useApplicationHelp({
+    getFallbackFocus: getWorkflowFallbackFocus,
+    announceStatus,
+    setHomeStatusMessage,
+    closeWorkflow: workflowNavigationRouter.controller.closeActiveWorkflow,
+    modalActive: applicationModalActive,
+  })
   useApplicationMenuCommandIngress({
     announceStatus,
     setHomeStatusMessage,
     workflowNavigation: workflowNavigationRouter.menuPort,
+    informational: applicationHelp.menuPort,
   })
   useApplicationDocumentSelectionOwnership()
 
@@ -2588,6 +2604,8 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
     return (
       <>
         <HomeScreen
+          onOpenHelp={applicationHelp.open}
+          helpDisabled={!applicationHelp.canOpen}
           onLoadProject={handleLoadProject}
           onNewDisc={handleStartNewDiscProject}
           onNewCaseInsert={handleOpenCaseInsertEditor}
@@ -2595,6 +2613,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
           resumeProject={homeResumeProject}
           statusMessage={homeStatusMessage}
         />
+        {applicationHelp.surface}
         <ProjectReplacementDialog
           onDecision={replacementPrompt.decide}
           open={replacementPrompt.open}
@@ -2682,6 +2701,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
         }}
         />
         </ApplicationWorkflowHostBoundary>
+        {applicationHelp.surface}
         <ProjectReplacementDialog
           onDecision={replacementPrompt.decide}
           open={replacementPrompt.open}
@@ -2861,6 +2881,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
       </main>
       </ApplicationWorkflowHostBoundary>
       </EditorRoleFocusProvider>
+      {applicationHelp.surface}
       <ProjectReplacementDialog
         onDecision={replacementPrompt.decide}
         open={replacementPrompt.open}

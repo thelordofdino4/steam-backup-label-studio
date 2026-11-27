@@ -458,3 +458,40 @@ test('capability projection covers the exact catalog across Home, Disc, busy, an
     true,
   )
 })
+
+
+test('diagnostic observation follows actual execution once across joined dispatches', async () => {
+  const registry = new ApplicationCommandRegistry<object>()
+  const pending = deferred()
+  const terminal = commandSucceeded('opened')
+  registry.register(definition('project.open', async () => { await pending.promise; return terminal }, { repeatPolicy: 'join-identical' }))
+  const events: unknown[] = []
+  const dispatcher = new ApplicationCommandDispatcher(registry, { observeExecution(operation) {
+    events.push(operation)
+    return result => events.push(result)
+  } })
+  const first = dispatcher.dispatch('project.open', {}, null)
+  const second = dispatcher.dispatch('project.open', {}, null)
+  assert.deepEqual(events, [{ commandId: 'project.open', operationId: 'application-command-1' }])
+  pending.resolve()
+  const [a, b] = await Promise.all([first, second])
+  assert.equal(a, b)
+  assert.equal(events.length, 2)
+  assert.equal(events[1], terminal)
+})
+
+test('throwing diagnostic observers cannot replace command results or retain busy scopes', async () => {
+  for (const atStart of [true, false]) {
+    const registry = new ApplicationCommandRegistry<object>()
+    registry.register(definition('project.open', () => commandSucceeded('opened'), { acquireScopes: () => ['lifecycle.transition'] }))
+    const dispatcher = new ApplicationCommandDispatcher(registry, { observeExecution() {
+      if (atStart) throw new Error('observer failed')
+      return () => { throw new Error('observer failed') }
+    } })
+    for (let count = 0; count < 2; count += 1) {
+      const result = await dispatcher.dispatch('project.open', {}, null)
+      assert.equal(result.disposition, 'executed')
+      if (result.disposition === 'executed') assert.equal(result.result.status, 'success')
+    }
+  }
+})

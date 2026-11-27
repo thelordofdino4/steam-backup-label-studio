@@ -7,8 +7,11 @@ const [mode, lane, ...extra] = process.argv.slice(2)
 const sandboxedBrowserTestFiles = [
   'scripts/integration/disc-background-canvas.integration.test.mjs',
   'src/app/discSteamMounted.integration.test.mjs',
+  'src/components/preview/contextualTextRibbonContrast.integration.test.mjs',
   'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
+  'src/components/testing/applicationHelpIntegration.test.mjs',
   'src/export/discBackgroundLifetime.integration.test.mjs',
+  'src/hooks/useSteamImport.integration.test.mjs',
   'src/image/backgroundLayout.integration.test.mjs',
 ]
 const validModes = ['--list', '--node-only', '--rust-only']

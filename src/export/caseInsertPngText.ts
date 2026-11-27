@@ -5,21 +5,21 @@ import {
   getCaseInsertTextBackgroundColor,
   getCaseInsertTextBorderColor,
   getCaseInsertTextLayoutPaddingRatio,
-} from '../caseInsert/textRenderStyles'
+} from '../caseInsert/textRenderStyles.ts'
 import {
   getCaseInsertTextDecoration,
   getCaseInsertTextEffectiveFontWeight,
   getCaseInsertTextFontFamilyCanvas,
   getCaseInsertTextFontStyle,
   type CaseInsertTextStyle,
-} from '../caseInsert/textStyles'
+} from '../caseInsert/textStyles.ts'
 import {
   caseInsertExportPxToFontSizePt,
   caseInsertFontSizePtToExportPx,
-} from '../caseInsert/textSizing'
+} from '../caseInsert/textSizing.ts'
 import {
   getCanvasTextAlign,
-} from '../layout/caseInsertTextVisualLayout'
+} from '../layout/caseInsertTextVisualLayout.ts'
 import type { JewelCasePixelRect } from '../layout/jewelCaseLayout'
 import type {
   ProjectCaseInsertTextAlign,
@@ -29,18 +29,25 @@ import {
   getRichTextRunCanvasStyle,
   richTextRunsHaveVisualStyles,
   type RichTextRunStyleContext,
-} from '../text/richTextRunStyle'
+} from '../text/richTextRunStyle.ts'
+
+import { getExplicitTextBorderThicknessRatio } from '../text/textBorderThickness.ts'
 
 const FONT_STACK = '"Segoe UI", Arial, sans-serif'
 
-export function getCaseInsertTextCanvasOptions(style: CaseInsertTextStyle) {
+export function getCaseInsertTextCanvasOptions(style: CaseInsertTextStyle, surfaceWidthPx = 0) {
+  const borderThicknessRatio = style.borderEnabled
+    ? getExplicitTextBorderThicknessRatio(style.borderThicknessPercent)
+    : undefined
   return {
+    borderThicknessRatio,
+    borderRadiusPx: borderThicknessRatio === undefined ? 0 : surfaceWidthPx * style.borderRadius / 100,
     color: style.color,
     fontFamily: getCaseInsertTextFontFamilyCanvas(style.fontFamily),
     background: style.backgroundEnabled
       ? getCaseInsertTextBackgroundColor(style)
       : undefined,
-    border: style.backgroundEnabled && style.borderEnabled
+    border: style.borderEnabled
       ? getCaseInsertTextBorderColor(style)
       : undefined,
     fontStyle: getCaseInsertTextFontStyle(style),
@@ -87,6 +94,8 @@ export function drawComputedTextLayout(
     fontStyle?: string
     background?: string
     border?: string
+    borderThicknessRatio?: number
+    borderRadiusPx?: number
     shadow?: boolean
     stroke?: boolean
     underline?: boolean
@@ -113,7 +122,28 @@ export function drawComputedTextLayout(
   context.textAlign = getCanvasTextAlign(options.align)
   context.textBaseline = 'top'
 
-  if (options.background) {
+  if (options.border && options.borderThicknessRatio !== undefined) {
+    const { x, y, width, height } = textLayout.bounds
+    const thickness = textLayout.fontSizePx * options.borderThicknessRatio
+    const radius = options.borderRadiusPx ?? 0
+    context.save()
+    try {
+      context.beginPath()
+      context.roundRect(x, y, width, height, radius)
+      context.clip()
+      if (options.background) {
+        context.fillStyle = options.background
+        context.fillRect(x, y, width, height)
+      }
+      // Clip a double-width stroke to its inside half, as the CSS inset
+      // backplate does. Even thick borders stay within the text bounds.
+      context.strokeStyle = options.border
+      context.lineWidth = thickness * 2
+      context.stroke()
+    } finally {
+      context.restore()
+    }
+  } else if (options.background) {
     context.fillStyle = options.background
     context.fillRect(
       textLayout.bounds.x,
@@ -123,7 +153,7 @@ export function drawComputedTextLayout(
     )
   }
 
-  if (options.border) {
+  if (options.border && options.borderThicknessRatio === undefined) {
     context.strokeStyle = options.border
     context.lineWidth = Math.max(1, Math.round(textLayout.fontSizePx * 0.08))
     context.strokeRect(

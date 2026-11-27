@@ -24,6 +24,7 @@ export type ContextualTextControlId =
   | 'borderEnabled'
   | 'borderColor'
   | 'borderRadius'
+  | 'borderThickness'
   | 'respectVisualElements'
   | 'width'
   | 'lineSpacing'
@@ -115,6 +116,7 @@ export const CONTEXTUAL_TEXT_CONTROL_LABELS = {
   borderColor: 'Line',
   borderEnabled: 'Border',
   borderRadius: 'Radius',
+  borderThickness: 'Line thickness',
   color: 'Color',
   contrast: 'Contrast',
   customPreset: CONTEXTUAL_TEXT_CUSTOM_OPTION.label,
@@ -155,6 +157,7 @@ const COMMON_CONTEXTUAL_CONTROL_IDS = [
   'borderEnabled',
   'borderColor',
   'borderRadius',
+  'borderThickness',
   'respectVisualElements',
   'width',
   'x',
@@ -231,6 +234,12 @@ export const CONTEXTUAL_TEXT_CONTROL_CAPABILITIES = {
     hasContextualEquivalent: true,
     id: 'borderEnabled',
     label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
+  },
+  borderThickness: {
+    group: 'art',
+    hasContextualEquivalent: true,
+    id: 'borderThickness',
+    label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderThickness,
   },
   borderRadius: {
     group: 'art',
@@ -403,6 +412,7 @@ export const CONTEXTUAL_TEXT_TARGET_CAPABILITIES = {
       'borderEnabled',
       'borderColor',
       'borderRadius',
+      'borderThickness',
       'respectVisualElements',
       'width',
       'mode',
