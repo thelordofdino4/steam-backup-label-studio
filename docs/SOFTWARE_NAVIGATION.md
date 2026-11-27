@@ -378,3 +378,7 @@ Exact Windows job 139742828515 (CI 45770839983) found the expected four cards an
 
 ### 2026-11-27 #440 artistic card minimum
 Windows CI 45941986173 found a 3px field-to-unit gap and matched 58px slider tracks at the 420px host, but the unit glyphs extended past the card edge and were clipped by its overflow rule. The owner native verification was at a different width. The packing model still assigned the pre-thickness minimums. Budget artistic range columns, their longest label and unit, gaps and card padding in the width profile so the ribbon scrolls rather than clipping card contents. Keep the glyph-edge assertion and test both Border and Background. This is mounted browser geometry evidence, not a separate native retest.
+
+
+### 2026-11-27 #265 utility saturation diagnostic
+The Windows browser lane in CI 45944283744 passed all three new numeric geometry cases and 81 of 82 cases total. The existing utility test passed the width bounds, smaller-first and centering checks but failed the final assertion that both groups saturated at the fixed 1600px host. The new signed field budget requires more horizontal room, so the original saturation threshold is no longer a reliable test precondition; the log did not report the allocated widths. Keep the existing intermediate samples and assertions, add a wider 1840px host for the full-cap check, and emit the full allocation history if it still fails. No sandbox, product sizing, or native acceptance changes for this retry.

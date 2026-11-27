@@ -371,7 +371,7 @@ for (const [tab, curved] of [['presets', false], ['text', false], ['art', false]
 test('utility subgroups grow smaller-first, cap, and center; bound-based number capacity is stable', async () => {
   await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setTab('utilities'); window.__contrast.setCurved(false); window.__contrast.setMeasurementsOnly(true) })
   const snapshots = []
-  for (const width of [1360, 1390, 1430, 1600]) {
+  for (const width of [1360, 1390, 1430, 1600, 1840]) {
     await page.evaluate(width => window.__contrast.setWidth(width), width)
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     snapshots.push(await page.evaluate(() => {
@@ -392,7 +392,9 @@ test('utility subgroups grow smaller-first, cap, and center; bound-based number 
     assert.ok(Math.abs(snapshot.leftSpace - snapshot.rightSpace) < 1, JSON.stringify(snapshot))
   }
   assert.ok(snapshots[0].groups[1].width < snapshots.at(-1).groups[1].width)
-  for (const group of snapshots.at(-1).groups) assert.ok(Math.abs(group.width - group.max) < 0.1)
+  for (const group of snapshots.at(-1).groups) {
+    assert.ok(Math.abs(group.width - group.max) < 0.1, JSON.stringify(snapshots))
+  }
   await page.evaluate(() => { window.__contrast.setCurved(true); window.__contrast.setMeasurementsOnly(false) })
   await page.waitForFunction(() => document.querySelector('.contextual-text-ribbon-control-stack--utility-curved-layout-ranges'))
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
