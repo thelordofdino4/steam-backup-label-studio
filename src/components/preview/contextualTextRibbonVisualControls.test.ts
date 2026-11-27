@@ -33,7 +33,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   const ribbonHostSource = readRepoFile(
     'src/components/preview/ContextualTextRibbon.tsx',
-  )
+  ) + readRepoFile('src/components/preview/contextualTextRibbonDomLayout.ts')
   const ribbonCss = readContextualTextRibbonCss()
 
   assert.match(
@@ -225,7 +225,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonHostSource,
-    /getContextualTextRibbonColumnWidths\(\{/,
+    /getContextualTextRibbonColumnWidths\(input\)/,
   )
   assert.match(
     ribbonHostSource,

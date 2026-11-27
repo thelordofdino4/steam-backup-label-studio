@@ -120,6 +120,7 @@
   width: 100%;
   min-width: 72px;
   height: 24px;
+  margin-block: 0;
 }
 
 .contextual-text-ribbon-group--artistic-feature

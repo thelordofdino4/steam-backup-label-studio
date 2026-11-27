@@ -200,50 +200,11 @@ export function getContextualTextRibbonColumnWidths({
     (Number.isFinite(availableWidth) ? availableWidth : 0)
       - finiteGap * Math.max(0, columns.length - 1),
   )
-  const minTotal = columns.reduce((sum, column) => sum + column.min, 0)
-  const preferredTotal = columns.reduce(
-    (sum, column) => sum + column.preferred,
-    0,
-  )
-  const maxTotal = columns.reduce((sum, column) => sum + column.max, 0)
-
-  if (availableForColumns <= minTotal || preferredTotal <= minTotal) {
-    return columns.map((column) => column.min)
-  }
-
-  if (availableForColumns <= preferredTotal || maxTotal <= preferredTotal) {
-    const ratio = (availableForColumns - minTotal) /
-      (preferredTotal - minTotal)
-
-    return columns.map((column) =>
-      column.min + (column.preferred - column.min) * ratio)
-  }
-
-  const growingColumns = columns.filter((column) => column.grows)
-  const growableTotal = growingColumns.reduce(
-    (sum, column) => sum + Math.max(0, column.max - column.preferred),
-    0,
-  )
-
-  if (growingColumns.length === 0 || growableTotal <= 0) {
-    return columns.map((column) => column.preferred)
-  }
-
-  const growableMaxTotal = preferredTotal + growableTotal
-  if (availableForColumns >= growableMaxTotal) {
-    return columns.map((column) =>
-      column.grows ? column.max : column.preferred)
-  }
-
-  const ratio = Math.min(
-    1,
-    (availableForColumns - preferredTotal) / growableTotal,
-  )
-
-  return columns.map((column) =>
-    column.grows
-      ? column.preferred + (column.max - column.preferred) * ratio
-      : column.preferred)
+  // Card columns fill the region equally. Control usefulness caps belong to
+  // the controls inside the card, never to the peer column allocation.
+  const sharedMinimum = Math.max(0, ...columns.map(column => column.min))
+  const width = Math.max(sharedMinimum, availableForColumns / columns.length)
+  return columns.map(() => width)
 }
 
 function maxRibbonWidthProfile(

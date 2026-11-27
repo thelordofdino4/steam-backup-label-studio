@@ -101,6 +101,8 @@ Native Close/Quit reconciliation: [`NATIVE_TERMINATION_ACCEPTANCE.md`](NATIVE_TE
 
 Product identity and release metadata: [`PRODUCT_METADATA.md`](PRODUCT_METADATA.md) inventories established values, intentionally unknown fields, and pending packaged/native acceptance under #381/#376.
 
+Contextual ribbon expansion: [`CONTEXTUAL_RIBBON_EXPANSION.md`](CONTEXTUAL_RIBBON_EXPANSION.md) records the implemented #265 column/control-cap/interaction slice and the still-open inner-group and native acceptance work.
+
 ## Conditional Reference Documents
 
 Windows PNG evidence: [`PNG_PHYSICAL_WINDOWS_ACCEPTANCE.md`](PNG_PHYSICAL_WINDOWS_ACCEPTANCE.md)
