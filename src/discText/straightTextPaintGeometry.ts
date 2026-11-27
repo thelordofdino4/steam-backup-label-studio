@@ -1,4 +1,11 @@
+import { getExplicitTextBorderThicknessRatio } from '../text/textBorderThickness.ts'
+
 export const DISC_TEXT_BOX_BORDER_WIDTH = 0.18
+
+export function getStraightDiscTextBorderWidth(fontSize: number, value: unknown) {
+  const ratio = getExplicitTextBorderThicknessRatio(value)
+  return ratio === undefined ? DISC_TEXT_BOX_BORDER_WIDTH : fontSize * ratio
+}
 export const DISC_TEXT_STRAIGHT_STROKE_COLOR = 'rgba(0, 0, 0, 0.58)'
 export const DISC_TEXT_STRAIGHT_STROKE_WIDTH = 0.28
 

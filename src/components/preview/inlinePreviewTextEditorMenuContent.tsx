@@ -9,6 +9,7 @@ import {
   getContextualTextRibbonMatchedFieldWidthCh,
   getContextualTextRibbonRangeValueWidthCss,
   getInlinePreviewTextCqwPresentation,
+  getInlinePreviewTextBorderThicknessPresentation,
   getInlinePreviewTextOpacityPresentation,
   isRenderableRibbonNode,
   renderContextualTextRibbonCardResetButton,
@@ -354,6 +355,13 @@ export function InlinePreviewTextEditorMenuContent({
                   {
                     disabled: !areBorderFieldsEnabled,
                     label: 'Line color',
+                  },
+                )}
+                {renderInlinePreviewTextRangeControl(
+                  controls.art?.borderThickness,
+                  {
+                    disabled: !areBorderFieldsEnabled,
+                    presentation: getInlinePreviewTextBorderThicknessPresentation(),
                   },
                 )}
                 {renderInlinePreviewTextRangeControl(

@@ -590,3 +590,7 @@ Final reports for user-visible text editor changes must say which source checks
 passed, which runtime scenarios were actually verified, which scenarios still
 need manual Tauri verification, and where insert rendering, disc rendering,
 editor rendering, and final/export rendering currently diverge.
+
+### Text border line thickness
+
+Line thickness in Artistic > Border is available for straight Disc and Case text, including Cover/Tray blocks and lists and both spines. The slider displays 0–100% of maximum thickness, where maximum is 25% of the resolved base text size. Thickness is independent of Background and of viewport zoom. At 0 (Auto) or when the saved override is absent, each existing renderer keeps its previous border. Disabled borders retain the value but do not paint. Case explicit borders stay inside the text backplate, and straight Disc uses the same centered stroke width for preview/export and its painted bounds.

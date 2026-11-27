@@ -1,3 +1,4 @@
+import { TEXT_BORDER_THICKNESS_DISPLAY_MAX } from '../../text/textBorderThickness.ts'
 import { getRibbonRangeValueCapacityCh } from './contextualTextRibbonInnerGroups'
 import {
   Children,
@@ -403,6 +404,19 @@ export function getInlinePreviewTextOpacityPresentation(): InlinePreviewTextRang
     output: (value) => `${Math.round(value * 100)}%`,
     parseInput: (value) => value / 100,
     title: 'Opacity percentage',
+  }
+}
+
+export function getInlinePreviewTextBorderThicknessPresentation(): InlinePreviewTextRangeValuePresentation {
+  return {
+    inputMin: 0,
+    inputMax: TEXT_BORDER_THICKNESS_DISPLAY_MAX,
+    inputStep: 1,
+    ariaValueText: (value) => value === 0 ? 'Automatic border thickness' : `${value} percent of maximum border thickness`,
+    inputValue: (value) => value,
+    output: (value) => value === 0 ? '0 Auto' : `${value}%`,
+    parseInput: (value) => value,
+    title: 'Border width from 0 to 100 percent of maximum. 0 keeps the original automatic width.',
   }
 }
 

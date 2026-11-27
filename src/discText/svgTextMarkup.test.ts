@@ -155,3 +155,18 @@ test('straight Disc SVG paints fill and border independently', () => {
     }
   }
 })
+
+test('straight Disc uses the explicit text-relative thickness and preserves legacy paint', () => {
+  const layout = createDefaultDiscTextLayout('none').title
+  function strokeWidth(borderThicknessPercent?: number) {
+    const markup = buildStraightTextMarkup(
+      'title', 'Disc artwork title', layout, measureTextAsCharacters, 'shadow-id',
+      { title: { backgroundEnabled: false, borderEnabled: true, borderThicknessPercent } },
+    )
+    return Number(markup.match(/class="disc-text-render-box"[^>]+stroke-width="([^"]+)"/)?.[1])
+  }
+  assert.equal(strokeWidth(), 0.18)
+  assert.equal(strokeWidth(0), 0.18)
+  assert.ok(strokeWidth(20) > strokeWidth(10))
+  assert.ok(Math.abs(strokeWidth(20) - 2 * strokeWidth(10)) < 0.01)
+})

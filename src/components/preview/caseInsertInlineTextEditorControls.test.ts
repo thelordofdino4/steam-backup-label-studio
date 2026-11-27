@@ -238,10 +238,13 @@ for (const target of artisticTargets) {
     assert.equal(controls.art?.borderEnabled?.checked, false)
     assert.equal(controls.art?.borderEnabled?.disabled, undefined)
     controls.art?.borderEnabled?.onChange(true)
+    assert.equal(controls.art?.borderThickness?.value, 0)
+    controls.art?.borderThickness?.onChange(100)
     controls.art?.backgroundEnabled?.onChange(true)
     controls.art?.backgroundEnabled?.onChange(false)
     assert.deepEqual(changes, [
       [target, 'borderEnabled', true],
+      [target, 'borderThicknessPercent', 25],
       [target, 'backgroundEnabled', true],
       [target, 'backgroundEnabled', false],
     ])
