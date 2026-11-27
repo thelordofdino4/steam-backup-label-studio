@@ -268,9 +268,9 @@ function GuidedNavigationHarnessContent() {
   const ratingSystemRef = useRef<HTMLSelectElement | null>(null)
   const mediaEnableRef = useRef<HTMLInputElement | null>(null)
   const mediaFormatRef = useRef<HTMLSelectElement | null>(null)
-  const mediaSectionRef = useRef<HTMLDetailsElement | null>(null)
+  const mediaSectionRef = useRef<HTMLElement | null>(null)
   const operatingSystemEnableRef = useRef<HTMLInputElement | null>(null)
-  const operatingSystemSectionRef = useRef<HTMLDetailsElement | null>(null)
+  const operatingSystemSectionRef = useRef<HTMLElement | null>(null)
   const developerEnableRef = useRef<HTMLInputElement | null>(null)
   const developerSectionRef = useRef<HTMLDivElement | null>(null)
   const developerUploadRef = useRef<HTMLInputElement | null>(null)
@@ -641,7 +641,7 @@ function GuidedNavigationHarnessContent() {
           <div data-nested-panel="media">
             <EditorFeaturePanel
               title="Media format mark"
-              detailsRef={mediaSectionRef}
+              inspectorSectionRef={mediaSectionRef}
               open={mediaOpen}
               onOpenChange={setMediaPanelOpen}
             >
@@ -674,7 +674,7 @@ function GuidedNavigationHarnessContent() {
           <div data-nested-panel="operating-system">
             <EditorFeaturePanel
               title="Operating system marks"
-              detailsRef={operatingSystemSectionRef}
+              inspectorSectionRef={operatingSystemSectionRef}
               open={operatingSystemOpen}
               onOpenChange={setOperatingSystemPanelOpen}
             >

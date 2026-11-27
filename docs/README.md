@@ -44,6 +44,8 @@ Source baseline: `31da73e1140bbb5521642dcb81066b99c7357541`, reviewed on 2026-11
 
 The [desktop scaling matrix](DESKTOP_SCALING_ACCEPTANCE.md) separates CSS evidence from native work-area and monitor checks (#374).
 
+The [editor inspector structure](EDITOR_INSPECTOR_STRUCTURE.md) describes role grouping, preserved feature owners, and remaining native acceptance (#380).
+
 ## Classification Of Active References
 
 The detailed routing tables below still own per-domain conflict rules. This inventory classifies the principal authorities and examples. Apply the same rules to related documents and to historical sections inside active references.

@@ -1,4 +1,6 @@
-import type { ReactNode, Ref } from 'react'
+import { useContext, type ReactNode, type Ref } from 'react'
+import { EditorInspectorDepthContext } from './editorInspectorContext'
+import { EditorInspectorSection } from './EditorInspectorSection'
 import {
   getEditorPanelClassName,
   type EditorPanelKind,
@@ -19,6 +21,7 @@ export type EditorPanelProps = {
 
 type EditorFeaturePanelProps = Omit<EditorPanelProps, 'kind'> & {
   variant?: Extract<EditorPanelKind, 'feature' | 'branding'>
+  inspectorSectionRef?: Ref<HTMLElement>
 }
 
 export function EditorPanel({
@@ -62,7 +65,25 @@ export function EditorFeaturePanel({
   spacingTop = true,
   className,
   headerActions,
+  inspectorSectionRef,
 }: EditorFeaturePanelProps) {
+  const inspectorDepth = useContext(EditorInspectorDepthContext)
+
+  // Explicit native details/summary refs retain their existing DOM contract.
+  // Ordinary feature groups inside a role need no second expansion step.
+  if (inspectorDepth !== null && !detailsRef && !summaryRef) {
+    return (
+      <EditorInspectorSection
+        title={title}
+        className={className}
+        headerActions={headerActions}
+        sectionRef={inspectorSectionRef}
+      >
+        {children}
+      </EditorInspectorSection>
+    )
+  }
+
   return (
     <EditorPanel
       title={title}

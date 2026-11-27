@@ -259,7 +259,7 @@ test('editor navigation shell renders role sections as top-level panels', () => 
   )
   assert.match(shellSource, /children\?: ReactNode/)
   assert.match(shellSource, /export function EditorNavigationRolePanel/)
-  assert.match(shellSource, /<EditorPanel[\s\S]*title=\{label\}/)
+  assert.match(shellSource, /<EditorPanel[\s\S]*title=\{<span role="heading" aria-level=\{2\}>\{label\}<\/span>\}/)
   assert.match(shellSource, /open=\{open\}/)
   assert.match(shellSource, /onOpenChange=\{onOpenChange\}/)
   assert.match(shellSource, /detailsRef=\{detailsRef\}/)

@@ -7,6 +7,7 @@ const [mode, lane, ...extra] = process.argv.slice(2)
 const sandboxedBrowserTestFiles = [
   'scripts/integration/disc-background-canvas.integration.test.mjs',
   'src/app/discSteamMounted.integration.test.mjs',
+  'src/components/editor/EditorInspectorSection.integration.test.mjs',
   'src/components/preview/contextualTextRibbonContrast.integration.test.mjs',
   'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
   'src/components/testing/applicationHelpIntegration.test.mjs',

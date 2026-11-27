@@ -230,6 +230,19 @@ async function reveal(page, label) {
   if (!await details.evaluate(node => node.open)) await summary.click()
   assert.equal(await details.evaluate(node => node.open), true)
 }
+async function revealInspectorRole(page, label) {
+  const heading = page.getByRole('heading', { name: label, exact: true, level: 2 })
+  const summary = page.locator('details > summary').filter({ has: heading })
+  assert.equal(await summary.count(), 1, `unique ${label} role disclosure`)
+  const details = summary.locator('xpath=..')
+  if (!await details.evaluate(node => node.open)) await summary.click()
+  assert.equal(await details.evaluate(node => node.open), true)
+}
+async function requireInspectorSection(page, label) {
+  const section = page.getByRole('region', { name: label, exact: true })
+  assert.equal(await section.count(), 1, `unique ${label} inspector section`)
+  await section.waitFor({ state: 'visible' })
+}
 const receipt = page => page.evaluate(() => window.readDiscSteamReceipt())
 const drain = page => page.evaluate(() =>
   new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
@@ -252,8 +265,8 @@ test('real Disc preset applies layout without changing a selected PEGI/USK ratin
     })
     await page.goto(origin + route)
     await page.locator('[data-smoke-id="home-new-disc"]').click()
-    await reveal(page, 'Game Info Logos')
-    await reveal(page, 'Rating badge')
+    await revealInspectorRole(page, 'Game Info Logos')
+    await requireInspectorSection(page, 'Rating badge')
     await page.getByLabel('Show rating badge', { exact: true }).check()
     await page.getByLabel('Rating system', { exact: true }).and(page.locator('#branding-rating-system')).selectOption('PEGI')
     await page.getByLabel('Rating value', { exact: true }).and(page.locator('#branding-rating-value')).selectOption('12')
@@ -273,8 +286,8 @@ test('real Disc preset applies layout without changing a selected PEGI/USK ratin
     assert.equal(after.metadata.ratingValue, '12')
     assert.deepEqual(after.usk, { enabled: true, value: '16' })
     assert.notDeepEqual(after.ratingLayout, before.ratingLayout)
-    await reveal(page, 'Game Info Logos')
-    await reveal(page, 'Rating badge')
+    await revealInspectorRole(page, 'Game Info Logos')
+    await requireInspectorSection(page, 'Rating badge')
     assert.equal(await uskValue.inputValue(), '16')
   } finally { await page.close() }
 })
@@ -316,8 +329,8 @@ test('real Disc suggested USK and manual USK edits retain PEGI and publish whole
     assert.equal(accepted.metadata.ratingSystem, 'PEGI')
     assert.equal(accepted.rating, true)
     assert.deepEqual(accepted.usk, { enabled: true, value: '16' })
-    await reveal(page, 'Game Info Logos')
-    await reveal(page, 'Rating badge')
+    await revealInspectorRole(page, 'Game Info Logos')
+    await requireInspectorSection(page, 'Rating badge')
     await page.getByLabel('USK rating value', { exact: true }).selectOption('0')
     await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '0')
     await drain(page)
@@ -643,8 +656,8 @@ test('mounted Disc history restores the real USK controls and acknowledges the c
     await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '16')
     await drain(page)
     const edited = (await receipt(page)).revisions.at(-1)
-    await reveal(page, 'Game Info Logos')
-    await reveal(page, 'Rating badge')
+    await revealInspectorRole(page, 'Game Info Logos')
+    await requireInspectorSection(page, 'Rating badge')
     assert.equal(await page.getByLabel('USK rating value', { exact: true }).inputValue(), '16')
     const accepted = async (direction, revision) => {
       assert.equal(await page.evaluate(step => window.stepDiscHistoryDiagnostic(step), direction), 'committed')
@@ -735,7 +748,7 @@ test('authored Classic preset output matches Undo and Redo at the real Save and 
     await reveal(page, 'Additional metadata')
     const title = 'Artwork Backup Test'
     await page.getByRole('textbox', { name: 'Label title', exact: true }).fill(title)
-    await reveal(page, 'Game Title')
+    await revealInspectorRole(page, 'Game Title')
     await page.locator('[data-smoke-id="disc-sidebar-text-title"] input[type="checkbox"]').check()
     await reveal(page, 'Layout Presets')
     await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
@@ -1026,7 +1039,7 @@ test('mounted logo layout Reset preserves the import and preset Undo steps', { t
     await page.locator('[data-smoke-id="home-new-disc"]').click()
     await reveal(page, 'Game')
     await reveal(page, 'Layout Presets')
-    await reveal(page, 'Game Title')
+    await revealInspectorRole(page, 'Game Title')
     const current = () => page.evaluate(() => window.readDiscHistoryProject())
     const settle = (past, future) => page.waitForFunction(({ past, future }) => {
       const state = window.readDiscHistoryDiagnostic()
@@ -1230,8 +1243,8 @@ test('Case cover artwork settles at the release point without replaying it', { t
 
     // Remove the real capture target through its owning feature control while the
     // pointer stays down. The extra release must not alter the hidden artwork.
-    await reveal(page, 'Game Title')
-    await reveal(page, 'Game Logo')
+    await revealInspectorRole(page, 'Game Title')
+    await requireInspectorSection(page, 'Game Logo')
     const visibility = page.getByRole('checkbox', { name: 'Show game logo', exact: true })
     await visibility.waitFor({ state: 'visible', timeout: 5_000 })
     assert.equal(await visibility.isChecked(), true)
