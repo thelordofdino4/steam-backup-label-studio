@@ -115,7 +115,8 @@
   .contextual-text-ribbon-point-size {
   grid-column: 2;
   grid-row: 2;
-  width: 100%;
+  justify-self: start;
+  width: min(100%, 76px);
 }
 
 .contextual-text-ribbon-control-row--text

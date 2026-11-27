@@ -6,6 +6,7 @@ import { getCaseInsertBackTextBlockRole } from '../../caseInsert/textReadability
 import {
   getCaseInsertTextBackgroundColor,
   getCaseInsertTextBorderCss,
+  getCaseInsertTextBackplateBorderShadowCss,
   getCaseInsertTextBorderRadiusCss,
   getCaseInsertTextShadowCss,
   getCaseInsertTextStrokeCss,
@@ -112,6 +113,7 @@ function getCaseInsertTextBackplateCssStyle(
   return {
     backgroundColor: getCaseInsertTextBackgroundColor(textStyle),
     border: getCaseInsertTextBorderCss(textStyle),
+    boxShadow: getCaseInsertTextBackplateBorderShadowCss(textStyle),
     borderRadius: getCaseInsertTextBorderRadiusCss(textStyle),
     boxSizing: 'border-box',
     display: 'block',

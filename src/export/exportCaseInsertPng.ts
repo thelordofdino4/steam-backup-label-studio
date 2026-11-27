@@ -109,7 +109,7 @@ function drawSpineTextBlock(
         options.uppercase ? 800 : 600,
         renderedTextBlock.style,
       ),
-      ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
+      ...getCaseInsertTextCanvasOptions(renderedTextBlock.style, layout.width),
     })
   })
 }
