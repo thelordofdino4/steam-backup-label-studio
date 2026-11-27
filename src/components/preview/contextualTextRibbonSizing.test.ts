@@ -151,6 +151,7 @@ test('contextual text ribbon equalizes stacked semantic boxes by column', () => 
     columns: [
       {
         ...CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'],
+        min: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min,
         max: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.max,
         preferred: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.preferred,
       },
@@ -165,13 +166,14 @@ test('contextual text ribbon equalizes stacked semantic boxes by column', () => 
   assert.ok(columnWidths[2] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.preferred)
 })
 
-test('contextual text ribbon keeps compact paint columns target-parity sized', () => {
+test('contextual text ribbon reserves readable contrast width in shared paint columns', () => {
   const compactOnlyWidths = getContextualTextRibbonColumnWidths({
     availableWidth: 900,
     gap: 4,
     columns: [
       {
         ...CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'],
+        min: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min,
         max: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.max,
         preferred: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.preferred,
       },
@@ -190,7 +192,7 @@ test('contextual text ribbon keeps compact paint columns target-parity sized', (
     CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min,
     CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.preferred,
     CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.max,
-  ], [108, 108, 108])
+  ], [220, 220, 220])
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].grows, undefined)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.grows, undefined)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.grows, true)

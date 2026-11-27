@@ -42,6 +42,8 @@ Source baseline: `31da73e1140bbb5521642dcb81066b99c7357541`, reviewed on 2026-11
 | Home and product identity | [Home](../src/components/home/HomeScreen.tsx) exposes New Disc, New Case, Load and conditional Resume. Case loading is implemented despite stale Home labels. [Tauri config](../src-tauri/tauri.conf.json) identifies Steam Backup Label Studio, version `0.1.0`. [Root license text](../LICENSE) exists. | #381 owns stale Home copy and placeholder manifest cleanup. Publisher/release/license metadata must not be invented. |
 | Platforms and release | [README platform scope](../README.md#platform-targets-and-acceptance), [CI](../.github/workflows/ci.yml), [test inventory](TEST_ORACLE_INVENTORY.md), and [native smoke guide](TEXT_EDITOR_SMOKE_AUTOMATION.md) distinguish source checks from native evidence. | Windows is the exercised native development target; no blanket packaged-release/support claim follows. #333/#334/#376/#382 own remaining platform/release acceptance. |
 
+The [desktop scaling matrix](DESKTOP_SCALING_ACCEPTANCE.md) separates CSS evidence from native work-area and monitor checks (#374).
+
 ## Classification Of Active References
 
 The detailed routing tables below still own per-domain conflict rules. This inventory classifies the principal authorities and examples. Apply the same rules to related documents and to historical sections inside active references.
