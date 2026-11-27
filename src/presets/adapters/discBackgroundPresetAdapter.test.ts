@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import { discTemplates } from '../../templates/discTemplates.ts'
 import {
-  getBackgroundDrawSize,
-  getBackgroundPreviewSize,
+  resolveBackgroundImageLayout,
+  projectBackgroundImageLayout,
 } from '../../image/backgroundImage.ts'
 import { CLASSIC_TOP_TITLE_DISC_PRESET } from '../builtins/classicTopTitleDiscPreset.ts'
 import type {
@@ -20,19 +19,6 @@ import {
 } from './discBackgroundPresetAdapter.ts'
 
 const WIDE_BACKGROUND_CONTAIN_SCALE = 92 / ((1920 / 1080) * 100)
-
-const backgroundPreviewSource = readFileSync(
-  new URL('../../components/preview/BackgroundLayer.tsx', import.meta.url),
-  'utf8',
-)
-const backgroundPreviewStyles = readFileSync(
-  new URL('../../styles/app-disc-visual-layers.css', import.meta.url),
-  'utf8',
-)
-const backgroundExportSource = readFileSync(
-  new URL('../../export/exportPng.ts', import.meta.url),
-  'utf8',
-)
 
 const template = createDiscPresetTemplateResolutionInput(
   discTemplates.standardPrintableDisc,
@@ -183,21 +169,13 @@ test('Classic Background preview and export share centered contain-fit geometry'
     }
 
     const { scale, offset } = result.updates[0].layout
-    const previewSize = getBackgroundPreviewSize(imageSize)
-    const previewDrawSize = {
-      width: Number.parseFloat(previewSize.width) * scale,
-      height: Number.parseFloat(previewSize.height) * scale,
-    }
-    const exportDrawSize = getBackgroundDrawSize(imageSize, scale, 100)
+    const previewLayout = resolveBackgroundImageLayout(imageSize, scale, offset, 100)
+    const previewDrawSize = previewLayout.contentRect
+    const exportRect = projectBackgroundImageLayout(previewLayout, 100).contentRect
+    const exportDrawSize = exportRect
     const previewCenter = {
-      x: 50 + offset.x,
-      y: 50 + offset.y,
-    }
-    const exportRect = {
-      x: 50 - exportDrawSize.width / 2 + offset.x,
-      y: 50 - exportDrawSize.height / 2 + offset.y,
-      width: exportDrawSize.width,
-      height: exportDrawSize.height,
+      x: previewDrawSize.x + previewDrawSize.width / 2,
+      y: previewDrawSize.y + previewDrawSize.height / 2,
     }
 
     assert.deepEqual(offset, { x: 0, y: 0 })
@@ -216,18 +194,8 @@ test('Classic Background preview and export share centered contain-fit geometry'
     assert.ok(Math.abs(exportRect.y + exportRect.height / 2 - 50) <= 1e-10)
   }
 
-  assert.match(
-    backgroundPreviewSource,
-    /width: backgroundPreviewSize\.width,[\s\S]*height: backgroundPreviewSize\.height,[\s\S]*translate\(-50%, -50%\)[\s\S]*scale\(\$\{backgroundScale\}\)/,
-  )
-  assert.match(
-    backgroundPreviewStyles,
-    /\.background-image-layer \.content-bounded-image\s*\{[\s\S]*top:\s*50%;[\s\S]*left:\s*50%;/,
-  )
-  assert.match(
-    backgroundExportSource,
-    /const drawSize = getBackgroundDrawSize\([\s\S]*params\.backgroundScale,[\s\S]*discContentSize,[\s\S]*const drawX = center - drawWidth \/ 2 \+ params\.backgroundOffset\.x \* offsetScale[\s\S]*const drawY = center - drawHeight \/ 2 \+ params\.backgroundOffset\.y \* offsetScale/,
-  )
+  // Mounted DOM/pointer/canvas assertions live in backgroundLayout.integration.test.mjs.
+
 })
 
 test('Classic Background fitting uses alpha-content dimensions', () => {
