@@ -516,6 +516,7 @@ export function useCaseInsertPreviewPointerDrag({
     CaseInsertDragState,
     Element
   >({
+    applyReleasePoint: true,
     stopPropagation: true,
     getBounds: (dragState) => dragState.bounds,
     onDraggedPoint: (dragState, point) => {

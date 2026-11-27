@@ -7,7 +7,8 @@ import type { DiscTextStyleField, DiscTextStyleSettings, DiscTextStyleValue } fr
 import type { TextContentMode } from '../../text/htmlText'
 import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SelectedDiscTemplateId, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
-import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
+import { BackgroundLayer } from './BackgroundLayer'
+import type { BackgroundImageLayout } from '../../image/backgroundImage'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
 import { DiscTextLayer } from './DiscTextLayer'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
@@ -47,7 +48,7 @@ export type DiscPreviewProps = {
   background: {
     imageUrl: string | null
     imageSize: BackgroundImageSize | null
-    previewSize: BackgroundPreviewSize
+    layout: BackgroundImageLayout
     offset: BackgroundOffset
     scale: number
   }
@@ -376,9 +377,7 @@ export function DiscPreview({
       <BackgroundLayer
         backgroundImageUrl={background.imageUrl}
         backgroundImageSize={background.imageSize}
-        backgroundPreviewSize={background.previewSize}
-        backgroundOffset={background.offset}
-        backgroundScale={background.scale}
+        layout={background.layout}
         {...pointerHandlers.background}
       />
     ),

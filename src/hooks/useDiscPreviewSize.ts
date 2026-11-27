@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react'
 import type { EditorWorkspace } from '../editor/editorTypes'
+import { getDiscPreviewCoordinateSize } from '../interaction/discPreviewCoordinates'
 
 const DEFAULT_DISC_PREVIEW_SIZE = 640
 
@@ -24,7 +25,8 @@ export function useDiscPreviewSize({
     }
 
     const updatePreviewSize = () => {
-      const nextSize = previewElement.getBoundingClientRect().width
+      // CSS transforms belong to PreviewViewport, not the saved offset basis.
+      const nextSize = getDiscPreviewCoordinateSize(previewElement, 0)
 
       if (Number.isFinite(nextSize) && nextSize > 0) {
         setDiscPreviewSize(nextSize)

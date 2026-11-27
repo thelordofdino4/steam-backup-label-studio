@@ -19,7 +19,7 @@ import { createBlankDiscSavedProject } from '/src/project/blankDiscProject.ts'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 let api
 const requests = [], statuses = [], applied = [], commands = []
-let importFailure = false, deferImports = false
+let importFailure = false, deferImports = false, failApply = false
 const imports = [], preparations = []
 window.__TAURI_INTERNALS__ = {
   invoke(command, args) {
@@ -68,15 +68,18 @@ window.searchHarness = {
     await act(async () => { api[action]() })
   },
   async edit(query) { await act(async () => { api.setGameSearchQuery(query) }) },
-  async startImport(appId, stage = false) {
+  async startImport(appId, stage = false, adoption = 'committed') {
     deferImports = true
     await act(async () => {
       const completion = api.runSteamImport(appId, async result => {
         if (stage) await new Promise((resolve, reject) => preparations.push({ resolve, reject }))
         return () => {
+          if (failApply) throw new Error('private-apply-path')
+          if (adoption !== 'committed') return adoption
           applied.push(result)
           api.setSelectedSteamGame(result.importedGame)
           statuses.push('Imported ' + result.importedGame.title)
+          return 'committed'
         }
       })
       imports.at(-1).completion = completion
@@ -113,9 +116,12 @@ window.searchHarness = {
         applied.push(result)
         api.setSelectedSteamGame(result.importedGame)
         api.clearSteamSearchResults()
+        return 'committed'
       })
     })
   },
+  diagnostics() { return JSON.parse(runtime.diagnostics.toJson()) },
+  failApplication() { failApply = true },
   snapshot() {
     return {
       query: api.gameSearchQuery, results: api.steamSearchResults,
@@ -131,6 +137,8 @@ let server, browser, page, url
 
 test.before(async () => {
   server = await createServer({
+    // Parallel fixture servers must not mutate one shared Vite dependency cache.
+    cacheDir: 'node_modules/.vite-test-steam-import',
     logLevel: 'silent',
     server: { host: '127.0.0.1', port: 0 },
     plugins: [{
@@ -151,7 +159,7 @@ test.before(async () => {
   const address = server.httpServer?.address()
   if (!address || typeof address === 'string') throw new Error('Missing fixture server address')
   url = `http://127.0.0.1:${address.port}${fixturePath}`
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, chromiumSandbox: true })
 })
 test.beforeEach(async () => {
   page = await browser.newPage()
@@ -231,7 +239,7 @@ for (const [outcome, expectedStatus, resultCount] of [
   [{ items: [item(1, 'One')] }, 'Found 1 Steam result.', 1],
   [{ items: [item(1, 'One'), item(2, 'Two')] }, 'Found 2 Steam results.', 2],
   [{ items: [] }, 'Steam returned no results. Manual title entry is still available.', 0],
-  [{ error: 'network unavailable' }, 'Steam search failed: network unavailable', 0],
+  [{ error: 'network unavailable' }, 'Steam search could not be completed. Check your connection and try again.', 0],
 ]) {
   test(`current request publishes: ${expectedStatus}`, async () => {
     await start(' Current ')
@@ -247,7 +255,7 @@ test('malformed current transport response reports failure and releases loading'
   await start('A')
   await settle(0, { raw: '{' })
   const state = await snapshot()
-  assert.match(state.statuses.at(-1), /^Steam search failed: SyntaxError:/)
+  assert.equal(state.statuses.at(-1), 'Steam search could not be completed. Check your connection and try again.')
   assert.equal(state.loading, false)
 })
 
@@ -271,7 +279,7 @@ test('Steam import failure still reports without applying state', async () => {
   assert.deepEqual(state.applied, [])
   assert.equal(state.selected, null)
   assert.equal(state.importLoading, false)
-  assert.equal(state.statuses.at(-1), 'Steam import failed: details unavailable')
+  assert.equal(state.statuses.at(-1), 'Steam game details could not be loaded. Check your connection and try again.')
 })
 
 for (const fail of [false, true]) {
@@ -321,3 +329,82 @@ test('current prepared game import commits once after its final wait', async () 
   assert.equal(accepted.applied.length, 1)
   assert.equal(accepted.importLoading, false)
 })
+
+
+test('search report excludes query/error/results, and stale completion remains cancelled without replacing accepted UI', async () => {
+  await start('private-query-A')
+  await start('private-query-B')
+  await settle(1, { items: [item(2, 'private-game-name')] })
+  const accepted = await snapshot()
+  await settle(0, { error: 'private-path-token' })
+  assert.deepEqual(await snapshot(), accepted)
+  const report = await page.evaluate(() => window.searchHarness.diagnostics())
+  const records = report.records.filter(record => record.workflowId === 'steam.search')
+  assert.deepEqual(records.map(record => [record.requestId, record.status, record.stage]), [[1, 'cancelled', 'fetch-and-normalize'], [2, 'success', 'fetch-and-normalize']])
+  assert.doesNotMatch(JSON.stringify(report), /private|query|cause|title|bytes/)
+  assert.ok(records.every(record => record.elapsedMs >= 0))
+})
+
+test('current search failure records its safe category without raw native content', async () => {
+  await start('private-query')
+  await settle(0, { error: 'private-native-path-token' })
+  const record = (await page.evaluate(() => window.searchHarness.diagnostics())).records.at(-1)
+  assert.equal(record.workflowId, 'steam.search')
+  assert.equal(record.status, 'failure')
+  assert.equal(record.failureCode, 'steam.search-failed')
+  assert.equal(record.stage, 'fetch-and-normalize')
+  assert.doesNotMatch((await snapshot()).statuses.at(-1), /private/)
+})
+
+for (const stage of ['fetch-and-normalize', 'prepare', 'apply']) {
+  test(`Steam import reports current ${stage} failure through the existing request owner`, async () => {
+    if (stage === 'apply') await page.evaluate(() => window.searchHarness.failApplication())
+    await page.evaluate(() => window.searchHarness.startImport(1, true))
+    if (stage === 'fetch-and-normalize') await page.evaluate(() => window.searchHarness.settleImport(0, true))
+    else {
+      await page.evaluate(() => window.searchHarness.settleImport(0, false, true))
+      const pending = (await page.evaluate(() => window.searchHarness.diagnostics())).records.at(-1)
+      assert.equal(pending.status, 'running')
+      assert.equal(pending.stage, 'prepare')
+      await page.evaluate(fail => window.searchHarness.settlePreparation(0, fail), stage === 'prepare')
+    }
+    const report = await page.evaluate(() => window.searchHarness.diagnostics())
+    const record = report.records.at(-1)
+    assert.equal(record.workflowId, 'steam.import')
+    assert.equal(record.requestId, 1)
+    assert.equal(record.status, 'failure')
+    assert.equal(record.stage, stage)
+    assert.equal(record.failureCode, stage === 'fetch-and-normalize' ? 'steam.import-fetch-failed' : `steam.import-${stage}-failed`)
+    assert.deepEqual((await snapshot()).applied, [])
+    assert.doesNotMatch(JSON.stringify(report), /private|cause|title|bytes|appId|session/)
+    assert.doesNotMatch((await snapshot()).statuses.at(-1), /private|old import failed|artwork failed/)
+  })
+}
+
+test('retired import preparation records cancellation and never success or a current failure', async () => {
+  await page.evaluate(() => window.searchHarness.startImport(1, true))
+  await page.evaluate(() => window.searchHarness.settleImport(0, false, true))
+  await page.evaluate(() => window.searchHarness.invalidate('resetSteamImportState'))
+  const current = await snapshot()
+  await page.evaluate(() => window.searchHarness.settlePreparation(0, true))
+  assert.deepEqual(await snapshot(), current)
+  const record = (await page.evaluate(() => window.searchHarness.diagnostics())).records.at(-1)
+  assert.equal(record.status, 'cancelled')
+  assert.equal(record.failureCode, undefined)
+  assert.equal(record.stage, 'prepare')
+})
+
+for (const adoption of ['committed', 'no-op', 'declined']) {
+  test('Steam report distinguishes an admitted owner outcome: ' + adoption, async () => {
+    await page.evaluate(outcome => window.searchHarness.startImport(42, false, outcome), adoption)
+    await page.evaluate(() => window.searchHarness.settleImport(0, false))
+    const record = (await page.evaluate(() => window.searchHarness.diagnostics())).records.at(-1)
+    assert.equal(record.workflowId, 'steam.import')
+    assert.equal(record.stage, 'apply')
+    assert.equal(record.adoption, adoption)
+    assert.equal(record.status, adoption === 'declined' ? 'cancelled' : 'success')
+    const state = await snapshot()
+    assert.equal(state.applied.length, adoption === 'committed' ? 1 : 0)
+    if (adoption === 'declined') assert.equal(state.statuses.some(status => status.startsWith('Imported ')), false)
+  })
+}

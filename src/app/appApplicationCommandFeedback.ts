@@ -130,6 +130,15 @@ export function publishApplicationCommandFeedback(
     dispatch.disposition === 'executed' &&
     dispatch.result.status === 'success' &&
     feedback.kind === 'success'
+  return publishApplicationFeedbackIntent(feedback, dependencies, toastOnly)
+}
+
+/** Shared presentation owner for informational and command feedback. */
+export function publishApplicationFeedbackIntent(
+  feedback: ApplicationCommandFeedbackIntent,
+  dependencies: ApplicationCommandFeedbackPublicationDependencies,
+  toastOnly = false,
+): ApplicationCommandFeedbackIntent | null {
   const published = dependencies.announceStatus(feedback.message, {
     kind: statusToastKind(feedback.kind),
     deduplicationKey: feedback.deduplicationKey,

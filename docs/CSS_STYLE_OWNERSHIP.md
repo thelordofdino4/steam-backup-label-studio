@@ -60,6 +60,10 @@ keeps its viewport/layout `!important` overrides after `App.css`. Do not merge
 or delete that duplicate import without a visual pass that confirms desktop and
 mobile layout behavior is unchanged.
 
+## Local inspector section styles
+
+`src/components/editor/EditorInspectorSection.css` owns shallow role-inspector section dividers, headings and spacing. It is imported by its component. These sections add no horizontal inset or overflow clipping; existing workflow disclosures and repeated asset cards keep their current owners. See [`EDITOR_INSPECTOR_STRUCTURE.md`](EDITOR_INSPECTOR_STRUCTURE.md) for the hierarchy and pending native size/DPI acceptance.
+
 ## Stale CSS Removed
 
 The following selectors were removed after a literal source scan and targeted

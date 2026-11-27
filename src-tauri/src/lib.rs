@@ -43,6 +43,17 @@ fn application_invoke_handler(
     ]
 }
 
+fn configure_native_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    if cfg!(debug_assertions) {
+        app.handle().plugin(
+            tauri_plugin_log::Builder::default()
+                .level(log::LevelFilter::Info)
+                .build(),
+        )?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let started = std::time::Instant::now();
@@ -53,23 +64,21 @@ pub fn run() {
         .on_menu_event(application_menu::forward_application_menu_event)
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(application_invoke_handler())
-        .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
+        .setup(move |app| {
+            // Tauri runs this hook after build and panics on an error returned to it.
+            // Report the application-owned failure before it reaches that boundary.
+            if let Err(error) = configure_native_app(app) {
+                startup_diagnostics::report_failure_and_exit(
+                    &tauri::Error::Setup(error.into()),
+                    started.elapsed(),
+                );
             }
             Ok(())
         })
         .build(tauri::generate_context!());
     match built {
         Ok(app) => app.run(native_termination::on_run_event),
-        Err(error) => {
-            startup_diagnostics::report_failure(&error, started.elapsed());
-            std::process::exit(1);
-        }
+        Err(error) => startup_diagnostics::report_failure_and_exit(&error, started.elapsed()),
     }
 }
 

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { EditorInspectorDepthContext } from './editorInspectorContext'
 import type {
   CaseInsertNavigationSurfaceId,
 } from '../../editor/editorNavigationShell.ts'
@@ -95,17 +96,19 @@ export function EditorNavigationRolePanel({
 }: EditorNavigationRolePanelProps) {
   return (
     <EditorPanel
-      title={label}
+      title={<span role="heading" aria-level={2}>{label}</span>}
       open={open}
       onOpenChange={onOpenChange}
       detailsRef={detailsRef}
       summaryRef={summaryRef}
     >
-      {children ?? (
-        <p className="hint" data-smoke-id={smokeId}>
-          Controls move here in #272/#274.
-        </p>
-      )}
+      <EditorInspectorDepthContext.Provider value={0}>
+        {children ?? (
+          <p className="hint" data-smoke-id={smokeId}>
+            Controls move here in #272/#274.
+          </p>
+        )}
+      </EditorInspectorDepthContext.Provider>
     </EditorPanel>
   )
 }

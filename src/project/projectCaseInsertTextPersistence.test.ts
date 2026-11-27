@@ -89,6 +89,12 @@ test('migrated cover and tray text block properties survive save and restore', (
   state = updateCaseInsertPreviewTextTargetStyleField(
     state,
     trayDescriptionTarget,
+    'backgroundEnabled',
+    false,
+  )
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    trayDescriptionTarget,
     'borderEnabled',
     true,
   )
@@ -139,6 +145,7 @@ test('migrated cover and tray text block properties survive save and restore', (
   assert.equal(restoredCoverTitle?.avoidVisualElements, true)
   assert.equal(restoredTrayDescription?.style.fontFamily, 'georgia')
   assert.equal(restoredTrayDescription?.style.italic, true)
+  assert.equal(restoredTrayDescription?.style.backgroundEnabled, false)
   assert.equal(restoredTrayDescription?.style.borderEnabled, true)
   assert.equal(restoredTrayDescription?.style.borderRadius, 0.85)
   assert.equal(restoredTrayDescription?.layout.scale, 1.18)
@@ -239,4 +246,15 @@ test('legacy case insert Markdown text fields migrate to HTML on restore', () =>
     '• Co-op puzzles',
     '• Workshop support',
   ])
+})
+
+test('Case border thickness survives a save/restore without changing automatic defaults', () => {
+  const initial = createDefaultProjectJewelCaseState('Case print')
+  const title = initial.templates.cover.textBlocks.find(({ id }) => id === 'cover-title-text')
+  assert.ok(title)
+  title.style = { ...title.style, borderEnabled: true, backgroundEnabled: false, borderThicknessPercent: 18 }
+  const saved = createCaseInsertProjectSnapshot({ manualGameTitle: 'Case print', caseInsert: initial })
+  const restored = restoreCaseInsertProjectState(JSON.parse(JSON.stringify(saved))).caseInsert
+  assert.equal(restored.templates.cover.textBlocks.find(({ id }) => id === title.id)?.style.borderThicknessPercent, 18)
+  assert.equal(restored.spine.left.title.style.borderThicknessPercent, undefined)
 })

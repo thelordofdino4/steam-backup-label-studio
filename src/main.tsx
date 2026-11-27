@@ -32,7 +32,10 @@ function mountApplication() {
     performanceObserver, casePresetProjection: true, documentHistoryLimit: 16,
   })
   const unbindInteractionSession = bindInteractionSession(interactionObserver, lifecycleRuntime.root)
-  const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root)
+  const menuRuntime = createApplicationMenuRuntime(lifecycleRuntime.root, {
+    observeStartup: lifecycleRuntime.diagnostics.observeMenuStartup,
+    onDiagnostic: lifecycleRuntime.diagnostics.recordMenuDiagnostic,
+  })
 
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {

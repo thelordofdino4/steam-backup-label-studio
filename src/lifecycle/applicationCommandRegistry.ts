@@ -1,6 +1,7 @@
 import {
   commandFailed,
   type ApplicationCommandDefinition,
+  type ApplicationCommandExecutionObserver,
   type ApplicationCommandDispatchResult,
   type ApplicationCommandId,
   type ApplicationCommandResult,
@@ -67,11 +68,13 @@ function unexpectedCommandFailure(
 export type ApplicationCommandDispatcherOptions = Readonly<{
   busyScopes?: CommandBusyScopeCoordinator
   createOperationId?: () => string
+  observeExecution?: ApplicationCommandExecutionObserver
 }>
 
 export class ApplicationCommandDispatcher<Context> {
   private readonly registry: ApplicationCommandRegistry<Context>
   private readonly busyScopes: CommandBusyScopeCoordinator
+  private readonly observeExecution?: ApplicationCommandExecutionObserver
   private readonly createOperationId: () => string
   private readonly inFlight = new Set<InFlightCommand>()
   private nextOperationNumber = 1
@@ -81,6 +84,7 @@ export class ApplicationCommandDispatcher<Context> {
     options: ApplicationCommandDispatcherOptions = {},
   ) {
     this.registry = registry
+    this.observeExecution = options.observeExecution
     this.busyScopes = options.busyScopes ?? new CommandBusyScopeCoordinator()
     this.createOperationId = options.createOperationId ?? (() => {
       const id = `application-command-${this.nextOperationNumber}`
@@ -171,6 +175,15 @@ export class ApplicationCommandDispatcher<Context> {
       })
     }
 
+    let completeObservation: ReturnType<ApplicationCommandExecutionObserver> = undefined
+    try {
+      completeObservation = this.observeExecution?.({
+        commandId: definition.id,
+        operationId: acquisition.operation.id,
+      })
+    } catch {
+      // Diagnostics must not prevent or change the authorized operation.
+    }
     const result = (async (): Promise<ApplicationCommandDispatchResult<unknown>> => {
       let commandResult: ApplicationCommandResult<unknown>
 
@@ -192,6 +205,11 @@ export class ApplicationCommandDispatcher<Context> {
         acquisition.release()
       }
 
+      try {
+        completeObservation?.(commandResult)
+      } catch {
+        // Completion reporting must not replace the result or retain scopes.
+      }
       return Object.freeze({
         disposition: 'executed',
         commandId: definition.id,

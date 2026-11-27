@@ -40,7 +40,7 @@ test('trusted Disc background canvas cancellation restores placement; release co
     })
     await server.listen()
     const url = 'http://127.0.0.1:'+server.httpServer.address().port
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, chromiumSandbox: true })
     const context = await browser.newContext({ hasTouch: true, viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 })
     await context.route('**/*', route =>
       route.request().url().startsWith(url+'/') || route.request().url().startsWith('data:')
@@ -55,7 +55,7 @@ test('trusted Disc background canvas cancellation restores placement; release co
     assert.equal(await layer.count(), 1)
     await page.waitForFunction(() => {
       const v = globalThis.discCanvasFixture.read()
-      return v.artLoaded && v.translation !== null && v.ratio > 0
+      return v.artLoaded && v.placement !== null && v.ratio > 0
     })
     await settle(page)
 
@@ -85,20 +85,22 @@ test('trusted Disc background canvas cancellation restores placement; release co
         await touch('touchMove',[point(start.x+dx,start.y+dy)])
         await page.waitForFunction(old=>{
           const v=globalThis.discCanvasFixture.read()
-          return v.captured && v.translation?.x!==old.x && v.translation?.y!==old.y
-        },before.translation)
+          return v.captured && v.placement && v.placement.x!==old.x && v.placement.y!==old.y
+        },before.placement)
         const held = await read(page)
         assert.equal(held.id,before.id)
         assert.equal(held.revision,before.revision)
         assert.deepEqual(held.offset,before.offset)
         assert.equal(held.ratio,before.ratio)
+        near(held.placement.width,before.placement.width,'held width')
+        near(held.placement.height,before.placement.height,'held height')
         const expected={x:dx/before.ratio,y:dy/before.ratio}
-        for (const axis of ['x','y']) near(held.translation[axis]-before.translation[axis],expected[axis],`held ${axis}`)
+        for (const axis of ['x','y']) near(held.placement[axis]-before.placement[axis],expected[axis],`held ${axis}`)
         await touch(gestureEnd,[])
-        await page.waitForFunction(({ rev, restoring, transform })=>{
+        await page.waitForFunction(({ rev, restoring, placement })=>{
           const v=globalThis.discCanvasFixture.read()
-          return v.revision===rev && !v.captured && (!restoring || v.transform===transform)
-        },{rev:before.revision+delta,restoring:delta===0,transform:before.transform})
+          return v.revision===rev && !v.captured && (!restoring || v.placement && ['x','y','width','height'].every(key => v.placement[key]===placement[key]))
+        },{rev:before.revision+delta,restoring:delta===0,placement:before.placement})
         await settle(page)
         const end = await read(page)
         const proof = await page.evaluate(() => globalThis.discCanvasFixture.drain())
@@ -109,7 +111,7 @@ test('trusted Disc background canvas cancellation restores placement; release co
         assert.equal(end.scale,before.scale)
         if (!delta) {
           assert.deepEqual(end.offset,before.offset)
-          assert.equal(end.transform,before.transform)
+          assert.deepEqual(end.placement,before.placement)
         } else {
           const [{from,to}] = proof.transitions
           assert.equal(from.id,before.id)
@@ -118,7 +120,7 @@ test('trusted Disc background canvas cancellation restores placement; release co
           assert.equal(to.revision,before.revision+1)
           for (const axis of ['x','y']) {
             near(end.offset[axis]-before.offset[axis],expected[axis],`committed offset ${axis}`)
-            near(end.translation[axis]-before.translation[axis],expected[axis],`retained preview ${axis}`)
+            near(end.placement[axis]-before.placement[axis],expected[axis],`retained preview ${axis}`)
           }
         }
       }

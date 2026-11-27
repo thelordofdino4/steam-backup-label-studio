@@ -46,7 +46,7 @@ pub(crate) fn project_failure(error: &tauri::Error, elapsed: Duration) -> Startu
     }
 }
 
-pub(crate) fn report_failure(error: &tauri::Error, elapsed: Duration) {
+pub(crate) fn report_failure_and_exit(error: &tauri::Error, elapsed: Duration) -> ! {
     let failure = project_failure(error, elapsed);
     // This structure contains static allowlisted text and bounded duration only.
     let report = serde_json::to_string_pretty(&failure)
@@ -54,6 +54,7 @@ pub(crate) fn report_failure(error: &tauri::Error, elapsed: Duration) {
     eprintln!("{report}");
     #[cfg(windows)]
     show_windows_failure(&report);
+    std::process::exit(1)
 }
 
 #[cfg(windows)]
@@ -88,6 +89,14 @@ mod tests {
             (
                 tauri::Error::PluginInitialization("private-plugin".into(), "private-cause".into()),
                 "native-plugin",
+            ),
+            (
+                tauri::Error::Setup(
+                    (Box::new(std::io::Error::other("private-setup-cause"))
+                        as Box<dyn std::error::Error>)
+                        .into(),
+                ),
+                "native-setup",
             ),
             (
                 tauri::Error::AssetNotFound("private-path".into()),

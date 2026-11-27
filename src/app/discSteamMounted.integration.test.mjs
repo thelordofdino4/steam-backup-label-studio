@@ -230,6 +230,19 @@ async function reveal(page, label) {
   if (!await details.evaluate(node => node.open)) await summary.click()
   assert.equal(await details.evaluate(node => node.open), true)
 }
+async function revealInspectorRole(page, label) {
+  const heading = page.getByRole('heading', { name: label, exact: true, level: 2 })
+  const summary = page.locator('details > summary').filter({ has: heading })
+  assert.equal(await summary.count(), 1, `unique ${label} role disclosure`)
+  const details = summary.locator('xpath=..')
+  if (!await details.evaluate(node => node.open)) await summary.click()
+  assert.equal(await details.evaluate(node => node.open), true)
+}
+async function requireInspectorSection(page, label) {
+  const section = page.getByRole('region', { name: label, exact: true })
+  assert.equal(await section.count(), 1, `unique ${label} inspector section`)
+  await section.waitFor({ state: 'visible' })
+}
 const receipt = page => page.evaluate(() => window.readDiscSteamReceipt())
 const drain = page => page.evaluate(() =>
   new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
@@ -252,8 +265,8 @@ test('real Disc preset applies layout without changing a selected PEGI/USK ratin
     })
     await page.goto(origin + route)
     await page.locator('[data-smoke-id="home-new-disc"]').click()
-    await reveal(page, 'Game Info Logos')
-    await reveal(page, 'Rating badge')
+    await revealInspectorRole(page, 'Game Info Logos')
+    await requireInspectorSection(page, 'Rating badge')
     await page.getByLabel('Show rating badge', { exact: true }).check()
     await page.getByLabel('Rating system', { exact: true }).and(page.locator('#branding-rating-system')).selectOption('PEGI')
     await page.getByLabel('Rating value', { exact: true }).and(page.locator('#branding-rating-value')).selectOption('12')
@@ -273,8 +286,8 @@ test('real Disc preset applies layout without changing a selected PEGI/USK ratin
     assert.equal(after.metadata.ratingValue, '12')
     assert.deepEqual(after.usk, { enabled: true, value: '16' })
     assert.notDeepEqual(after.ratingLayout, before.ratingLayout)
-    await reveal(page, 'Game Info Logos')
-    await reveal(page, 'Rating badge')
+    await revealInspectorRole(page, 'Game Info Logos')
+    await requireInspectorSection(page, 'Rating badge')
     assert.equal(await uskValue.inputValue(), '16')
   } finally { await page.close() }
 })
@@ -316,8 +329,8 @@ test('real Disc suggested USK and manual USK edits retain PEGI and publish whole
     assert.equal(accepted.metadata.ratingSystem, 'PEGI')
     assert.equal(accepted.rating, true)
     assert.deepEqual(accepted.usk, { enabled: true, value: '16' })
-    await reveal(page, 'Game Info Logos')
-    await reveal(page, 'Rating badge')
+    await revealInspectorRole(page, 'Game Info Logos')
+    await requireInspectorSection(page, 'Rating badge')
     await page.getByLabel('USK rating value', { exact: true }).selectOption('0')
     await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '0')
     await drain(page)
@@ -643,8 +656,8 @@ test('mounted Disc history restores the real USK controls and acknowledges the c
     await page.waitForFunction(() => window.readDiscSteamReceipt().revisions.at(-1)?.usk.value === '16')
     await drain(page)
     const edited = (await receipt(page)).revisions.at(-1)
-    await reveal(page, 'Game Info Logos')
-    await reveal(page, 'Rating badge')
+    await revealInspectorRole(page, 'Game Info Logos')
+    await requireInspectorSection(page, 'Rating badge')
     assert.equal(await page.getByLabel('USK rating value', { exact: true }).inputValue(), '16')
     const accepted = async (direction, revision) => {
       assert.equal(await page.evaluate(step => window.stepDiscHistoryDiagnostic(step), direction), 'committed')
@@ -735,7 +748,7 @@ test('authored Classic preset output matches Undo and Redo at the real Save and 
     await reveal(page, 'Additional metadata')
     const title = 'Artwork Backup Test'
     await page.getByRole('textbox', { name: 'Label title', exact: true }).fill(title)
-    await reveal(page, 'Game Title')
+    await revealInspectorRole(page, 'Game Title')
     await page.locator('[data-smoke-id="disc-sidebar-text-title"] input[type="checkbox"]').check()
     await reveal(page, 'Layout Presets')
     await page.getByLabel('Preset', { exact: true }).selectOption('classic-top-title')
@@ -1026,7 +1039,7 @@ test('mounted logo layout Reset preserves the import and preset Undo steps', { t
     await page.locator('[data-smoke-id="home-new-disc"]').click()
     await reveal(page, 'Game')
     await reveal(page, 'Layout Presets')
-    await reveal(page, 'Game Title')
+    await revealInspectorRole(page, 'Game Title')
     const current = () => page.evaluate(() => window.readDiscHistoryProject())
     const settle = (past, future) => page.waitForFunction(({ past, future }) => {
       const state = window.readDiscHistoryDiagnostic()
@@ -1171,5 +1184,106 @@ test('Case Apply and Detach are separate history steps with exact content and at
     await step('undo', before, 0, 2, true)
     await step('redo', applied, 1, 1, true)
     await step('redo', detached, 2, 0, false)
+  } finally { await page.close() }
+})
+
+test('Case cover artwork settles at the release point without replaying it', { timeout: 65_000 }, async () => {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
+  try {
+    await page.route('**/*', request => {
+      const url = request.request().url()
+      return url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:')
+        ? request.continue() : request.abort('blockedbyclient')
+    })
+    await page.goto(origin + route)
+    await page.locator('[data-smoke-id="home-new-case-insert"]').click()
+    await reveal(page, 'Game')
+    await start(page, newer.id)
+    await page.evaluate(id => window.discSteamTransportFixture.resolveLogo(id), newer.id)
+    await page.waitForFunction(id => {
+      const state = window.readCaseSteamDiagnostic()
+      return state && !state.pending && state.project.game.selectedSteamGame?.appId === id
+    }, newer.id, { timeout: 12_000 })
+    const read = () => page.evaluate(() => window.readCaseSteamDiagnostic())
+    const layout = state => state.project.caseInsert.templates.cover.titleArtwork.layout
+    const initial = layout(await read())
+    const artwork = page.locator('.case-insert-template-titleArtwork')
+    await artwork.waitFor({ timeout: 6_000 })
+    const bounds = await artwork.boundingBox()
+    assert.ok(bounds && bounds.width > 0 && bounds.height > 0)
+    const x = Math.round(bounds.x + bounds.width / 2)
+    const y = Math.round(bounds.y + bounds.height / 2)
+    await artwork.evaluate(element => {
+      element.addEventListener('pointerdown', event => {
+        element.dataset.releaseProbePointer = String(event.pointerId)
+      }, { once: true })
+    })
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    const pointerId = Number(await artwork.getAttribute('data-release-probe-pointer'))
+    assert.ok(pointerId > 0)
+    await page.mouse.move(x + 12, y + 6)
+    await page.waitForFunction(initial => {
+      const actual = window.readCaseSteamDiagnostic().project.caseInsert.templates.cover.titleArtwork.layout
+      return actual.x !== initial.x && actual.y !== initial.y
+    }, initial, { timeout: 4_000 })
+    const moved = layout(await read())
+    assert.ok(moved.x > initial.x && moved.y > initial.y)
+    await artwork.dispatchEvent('pointerup', { pointerId, clientX: x + 24, clientY: y + 12,
+      pointerType: 'mouse', isPrimary: true, button: 0, buttons: 0 })
+    await drain(page)
+    const final = await read()
+    assert.ok(Math.abs(layout(final).x - (initial.x + 2 * (moved.x - initial.x))) < 0.001,
+      'release must use its own X coordinate, not the last pointermove')
+    assert.ok(Math.abs(layout(final).y - (initial.y + 2 * (moved.y - initial.y))) < 0.001,
+      'release must use its own Y coordinate, not the last pointermove')
+    await page.mouse.up()
+    await drain(page)
+    assert.deepEqual(await read(), final, 'release and lost capture must not publish again')
+
+    // Remove the real capture target through its owning feature control while the
+    // pointer stays down. The extra release must not alter the hidden artwork.
+    await revealInspectorRole(page, 'Game Title')
+    await requireInspectorSection(page, 'Game Logo')
+    const visibility = page.getByRole('checkbox', { name: 'Show game logo', exact: true })
+    await visibility.waitFor({ state: 'visible', timeout: 5_000 })
+    assert.equal(await visibility.isChecked(), true)
+    const originalNode = await artwork.elementHandle()
+    assert.ok(originalNode)
+    const shifted = await artwork.boundingBox()
+    assert.ok(shifted)
+    const heldX = Math.round(shifted.x + shifted.width / 2)
+    const heldY = Math.round(shifted.y + shifted.height / 2)
+    await page.mouse.move(heldX, heldY)
+    await page.mouse.down()
+    assert.equal(await artwork.evaluate((node, id) => node.hasPointerCapture(id), pointerId), true)
+    await visibility.evaluate(control => control.click())
+    await artwork.waitFor({ state: 'detached', timeout: 5_000 })
+    assert.equal(await originalNode.evaluate(node => node.isConnected), false)
+    await drain(page)
+    const hidden = await read()
+    assert.deepEqual(layout(hidden), layout(final), 'hiding artwork preserves accepted placement')
+    await page.mouse.move(heldX + 14, heldY + 8)
+    await page.mouse.up()
+    await drain(page)
+    assert.deepEqual(await read(), hidden, 'no stale pointer gesture may publish after target removal')
+
+    await visibility.evaluate(control => control.click())
+    await artwork.waitFor({ state: 'visible', timeout: 5_000 })
+    const restored = await read()
+    assert.deepEqual(layout(restored), layout(final), 'restoring artwork keeps its position')
+    const restoredBox = await artwork.boundingBox()
+    assert.ok(restoredBox)
+    const restoredX = Math.round(restoredBox.x + restoredBox.width / 2)
+    const restoredY = Math.round(restoredBox.y + restoredBox.height / 2)
+    await page.mouse.move(restoredX, restoredY)
+    await page.mouse.down()
+    assert.equal(await artwork.evaluate((node, id) => node.hasPointerCapture(id), pointerId), true)
+    await page.mouse.move(restoredX - 12, restoredY - 6)
+    await page.mouse.up()
+    await page.waitForFunction(previous => {
+      const current = window.readCaseSteamDiagnostic().project.caseInsert.templates.cover.titleArtwork.layout
+      return current.x < previous.x && current.y < previous.y
+    }, layout(restored), { timeout: 4_000 })
   } finally { await page.close() }
 })
