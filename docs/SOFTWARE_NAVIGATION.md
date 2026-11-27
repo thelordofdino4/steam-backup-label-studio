@@ -369,3 +369,6 @@ The Case history candidate at 0bb11fbe passed all 19 Windows browser cases and t
 
 ### 2026-11-26 #310 sandboxed Steam feedback check
 Windows run 45757026580, job 139697950829, passed the Case import revision, selected game, artwork and legal-content assertions, then timed out on the first matching text. That was the persistent hint in the collapsed Project File disclosure; its content reported 0 enabled and 1 hidden. The preview toast is an independent visible presentation and expires after 3.6 seconds. Wait for the specific visible toast immediately after commit and before draining work, without changing the app, disclosure defaults or sandbox. Undo/Redo and the later package relay did not finish on the failed run. This is a browser diagnostic, not desktop acceptance.
+
+### 2026-11-27 #440 mounted border range fixture
+CI 45941330097 passed the new track geometry case. Two existing pointer category cases timed out because the synthetic preview wrapper imported production pointer-event styles without mounting the ribbon shell, so the preview intercepted clicks. Restore that shell around the test component, keep ordinary pointer clicks and the sandbox, and also assert that the number border leaves room for its unit at narrow widths. This is a correction to the test fixture, not evidence of a native category click regression.

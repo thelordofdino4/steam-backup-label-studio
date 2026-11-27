@@ -9,7 +9,7 @@ const html = `<!doctype html><div id="root"></div><script type="module">
 import { act, createElement, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { InlinePreviewTextEditorRibbon } from '/src/components/preview/inlinePreviewTextEditorRibbon.tsx'
-import '/src/styles/app-contextual-text-ribbon.css'
+import '/src/styles/App.css'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const selection = { start: 0, end: 0 }
 const noop = () => {}
@@ -26,14 +26,14 @@ function Fixture() {
   }
   return createElement('div', { className: 'preview-area', style: { display: 'block' } },
     createElement('div', { id: 'ribbon-width', className: 'contextual-text-ribbon-host has-controls', style: { width: '450px' } },
-      createElement(InlinePreviewTextEditorRibbon, {
+      createElement('div', { className: 'contextual-text-ribbon-shell' }, createElement(InlinePreviewTextEditorRibbon, {
     activeTab, onTabChange: setActiveTab, controls,
     getCommandSelection: () => selection, isCurvedText: false, selection,
     sourceDraft: '', tabsRef: null, onDone: noop, onRibbonControlInteraction: noop,
     onRibbonKeyboardInteraction: noop, onRibbonMenuRef: noop, onRibbonPointerDown: noop,
     onRetainTextareaSelectionForCommands: noop, onSelectionChange: noop,
     onSourceDraftChange: noop,
-  })))
+  }))))
 }
 await act(() => createRoot(document.getElementById('root')).render(createElement(Fixture)))
 </script>`
@@ -124,11 +124,28 @@ test('Artistic border ranges share track geometry and fully show Line thickness 
       labelText.selectNodeContents(label)
       const track = node.getBoundingClientRect()
       const other = radius.getBoundingClientRect()
+      const units = [node, radius].map(slider => {
+        const field = slider.parentElement.querySelector('input[type="number"]')
+        const unit = slider.parentElement.querySelector('.contextual-text-ribbon-range-unit')
+        const unitText = new Range()
+        unitText.selectNodeContents(unit)
+        return { fieldRight: field.getBoundingClientRect().right,
+          textLeft: unitText.getBoundingClientRect().left,
+          textRight: unitText.getBoundingClientRect().right,
+          value: unit.textContent.trim() }
+      })
       return { trackLeft: track.left, trackWidth: track.width, otherLeft: other.left,
+        cardRight: card.getBoundingClientRect().right, units,
         otherWidth: other.width, labelRight: labelText.getBoundingClientRect().right }
     })
     assert.ok(g.labelRight <= g.trackLeft, JSON.stringify({ width, g }))
     assert.ok(g.trackWidth >= 58 && Math.abs(g.trackWidth - g.otherWidth) < 0.1, JSON.stringify({ width, g }))
     assert.ok(Math.abs(g.trackLeft - g.otherLeft) < 0.1, JSON.stringify({ width, g }))
+    assert.deepEqual(g.units.map(entry => entry.value), ['%', 'cqw'])
+    for (const unit of g.units) {
+      assert.ok(unit.textLeft >= unit.fieldRight + 2, JSON.stringify({ width, g }))
+      assert.ok(unit.textRight <= g.cardRight, JSON.stringify({ width, g }))
+    }
+    assert.ok(Math.abs(g.units[0].textLeft - g.units[1].textLeft) < 0.1, JSON.stringify({ width, g }))
   }
 })
