@@ -53,3 +53,8 @@ The production Windows walkthrough on main 30218e1 reported no failure on the te
 - Run the authorized native Tauri app from the primary checkout at minimum, default and fullscreen dimensions, plus the platform/DPI obligations in [DESKTOP_SCALING_ACCEPTANCE.md](DESKTOP_SCALING_ACCEPTANCE.md). Preview geometry and export parity must remain stable.
 
 Do not close #265 or call its full expansion contract implemented from this slice. Follow [TEXT_EDITOR_CONTRACT.md](TEXT_EDITOR_CONTRACT.md) and [TEXT_EDITOR_SMOKE_AUTOMATION.md](TEXT_EDITOR_SMOKE_AUTOMATION.md); browser diagnostics do not replace native acceptance.
+
+
+## Repeatable Remaining Checks
+
+The managed sandboxed Windows lane runs the mounted ribbon batch on every pull request. It exercises application-side color and select edit locks during resize, scans the closed fields against each option in the production catalog, and checks the preview-label and pinned-action boundaries over eight target families, all five tabs, and five representative logical ribbon widths. On a suitable provisioned host run the existing pinned browser lane with the same command in CI (see the Verify sandboxed browser cases step). Do not substitute OS scaling with CSS-width results: native WebView2 popups, Windows text/display scale, monitor transitions, and the real app minimum work-area fit are separate. See the native acceptance guide for those checks.

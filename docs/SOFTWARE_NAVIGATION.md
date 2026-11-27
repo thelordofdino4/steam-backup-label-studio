@@ -382,3 +382,7 @@ Windows CI 45941986173 found a 3px field-to-unit gap and matched 58px slider tra
 
 ### 2026-11-27 #265 utility saturation diagnostic
 The Windows browser lane in CI 45944283744 passed all three new numeric geometry cases and 81 of 82 cases total. The existing utility test passed the width bounds, smaller-first and centering checks but failed the final assertion that both groups saturated at the fixed 1600px host. The new signed field budget requires more horizontal room, so the original saturation threshold is no longer a reliable test precondition; the log did not report the allocated widths. Keep the existing intermediate samples and assertions, add a wider 1840px host for the full-cap check, and emit the full allocation history if it still fails. No sandbox, product sizing, or native acceptance changes for this retry.
+
+
+### 2026-11-27 #265 catalog automation
+Windows CI 45946799491 passed the select/color interaction-lock cases and found zero Live Preview or action-column crossings in 200 target/tab/width journeys. Catalog measurement flagged only the transparent Points preset chevron overlay (840 measurements). The selected preset is intentionally painted by the adjacent number input; the overlay is a native popup trigger, not a closed field label. Keep measuring every actual closed field and assert separately that preset selections reach the visible number input. Do not claim the OS-owned popup was exercised and do not change the product or the Chromium sandbox for this retry.

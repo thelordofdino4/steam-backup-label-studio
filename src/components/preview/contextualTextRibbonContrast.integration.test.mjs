@@ -61,6 +61,8 @@ function Fixture() {
   const [expanded, setExpanded] = useState(false)
   const [enabled, setEnabled] = useState(true)
   const [opacity, setOpacity] = useState(0.75)
+  const [sizeValue, setSizeValue] = useState(32)
+  const [textColor, setTextColor] = useState('#ffffff')
   const [tab, setTab] = useState('art')
   const [curved, setCurved] = useState(false)
   const [measurementsOnly, setMeasurementsOnly] = useState(false)
@@ -77,7 +79,7 @@ function Fixture() {
   const controls = {
     presets: { style: selectControl('Style preset', ['High contrast', 'Clean']), layout: selectControl('Layout preset', ['Centered', 'Bottom']), onReset: noop },
     text: { fontFamily: selectControl('Font family', ['Times New Roman', 'Arial']),
-      size: { label: 'Font size', min: 6, max: 480, value: 32, step: 1, options: [12, 24, 32, 48], onChange: noop },
+      size: { label: 'Font size', min: 6, max: 480, value: sizeValue, step: 1, options: [12, 24, 32, 48], onChange: setSizeValue },
       alignment: selectControl('Alignment', ['Center', 'Justified']), bold: toggleControl('Bold'), italic: toggleControl('Italic'), underline: toggleControl('Underline'), bulletedList: toggleControl('Bulleted list') },
     utilities: { x: rangeControl('X', -1000, 1000, 0), y: rangeControl('Y', -1000, 1000, 0),
       ...(curved ? { lineSpacing: rangeControl('Line spacing', -100, 100, spacing), arcDegrees: rangeControl('Arc', 0, 360, 180) }
@@ -96,7 +98,7 @@ function Fixture() {
       borderColor: { label: 'Border color', value: '#ffffff', onChange: noop, disabled: !enabled },
       borderRadius: { label: 'Radius', value: 5, min: 0, max: 100, step: 1, unit: 'px', onChange: noop, disabled: !enabled },
     } : {}),
-    color: { label: 'Text color', value: '#ffffff', onChange: noop },
+    color: { label: 'Text color', value: textColor, onChange: setTextColor },
     contrast: { label: 'Contrast', value, options: DISC_TEXT_CONTRAST_OPTIONS,
       getSelectionValue: () => mixed ? { state: 'mixed' } : { state: 'active', value },
       onChange: (next, range) => { window.__calls.push({ value: next, selection: range }); setValue(next); setMixed(false) } },
@@ -465,6 +467,8 @@ async function frozenLayout() {
 }
 for (const [tab, selector, interaction] of [
   ['html', '[data-smoke-id="inline-text-html-source"]', 'keyboard'],
+  ['art', '[data-ribbon-group="contrast"] select', 'select'],
+  ['art', '[data-ribbon-group="text-color"] input[type="color"]', 'color'],
   ['text', '[data-smoke-id="inline-text-number-font-size"]', 'keyboard'],
   ['art', '[data-smoke-id="inline-text-range-opacity"]', 'pointer'],
   ['art', 'input[type="checkbox"]', 'pointer'],
@@ -475,8 +479,20 @@ for (const [tab, selector, interaction] of [
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     const control = page.locator(selector).first()
     await control.scrollIntoViewIfNeeded()
-    if (interaction === 'keyboard') { await control.focus(); await control.press('ArrowLeft') }
-    else { const box = await control.boundingBox(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down() }
+    if (interaction === 'keyboard' || interaction === 'select' || interaction === 'color') {
+      await control.focus()
+      // Exercise the application-side focus/geometry path. Do not open or
+      // claim coverage of the OS-owned popup in this headless fixture.
+      await control.press(interaction === 'select' ? 'ArrowDown' : 'ArrowLeft')
+      if (interaction === 'color') {
+        await control.fill('#123456')
+        assert.equal(await control.inputValue(), '#123456')
+      }
+    } else {
+      const box = await control.boundingBox()
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+      await page.mouse.down()
+    }
     await page.waitForFunction(() => document.querySelector('[data-ribbon-layout-frozen="true"]'))
     const before = await frozenLayout()
     await page.evaluate(() => window.__contrast.setWidth(1600))
@@ -600,5 +616,84 @@ test('straight utility fields hold signed decimal capacity at both ends of ribbo
       snapshots.push(measures.map(row => row.width))
     }
     assert.deepEqual(snapshots[0], snapshots[1])
+  }
+})
+
+
+test('remaining catalog labels and action boundaries fit across the logical-width batch', async () => {
+  const issues = []
+  let optionCount = 0
+  const targets = ['disc-straight', 'disc-curved', 'case-cover', 'case-tray', 'case-cover-list', 'case-tray-list', 'case-left-spine', 'case-right-spine']
+  for (const width of [420, 519, 680, 1200, 1600]) {
+    for (const target of targets) {
+      for (const tab of ['presets', 'text', 'art', 'utilities', 'html']) {
+        await page.evaluate(({ target, tab, width }) => {
+          document.activeElement.blur()
+          window.__contrast.setTargetKind(target)
+          window.__contrast.setCurved(target === 'disc-curved')
+          window.__contrast.setTab(tab)
+          window.__contrast.setWidth(width)
+        }, { target, tab, width })
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+        const report = await page.evaluate(() => {
+          const host = document.querySelector('.contextual-text-ribbon-host').getBoundingClientRect()
+          const previewLabel = document.querySelector('.preview-pane-label').getBoundingClientRect()
+          const row = document.querySelector('.contextual-text-ribbon-control-row')
+          const actions = document.querySelector('.contextual-text-ribbon-actions')?.getBoundingClientRect()
+          const rowBox = row.getBoundingClientRect()
+          // Points shows the selected value in its adjacent text input; the
+          // intentionally transparent native select is only a popup trigger.
+          const fields = [...row.querySelectorAll('select:not(.contextual-text-ribbon-point-size-presets)')]
+            .filter(select => select.getBoundingClientRect().width)
+          const canvas = document.createElement('canvas').getContext('2d')
+          const clipped = []
+          for (const field of fields) {
+            const style = getComputedStyle(field)
+            canvas.font = style.font
+            if ('letterSpacing' in canvas) canvas.letterSpacing = style.letterSpacing === 'normal' ? '0px' : style.letterSpacing
+            const space = field.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+            const card = field.closest('[data-ribbon-group]')?.dataset.ribbonGroup
+            for (const option of field.options) {
+              const label = option.label.trim()
+              const ink = canvas.measureText(label).width
+              if (label && (ink > space + 1 || style.color === 'rgba(0, 0, 0, 0)' || style.color === 'transparent')) {
+                clipped.push({ card, label, space: Math.round(space), ink: Math.round(ink) })
+              }
+            }
+          }
+          return { total: fields.reduce((count, field) => count + field.options.length, 0),
+            clipped, crossesLabel: host.left < previewLabel.right - 1,
+            crossesActions: Boolean(actions && rowBox.right > actions.left + 1) }
+        })
+        optionCount += report.total
+        if (report.crossesLabel || report.crossesActions || report.clipped.length) issues.push({ width, target, tab, ...report })
+      }
+    }
+  }
+  assert.ok(optionCount >= 900, 'The batch must exercise the production option catalogs')
+  const failuresByCard = Object.fromEntries(issues
+    .flatMap(issue => issue.clipped)
+    .reduce((counts, failure) => counts.set(failure.card, (counts.get(failure.card) ?? 0) + 1), new Map()))
+  assert.equal(issues.length, 0, JSON.stringify({ optionCount, affectedJourneys: issues.length,
+    labelCrossings: issues.filter(issue => issue.crossesLabel).length,
+    actionCrossings: issues.filter(issue => issue.crossesActions).length,
+    failuresByCard, examples: issues.slice(0, 8) }))
+})
+
+
+test('point preset popup trigger commits through the visible number field', async () => {
+  await page.evaluate(() => {
+    document.activeElement.blur()
+    window.__contrast.setTargetKind('synthetic')
+    window.__contrast.setTab('text')
+    window.__contrast.setWidth(519)
+  })
+  const popup = page.locator('.contextual-text-ribbon-point-size-presets')
+  const readout = page.locator('[data-smoke-id="inline-text-number-font-size"]')
+  for (const value of ['12', '48']) {
+    await popup.selectOption(value)
+    await page.getByRole('button', { name: 'Done', exact: true }).focus()
+    assert.equal(await readout.inputValue(), value)
+    assert.equal(await readout.evaluate(node => getComputedStyle(node).color === 'rgba(0, 0, 0, 0)'), false)
   }
 })
