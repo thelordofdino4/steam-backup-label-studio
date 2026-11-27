@@ -3,6 +3,7 @@ import type { ProjectImageAssetProvenance } from '../project/projectTypes.ts'
 import {
   createImportedImageAssetFromDataUrl,
   type ImportedImageAsset,
+  type ImportedImagePreparationStage,
 } from '../utils/importedImageAsset.ts'
 import {
   downloadRemoteLogoCandidateAsDataUrl,
@@ -29,6 +30,7 @@ export function createLogoCandidateAssetProvenance(
 
 export async function importRemoteLogoCandidateAsset(
   candidate: RemoteLogoCandidate,
+  onStage?: (stage: ImportedImagePreparationStage) => void,
 ): Promise<ImportedLogoCandidateAsset> {
   const imageDataUrl = await downloadRemoteLogoCandidateAsDataUrl(candidate)
 
@@ -36,6 +38,8 @@ export async function importRemoteLogoCandidateAsset(
     importedImage: await createImportedImageAssetFromDataUrl(
       imageDataUrl,
       candidate.label,
+      undefined,
+      onStage,
     ),
     imageSource: createLogoCandidateAssetProvenance(candidate),
   }

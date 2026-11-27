@@ -61,6 +61,10 @@ for (const type of ['pointerdown','gotpointercapture','pointermove','pointerup',
 }
 
 globalThis.discCanvasFixture = {
+  diagnostics() {
+    return lifecycle.diagnostics.snapshot().records
+      .filter(record => record.workflowId === 'image.disc-background-import')
+  },
   arm() {
     if (active) throw Error('Canvas event receipt already armed')
     active = { events: [], transitions: [], last: current() }
