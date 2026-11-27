@@ -202,6 +202,38 @@ test('contrast reserves the full option catalog under wider font metrics', async
   }
 })
 
+test('opacity slider uses domain units while the percent field converts display units', async () => {
+  await page.evaluate(() => {
+    document.activeElement.blur()
+    window.__contrast.setTargetKind('synthetic')
+    window.__contrast.setTab('art')
+    window.__contrast.setExpanded(true)
+    window.__contrast.setEnabled(true)
+    window.__contrast.setOpacity(0.2)
+    window.__contrast.setWidth(1200)
+  })
+  const slider = page.getByRole('slider', { name: 'Opacity', exact: true })
+  const field = page.getByRole('spinbutton', { name: /^Opacity:/ })
+  await slider.scrollIntoViewIfNeeded()
+  const rect = await slider.boundingBox()
+  assert.ok(rect)
+  const y = rect.y + rect.height / 2
+  await page.mouse.move(rect.x + rect.width * 0.25, y)
+  await page.mouse.down()
+  await page.mouse.move(rect.x + rect.width * 0.8, y, { steps: 6 })
+  await page.mouse.up()
+  const dragged = Number(await slider.inputValue())
+  assert.ok(dragged > 0.6 && dragged < 0.95, String(dragged))
+  assert.equal(Number(await field.inputValue()), Math.round(dragged * 100))
+  await field.fill('64')
+  assert.equal(await slider.inputValue(), '0.64')
+  assert.equal(await slider.getAttribute('aria-valuetext'), '64 percent opacity')
+  await field.press('ArrowUp')
+  assert.equal(await slider.inputValue(), '0.65')
+  await field.blur()
+  await page.evaluate(() => { window.__contrast.setExpanded(false); window.__contrast.setWidth(720) })
+})
+
 test('mixed selection stays visible and choosing a mode dispatches the original selection', async () => {
   await page.evaluate(() => window.__contrast.setMixed(true))
   assert.equal((await bounds()).text, 'Mixed')

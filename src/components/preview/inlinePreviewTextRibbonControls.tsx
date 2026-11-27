@@ -322,10 +322,10 @@ export function renderInlinePreviewTextRangeControl(
   const displayedInputValue = presentation
     ? presentation.inputValue(control.value)
     : Number(control.value.toFixed(2))
-  const handleChange = (value: string) => {
+  const handleChange = (value: string, fromDisplayedNumber: boolean) => {
     if (disabled) return
     const parsedValue = Number(value)
-    const parsedDomainValue = presentation
+    const parsedDomainValue = fromDisplayedNumber && presentation
       ? presentation.parseInput(parsedValue)
       : parsedValue
     const nextValue = Math.min(
@@ -358,7 +358,7 @@ export function renderInlinePreviewTextRangeControl(
         aria-label={control.label}
         aria-valuetext={presentation?.ariaValueText(control.value)}
         title={presentation?.title}
-        onChange={(event) => handleChange(event.target.value)}
+        onChange={(event) => handleChange(event.target.value, false)}
       />
       <input
         aria-label={`${control.label}: ${formattedValue ?? displayedInputValue}`}
@@ -371,7 +371,7 @@ export function renderInlinePreviewTextRangeControl(
         value={displayedInputValue}
         disabled={disabled}
         title={presentation?.title}
-        onChange={(event) => handleChange(event.target.value)}
+        onChange={(event) => handleChange(event.target.value, true)}
       />
       {presentation ? (
         <span
