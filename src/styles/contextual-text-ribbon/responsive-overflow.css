@@ -33,21 +33,6 @@
   }
 
   .contextual-text-ribbon-control-row--artistic
-    .contextual-text-ribbon-group--contrast
-    .contextual-text-ribbon-control select {
-    justify-self: end;
-    width: 34px;
-    min-width: 34px;
-    max-width: 34px;
-    padding-inline: 0 18px;
-    background-image: var(--contextual-text-ribbon-select-chevron);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 12px 12px;
-    color: transparent;
-  }
-
-  .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--artistic-feature {
     width: var(--contextual-text-ribbon-column-width, clamp(
       var(--contextual-text-ribbon-group-min-width),
@@ -245,21 +230,6 @@
       --contextual-text-ribbon-column-width,
       var(--contextual-text-ribbon-group-min-width)
     );
-  }
-
-  .contextual-text-ribbon-control-row--artistic
-    .contextual-text-ribbon-group--contrast
-    .contextual-text-ribbon-control select {
-    justify-self: end;
-    width: 34px;
-    min-width: 34px;
-    max-width: 34px;
-    padding-inline: 0 18px;
-    background-image: var(--contextual-text-ribbon-select-chevron);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 12px 12px;
-    color: transparent;
   }
 
   .contextual-text-ribbon-control-row--artistic

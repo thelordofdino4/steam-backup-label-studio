@@ -19,6 +19,8 @@ function Fixture() {
   window.__setRibbonCategory = tab => act(() => setActiveTab(tab))
   const controls = {
     art: {
+      backgroundEnabled: { label: 'Background', checked: true, onChange: noop },
+      backgroundOpacity: { label: 'Opacity', min: 0, max: 1, step: 0.01, value: 1, onChange: noop },
       borderEnabled: { label: 'Border', checked: true, onChange: noop },
       borderRadius: { label: 'Radius', min: 0, max: 4, step: 0.1, value: 1, onChange: noop },
       borderThickness: { label: 'Line thickness', min: 0, max: 100, step: 1, value: thickness, onChange: setThickness },
@@ -116,6 +118,7 @@ test('Artistic border ranges share track geometry and fully show Line thickness 
   assert.equal(await page.getByRole('spinbutton', { name: /Line thickness: 100%/ }).inputValue(), '100')
   for (const width of [420, 680, 780]) {
     await page.evaluate(width => { document.querySelector('#ribbon-width').style.width = width + 'px' }, width)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     const g = await thickness.evaluate(node => {
       const card = node.closest('[data-ribbon-group="border"]')
       const radius = card.querySelector('[data-smoke-id="inline-text-range-radius"]')
@@ -134,7 +137,16 @@ test('Artistic border ranges share track geometry and fully show Line thickness 
           textRight: unitText.getBoundingClientRect().right,
           value: unit.textContent.trim() }
       })
-      return { trackLeft: track.left, trackWidth: track.width, otherLeft: other.left,
+      const opacity = document.querySelector('[data-smoke-id="inline-text-range-opacity"]')
+      const opacityCard = opacity.closest('[data-ribbon-group="background"]')
+      const opacityField = opacity.parentElement.querySelector('input[type="number"]')
+      const opacityText = new Range()
+      opacityText.selectNodeContents(opacity.parentElement.querySelector('.contextual-text-ribbon-range-unit'))
+      const opacityUnit = opacityText.getBoundingClientRect()
+      return { opacity: { cardRight: opacityCard.getBoundingClientRect().right,
+          fieldRight: opacityField.getBoundingClientRect().right, textLeft: opacityUnit.left,
+          textRight: opacityUnit.right, value: opacityField.value },
+        trackLeft: track.left, trackWidth: track.width, otherLeft: other.left,
         cardRight: card.getBoundingClientRect().right, units,
         otherWidth: other.width, labelRight: labelText.getBoundingClientRect().right }
     })
@@ -146,6 +158,9 @@ test('Artistic border ranges share track geometry and fully show Line thickness 
       assert.ok(unit.textLeft >= unit.fieldRight + 2, JSON.stringify({ width, g }))
       assert.ok(unit.textRight <= g.cardRight, JSON.stringify({ width, g }))
     }
+    assert.equal(g.opacity.value, '100')
+    assert.ok(g.opacity.textLeft >= g.opacity.fieldRight + 2 &&
+      g.opacity.textRight <= g.opacity.cardRight, JSON.stringify({ width, g }))
     assert.ok(Math.abs(g.units[0].textLeft - g.units[1].textLeft) < 0.1, JSON.stringify({ width, g }))
   }
 })

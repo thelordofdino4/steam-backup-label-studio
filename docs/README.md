@@ -42,6 +42,8 @@ Source baseline: `31da73e1140bbb5521642dcb81066b99c7357541`, reviewed on 2026-11
 | Home and product identity | [Home](../src/components/home/HomeScreen.tsx) exposes New Disc, New Case, Load and conditional Resume. Case loading is implemented despite stale Home labels. [Tauri config](../src-tauri/tauri.conf.json) identifies Steam Backup Label Studio, version `0.1.0`. [Root license text](../LICENSE) exists. | #381 owns stale Home copy and placeholder manifest cleanup. Publisher/release/license metadata must not be invented. |
 | Platforms and release | [README platform scope](../README.md#platform-targets-and-acceptance), [CI](../.github/workflows/ci.yml), [test inventory](TEST_ORACLE_INVENTORY.md), and [native smoke guide](TEXT_EDITOR_SMOKE_AUTOMATION.md) distinguish source checks from native evidence. | Windows is the exercised native development target; no blanket packaged-release/support claim follows. #333/#334/#376/#382 own remaining platform/release acceptance. |
 
+The [desktop scaling matrix](DESKTOP_SCALING_ACCEPTANCE.md) separates CSS evidence from native work-area and monitor checks (#374).
+
 ## Classification Of Active References
 
 The detailed routing tables below still own per-domain conflict rules. This inventory classifies the principal authorities and examples. Apply the same rules to related documents and to historical sections inside active references.
@@ -98,6 +100,8 @@ Native Close/Quit reconciliation: [`NATIVE_TERMINATION_ACCEPTANCE.md`](NATIVE_TE
 | [`ARTWORK_FRAME_MATERIAL_CONTRACT.md`](ARTWORK_FRAME_MATERIAL_CONTRACT.md) | Authoritative subsystem contract | Failed artwork-frame material branch postmortem, restart guardrails, and future material-rendering merge gates. | Artwork-frame material rendering, steel/metal frame rendering, material texture generation, preview/export material parity, or issue #165 restart work. | Material-rendering conflicts defer to this contract unless the SDD or `AGENTS.md` is stricter. |
 
 Product identity and release metadata: [`PRODUCT_METADATA.md`](PRODUCT_METADATA.md) inventories established values, intentionally unknown fields, and pending packaged/native acceptance under #381/#376.
+
+Contextual ribbon expansion: [`CONTEXTUAL_RIBBON_EXPANSION.md`](CONTEXTUAL_RIBBON_EXPANSION.md) records the implemented #265 column/control-cap/interaction slice and the still-open inner-group and native acceptance work.
 
 ## Conditional Reference Documents
 
