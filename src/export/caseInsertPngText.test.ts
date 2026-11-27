@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   getCaseInsertTextBackgroundColor,
   getCaseInsertTextBorderCss,
+  getCaseInsertTextBackplateBorderShadowCss,
 } from '../caseInsert/textRenderStyles.ts'
 import { createDefaultCaseInsertTextStyle } from '../caseInsert/textStyles.ts'
 import {
@@ -61,5 +62,39 @@ test('Case text uses independent background and border paint in preview and PNG'
         assert.deepEqual(paint, expected, description)
       }
     }
+  }
+})
+
+test('explicit Case thickness is inset and uses font-relative units in preview and PNG', () => {
+  for (const target of ['title', 'features', 'spine'] as const) {
+    const style = {
+      ...createDefaultCaseInsertTextStyle(target),
+      borderEnabled: true,
+      borderThicknessPercent: 15,
+      backgroundEnabled: false,
+      borderRadius: 0.5,
+    }
+    assert.equal(getCaseInsertTextBorderCss(style), '0')
+    assert.match(getCaseInsertTextBackplateBorderShadowCss(style) ?? '', /^inset 0 0 0 0.15em /)
+    const paint: unknown[] = []
+    const context = {
+      lineWidth: 0,
+      save() { paint.push('save') },
+      restore() { paint.push('restore') },
+      beginPath() { paint.push('begin') },
+      roundRect(...args: number[]) { paint.push(args) },
+      clip() { paint.push('clip') },
+      stroke() { paint.push(this.lineWidth) },
+    } as unknown as CanvasRenderingContext2D
+    drawComputedTextLayout(context, layout, {
+      align: 'center',
+      ...getCaseInsertTextCanvasOptions(style, 600),
+    })
+    // A six-pixel stroke clipped to the inside half yields the three-pixel
+    // equivalent of 0.15em at this layout font size.
+    assert.deepEqual(paint, ['save', 'save', 'begin', [...box, 3], 'clip', 6, 'restore', 'restore'])
+    const hidden = { ...style, borderEnabled: false }
+    assert.equal(getCaseInsertTextBackplateBorderShadowCss(hidden), undefined)
+    assert.equal(getCaseInsertTextCanvasOptions(hidden, 600).borderThicknessRatio, undefined)
   }
 })

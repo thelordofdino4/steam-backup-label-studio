@@ -14,7 +14,7 @@ import {
   type DiscTextStyleInput,
 } from './styles.ts'
 import {
-  DISC_TEXT_BOX_BORDER_WIDTH,
+  getStraightDiscTextBorderWidth,
   DISC_TEXT_STRAIGHT_STROKE_COLOR,
   DISC_TEXT_STRAIGHT_STROKE_WIDTH,
   hasStraightDiscTextShadow,
@@ -205,7 +205,7 @@ function buildStraightTextBoxMarkup(
       fill="${style.backgroundEnabled ? escapeSvgAttribute(style.backgroundColor) : 'none'}"
       fill-opacity="${style.backgroundEnabled ? style.backgroundOpacity : 0}"
       stroke="${style.borderEnabled ? escapeSvgAttribute(style.borderColor) : 'none'}"
-      stroke-width="${style.borderEnabled ? DISC_TEXT_BOX_BORDER_WIDTH : 0}"
+      stroke-width="${style.borderEnabled ? formatSvgNumber(getStraightDiscTextBorderWidth(straightTextLayout.fontSize, style.borderThicknessPercent)) : 0}"
     />
   `
 }

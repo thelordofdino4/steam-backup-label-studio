@@ -514,6 +514,12 @@ export function getContextualTextRibbonControlDescriptors(
     kind: 'color',
     label: controls.art.borderColor.label,
   })
+  addDescriptor(descriptors, controls?.art?.borderThickness && {
+    group: 'art',
+    id: 'borderThickness',
+    kind: 'range',
+    label: controls.art.borderThickness.label,
+  })
   addDescriptor(descriptors, controls?.art?.borderRadius && {
     group: 'art',
     id: 'borderRadius',

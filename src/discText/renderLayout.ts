@@ -25,7 +25,7 @@ import {
   type TextMeasureFunction,
 } from './straightTextWrapping.ts'
 import {
-  DISC_TEXT_BOX_BORDER_WIDTH,
+  getStraightDiscTextBorderWidth,
   getStraightDiscTextPaintInsets,
 } from './straightTextPaintGeometry.ts'
 
@@ -591,7 +591,7 @@ export function getStraightDiscTextVisualBounds(
   }
 
   const expansion = layout.style.backgroundPadding +
-    (layout.style.borderEnabled ? DISC_TEXT_BOX_BORDER_WIDTH / 2 : 0)
+    (layout.style.borderEnabled ? getStraightDiscTextBorderWidth(layout.fontSize, layout.style.borderThicknessPercent) / 2 : 0)
   const boxBounds = {
     bottom: logicalBounds.bottom + expansion,
     left: logicalBounds.left - expansion,

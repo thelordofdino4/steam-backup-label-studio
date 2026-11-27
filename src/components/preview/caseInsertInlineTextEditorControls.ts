@@ -1,3 +1,4 @@
+import { TEXT_BORDER_THICKNESS_MAX_PERCENT } from '../../text/textBorderThickness.ts'
 import {
   CASE_INSERT_TEXT_CONTRAST_OPTIONS,
   CASE_INSERT_TEXT_FONT_OPTIONS,
@@ -524,6 +525,15 @@ export function createCaseInsertInlineTextEditorControls({
         value: style.borderColor,
         onChange: (value) =>
           handlers.onStyleChange(target, 'borderColor', value),
+      },
+      borderThickness: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderThickness,
+        min: 0,
+        max: TEXT_BORDER_THICKNESS_MAX_PERCENT,
+        step: 1,
+        value: style.borderThicknessPercent ?? 0,
+        onChange: (value) =>
+          handlers.onStyleChange(target, 'borderThicknessPercent', value),
       },
       borderRadius: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,
