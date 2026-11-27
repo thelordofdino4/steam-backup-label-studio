@@ -23,13 +23,13 @@ export function getCaseInsertTextBackgroundColor(
 }
 
 export function getCaseInsertTextBorderColor(style: CaseInsertTextStyle) {
-  return style.backgroundEnabled && style.borderEnabled
+  return style.borderEnabled
     ? hexToRgba(style.borderColor, 0.86)
     : 'transparent'
 }
 
 export function getCaseInsertTextBorderCss(style: CaseInsertTextStyle) {
-  return style.backgroundEnabled && style.borderEnabled
+  return style.borderEnabled
     ? `1px solid ${getCaseInsertTextBorderColor(style)}`
     : '0'
 }

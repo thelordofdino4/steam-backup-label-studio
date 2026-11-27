@@ -5,21 +5,21 @@ import {
   getCaseInsertTextBackgroundColor,
   getCaseInsertTextBorderColor,
   getCaseInsertTextLayoutPaddingRatio,
-} from '../caseInsert/textRenderStyles'
+} from '../caseInsert/textRenderStyles.ts'
 import {
   getCaseInsertTextDecoration,
   getCaseInsertTextEffectiveFontWeight,
   getCaseInsertTextFontFamilyCanvas,
   getCaseInsertTextFontStyle,
   type CaseInsertTextStyle,
-} from '../caseInsert/textStyles'
+} from '../caseInsert/textStyles.ts'
 import {
   caseInsertExportPxToFontSizePt,
   caseInsertFontSizePtToExportPx,
-} from '../caseInsert/textSizing'
+} from '../caseInsert/textSizing.ts'
 import {
   getCanvasTextAlign,
-} from '../layout/caseInsertTextVisualLayout'
+} from '../layout/caseInsertTextVisualLayout.ts'
 import type { JewelCasePixelRect } from '../layout/jewelCaseLayout'
 import type {
   ProjectCaseInsertTextAlign,
@@ -29,7 +29,7 @@ import {
   getRichTextRunCanvasStyle,
   richTextRunsHaveVisualStyles,
   type RichTextRunStyleContext,
-} from '../text/richTextRunStyle'
+} from '../text/richTextRunStyle.ts'
 
 const FONT_STACK = '"Segoe UI", Arial, sans-serif'
 
@@ -40,7 +40,7 @@ export function getCaseInsertTextCanvasOptions(style: CaseInsertTextStyle) {
     background: style.backgroundEnabled
       ? getCaseInsertTextBackgroundColor(style)
       : undefined,
-    border: style.backgroundEnabled && style.borderEnabled
+    border: style.borderEnabled
       ? getCaseInsertTextBorderColor(style)
       : undefined,
     fontStyle: getCaseInsertTextFontStyle(style),
