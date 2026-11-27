@@ -77,6 +77,9 @@ tested, and the remaining divergences are recorded.
   Artistic > Background and Border, may use the separate header-checkbox plus
   mounted-dependent-field pattern instead, but they must still preserve stable
   internal geometry.
+  On text targets that support both, Background controls only fill and Border
+  controls only the outline. Either can be enabled alone, and switching one
+  off must preserve the other's state in preview, export, and the saved project.
 - Text-tab dense-box rationale: the Text tab owns the highest-frequency
   typography commands and must remain usable inside the fixed two-control-row
   ribbon without creating a third row or pushing the preview down. Field

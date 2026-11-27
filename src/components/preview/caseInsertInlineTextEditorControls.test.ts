@@ -182,64 +182,76 @@ test('case insert contextual controls expose migrated text block properties', ()
   ])
 })
 
-test('case insert border group remains identifiable while background is off', () => {
-  const target: CaseInsertPreviewTextTarget = {
-    scope: 'templateTextBlock',
-    paneId: 'cover',
-    textBlockId: 'cover-title-text',
-  }
-  const layout: ProjectCaseInsertLayout = {
-    scale: 1,
-    fontSizePt: 18,
-    width: 70,
-    x: 50,
-    y: 50,
-    rotation: 0,
-  }
-  const style = {
-    ...createDefaultCaseInsertTextStyle('title'),
-    backgroundEnabled: false,
-    borderEnabled: true,
-  }
-  const noop = () => undefined
-  const controls = createCaseInsertInlineTextEditorControls({
-    align: 'center',
-    avoidVisualElements: true,
-    handlers: {
-      onAlignChange: noop,
-      onApplyLayoutPreset: noop,
-      onApplyStylePreset: noop,
-      onAvoidVisualElementsChange: noop,
-      onContentModeChange: noop,
-      onEnabledChange: noop,
-      onLayoutChange: noop,
-      onResetLayout: noop,
-      onResetStyle: noop,
-      onStyleChange: noop,
-    },
-    label: 'Title',
-    layout,
-    layoutPresets: [],
-    onDeleteComplete: noop,
-    onResetLayout: noop,
-    style,
-    target,
-  })
+const artisticTargets: CaseInsertPreviewTextTarget[] = [
+  { scope: 'templateTextBlock', paneId: 'cover', textBlockId: 'cover-title-text' },
+  { scope: 'templateTextBlock', paneId: 'tray', textBlockId: 'tray-description' },
+  { scope: 'templateTextList', paneId: 'tray', textListId: 'tray-feature-bullets' },
+  { scope: 'spineTitle', side: 'left' },
+  { scope: 'spineTitle', side: 'right' },
+  { scope: 'spineTextBlock', side: 'left', textBlockId: 'left-spine-custom-note' },
+  { scope: 'spineTextBlock', side: 'right', textBlockId: 'right-spine-custom-note' },
+]
 
-  assert.equal(controls.art?.backgroundEnabled?.checked, false)
-  assert.equal(controls.art?.borderEnabled?.label, 'Border')
-  assert.equal(controls.art?.borderEnabled?.checked, true)
-  assert.equal(controls.art?.borderEnabled?.disabled, true)
-  assert.equal(
-    controls.art?.borderEnabled?.disabledReason,
-    'Enable Background before editing the border.',
-  )
-  assert.equal(controls.art?.backgroundColor?.value, style.backgroundColor)
-  assert.equal(controls.art?.backgroundOpacity?.value, style.backgroundOpacity)
-  assert.equal(controls.art?.backgroundPadding?.value, style.backgroundPadding)
-  assert.equal(controls.art?.borderColor?.value, style.borderColor)
-  assert.equal(controls.art?.borderRadius?.value, style.borderRadius)
-})
+for (const target of artisticTargets) {
+  test(`case insert border can be enabled without background for ${JSON.stringify(target)}`, () => {
+    const changes: Array<[CaseInsertPreviewTextTarget, string, unknown]> = []
+    const layout: ProjectCaseInsertLayout = {
+      scale: 1,
+      fontSizePt: 18,
+      width: 70,
+      x: 50,
+      y: 50,
+      rotation: 0,
+    }
+    const style = {
+      ...createDefaultCaseInsertTextStyle('title'),
+      backgroundEnabled: false,
+      borderEnabled: false,
+    }
+    const noop = () => undefined
+    const controls = createCaseInsertInlineTextEditorControls({
+      align: 'center',
+      avoidVisualElements: true,
+      handlers: {
+        onAlignChange: noop,
+        onApplyLayoutPreset: noop,
+        onApplyStylePreset: noop,
+        onAvoidVisualElementsChange: noop,
+        onContentModeChange: noop,
+        onEnabledChange: noop,
+        onLayoutChange: noop,
+        onResetLayout: noop,
+        onResetStyle: noop,
+        onStyleChange: (target, field, value) => changes.push([target, field, value]),
+      },
+      label: 'Title',
+      layout,
+      layoutPresets: [],
+      onDeleteComplete: noop,
+      onResetLayout: noop,
+      style,
+      target,
+    })
+
+    assert.equal(controls.art?.backgroundEnabled?.checked, false)
+    assert.equal(controls.art?.borderEnabled?.label, 'Border')
+    assert.equal(controls.art?.borderEnabled?.checked, false)
+    assert.equal(controls.art?.borderEnabled?.disabled, undefined)
+    controls.art?.borderEnabled?.onChange(true)
+    controls.art?.backgroundEnabled?.onChange(true)
+    controls.art?.backgroundEnabled?.onChange(false)
+    assert.deepEqual(changes, [
+      [target, 'borderEnabled', true],
+      [target, 'backgroundEnabled', true],
+      [target, 'backgroundEnabled', false],
+    ])
+    assert.equal(controls.art?.backgroundColor?.value, style.backgroundColor)
+    assert.equal(controls.art?.backgroundOpacity?.value, style.backgroundOpacity)
+    assert.equal(controls.art?.backgroundPadding?.value, style.backgroundPadding)
+    assert.equal(controls.art?.borderColor?.value, style.borderColor)
+    assert.equal(controls.art?.borderRadius?.value, style.borderRadius)
+  })
+}
 
 test('case insert metadata source control reflects manual, metadata, and unavailable states', () => {
   const projectMetadata = {
