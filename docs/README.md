@@ -77,6 +77,10 @@ Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](
 
 Native Close/Quit reconciliation: [`NATIVE_TERMINATION_ACCEPTANCE.md`](NATIVE_TERMINATION_ACCEPTANCE.md) records the #360 admission barrier, native acknowledgement safety and primary Case integration boundary. [`NATIVE_TERMINATION_WINDOWS_ACCEPTANCE.md`](NATIVE_TERMINATION_WINDOWS_ACCEPTANCE.md) records exact validated heads, bounded Windows observations, saved-package integrity and remaining issue-level gates.
 
+## Current Diagnostics Checkpoint
+
+[Local Release Diagnostics](RELEASE_DIAGNOSTICS.md) records the #379 command-observation slice, its bounded data policy and remaining workflow/native acceptance. It is an implementation checkpoint, not a replacement for the lifecycle/menu contracts or a complete release-diagnostics claim.
+
 ## Active Authoritative Documents
 
 | Document | Status | Purpose | Read when | Conflict rule |

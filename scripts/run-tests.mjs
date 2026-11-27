@@ -8,6 +8,7 @@ const sandboxedBrowserTestFiles = [
   'src/app/discSteamMounted.integration.test.mjs',
   'src/components/preview/contextualTextRibbonContrast.integration.test.mjs',
   'src/components/preview/inlinePreviewTextEditorRibbon.integration.test.mjs',
+  'src/components/testing/applicationHelpIntegration.test.mjs',
   'src/export/discBackgroundLifetime.integration.test.mjs',
 ]
 const validModes = ['--list', '--node-only', '--rust-only']

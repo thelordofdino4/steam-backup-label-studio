@@ -10,6 +10,8 @@ import { prepareDiscHistoryGuidedAttachment, readDiscHistoryTemplate, stepProjec
 import { captureDiscBackgroundExportInput } from '../lifecycle/canonicalProject.ts'
 import { readDiscBackgroundAsset } from '../image/discBackgroundAsset.ts'
 import { useApplicationTerminationIngress } from './useApplicationTerminationIngress'
+
+import { useApplicationHelp } from './useApplicationHelp'
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { buildSteamMetadataCandidatesFromImportedGame } from '../steam/steamMetadataCandidates'
 import {
@@ -2229,10 +2231,19 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
       applicationLifecycleRoot.refreshCommandCapabilities,
   })
   useApplicationTerminationIngress({ announceStatus, setHomeStatusMessage, applicationModalActive })
+
+  const applicationHelp = useApplicationHelp({
+    getFallbackFocus: getWorkflowFallbackFocus,
+    announceStatus,
+    setHomeStatusMessage,
+    closeWorkflow: workflowNavigationRouter.controller.closeActiveWorkflow,
+    modalActive: applicationModalActive,
+  })
   useApplicationMenuCommandIngress({
     announceStatus,
     setHomeStatusMessage,
     workflowNavigation: workflowNavigationRouter.menuPort,
+    informational: applicationHelp.menuPort,
   })
   useApplicationDocumentSelectionOwnership()
 
@@ -2588,6 +2599,8 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
     return (
       <>
         <HomeScreen
+          onOpenHelp={applicationHelp.open}
+          helpDisabled={!applicationHelp.canOpen}
           onLoadProject={handleLoadProject}
           onNewDisc={handleStartNewDiscProject}
           onNewCaseInsert={handleOpenCaseInsertEditor}
@@ -2595,6 +2608,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
           resumeProject={homeResumeProject}
           statusMessage={homeStatusMessage}
         />
+        {applicationHelp.surface}
         <ProjectReplacementDialog
           onDecision={replacementPrompt.decide}
           open={replacementPrompt.open}
@@ -2682,6 +2696,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
         }}
         />
         </ApplicationWorkflowHostBoundary>
+        {applicationHelp.surface}
         <ProjectReplacementDialog
           onDecision={replacementPrompt.decide}
           open={replacementPrompt.open}
@@ -2861,6 +2876,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
       </main>
       </ApplicationWorkflowHostBoundary>
       </EditorRoleFocusProvider>
+      {applicationHelp.surface}
       <ProjectReplacementDialog
         onDecision={replacementPrompt.decide}
         open={replacementPrompt.open}
