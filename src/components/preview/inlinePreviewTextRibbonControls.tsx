@@ -1,4 +1,4 @@
-import { TEXT_BORDER_THICKNESS_MAX_PERCENT } from '../../text/textBorderThickness.ts'
+import { TEXT_BORDER_THICKNESS_DISPLAY_MAX } from '../../text/textBorderThickness.ts'
 import {
   Children,
   Fragment,
@@ -419,13 +419,13 @@ export function getInlinePreviewTextOpacityPresentation(): InlinePreviewTextRang
 export function getInlinePreviewTextBorderThicknessPresentation(): InlinePreviewTextRangeValuePresentation {
   return {
     inputMin: 0,
-    inputMax: TEXT_BORDER_THICKNESS_MAX_PERCENT,
+    inputMax: TEXT_BORDER_THICKNESS_DISPLAY_MAX,
     inputStep: 1,
-    ariaValueText: (value) => value === 0 ? 'Automatic border thickness' : `${value} percent of text size`,
+    ariaValueText: (value) => value === 0 ? 'Automatic border thickness' : `${value} percent of maximum border thickness`,
     inputValue: (value) => value,
     output: (value) => value === 0 ? '0 Auto' : `${value}%`,
     parseInput: (value) => value,
-    title: 'Border width as a percentage of text size. 0 keeps the original automatic width.',
+    title: 'Border width from 0 to 100 percent of maximum. 0 keeps the original automatic width.',
   }
 }
 

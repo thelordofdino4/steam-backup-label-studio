@@ -1,4 +1,8 @@
-import { TEXT_BORDER_THICKNESS_MAX_PERCENT } from '../../text/textBorderThickness.ts'
+import {
+  TEXT_BORDER_THICKNESS_DISPLAY_MAX,
+  getTextBorderThicknessDisplayValue,
+  getTextBorderThicknessFromDisplayValue,
+} from '../../text/textBorderThickness.ts'
 import {
   CURVED_COPYRIGHT_LAYOUT_X_MAX,
   CURVED_COPYRIGHT_LAYOUT_X_MIN,
@@ -476,11 +480,11 @@ export function createDiscInlineTextEditorControls({
       borderThickness: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderThickness,
         min: 0,
-        max: TEXT_BORDER_THICKNESS_MAX_PERCENT,
+        max: TEXT_BORDER_THICKNESS_DISPLAY_MAX,
         step: 1,
-        value: style.borderThicknessPercent ?? 0,
+        value: getTextBorderThicknessDisplayValue(style.borderThicknessPercent),
         onChange: (value) =>
-          onDiscTextStyleChange(key, 'borderThicknessPercent', value),
+          onDiscTextStyleChange(key, 'borderThicknessPercent', getTextBorderThicknessFromDisplayValue(value)),
       },
       borderRadius: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,

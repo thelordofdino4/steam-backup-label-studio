@@ -383,3 +383,36 @@
   overflow: visible;
   text-overflow: clip;
 }
+
+/* All artistic range rows use the same label, track, number and unit
+   columns. The longest label reserves space once; rows never steal width
+   from one another or overlap the slider when the ribbon narrows. */
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body {
+  display: grid;
+  grid-template-columns: max-content minmax(72px, 1fr) 48px max-content;
+  column-gap: 4px;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body > * {
+  grid-column: 1 / -1;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body > .contextual-text-ribbon-range-control {
+  grid-template-columns: subgrid;
+  column-gap: inherit;
+}
+
+@container (max-width: 719px) {
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-group-body {
+    grid-template-columns: max-content minmax(58px, 1fr) 42px max-content;
+    column-gap: 3px;
+  }
+}
