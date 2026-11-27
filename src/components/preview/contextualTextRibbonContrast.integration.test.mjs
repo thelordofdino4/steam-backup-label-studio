@@ -371,7 +371,7 @@ for (const [tab, curved] of [['presets', false], ['text', false], ['art', false]
 test('utility subgroups grow smaller-first, cap, and center; bound-based number capacity is stable', async () => {
   await page.evaluate(() => { document.activeElement.blur(); window.__contrast.setTab('utilities'); window.__contrast.setCurved(false); window.__contrast.setMeasurementsOnly(true) })
   const snapshots = []
-  for (const width of [1360, 1390, 1430, 1600]) {
+  for (const width of [1360, 1390, 1430, 1600, 1840]) {
     await page.evaluate(width => window.__contrast.setWidth(width), width)
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     snapshots.push(await page.evaluate(() => {
@@ -392,7 +392,9 @@ test('utility subgroups grow smaller-first, cap, and center; bound-based number 
     assert.ok(Math.abs(snapshot.leftSpace - snapshot.rightSpace) < 1, JSON.stringify(snapshot))
   }
   assert.ok(snapshots[0].groups[1].width < snapshots.at(-1).groups[1].width)
-  for (const group of snapshots.at(-1).groups) assert.ok(Math.abs(group.width - group.max) < 0.1)
+  for (const group of snapshots.at(-1).groups) {
+    assert.ok(Math.abs(group.width - group.max) < 0.1, JSON.stringify(snapshots))
+  }
   await page.evaluate(() => { window.__contrast.setCurved(true); window.__contrast.setMeasurementsOnly(false) })
   await page.waitForFunction(() => document.querySelector('.contextual-text-ribbon-control-stack--utility-curved-layout-ranges'))
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
@@ -505,4 +507,98 @@ test('curved range tracks reserve the numeric field in its own font metrics', as
       assert.ok(row.numberRight <= row.groupRight + 0.1, JSON.stringify(row))
     }
   } finally { await style.evaluate(node => node.remove()) }
+})
+
+
+test('production Artistic fields reserve the same number and suffix space across widths', async () => {
+  for (const target of ['disc-straight', 'case-cover']) {
+    for (const width of [519, 1200, 1600]) {
+      await page.evaluate(({ target, width }) => {
+        document.activeElement.blur()
+        window.__contrast.setTargetKind(target)
+        window.__contrast.setTab('art')
+        window.__contrast.setCurved(false)
+        window.__contrast.setWidth(width)
+      }, { target, width })
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+      const fields = await page.evaluate(() => Object.fromEntries(['opacity', 'padding', 'line-thickness', 'radius'].map(id => {
+        const input = document.querySelector('[data-smoke-id="inline-text-value-' + id + '"]')
+        const unit = input.parentElement.querySelector('.contextual-text-ribbon-range-unit')
+        const card = input.closest('[data-ribbon-group]').getBoundingClientRect()
+        const field = input.getBoundingClientRect()
+        const style = getComputedStyle(input)
+        const text = document.createElement('canvas').getContext('2d')
+        text.font = style.font
+        const ink = text.measureText(id === 'padding' || id === 'radius' ? '3.99' : '100').width
+        return [id, { width: field.width, unitWidth: unit.getBoundingClientRect().width,
+          max: Number(input.max), gap: unit.getBoundingClientRect().left - field.right,
+          room: input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 16,
+          ink, fitsCard: unit.getBoundingClientRect().right <= card.right + 0.1 }]
+      })))
+      for (const [id, field] of Object.entries(fields)) {
+        assert.equal(field.max, id === 'padding' || id === 'radius' ? 4 : 100)
+        assert.equal(field.width, 54)
+        assert.equal(field.unitWidth, 26)
+        assert.ok(field.gap >= 2 && field.room >= field.ink && field.fitsCard, JSON.stringify({ target, width, id, field }))
+      }
+    }
+  }
+})
+
+test('point size keeps its numeric capacity and preset chrome as the Font card grows', async () => {
+  const widths = []
+  for (const width of [519, 1200, 1600]) {
+    await page.evaluate(width => {
+      document.activeElement.blur()
+      window.__contrast.setTargetKind('case-cover')
+      window.__contrast.setTab('text')
+      window.__contrast.setWidth(width)
+    }, width)
+    const size = page.locator('[data-smoke-id="inline-text-number-font-size-pt"]')
+    await size.waitFor()
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    widths.push(await size.evaluate(input => {
+      const style = getComputedStyle(input)
+      const text = document.createElement('canvas').getContext('2d')
+      text.font = style.font
+      const available = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+      return { width: input.getBoundingClientRect().width, ink: text.measureText('95.99').width,
+        available, preset: input.parentElement.querySelector('.contextual-text-ribbon-point-size-chevron-hit').getBoundingClientRect().width }
+    }))
+  }
+  assert.ok(widths.every(row => row.available >= row.ink && row.preset === 24), JSON.stringify(widths))
+  assert.ok(widths.every(row => Math.abs(row.width - widths[0].width) < 0.1), JSON.stringify(widths))
+})
+
+
+test('straight utility fields hold signed decimal capacity at both ends of ribbon resizing', async () => {
+  for (const target of ['disc-straight', 'case-left-spine']) {
+    const snapshots = []
+    for (const width of [519, 1600]) {
+      await page.evaluate(({ target, width }) => {
+        document.activeElement.blur()
+        window.__contrast.setTargetKind(target)
+        window.__contrast.setCurved(false)
+        window.__contrast.setTab('utilities')
+        window.__contrast.setWidth(width)
+      }, { target, width })
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+      const measures = await page.evaluate(() => [...document.querySelectorAll(
+        '[data-ribbon-group="position"] input[type="number"], [data-ribbon-group="layout"] input[type="number"]',
+      )].map(input => {
+        const css = getComputedStyle(input)
+        const context = document.createElement('canvas').getContext('2d')
+        context.font = css.font
+        const ink = Math.max(...[input.min, input.max].map(value => context.measureText(Number(value).toFixed(2)).width))
+        const rect = input.getBoundingClientRect()
+        const card = input.closest('[data-ribbon-group]').getBoundingClientRect()
+        return { width: rect.width, ink, room: input.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight) - 16,
+          inside: rect.right <= card.right + 0.1 }
+      }))
+      assert.ok(measures.length >= 3, JSON.stringify({ target, measures }))
+      assert.ok(measures.every(row => row.inside && row.room >= row.ink), JSON.stringify({ target, width, measures }))
+      snapshots.push(measures.map(row => row.width))
+    }
+    assert.deepEqual(snapshots[0], snapshots[1])
+  }
 })

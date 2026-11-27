@@ -37,9 +37,9 @@ const CONTEXTUAL_TEXT_RIBBON_FIELD_LABEL_BREATHING_CH = 2
 
 export type InlinePreviewTextRangeValuePresentation = {
   ariaValueText: (value: number) => string
-  inputMax: number
-  inputMin: number
-  inputStep: number
+  inputMax?: number
+  inputMin?: number
+  inputStep?: number
   inputValue: (value: number) => number
   output: (value: number) => string
   parseInput: (value: number) => number
@@ -308,6 +308,18 @@ export function getContextualTextRibbonRangeValueWidthCss(
   return `calc(${fieldCh}ch + 12px)`
 }
 
+export function getContextualTextRibbonStraightRangeStyle(
+  controls: Array<InlinePreviewTextEditorRangeControl | undefined>,
+) {
+  // Plain number inputs keep their spinner. Manual entry can retain two
+  // fraction digits even when the arrow step is coarser.
+  const capacity = getRibbonRangeValueCapacityCh(controls, 2)
+  return {
+    '--contextual-text-ribbon-utility-range-value-width':
+      `max(62px, calc(${capacity}ch + 24px))`,
+  } as CSSProperties
+}
+
 export function renderInlinePreviewTextRangeControl(
   control: InlinePreviewTextEditorRangeControl | undefined,
   options: {
@@ -426,9 +438,6 @@ export function getInlinePreviewTextCqwPresentation(
   return {
     ariaValueText: (value) =>
       `${formatInlinePreviewTextCompactNumber(value)} container query width units ${label.toLowerCase()}`,
-    inputMax: 999,
-    inputMin: 0,
-    inputStep: 0.1,
     inputValue: (value) => Number(value.toFixed(2)),
     output: (value) => `${formatInlinePreviewTextCompactNumber(value)}cqw`,
     parseInput: (value) => value,

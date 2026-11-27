@@ -171,7 +171,7 @@ test('contextual text ribbon text tab uses compact typography controls', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-stack--font-fields[\s\S]*>\s*\.contextual-text-ribbon-point-size-control[\s\S]*\.contextual-text-ribbon-point-size\s*\{[\s\S]*grid-column:\s*2[\s\S]*grid-row:\s*2[\s\S]*width:\s*100%/,
+    /\.contextual-text-ribbon-control-stack--font-fields[\s\S]*>\s*\.contextual-text-ribbon-point-size-control[\s\S]*\.contextual-text-ribbon-point-size\s*\{[\s\S]*grid-column:\s*2[\s\S]*grid-row:\s*2[\s\S]*width:\s*min\(100%, 76px\)/,
   )
   assert.match(
     ribbonCss,
