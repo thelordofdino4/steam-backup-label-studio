@@ -10,6 +10,7 @@ import {
 import { usePointerDrag } from './usePointerDrag'
 
 type PercentPointerDragOptions<TDragState extends PercentDragState> = {
+  applyReleasePoint?: boolean
   getBounds: (dragState: TDragState) => DragBounds | null | undefined
   onDraggedPoint: (dragState: TDragState, draggedPoint: DragPoint) => void
   stopPropagation?: boolean
@@ -25,11 +26,13 @@ export function usePercentPointerDrag<
   TDragState extends PercentDragState,
   TElement extends Element = Element,
 >({
+  applyReleasePoint,
   getBounds,
   onDraggedPoint,
   stopPropagation = true,
 }: PercentPointerDragOptions<TDragState>) {
   return usePointerDrag<TDragState, TElement>({
+    applyReleasePoint,
     stopPropagation,
     onDragMove: (dragState, event: PointerEvent<TElement>) => {
       const bounds = getBounds(dragState)
