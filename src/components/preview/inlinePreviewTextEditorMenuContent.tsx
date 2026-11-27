@@ -8,7 +8,9 @@ import {
   CONTEXTUAL_TEXT_RIBBON_COMPACT_FIELD_MIN_CH,
   getContextualTextRibbonMatchedFieldWidthCh,
   getContextualTextRibbonRangeValueWidthCss,
+  getContextualTextRibbonStraightRangeStyle,
   getInlinePreviewTextCqwPresentation,
+  getInlinePreviewTextBorderThicknessPresentation,
   getInlinePreviewTextOpacityPresentation,
   isRenderableRibbonNode,
   renderContextualTextRibbonCardResetButton,
@@ -357,6 +359,13 @@ export function InlinePreviewTextEditorMenuContent({
                   },
                 )}
                 {renderInlinePreviewTextRangeControl(
+                  controls.art?.borderThickness,
+                  {
+                    disabled: !areBorderFieldsEnabled,
+                    presentation: getInlinePreviewTextBorderThicknessPresentation(),
+                  },
+                )}
+                {renderInlinePreviewTextRangeControl(
                   controls.art?.borderRadius,
                   {
                     disabled: !areBorderFieldsEnabled,
@@ -389,7 +398,10 @@ export function InlinePreviewTextEditorMenuContent({
     controls.utilities?.x ||
     controls.utilities?.y
       ? (
-        <span className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-position">
+        <span
+          className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-position"
+          style={getContextualTextRibbonStraightRangeStyle([controls.utilities?.x, controls.utilities?.y])}
+        >
           {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
           {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
         </span>
@@ -407,7 +419,9 @@ export function InlinePreviewTextEditorMenuContent({
           controls.utilities?.arcDegrees,
         ]),
     } as CSSProperties
-    : undefined
+    : getContextualTextRibbonStraightRangeStyle([
+      controls.utilities?.width, controls.utilities?.lineSpacing, controls.utilities?.arcDegrees,
+    ])
   const layoutRangeControls =
     controls.utilities?.width ||
     controls.utilities?.lineSpacing ||

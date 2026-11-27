@@ -18,6 +18,7 @@ import {
 import {
   getCaseInsertTextBackgroundColor,
   getCaseInsertTextBorderCss,
+  getCaseInsertTextBackplateBorderShadowCss,
   getCaseInsertTextBorderRadiusCss,
   getCaseInsertTextShadowCss,
   getCaseInsertTextStrokeCss,
@@ -154,6 +155,7 @@ function getSpineTextBackplateStyle(
   return {
     backgroundColor: getCaseInsertTextBackgroundColor(style),
     border: getCaseInsertTextBorderCss(style),
+    boxShadow: getCaseInsertTextBackplateBorderShadowCss(style),
     borderRadius: getCaseInsertTextBorderRadiusCss(style),
     boxSizing: 'border-box',
     display: 'block',

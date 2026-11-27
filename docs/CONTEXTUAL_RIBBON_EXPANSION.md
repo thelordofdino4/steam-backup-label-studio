@@ -1,0 +1,60 @@
+# Contextual Ribbon Expansion
+
+> Status: CURRENT implementation checkpoint for the column/cap/interaction and utility-group slices of #265; TARGET CONTRACT for remaining full-control coverage and native acceptance.
+> Baseline: `923f7b7f` plus #374's contrast-value correction. The full issue remains open. This is app-shell layout only; text rendering, saved project state, and export owners are unchanged.
+
+## Ownership And Implemented Slice
+
+The SDD and text-editor contract distinguish #265's equal outer-card expansion
+from useful control-body limits. This supersedes their earlier content-fitted
+outer-border wording; compact control geometry, fixed row heights, renderer
+ownership and native acceptance requirements remain binding. The implemented
+slice and remaining coverage below must be reviewed separately.
+
+[contextualTextRibbonModel.ts](../src/components/preview/contextualTextRibbonModel.ts) owns deterministic column-first packing, the shared minimum, and equal peer allocation. Stacked cards share their column width. Once every column fits, available width after gaps is divided equally without integer rounding or a column cap. Useful control limits no longer stop card expansion.
+
+[contextualTextRibbonDomLayout.ts](../src/components/preview/contextualTextRibbonDomLayout.ts) is the focused measurement/application adapter extracted from the host. It measures the remaining region after shell/action chrome, applies column positions, caps each card's control body using its existing declared useful maximum, and centers surplus space. Number fields, buttons, color wells and existing group-specific CSS retain their current dimensions. HTML retains its full-row source-editor exception.
+
+When columns do not fit at their shared minimum, the scrollport and its scrollbar still fill the entire control region before the pinned actions. Cards stay at the usable floor; the next column can be partially visible at the viewport edge and scrolls freely into view. If the viewport is narrower than one card, it can scroll within that card; this does not establish native supported-size acceptance.
+
+[contextualTextRibbonInteractionLock.ts](../src/components/preview/contextualTextRibbonInteractionLock.ts) owns transient presentation locking during pointer/key edits. The host defers measurement while locked, retains scroll position, releases button/checkbox/range holds at their end, and keeps text/number/select/color editing stable until focus leaves. Tab navigation releases the edit lock so the next control can be revealed. Controlled value text changes alone do not trigger a new packing measurement. No project mutation/revision/selection owner is added.
+
+## Utility Subgroups And Field Capacity
+
+[contextualTextRibbonInnerGroups.ts](../src/components/preview/contextualTextRibbonInnerGroups.ts) owns the pure smaller-first allocator. Eligible groups grow from their minimum to the next group's width, grow equally once matched, and leave allocation when capped. Fixed gaps are deducted first. The DOM adapter applies this to the Position and Layout utility stacks, including curved Layout. A stack's range floor/cap includes its measured fixed labels, number fields, checkbox labels, units, padding, dividers and existing slider CSS limits. The option stack retains its existing 154px straight / 160px curved floor and expands to a 220px useful cap. Intrinsic Reset controls and their separator margins keep fixed widths. Both the card floor and useful body cap include the mounted subgroup requirements; remaining body space centers the complete arrangement. These profiles use growth weight 0/1 and uniform priority 0. Other intrinsic and vertical groups still use their existing layout owners.
+
+Curved number fields reserve sign, integer digits and up to two supported fractional digits from the bounds and step before editing. The current value no longer participates in sizing, and large supported values are not truncated by a seven-character cap. The curved grid reserves the numeric input's own intrinsic width as well as the row-relative character floor, so differing row/input font metrics cannot make it overlap the slider. Native spinner/chrome and the other number-field families remain part of the full capacity audit.
+
+Measured header and subgroup overrides are cleared before reading a different semantic card, because React can reuse their DOM nodes across tabs. This prevents an artistic header's full-width override from consuming a later utility card's control area. Artistic sliders explicitly remove browser block margins while preserving the existing 24px input height, so the background card's third row fits its two-row card.
+
+## Source Evidence And Limits
+
+Mounted headless diagnostics use the actual host, production ribbon, shared Disc/Case contrast catalogs and application CSS. They cover all contrast values at 320/519/719/1200 ribbon pixels, equal multi-card expansion, useful body caps, stacked alignment, disabled/value stability, unchanged preview vertical position, numeric editing through resize, full-width scrollport and next-column visibility and retained scroll offset. The expanded fixture mounts all five tabs, including all three background rows and straight/curved utility groups, at 519/719/1200/1600 ribbon pixels. It checks control bounds and pairwise overlap (excluding the intentional point-size preset overlay), subgroup caps/centering, smaller-first growth and stable curved numeric capacity across negative/fractional values. Pure tests cover fractional widths, shared minimums, packing, capped equalization and supported numeric capacity. The actual Disc straight/curved and Case cover/tray block/list plus left/right spine-block control factories also execute all five tabs at 519/1200/1600 pixels (120 target/tab/width combinations), including the real Reset layout action. Separate mounted cases retain geometry during HTML and point-size keyboard editing, slider dragging, checkbox presses and point-size button holds. These checks are not native visual, platform, assistive-technology or DPI acceptance.
+
+## Number Fields And Group Inventory
+
+| Ribbon family | Sizing owner and audit finding |
+| --- | --- |
+| Presets | Style and Layout selects are content-fit fields; reset buttons retain their intrinsic targets. No numeric fields. |
+| Text / Font | Font Family and Points share a grid with the preset chevron and two fixed steppers. Points accepts values through 96 and renders up to two fractional digits or the Mixed state; its control is capped independently of the Font Family select. Font and Paragraph emphasis/alignment buttons remain intrinsic. |
+| Artistic / Paint | Text Color and Contrast are separate single-row groups. The fixed color well does not compete with the capped, catalog-measured Contrast select. |
+| Artistic / Background and Border | The color row is intrinsic; numeric rows share a subgrid. Percent fields reserve 100%, with Auto also reserved for thickness. Padding and Radius expose the renderer bounds from their control descriptors rather than advertising 999 cqw. Stable 54px number and 26px suffix tracks include readout, insets, unit and native spinner space without changing slider or renderer values. |
+| Utilities / Position and Layout | Straight X/Y, Width, and optional spacing fields share a stable width budget from their signed bounds, two supported fractional digits, and native spinner/insets. Curved Layout derives its field budget from signed bounds and precision and uses its own spinner-free styling. Position and Layout side-by-side groups already use the smaller-first allocator; a checkbox, fixed Reset, or a vertical stack should not be treated as an additional flexible peer. |
+| Utilities / Metadata and HTML | Metadata uses status text and an intrinsic action. HTML uses its single editor region and a toggle. Neither has a number field or two competing horizontal control groups. |
+
+The production Windows walkthrough on main 30218e1 reported no failure on the tested setup before these audit changes. A mounted width and field-budget check protects the Artistic tracks and Points cap; it is not new native acceptance. Native spinner and widest signed value checks remain separate from the source-level budget. Compact Font/Paragraph catalog text below the established card floor and the full display-scale/monitor matrix are not approved by this audit.
+
+## Remaining Issue 265 Work
+
+- Finish the inventory of every non-utility internal group and number-field family, including maximum formatted values, native chrome and units. Semantic card row span and growth metadata are explicit; this checkpoint does not claim every child family has migrated to a uniform sizing contract.
+- Extend the shared allocator where other horizontal groups contain multiple eligible flexible controls. Utility groups execute the allocator; intrinsic text/button groups and vertical artistic rows still retain their existing owners.
+- Extend the representative factory matrix to every application target/state, catalog choice and long/maximum formatted value. The production control factories are mounted, but this is not full application selection/save/load/preview/export execution. Prove no lost value/unit or unusable hit target for every supported combination.
+- Verify every active interaction, especially native select/color picker focus behavior and HTML source editing; number, point-size, HTML, slider, checkbox and button interactions have executed mounted cases. Check resizing smaller than the retained layout does not obscure essential controls or cross the Live Preview label boundary.
+- Run the authorized native Tauri app from the primary checkout at minimum, default and fullscreen dimensions, plus the platform/DPI obligations in [DESKTOP_SCALING_ACCEPTANCE.md](DESKTOP_SCALING_ACCEPTANCE.md). Preview geometry and export parity must remain stable.
+
+Do not close #265 or call its full expansion contract implemented from this slice. Follow [TEXT_EDITOR_CONTRACT.md](TEXT_EDITOR_CONTRACT.md) and [TEXT_EDITOR_SMOKE_AUTOMATION.md](TEXT_EDITOR_SMOKE_AUTOMATION.md); browser diagnostics do not replace native acceptance.
+
+
+## Repeatable Remaining Checks
+
+The managed sandboxed Windows lane runs the mounted ribbon batch on every pull request. It exercises application-side color and select edit locks during resize, scans the closed fields against each option in the production catalog, and checks the preview-label and pinned-action boundaries over eight target families, all five tabs, and five representative logical ribbon widths. On a suitable provisioned host run the existing pinned browser lane with the same command in CI (see the Verify sandboxed browser cases step). Do not substitute OS scaling with CSS-width results: native WebView2 popups, Windows text/display scale, monitor transitions, and the real app minimum work-area fit are separate. See the native acceptance guide for those checks.

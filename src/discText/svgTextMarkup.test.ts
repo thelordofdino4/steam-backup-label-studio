@@ -124,3 +124,49 @@ test('straight SVG markup can hide selected glyphs while preserving paint boxes'
   assert.doesNotMatch(markup, /class="disc-text-render-text"/)
   assert.doesNotMatch(markup, /Hidden selected title/)
 })
+
+test('straight Disc SVG paints fill and border independently', () => {
+  const layout = createDefaultDiscTextLayout('none').title
+  for (const backgroundEnabled of [false, true]) {
+    for (const borderEnabled of [false, true]) {
+      const markup = buildStraightTextMarkup(
+        'title',
+        'Disc artwork title',
+        layout,
+        measureTextAsCharacters,
+        'shadow-id',
+        {
+          title: {
+            backgroundEnabled,
+            backgroundColor: '#123456',
+            borderEnabled,
+            borderColor: '#fedcba',
+          },
+        },
+      )
+      const paintBox = markup.match(/<rect\s+class="disc-text-render-box"[^>]+>/)?.[0]
+      if (!backgroundEnabled && !borderEnabled) {
+        assert.equal(paintBox, undefined)
+        continue
+      }
+      assert.ok(paintBox)
+      assert.ok(paintBox.includes(backgroundEnabled ? 'fill="#123456"' : 'fill="none"'))
+      assert.ok(paintBox.includes(borderEnabled ? 'stroke="#fedcba"' : 'stroke="none"'))
+    }
+  }
+})
+
+test('straight Disc uses the explicit text-relative thickness and preserves legacy paint', () => {
+  const layout = createDefaultDiscTextLayout('none').title
+  function strokeWidth(borderThicknessPercent?: number) {
+    const markup = buildStraightTextMarkup(
+      'title', 'Disc artwork title', layout, measureTextAsCharacters, 'shadow-id',
+      { title: { backgroundEnabled: false, borderEnabled: true, borderThicknessPercent } },
+    )
+    return Number(markup.match(/class="disc-text-render-box"[^>]+stroke-width="([^"]+)"/)?.[1])
+  }
+  assert.equal(strokeWidth(), 0.18)
+  assert.equal(strokeWidth(0), 0.18)
+  assert.ok(strokeWidth(20) > strokeWidth(10))
+  assert.ok(Math.abs(strokeWidth(20) - 2 * strokeWidth(10)) < 0.01)
+})

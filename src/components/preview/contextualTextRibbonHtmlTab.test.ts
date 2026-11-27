@@ -36,7 +36,7 @@ test('html ribbon tab uses a dedicated source panel instead of a semantic card',
   )
   const ribbonHostSource = readRepoFile(
     'src/components/preview/ContextualTextRibbon.tsx',
-  )
+  ) + readRepoFile('src/components/preview/contextualTextRibbonDomLayout.ts')
   const ribbonCss = readContextualTextRibbonCss()
 
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.source, {
@@ -67,7 +67,7 @@ test('html ribbon tab uses a dedicated source panel instead of a semantic card',
   )
   assert.match(
     ribbonHostSource,
-    /dataset\.ribbonFillRow === 'true'[\s\S]*fillsRow \? '100%' : `\$\{Math\.ceil\(width\)\}px`[\s\S]*fillsRow \? '1 \/ -1'/,
+    /dataset\.ribbonFillRow === 'true'[\s\S]*fillsRow \? '100%' : `\$\{width\}px`[\s\S]*fillsRow \? '1 \/ -1'/,
   )
   assert.match(
     ribbonCss,

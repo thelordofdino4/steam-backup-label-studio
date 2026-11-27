@@ -110,7 +110,6 @@ test('editor navigation shell defines case back role sections', () => {
       'Feature Bullets / Callouts',
       'System Requirements',
       'Legal Info',
-      'Additional Artwork',
       'Additional Text',
     ],
   )
@@ -122,7 +121,6 @@ test('editor navigation shell defines spine role sections', () => {
     [
       'Background Image',
       'Vertical Game Logo or Game Title',
-      'Steam Logo / Steam Backup Branding',
       'Company Logo',
       'Optional Media Format Type',
       'Game Info Logos',

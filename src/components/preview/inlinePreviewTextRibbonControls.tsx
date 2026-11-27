@@ -1,3 +1,5 @@
+import { TEXT_BORDER_THICKNESS_DISPLAY_MAX } from '../../text/textBorderThickness.ts'
+import { getRibbonRangeValueCapacityCh } from './contextualTextRibbonInnerGroups'
 import {
   Children,
   Fragment,
@@ -35,9 +37,9 @@ const CONTEXTUAL_TEXT_RIBBON_FIELD_LABEL_BREATHING_CH = 2
 
 export type InlinePreviewTextRangeValuePresentation = {
   ariaValueText: (value: number) => string
-  inputMax: number
-  inputMin: number
-  inputStep: number
+  inputMax?: number
+  inputMin?: number
+  inputStep?: number
   inputValue: (value: number) => number
   output: (value: number) => string
   parseInput: (value: number) => number
@@ -157,11 +159,13 @@ export function renderContextualTextRibbonGroup({
         className,
       ].filter(Boolean).join(' ')}
       data-ribbon-group-grows={size?.grows || undefined}
+      data-ribbon-group-growth-weight={size?.grows ? 1 : 0}
+      data-ribbon-group-growth-priority={0}
       data-ribbon-group-fit={size?.fit}
       data-ribbon-group-max-width={size?.max}
       data-ribbon-group-min-width={size?.min}
       data-ribbon-group-preferred-width={size?.preferred}
-      data-ribbon-group-row-span={size?.rowSpan}
+      data-ribbon-group-row-span={size?.rowSpan ?? 1}
       data-ribbon-group={id}
       style={sizeStyle}
     >
@@ -299,21 +303,21 @@ export function getContextualTextRibbonMatchedFieldWidthCh(
 export function getContextualTextRibbonRangeValueWidthCss(
   controls: Array<InlinePreviewTextEditorRangeControl | undefined>,
 ) {
-  const valueLength = (value: number) =>
-    Number(value.toFixed(2)).toString().length
-  const widestValueLength = controls.reduce((maxLength, control) => {
-    if (!control) return maxLength
-
-    return Math.max(
-      maxLength,
-      valueLength(control.min),
-      valueLength(control.max),
-      valueLength(control.value),
-    )
-  }, 0)
-  const fieldCh = Math.min(7, Math.max(4, widestValueLength + 1))
+  const fieldCh = getRibbonRangeValueCapacityCh(controls)
 
   return `calc(${fieldCh}ch + 12px)`
+}
+
+export function getContextualTextRibbonStraightRangeStyle(
+  controls: Array<InlinePreviewTextEditorRangeControl | undefined>,
+) {
+  // Plain number inputs keep their spinner. Manual entry can retain two
+  // fraction digits even when the arrow step is coarser.
+  const capacity = getRibbonRangeValueCapacityCh(controls, 2)
+  return {
+    '--contextual-text-ribbon-utility-range-value-width':
+      `max(62px, calc(${capacity}ch + 24px))`,
+  } as CSSProperties
 }
 
 export function renderInlinePreviewTextRangeControl(
@@ -331,10 +335,10 @@ export function renderInlinePreviewTextRangeControl(
   const displayedInputValue = presentation
     ? presentation.inputValue(control.value)
     : Number(control.value.toFixed(2))
-  const handleChange = (value: string) => {
+  const handleChange = (value: string, fromDisplayedNumber: boolean) => {
     if (disabled) return
     const parsedValue = Number(value)
-    const parsedDomainValue = presentation
+    const parsedDomainValue = fromDisplayedNumber && presentation
       ? presentation.parseInput(parsedValue)
       : parsedValue
     const nextValue = Math.min(
@@ -367,7 +371,7 @@ export function renderInlinePreviewTextRangeControl(
         aria-label={control.label}
         aria-valuetext={presentation?.ariaValueText(control.value)}
         title={presentation?.title}
-        onChange={(event) => handleChange(event.target.value)}
+        onChange={(event) => handleChange(event.target.value, false)}
       />
       <input
         aria-label={`${control.label}: ${formattedValue ?? displayedInputValue}`}
@@ -380,7 +384,7 @@ export function renderInlinePreviewTextRangeControl(
         value={displayedInputValue}
         disabled={disabled}
         title={presentation?.title}
-        onChange={(event) => handleChange(event.target.value)}
+        onChange={(event) => handleChange(event.target.value, true)}
       />
       {presentation ? (
         <span
@@ -415,15 +419,25 @@ export function getInlinePreviewTextOpacityPresentation(): InlinePreviewTextRang
   }
 }
 
+export function getInlinePreviewTextBorderThicknessPresentation(): InlinePreviewTextRangeValuePresentation {
+  return {
+    inputMin: 0,
+    inputMax: TEXT_BORDER_THICKNESS_DISPLAY_MAX,
+    inputStep: 1,
+    ariaValueText: (value) => value === 0 ? 'Automatic border thickness' : `${value} percent of maximum border thickness`,
+    inputValue: (value) => value,
+    output: (value) => value === 0 ? '0 Auto' : `${value}%`,
+    parseInput: (value) => value,
+    title: 'Border width from 0 to 100 percent of maximum. 0 keeps the original automatic width.',
+  }
+}
+
 export function getInlinePreviewTextCqwPresentation(
   label: string,
 ): InlinePreviewTextRangeValuePresentation {
   return {
     ariaValueText: (value) =>
       `${formatInlinePreviewTextCompactNumber(value)} container query width units ${label.toLowerCase()}`,
-    inputMax: 999,
-    inputMin: 0,
-    inputStep: 0.1,
     inputValue: (value) => Number(value.toFixed(2)),
     output: (value) => `${formatInlinePreviewTextCompactNumber(value)}cqw`,
     parseInput: (value) => value,
@@ -615,6 +629,8 @@ export function renderInlinePreviewHtmlSourcePanel({
       className="contextual-text-ribbon-html-panel"
       data-ribbon-group="source"
       data-ribbon-group-grows={size.grows || undefined}
+      data-ribbon-group-growth-weight={size.grows ? 1 : 0}
+      data-ribbon-group-growth-priority={0}
       data-ribbon-group-max-width={size.max}
       data-ribbon-group-min-width={size.min}
       data-ribbon-group-preferred-width={size.preferred}

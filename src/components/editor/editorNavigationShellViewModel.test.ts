@@ -179,11 +179,6 @@ test('editor navigation shell role section items follow the active surface', () 
         smokeId: 'editor-role-section-back-legal-info',
       },
       {
-        id: 'additional-artwork',
-        label: 'Additional Artwork',
-        smokeId: 'editor-role-section-back-additional-artwork',
-      },
-      {
         id: 'additional-text',
         label: 'Additional Text',
         smokeId: 'editor-role-section-back-additional-text',
