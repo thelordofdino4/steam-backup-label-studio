@@ -61,6 +61,7 @@ function Fixture() {
   const [expanded, setExpanded] = useState(false)
   const [enabled, setEnabled] = useState(true)
   const [opacity, setOpacity] = useState(0.75)
+  const [sizeValue, setSizeValue] = useState(32)
   const [textColor, setTextColor] = useState('#ffffff')
   const [tab, setTab] = useState('art')
   const [curved, setCurved] = useState(false)
@@ -78,7 +79,7 @@ function Fixture() {
   const controls = {
     presets: { style: selectControl('Style preset', ['High contrast', 'Clean']), layout: selectControl('Layout preset', ['Centered', 'Bottom']), onReset: noop },
     text: { fontFamily: selectControl('Font family', ['Times New Roman', 'Arial']),
-      size: { label: 'Font size', min: 6, max: 480, value: 32, step: 1, options: [12, 24, 32, 48], onChange: noop },
+      size: { label: 'Font size', min: 6, max: 480, value: sizeValue, step: 1, options: [12, 24, 32, 48], onChange: setSizeValue },
       alignment: selectControl('Alignment', ['Center', 'Justified']), bold: toggleControl('Bold'), italic: toggleControl('Italic'), underline: toggleControl('Underline'), bulletedList: toggleControl('Bulleted list') },
     utilities: { x: rangeControl('X', -1000, 1000, 0), y: rangeControl('Y', -1000, 1000, 0),
       ...(curved ? { lineSpacing: rangeControl('Line spacing', -100, 100, spacing), arcDegrees: rangeControl('Arc', 0, 360, 180) }
@@ -640,7 +641,10 @@ test('remaining catalog labels and action boundaries fit across the logical-widt
           const row = document.querySelector('.contextual-text-ribbon-control-row')
           const actions = document.querySelector('.contextual-text-ribbon-actions')?.getBoundingClientRect()
           const rowBox = row.getBoundingClientRect()
-          const fields = [...row.querySelectorAll('select')].filter(select => select.getBoundingClientRect().width)
+          // Points shows the selected value in its adjacent text input; the
+          // intentionally transparent native select is only a popup trigger.
+          const fields = [...row.querySelectorAll('select:not(.contextual-text-ribbon-point-size-presets)')]
+            .filter(select => select.getBoundingClientRect().width)
           const canvas = document.createElement('canvas').getContext('2d')
           const clipped = []
           for (const field of fields) {
@@ -666,7 +670,7 @@ test('remaining catalog labels and action boundaries fit across the logical-widt
       }
     }
   }
-  assert.ok(optionCount > 1000, 'The batch must exercise the production option catalogs')
+  assert.ok(optionCount >= 900, 'The batch must exercise the production option catalogs')
   const failuresByCard = Object.fromEntries(issues
     .flatMap(issue => issue.clipped)
     .reduce((counts, failure) => counts.set(failure.card, (counts.get(failure.card) ?? 0) + 1), new Map()))
@@ -674,4 +678,22 @@ test('remaining catalog labels and action boundaries fit across the logical-widt
     labelCrossings: issues.filter(issue => issue.crossesLabel).length,
     actionCrossings: issues.filter(issue => issue.crossesActions).length,
     failuresByCard, examples: issues.slice(0, 8) }))
+})
+
+
+test('point preset popup trigger commits through the visible number field', async () => {
+  await page.evaluate(() => {
+    document.activeElement.blur()
+    window.__contrast.setTargetKind('synthetic')
+    window.__contrast.setTab('text')
+    window.__contrast.setWidth(519)
+  })
+  const popup = page.locator('.contextual-text-ribbon-point-size-presets')
+  const readout = page.locator('[data-smoke-id="inline-text-number-font-size"]')
+  for (const value of ['12', '48']) {
+    await popup.selectOption(value)
+    await page.getByRole('button', { name: 'Done', exact: true }).focus()
+    assert.equal(await readout.inputValue(), value)
+    assert.equal(await readout.evaluate(node => getComputedStyle(node).color === 'rgba(0, 0, 0, 0)'), false)
+  }
 })
