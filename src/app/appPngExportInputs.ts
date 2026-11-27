@@ -1,5 +1,6 @@
 import { DISC_TEXT_KEYS } from '../discText/constants.ts'
 import type { DiscTextLayout } from '../discText/types.ts'
+import { getDiscPreviewCoordinateSize } from '../interaction/discPreviewCoordinates.ts'
 import type { CommittedDiscProject } from '../lifecycle/canonicalProject.ts'
 import type { RatingBadgeLayout } from '../project/projectTypes.ts'
 import type {
@@ -36,8 +37,7 @@ export function getDiscPngExportPreviewWidth(
   fallback: number,
 ) {
   // Disc background offsets are local layout pixels, not transformed viewport pixels.
-  const width = preview?.offsetWidth ?? 0
-  return Number.isFinite(width) && width > 0 ? width : fallback
+  return getDiscPreviewCoordinateSize(preview, fallback)
 }
 
 export type CreateDiscPngExportInputParams = {

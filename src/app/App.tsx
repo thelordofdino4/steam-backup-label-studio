@@ -458,7 +458,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
     selectedArtworkId,
     setSelectedArtworkId,
     isArtworkLoading,
-    backgroundPreviewSize,
+    backgroundLayout,
     backgroundOffsetSliderRanges,
     effectiveBackgroundImageUrl,
     effectiveBackgroundImageSize,
@@ -2814,7 +2814,7 @@ function App({ connectDiscHistoryDiagnostic, connectCaseHistoryDiagnostic }: {
         background={{
           imageUrl: effectiveBackgroundImageUrl,
           imageSize: effectiveBackgroundImageSize,
-          previewSize: backgroundPreviewSize,
+          layout: backgroundLayout,
           offset: backgroundOffset,
           scale: backgroundScale,
         }}
