@@ -190,6 +190,7 @@ test('restores saved disc text styles and backfills legacy style defaults', asyn
           borderEnabled: true,
           borderColor: '#778899',
           borderRadius: 1.4,
+          borderThicknessPercent: 14,
         },
       },
     },
@@ -222,6 +223,7 @@ test('restores saved disc text styles and backfills legacy style defaults', asyn
   assert.equal(restoredSavedStyles.discTextStyles.title.borderEnabled, true)
   assert.equal(restoredSavedStyles.discTextStyles.title.borderColor, '#778899')
   assert.equal(restoredSavedStyles.discTextStyles.title.borderRadius, 1.4)
+  assert.equal(restoredSavedStyles.discTextStyles.title.borderThicknessPercent, 14)
   assert.equal(restoredSavedStyles.discTextStyles.subtitle.backgroundEnabled, false)
   assert.deepEqual(restoredPresetStyles.discTextStyles.title, metallicPresetStyles.title)
 })

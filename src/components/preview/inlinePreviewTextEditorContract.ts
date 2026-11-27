@@ -213,6 +213,7 @@ export type InlinePreviewTextEditorControls = {
     borderColor?: InlinePreviewTextEditorColorControl
     borderEnabled?: InlinePreviewTextEditorCheckboxControl
     borderRadius?: InlinePreviewTextEditorRangeControl
+    borderThickness?: InlinePreviewTextEditorRangeControl
     color?: InlinePreviewTextEditorColorControl
     contrast?: InlinePreviewTextEditorSelectControl
   }

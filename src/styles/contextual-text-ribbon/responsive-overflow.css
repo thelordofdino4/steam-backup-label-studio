@@ -33,21 +33,6 @@
   }
 
   .contextual-text-ribbon-control-row--artistic
-    .contextual-text-ribbon-group--contrast
-    .contextual-text-ribbon-control select {
-    justify-self: end;
-    width: 34px;
-    min-width: 34px;
-    max-width: 34px;
-    padding-inline: 0 18px;
-    background-image: var(--contextual-text-ribbon-select-chevron);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 12px 12px;
-    color: transparent;
-  }
-
-  .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--artistic-feature {
     width: var(--contextual-text-ribbon-column-width, clamp(
       var(--contextual-text-ribbon-group-min-width),
@@ -248,21 +233,6 @@
   }
 
   .contextual-text-ribbon-control-row--artistic
-    .contextual-text-ribbon-group--contrast
-    .contextual-text-ribbon-control select {
-    justify-self: end;
-    width: 34px;
-    min-width: 34px;
-    max-width: 34px;
-    padding-inline: 0 18px;
-    background-image: var(--contextual-text-ribbon-select-chevron);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 12px 12px;
-    color: transparent;
-  }
-
-  .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--artistic-feature {
     width: var(
       --contextual-text-ribbon-column-width,
@@ -382,4 +352,58 @@
   max-width: none;
   overflow: visible;
   text-overflow: clip;
+}
+
+/* All artistic range rows use the same label, track, number and unit
+   columns. The longest label reserves space once; rows never steal width
+   from one another or overlap the slider when the ribbon narrows. */
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body {
+  display: grid;
+  grid-template-columns: max-content minmax(72px, 1fr) 54px 26px;
+  column-gap: 4px;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body > * {
+  grid-column: 1 / -1;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body > .contextual-text-ribbon-range-control {
+  grid-template-columns: subgrid;
+  column-gap: inherit;
+}
+
+/* A number input's default content-box sizing can eat the unit gap.
+   Keep the complete bordered input inside the shared number track. */
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body
+  .contextual-text-ribbon-range-control > .contextual-text-ribbon-range-value-input {
+  grid-column: 3;
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body
+  .contextual-text-ribbon-range-control > .contextual-text-ribbon-range-unit {
+  grid-column: 4;
+  justify-self: stretch;
+}
+
+@container (max-width: 719px) {
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-group-body {
+    grid-template-columns: max-content minmax(58px, 1fr) 54px 26px;
+    column-gap: 3px;
+  }
 }

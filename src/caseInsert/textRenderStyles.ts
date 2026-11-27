@@ -3,6 +3,8 @@ import {
   type CaseInsertTextStyle,
 } from './textStyles.ts'
 
+import { getExplicitTextBorderThicknessRatio } from '../text/textBorderThickness.ts'
+
 export const CASE_INSERT_TEXT_STROKE_COLOR = 'rgba(0, 0, 0, 0.78)'
 export const CASE_INSERT_TEXT_SHADOW_COLOR = 'rgba(0, 0, 0, 0.8)'
 
@@ -23,15 +25,22 @@ export function getCaseInsertTextBackgroundColor(
 }
 
 export function getCaseInsertTextBorderColor(style: CaseInsertTextStyle) {
-  return style.backgroundEnabled && style.borderEnabled
+  return style.borderEnabled
     ? hexToRgba(style.borderColor, 0.86)
     : 'transparent'
 }
 
 export function getCaseInsertTextBorderCss(style: CaseInsertTextStyle) {
-  return style.backgroundEnabled && style.borderEnabled
+  return style.borderEnabled && getExplicitTextBorderThicknessRatio(style.borderThicknessPercent) === undefined
     ? `1px solid ${getCaseInsertTextBorderColor(style)}`
     : '0'
+}
+
+export function getCaseInsertTextBackplateBorderShadowCss(style: CaseInsertTextStyle) {
+  const ratio = getExplicitTextBorderThicknessRatio(style.borderThicknessPercent)
+  return style.borderEnabled && ratio !== undefined
+    ? `inset 0 0 0 ${ratio}em ${getCaseInsertTextBorderColor(style)}`
+    : undefined
 }
 
 export function getCaseInsertTextShadowCss(style: CaseInsertTextStyle) {
