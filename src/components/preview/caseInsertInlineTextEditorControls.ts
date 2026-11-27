@@ -1,4 +1,9 @@
 import {
+  TEXT_BORDER_THICKNESS_DISPLAY_MAX,
+  getTextBorderThicknessDisplayValue,
+  getTextBorderThicknessFromDisplayValue,
+} from '../../text/textBorderThickness.ts'
+import {
   CASE_INSERT_TEXT_CONTRAST_OPTIONS,
   CASE_INSERT_TEXT_FONT_OPTIONS,
   CASE_INSERT_TEXT_STYLE_PRESETS,
@@ -516,8 +521,6 @@ export function createCaseInsertInlineTextEditorControls({
       borderEnabled: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
         checked: style.borderEnabled,
-        disabled: !style.backgroundEnabled,
-        disabledReason: 'Enable Background before editing the border.',
         onChange: (checked) =>
           handlers.onStyleChange(target, 'borderEnabled', checked),
       },
@@ -526,6 +529,15 @@ export function createCaseInsertInlineTextEditorControls({
         value: style.borderColor,
         onChange: (value) =>
           handlers.onStyleChange(target, 'borderColor', value),
+      },
+      borderThickness: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderThickness,
+        min: 0,
+        max: TEXT_BORDER_THICKNESS_DISPLAY_MAX,
+        step: 1,
+        value: getTextBorderThicknessDisplayValue(style.borderThicknessPercent),
+        onChange: (value) =>
+          handlers.onStyleChange(target, 'borderThicknessPercent', getTextBorderThicknessFromDisplayValue(value)),
       },
       borderRadius: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,

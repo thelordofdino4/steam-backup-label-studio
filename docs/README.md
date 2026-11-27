@@ -42,6 +42,8 @@ Source baseline: `31da73e1140bbb5521642dcb81066b99c7357541`, reviewed on 2026-11
 | Home and product identity | [Home](../src/components/home/HomeScreen.tsx) exposes New Disc, New Case, Load and conditional Resume. Case loading is implemented despite stale Home labels. [Tauri config](../src-tauri/tauri.conf.json) identifies Steam Backup Label Studio, version `0.1.0`. [Root license text](../LICENSE) exists. | #381 owns stale Home copy and placeholder manifest cleanup. Publisher/release/license metadata must not be invented. |
 | Platforms and release | [README platform scope](../README.md#platform-targets-and-acceptance), [CI](../.github/workflows/ci.yml), [test inventory](TEST_ORACLE_INVENTORY.md), and [native smoke guide](TEXT_EDITOR_SMOKE_AUTOMATION.md) distinguish source checks from native evidence. | Windows is the exercised native development target; no blanket packaged-release/support claim follows. #333/#334/#376/#382 own remaining platform/release acceptance. |
 
+The [desktop scaling matrix](DESKTOP_SCALING_ACCEPTANCE.md) separates CSS evidence from native work-area and monitor checks (#374).
+
 The [editor inspector structure](EDITOR_INSPECTOR_STRUCTURE.md) describes role grouping, preserved feature owners, and remaining native acceptance (#380).
 
 ## Classification Of Active References
@@ -77,6 +79,10 @@ Image import and legacy conversion policy: [`IMAGE_ASSET_ACCEPTANCE_POLICY.md`](
 
 Native Close/Quit reconciliation: [`NATIVE_TERMINATION_ACCEPTANCE.md`](NATIVE_TERMINATION_ACCEPTANCE.md) records the #360 admission barrier, native acknowledgement safety and primary Case integration boundary. [`NATIVE_TERMINATION_WINDOWS_ACCEPTANCE.md`](NATIVE_TERMINATION_WINDOWS_ACCEPTANCE.md) records exact validated heads, bounded Windows observations, saved-package integrity and remaining issue-level gates.
 
+## Current Diagnostics Checkpoint
+
+[Local Release Diagnostics](RELEASE_DIAGNOSTICS.md) records the #379 command-observation slice, its bounded data policy and remaining workflow/native acceptance. It is an implementation checkpoint, not a replacement for the lifecycle/menu contracts or a complete release-diagnostics claim.
+
 ## Active Authoritative Documents
 
 | Document | Status | Purpose | Read when | Conflict rule |
@@ -101,6 +107,8 @@ Native Close/Quit reconciliation: [`NATIVE_TERMINATION_ACCEPTANCE.md`](NATIVE_TE
 
 Product identity and release metadata: [`PRODUCT_METADATA.md`](PRODUCT_METADATA.md) inventories established values, intentionally unknown fields, and pending packaged/native acceptance under #381/#376.
 
+Contextual ribbon expansion: [`CONTEXTUAL_RIBBON_EXPANSION.md`](CONTEXTUAL_RIBBON_EXPANSION.md) records the implemented #265 column/control-cap/interaction slice and the still-open inner-group and native acceptance work.
+
 ## Conditional Reference Documents
 
 Windows PNG evidence: [`PNG_PHYSICAL_WINDOWS_ACCEPTANCE.md`](PNG_PHYSICAL_WINDOWS_ACCEPTANCE.md)
@@ -116,6 +124,7 @@ Case back copy review preparation: [`CASE_BACK_COPY_FIT_REVIEW.md`](CASE_BACK_CO
 | [`PROJECT_OPEN_BASELINE_ACCEPTANCE.md`](PROJECT_OPEN_BASELINE_ACCEPTANCE.md) | Conditional repair and acceptance evidence | Focused #308 restored Disc Open baseline repair, full aggregate synchronization regressions, and remaining native acceptance. | Open baseline or #308 acceptance work. | Lifecycle and restoration policy defer to their contracts; source checks do not replace native acceptance. |
 | [`COMMITTED_DOCUMENT_OWNERSHIP_CONTRACT.md`](COMMITTED_DOCUMENT_OWNERSHIP_CONTRACT.md) | Target architecture with focused as-built map | One document/transaction boundary, transient UI exclusions and the #365 Disc background deletion ledger. | Before #363/#365 or document/asset migration. | Existing schema/lifecycle/rendering contracts remain binding; no runtime migration is claimed. |
 | [`PERFORMANCE_BASELINE.md`](PERFORMANCE_BASELINE.md) | Canonical reproducibility guide and historical checkpoint | Node/native-code/browser baseline; the [#368 closeout](https://github.com/thelordofdino4/steam-backup-label-studio/issues/368) records later scoped Windows evidence and transfers displayed-frame acceptance to #422. | Before performance comparisons or document/asset migration. | Keep canonical and isolated native lanes distinct; source/DOM evidence does not establish panel presentation. |
+| [`RESOLVED_LAYOUT_INPUTS.md`](RESOLVED_LAYOUT_INPUTS.md) | Implemented representative slice; native acceptance pending | Shared Disc background geometry and the remaining render/interaction owner inventory (#371). | Background layout, preview sizing, pointer/selection and PNG coordinate work. | Architecture defers to the SDD; current behavior defers to focused owners. |
 | [`TEST_ORACLE_INVENTORY.md`](TEST_ORACLE_INVENTORY.md) | Conditional validation reference | Automatic test discovery, migration behavioral oracles, and file-reading test classification. | Test-runner changes, CI work, or document/asset migrations. | Current runner owns inclusion; feature contracts own behavior; native acceptance remains separate. |
 | [`REPO_ARCHITECTURE_INVENTORY.md`](REPO_ARCHITECTURE_INVENTORY.md) | Conditional reference | As-built file and ownership inventory. It is a map of current code ownership, not a second SDD. | Finding owners before code changes, refactors, or architecture-sensitive edits. | Ownership facts defer to current source if stale; architecture rules defer to the SDD. |
 | [`TEXT_EDITOR_SMOKE_AUTOMATION.md`](TEXT_EDITOR_SMOKE_AUTOMATION.md) | Conditional reference | Native Tauri text-editor smoke pilot guide plus diagnostic-only browser automation notes. | Before Any App/native smoke, browser diagnostics, or text-editor smoke/capture script updates. | Automation-process conflicts defer to this guide; behavioral contracts defer to `TEXT_EDITOR_CONTRACT.md`. |

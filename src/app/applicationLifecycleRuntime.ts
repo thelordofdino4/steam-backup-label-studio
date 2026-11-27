@@ -1,6 +1,7 @@
 import type { LifecyclePerformanceObserver } from '../lifecycle/lifecyclePerformanceObserver.ts'
 import { createApplicationNativeTerminationCommandOwners } from './appNativeTerminationCommand.ts'
 import { createApplicationTerminationRuntime, type ApplicationTerminationRuntimeDependencies, type NativeTerminationFeedback } from './applicationTerminationRuntime.ts'
+import { createApplicationCommandDiagnostics, type ApplicationCommandDiagnostics } from '../diagnostics/applicationCommandDiagnostics.ts'
 import {
   createApplicationLifecycleCompositionRoot,
   type ApplicationLifecycleCompositionRoot,
@@ -38,6 +39,7 @@ export type ApplicationLifecycleRuntime = Readonly<{
   root: ApplicationLifecycleCompositionRoot
   projectAsyncWork: ProjectAsyncWork
   connectNativeTerminationIngress(feedback: NativeTerminationFeedback): () => void
+  diagnostics: ApplicationCommandDiagnostics
   updateProjectOpenDependencies(
     dependencies: ApplicationProjectOpenRuntimeDependencies,
   ): void
@@ -126,6 +128,7 @@ export function createApplicationLifecycleRuntime(
   const terminationOwners = createApplicationNativeTerminationCommandOwners(
     terminationRuntime.handoff, replacementGuard, getCurrentEditorEdit,
   )
+  const diagnostics = createApplicationCommandDiagnostics()
   const root = createRoot({
     performanceObserver: options.performanceObserver,
     ...(options.casePresetProjection ? { casePresetProjection: true } : {}),
@@ -134,6 +137,7 @@ export function createApplicationLifecycleRuntime(
     }),
     getTerminationCapabilities: terminationRuntime.capabilities,
     canAcceptCommands: () => !disposed && !terminationRuntime.isHandoffPending(),
+    observeExecution: diagnostics.observeExecution,
     ports: {
       closeWindow: terminationOwners.closeWindow,
       quitApplication: terminationOwners.quitApplication,
@@ -168,6 +172,7 @@ export function createApplicationLifecycleRuntime(
     caseInsertContinuousEditPort = null
     unsubscribeAsyncWork()
     projectAsyncWork.dispose()
+    diagnostics.dispose()
     const pending = terminationRuntime.dispose()
     root.dispose()
     await pending
@@ -177,6 +182,7 @@ export function createApplicationLifecycleRuntime(
     root,
     projectAsyncWork,
     connectNativeTerminationIngress: terminationRuntime.connect,
+    diagnostics,
     updateProjectOpenDependencies(dependencies) {
       if (disposed) {
         throw new Error('The application lifecycle runtime is disposed.')

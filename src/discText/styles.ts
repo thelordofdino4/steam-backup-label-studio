@@ -4,6 +4,8 @@ import {
   RICH_TEXT_NORMAL_FONT_WEIGHT,
 } from '../text/richTextWeights.ts'
 
+import { normalizeTextBorderThicknessPercent } from '../text/textBorderThickness.ts'
+
 export type DiscTextRenderStyle = {
   fontSizePercent: number
   fontWeight: number
@@ -39,12 +41,13 @@ export type DiscTextStyle = {
   borderEnabled: boolean
   borderColor: string
   borderRadius: number
+  borderThicknessPercent?: number
 }
 
 export type DiscTextStyleSettings = Record<DiscTextKey, DiscTextStyle>
 export type DiscTextStyleInput = Partial<Record<DiscTextKey, Partial<DiscTextStyle>>>
 export type DiscTextStyleField = keyof DiscTextStyle
-export type DiscTextStyleValue = DiscTextStyle[DiscTextStyleField]
+export type DiscTextStyleValue = NonNullable<DiscTextStyle[DiscTextStyleField]>
 export type DiscTextMeasurementStyle = Pick<
   DiscTextStyle,
   'bold' | 'fontFamily' | 'italic'
@@ -309,6 +312,7 @@ export function normalizeDiscTextStyle(
   const defaults = createDefaultDiscTextStyle(key)
   const fontFamily = style?.fontFamily
   const contrast = style?.contrast
+  const borderThicknessPercent = normalizeTextBorderThicknessPercent(style?.borderThicknessPercent)
 
   return {
     fontFamily:
@@ -342,6 +346,7 @@ export function normalizeDiscTextStyle(
     ),
     borderEnabled: normalizeBoolean(style?.borderEnabled, defaults.borderEnabled),
     borderColor: normalizeHexColor(style?.borderColor, defaults.borderColor),
+    ...(borderThicknessPercent === undefined ? {} : { borderThicknessPercent }),
     borderRadius: normalizeNumber(
       style?.borderRadius,
       defaults.borderRadius,

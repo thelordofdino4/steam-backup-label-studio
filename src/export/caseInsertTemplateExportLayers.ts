@@ -312,7 +312,7 @@ function drawTemplateTextBlock(
         800,
         renderedTextBlock.style,
       ),
-      ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
+      ...getCaseInsertTextCanvasOptions(renderedTextBlock.style, layout.width),
     })
     return
   }
@@ -326,7 +326,7 @@ function drawTemplateTextBlock(
         : 600,
       renderedTextBlock.style,
     ),
-    ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
+    ...getCaseInsertTextCanvasOptions(renderedTextBlock.style, layout.width),
   })
 }
 
@@ -350,7 +350,7 @@ function drawTemplateTextList(
   drawComputedTextLayout(context, textListLayout, {
     align: 'left',
     weight: getCaseInsertTextEffectiveFontWeight(600, textList.style),
-    ...getCaseInsertTextCanvasOptions(textList.style),
+    ...getCaseInsertTextCanvasOptions(textList.style, layout.width),
   })
 }
 

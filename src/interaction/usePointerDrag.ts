@@ -7,6 +7,7 @@ export type PointerDragActivationOptions = {
 }
 
 type PointerDragOptions<TDragState extends PointerDragStart, TElement extends Element> = {
+  applyReleasePoint?: boolean
   onDragMove: (dragState: TDragState, event: PointerEvent<TElement>) => void
   stopPropagation?: boolean
 }
@@ -16,6 +17,8 @@ type ActivePointerDrag<TDragState extends PointerDragStart, TElement extends Ele
   activated: boolean
   currentTarget: TElement
   dragState: TDragState
+  lastClientX: number
+  lastClientY: number
   movementTolerancePx: number
   pointerId: number
 }
@@ -37,6 +40,7 @@ export function usePointerDrag<
   TDragState extends PointerDragStart,
   TElement extends Element = Element,
 >({
+  applyReleasePoint = false,
   onDragMove,
   stopPropagation = false,
 }: PointerDragOptions<TDragState, TElement>) {
@@ -50,6 +54,8 @@ export function usePointerDrag<
       return
     }
 
+    // Retire before releasing capture so a follow-up event cannot reuse this gesture.
+    activeDragRef.current = null
     if (activeDrag.activationTimeoutId !== null) {
       window.clearTimeout(activeDrag.activationTimeoutId)
     }
@@ -57,8 +63,6 @@ export function usePointerDrag<
     if (activeDrag.currentTarget.hasPointerCapture(activeDrag.pointerId)) {
       activeDrag.currentTarget.releasePointerCapture(activeDrag.pointerId)
     }
-
-    activeDragRef.current = null
   }, [])
 
   const beginPointerDrag = useCallback(
@@ -80,6 +84,8 @@ export function usePointerDrag<
         activated: activationDelayMs <= 0,
         currentTarget: event.currentTarget,
         dragState,
+        lastClientX: dragState.startClientX,
+        lastClientY: dragState.startClientY,
         movementTolerancePx: activationOptions.movementTolerancePx ??
           DEFAULT_POINTER_DRAG_MOVEMENT_TOLERANCE_PX,
         pointerId: event.pointerId,
@@ -126,6 +132,8 @@ export function usePointerDrag<
         return
       }
 
+      activeDrag.lastClientX = event.clientX
+      activeDrag.lastClientY = event.clientY
       onDragMove(activeDrag.dragState, event)
     },
     [clearActiveDrag, onDragMove, stopPropagation],
@@ -143,9 +151,19 @@ export function usePointerDrag<
         event.stopPropagation()
       }
 
+      const shouldApplyRelease = applyReleasePoint &&
+        event.type === 'pointerup' &&
+        activeDrag.activated &&
+        event.currentTarget === activeDrag.currentTarget &&
+        activeDrag.currentTarget.isConnected &&
+        (event.clientX !== activeDrag.lastClientX || event.clientY !== activeDrag.lastClientY)
+
       clearActiveDrag()
+      if (shouldApplyRelease) {
+        onDragMove(activeDrag.dragState, event)
+      }
     },
-    [clearActiveDrag, stopPropagation],
+    [applyReleasePoint, clearActiveDrag, onDragMove, stopPropagation],
   )
 
   const cancelPointerDrag = useCallback(() => {

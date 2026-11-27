@@ -367,7 +367,7 @@ callers; the picker helper is not a general application-modal framework.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
-Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. The application ingress performs a second bridge/window/projection-generation check. File lifecycle and `menu.file.export-png` targets dispatch through the application root; Tools targets resolve through `applicationMenuWorkflowRouting.ts` into the typed navigation store. That store rechecks session, editor/surface, host, registered owner, modal, and transition readiness, then reveals one shared host and focuses the registered control after commit. Stable portal containers preserve one live owner presentation and prevent duplicate IDs while keeping the sidebar slot available. Navigation completion publishes no false domain-success feedback and changes no project/session state. Native Close Window and Quit dispatch through the guarded termination owner; unimplemented Edit, Window and Help targets remain unavailable.
+Application-menu presentation IDs are separate from semantic command and owner IDs. The pure menu registry maps each first-release item to a lifecycle command, domain command, typed workflow destination, focused-edit role, native-window operation, or informational operation. Capability projection consumes owner-provided capabilities and does not reproduce domain authorization. The native transport strips semantic targets before Rust construction; Rust owns only native objects, validation, enabled/checked/dynamic-label projection application, and event forwarding. One bridge instance attaches to the exact `main` window, rejects stale/duplicate/wrong-window/wrong-platform/wrong-item-set state, and tears down idempotently across remount or HMR. The application ingress performs a second bridge/window/projection-generation check. File lifecycle and `menu.file.export-png` targets dispatch through the application root; Tools targets resolve through `applicationMenuWorkflowRouting.ts` into the typed navigation store. That store rechecks session, editor/surface, host, registered owner, modal, and transition readiness, then reveals one shared host and focuses the registered control after commit. Stable portal containers preserve one live owner presentation and prevent duplicate IDs while keeping the sidebar slot available. Navigation completion publishes no false domain-success feedback and changes no project/session state. Native Close Window and Quit dispatch through the guarded termination owner. The Help documentation item uses the informational owner for packaged offline guidance and a bounded local report; Home exposes the same owner without native menu availability. Help is nonmodal, rechecks application/native dialog ownership, restores focus, and changes no project state. About, external Report an Issue, and unimplemented Edit and Window actions remain unavailable.
 
 ### 5.4 Render, Edit, And Export Paths
 
@@ -375,7 +375,7 @@ Application-menu presentation IDs are separate from semantic command and owner I
 - Vite entry: `index.html` provides the root element and loads `/src/main.tsx`.
 - Tauri dev/build entry: `src-tauri/tauri.conf.json` points dev to Vite and packaged frontend output to `dist`.
 - UI routing: `App.tsx` renders `HomeScreen`, disc editor panels plus `DiscPreview`, or `CaseInsertEditorShell`.
-- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects owner capabilities, routes seven File lifecycle commands plus `export.png` through the existing application root, and routes the five no-accelerator Tools launchers through the typed editor-navigation owner. Because the pinned Windows WebView2/Wry path does not emit native Ctrl accelerator events, one bounded window-local adapter derives command-owned chords from the same descriptor and routes only latest-projected-enabled activations through the same ingress with modal/key-owner precedence and cross-source deduplication. Native Close Window and Quit use the guarded termination owner. Unimplemented Edit, Window and Help targets stay disabled.
+- Native integration: frontend wrappers call Tauri commands registered in `src-tauri/src/lib.rs`; the application-menu runtime additionally installs a descriptor-driven native menu, projects owner capabilities, routes seven File lifecycle commands plus `export.png` through the existing application root, and routes the five no-accelerator Tools launchers through the typed editor-navigation owner. Because the pinned Windows WebView2/Wry path does not emit native Ctrl accelerator events, one bounded window-local adapter derives command-owned chords from the same descriptor and routes only latest-projected-enabled activations through the same ingress with modal/key-owner precedence and cross-source deduplication. Native Close Window and Quit use the guarded termination owner. Help documentation uses its informational owner; unimplemented Edit, Window and other Help targets stay disabled.
 - Open: every current Home, Disc, and Case Load control dispatches
   `project.open`; the owner stages dialog/read/schema/restore work before one
   dirty-aware replacement decision and one batched lifecycle-and-editor commit.
@@ -395,6 +395,8 @@ Application-menu presentation IDs are separate from semantic command and owner I
   result adapter. Accepted messages are deduplicated by the shared status owner
   and remain available across Home/editor workspace changes.
 - Export: `App.tsx` opens the native destination chooser, calls preflight helpers, always requests confirmation (information for clean summaries and warning for summaries with warnings), calls canvas export helpers, then writes PNG bytes through Tauri.
+
+Disc background rendering now consumes one immutable numeric layout from `image/backgroundImage.ts` for preview placement, interaction extents, offset clamps and canvas output projection. Preview sizing and PNG invocation use the untransformed local width; viewport zoom/pan never enters the offset basis. See [Resolved Layout Inputs](RESOLVED_LAYOUT_INPUTS.md) for the owner inventory, legacy missing-metadata boundary and pending native acceptance.
 
 ### 5.5 Invariants And Future-Change Rules
 
@@ -1053,15 +1055,16 @@ Ribbon placement and layout:
   its maximum useful width. These fields should not stretch beyond that target
   merely because the card has spare horizontal space unless the group has an
   explicit flexible-field contract.
-- Dense semantic boxes that own matched stacked fields are content-fitted: the
-  bordered box ends after the last contained control plus normal padding,
-  separator, and border. If a contained field expands because its matched-width
-  value set grows, the owning box and any stacked sibling in the same column
-  follow that content-derived width up to the group's maximum useful width.
-  Extra header/ribbon width must not stretch Text > Font or Text > Paragraph
-  once their contained controls have reached their target sizes. This prevents
-  dead card interiors and keeps extra header width available for groups that
-  can use it meaningfully.
+- #265 separates outer-card allocation from contained-control usefulness.
+  Peer columns share the largest required minimum and divide the available
+  card region equally after reserved actions and gaps. Stacked cards fill their
+  column; insufficient space scrolls across the full control region without shrinking cards below their usable floor.
+  Dense Font and Paragraph control bodies retain content-derived capacities
+  and fixed internal gaps. After controls reach their useful caps, additional
+  outer-card width becomes balanced space around the cohesive body. This
+  supersedes the earlier rule that their outer borders stop at the last control.
+  Compact paint control geometry and body caps remain consistent across text
+  targets even when their outer peer-column allocations differ.
 - Compact select fields in dense text-ribbon groups use the same target-width
   rule even when they are unpaired; for example, Paragraph alignment is sized
   from the widest supported alignment label, not from leftover card width.
@@ -1126,9 +1129,9 @@ Ribbon placement and layout:
   card. HTML source remains in the dedicated `HTML` tab, and Utilities must
   not render empty placeholder cards for unavailable source or unsupported
   target-specific controls. A range-only
-  `Layout` card uses a compact content width so its right border remains near
-  the last visible control; the wider Layout profile is reserved for targets
-  with additional mode or arc option columns.
+  `Layout` control body retains a compact useful width; the wider body
+  profile is reserved for targets with additional mode or arc option columns.
+  The outer card follows the equal-column allocation described above.
 - The HTML tab is rendered as a dedicated two-row source panel rather than a
   titled semantic-card group. It owns source/status text, validation feedback,
   and a monospaced source textarea with native typing, selection, clipboard,
