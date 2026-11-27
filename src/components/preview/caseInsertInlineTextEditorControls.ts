@@ -516,8 +516,6 @@ export function createCaseInsertInlineTextEditorControls({
       borderEnabled: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
         checked: style.borderEnabled,
-        disabled: !style.backgroundEnabled,
-        disabledReason: 'Enable Background before editing the border.',
         onChange: (checked) =>
           handlers.onStyleChange(target, 'borderEnabled', checked),
       },
